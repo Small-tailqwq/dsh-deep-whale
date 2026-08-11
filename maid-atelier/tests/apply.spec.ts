@@ -1,0 +1,870 @@
+// @vitest-environment jsdom
+/**
+ * Maid Atelier skin apply spec — the template contract: the body
+ * attribute the stylesheet is scoped on is set on apply and retracted on
+ * dispose, and every injected chrome element (marked data-skin-chrome) is
+ * removed. Extend with assertions specific to your surface.
+ */
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { Context, type Fiber } from 'cordis'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { apply } from '../src/client/index.ts'
+
+const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
+
+let fiber: Fiber | undefined
+
+async function mount(): Promise<Fiber> {
+  const f = new Context().plugin({ apply })
+  await f.await()
+  return f
+}
+
+/** Let jsdom deliver the current MutationObserver checkpoint. */
+async function flushMutations(): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, 0))
+}
+
+afterEach(async () => {
+  await fiber?.dispose()
+  fiber = undefined
+  vi.unstubAllGlobals()
+  document.body.innerHTML = ''
+  document.title = ''
+})
+
+describe('Maid Atelier skin apply', () => {
+  it('sets the body attribute and retracts it on dispose', async () => {
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
+    await fiber.dispose()
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
+  })
+
+  it('injects chrome and retracts every element on dispose', async () => {
+    fiber = await mount()
+    expect(document.body.querySelectorAll('[data-skin-chrome]').length).toBeGreaterThan(0)
+    expect(document.body.querySelectorAll('[data-skin-trim-layer]')).toHaveLength(2)
+    await fiber.dispose()
+    expect(document.body.querySelectorAll('[data-skin-chrome]').length).toBe(0)
+    expect(document.body.querySelectorAll('[data-skin-trim-layer]')).toHaveLength(0)
+  })
+
+  it('keeps the mascot and custom brand as independent layers', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div>
+          <div class="fixture_logoRow">
+            <button class="fixture_brand"><svg aria-hidden="true"></svg></button>
+          </div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+
+    const mascot = document.querySelector<HTMLImageElement>("[data-skin-chrome='sidebar-mascot']")
+    expect(mascot?.src).toContain('data:image/png;base64,')
+    const corners = document.querySelector("[data-skin-chrome='sidebar-corners']")
+    expect(corners?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
+    const brand = document.querySelector<HTMLImageElement>("[data-skin-chrome='brand-lockup']")
+    expect(brand?.src).toContain('data:image/png;base64,')
+
+    await fiber.dispose()
+    expect(document.querySelector("[data-skin-owner='maid-atelier']")).toBeNull()
+  })
+
+  it('decorates a sidebar mounted after the skin', async () => {
+    fiber = await mount()
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div data-pane="sidebar"><div><button class="fixture_brand"><svg></svg></button></div></div>',
+    )
+    await flushMutations()
+
+    expect(document.querySelector("[data-skin-chrome='sidebar-mascot']")).not.toBeNull()
+    expect(document.querySelector("[data-skin-chrome='brand-lockup']")).not.toBeNull()
+  })
+
+  it('marks the active workspace group and its session tree, then retracts every hook', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div>
+          <div role="tree">
+            <div role="treeitem" aria-expanded="false"><span class="fixture_folder"></span></div>
+            <div role="treeitem" aria-expanded="true"><span class="fixture_folder"></span></div>
+            <div role="treeitem" aria-selected="true"><span class="fixture_title">Current</span></div>
+            <div role="treeitem" aria-selected="false"><span class="fixture_title">Other</span></div>
+          </div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+
+    const workspace = document.querySelectorAll<HTMLElement>("[role='treeitem'][aria-expanded]")[1]!
+    const group = workspace.parentElement!
+    const sessions = group.querySelectorAll<HTMLElement>("[role='treeitem'][aria-selected]")
+    expect(group.hasAttribute('data-maid-workspace-group')).toBe(true)
+    expect(workspace.hasAttribute('data-maid-workspace-row')).toBe(true)
+    expect(workspace.hasAttribute('data-maid-workspace-active')).toBe(true)
+    expect([...sessions].every(session => session.hasAttribute('data-maid-session-row'))).toBe(true)
+    expect(sessions[0]!.hasAttribute('data-maid-session-first')).toBe(true)
+    expect(sessions[1]!.hasAttribute('data-maid-session-last')).toBe(true)
+
+    sessions[0]!.setAttribute('aria-selected', 'false')
+    await flushMutations()
+    expect(workspace.hasAttribute('data-maid-workspace-active')).toBe(false)
+
+    await fiber.dispose()
+    expect(document.querySelector('[data-maid-workspace-group]')).toBeNull()
+    expect(document.querySelector('[data-maid-workspace-row]')).toBeNull()
+    expect(document.querySelector('[data-maid-session-row]')).toBeNull()
+    expect(document.querySelector('[data-maid-session-first]')).toBeNull()
+    expect(document.querySelector('[data-maid-session-last]')).toBeNull()
+  })
+
+  it('pins the skin title and restores the original on dispose', async () => {
+    document.title = 'original'
+    fiber = await mount()
+    expect(document.title).not.toBe('original')
+    await fiber.dispose()
+    expect(document.title).toBe('original')
+  })
+
+  it('installs an inlined background and restores prior body styles', async () => {
+    document.body.style.setProperty('background-position', 'left bottom')
+    fiber = await mount()
+    expect(document.body.style.backgroundImage).toContain('data:image/png;base64,')
+    expect(document.body.style.backgroundImage).not.toContain('linear-gradient')
+    expect(document.body.style.backgroundPosition).toBe('center top')
+    expect(document.body.style.backgroundSize).toBe('cover')
+    await fiber.dispose()
+    expect(document.body.style.backgroundImage).toBe('')
+    expect(document.body.style.backgroundPosition).toBe('left bottom')
+  })
+
+  it('keeps both original-resolution characters independent from the palace backdrop', async () => {
+    fiber = await mount()
+    const stage = document.querySelector("[data-skin-chrome='character-stage']")
+    const characters = stage?.querySelectorAll<HTMLImageElement>('[data-maid-character]')
+    expect(characters).toHaveLength(2)
+    expect(characters?.[0]?.dataset.maidCharacter).toBe('left')
+    expect(characters?.[1]?.dataset.maidCharacter).toBe('right')
+    expect([...characters ?? []].every(character => character.src.startsWith('data:image/png;base64,'))).toBe(true)
+    await fiber.dispose()
+    expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+  }, 10_000)
+
+  it('installs and restores the raster control plates', async () => {
+    document.body.style.setProperty('--maid-new-session-art', 'legacy')
+    document.body.style.setProperty('--maid-workspace-ribbon-art', 'legacy-ribbon')
+    fiber = await mount()
+    expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-bottom-trim-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-bottom-crest-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-bow-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toContain('data:image/png;base64,')
+    expect(document.querySelector("[data-skin-ornament='crest']")).toBeNull()
+    await fiber.dispose()
+    expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-bottom-trim-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-bottom-crest-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-bow-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-new-session-art')).toBe('legacy')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toBe('legacy-ribbon')
+  })
+
+  it('overlaps the composer backing plate beneath the hollow raster frame', () => {
+    const backingRule = [...CSS.matchAll(/\[data-composer-card\]::after\s*\{([^}]*)\}/g)]
+      .map(match => match[1] ?? '')
+      .find(rule => rule.includes("content: ''")) ?? ''
+    expect(backingRule).toContain("content: ''")
+    expect(backingRule).toContain('inset: 0 -0.52% -2%')
+    expect(backingRule).toContain('background: inherit')
+    expect(backingRule).toContain('pointer-events: none')
+  })
+
+  it('keeps question and todo copy paired with readable skin surfaces', () => {
+    expect(CSS).toMatch(/\[data-question-key\]\s*\{[^}]*--dsw-alias-label-primary: #142044/s)
+    expect(CSS).toMatch(/\[data-question-key\] > section\s*\{[^}]*rgba\(255, 254, 250, 0\.97\)/s)
+    expect(CSS).toMatch(/\[data-question-key\] \[aria-checked='true'\]\s*\{[^}]*background: linear-gradient/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-question-key\]\s*\{[^}]*--dsw-alias-label-primary: #edf1fa/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-question-key\] > section\s*\{[^}]*rgba\(19, 35, 76, 0\.98\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-question-key\] \[aria-checked='true'\]\s*\{[^}]*rgba\(74, 99, 163, 0\.5\)/s)
+    expect(CSS).toMatch(/\[data-testid='todo-panel'\]\s*\{[^}]*--dsw-alias-label-primary: #172347/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-testid='todo-panel'\]\s*\{[^}]*--dsw-alias-label-primary: #f4ead3/s)
+  })
+
+  it('aligns docked composer controls and paints context usage gold over blue', () => {
+    expect(CSS).toMatch(/\[data-phase='active'\] \[data-composer-card\] > \[class\*='row'\]\s*\{[^}]*padding: 2px 14px 10px/s)
+    expect(CSS).toMatch(/button\[class\*='add'\][\s\S]*?width: 38px[\s\S]*?border-radius: 50%/)
+    expect(CSS).toMatch(/\[class\*='modes'\] button\[class\*='trigger'\]:has\(\[class\*='triggerIcon'\]\)/)
+    expect(CSS).toMatch(/button\[aria-haspopup='dialog'\] \[class\*='track'\]\s*\{[^}]*stroke: #4d6bab/s)
+    expect(CSS).toMatch(/button\[aria-haspopup='dialog'\] \[class\*='fill'\]\s*\{[^}]*stroke: #d3a957/s)
+    expect(CSS).toMatch(/\[role='dialog'\] \[class\*='header'\][\s\S]*?color: #172347/)
+    expect(CSS).toMatch(/\[class\*='triggerEffort'\]\s*\{[^}]*color: #a77c36/s)
+  })
+
+  it('nine-slices one composer frame across hero and workspace heights', () => {
+    const frameRule = CSS.match(/\[data-composer-card\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(frameRule).toContain('inset: -20px -14px -18px')
+    expect(frameRule).toContain('z-index: 1')
+    expect(frameRule).toContain('border-width: 72px 54px 52px')
+    expect(frameRule).toContain('border-image-source: var(--maid-composer-frame-art)')
+    expect(frameRule).toContain('border-image-slice: 170 120 115 120')
+    expect(frameRule).toContain('border-image-width: 72px 54px 52px 54px')
+    expect(frameRule).toContain('border-image-repeat: stretch')
+    expect(frameRule).not.toContain('100% 100%')
+  })
+
+  it('three-slices the new-session plate without stretching its ornamental ends', () => {
+    const plateRule = CSS.match(/button\[class\*='newSession'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const hoverRule = CSS.match(
+      /button\[class\*='newSession'\]:hover\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const collapsedRule = [...CSS.matchAll(/button\[class\*='newSession'\]\s*\{([^}]*)\}/g)]
+      .map((match) => match[1] ?? '')
+      .find((rule) => rule.includes('border-image: none')) ?? ''
+    const narrowRule = [...CSS.matchAll(/button\[class\*='newSession'\]\s*\{([^}]*)\}/g)]
+      .map((match) => match[1] ?? '')
+      .find((rule) => rule.includes('border-image-width: 0 32px')) ?? ''
+    expect(plateRule).toContain('border-image-source: var(--maid-new-session-art)')
+    expect(plateRule).toContain('border-image-slice: 0 210 0 210 fill')
+    expect(plateRule).toContain('border-image-width: 0 40px')
+    expect(plateRule).toContain('border-image-repeat: stretch')
+    expect(plateRule).not.toContain('100% 100%')
+    expect(hoverRule).not.toContain('background:')
+    expect(narrowRule).toContain('padding-inline: 0')
+    expect(narrowRule).toContain('border-width: 0 32px')
+    expect(collapsedRule).toContain('border-image: none')
+  })
+
+  it('uses dedicated circular controls on the collapsed sidebar rail', () => {
+    const toggleRule = CSS.match(
+      /\[class\*='logoRow'\] \[class\*='toggle'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const collapsedSessionIconRule = [...CSS.matchAll(
+      /button\[class\*='newSession'\] svg\s*\{([^}]*)\}/g,
+    )].map(match => match[1] ?? '').find(rule => rule.includes('#efd7a1')) ?? ''
+    const collapsedFootRule = [...CSS.matchAll(
+      /\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/g,
+    )].map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
+    const collapsedSessionRule = [...CSS.matchAll(/button\[class\*='newSession'\]\s*\{([^}]*)\}/g)]
+      .map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
+    const collapsedFootAreaRule = [...CSS.matchAll(/\[class\*='footArea'\]\s*\{([^}]*)\}/g)]
+      .map(match => match[1] ?? '').find(rule => rule.includes('display: flex')) ?? ''
+    const sharedRailRule = CSS.match(
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const sharedRailHoverRule = CSS.match(
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\):is\(:hover, :focus-visible\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(toggleRule).toContain('border-radius: 50%')
+    expect(sharedRailRule).toContain('width: var(--maid-rail-control-size)')
+    expect(sharedRailRule).toContain('height: var(--maid-rail-control-size)')
+    expect(sharedRailRule).toContain('flex: 0 0 var(--maid-rail-control-size)')
+    expect(sharedRailRule).toContain('border-image: none')
+    expect(sharedRailRule).toContain('overflow: visible')
+    expect(sharedRailHoverRule).toContain('transform: none')
+    expect(collapsedSessionIconRule).toContain('color: #efd7a1')
+    expect(collapsedSessionRule).toContain('align-self: center')
+    expect(collapsedSessionRule).toContain('margin: 6px 0 10px')
+    expect(collapsedFootAreaRule).toContain('justify-content: center')
+    expect(collapsedFootRule).toContain('width: 38px')
+    expect(collapsedFootRule).toContain('margin: 0')
+    expect(collapsedFootRule).toContain('border-radius: 50%')
+    expect(CSS).toMatch(/\[data-maid-sidebar-size='rail'\] \[class\*='sectionHeader'\]\s*\{[^}]*justify-content: center/)
+    expect(CSS).toMatch(/\[class\*='search'\]:has\(> \[class\*='searchButton'\]\)\s*\{[^}]*justify-content: center/)
+    expect(CSS).toMatch(/\[class\*='regionArea'\]\)\s*\{[^}]*overflow: visible/)
+  })
+
+  it('keeps settings content independent from collapsed sidebar icon chrome', () => {
+    const railIconSelectors = [...CSS.matchAll(
+      /body\[data-dsh-maid-atelier\]\[data-maid-sidebar-size='rail'\][^{]+:is\(\[class\*='iconButton'\], \[class\*='searchButton'\]\)[^{]+\{/g,
+    )].map(match => match[0] ?? '')
+    const centeredSettingsContentRule = CSS.match(
+      /\[class\*='footArea'\][\s\S]*?> :is\(button, \[role='button'\]\)[\s\S]*?> \[class\*='triggerContent'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const centeredSettingsLabelRule = CSS.match(
+      /\[class\*='triggerContent'\][\s\S]*?> \[class\*='triggerLabel'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(railIconSelectors.length).toBeGreaterThan(0)
+    expect(railIconSelectors.every(selector => selector.includes(":not([role='dialog'] *)"))).toBe(true)
+    expect(centeredSettingsContentRule).toContain('position: relative')
+    expect(centeredSettingsContentRule).toContain('flex: 1 1 auto')
+    expect(centeredSettingsLabelRule).toContain('left: 50%')
+    expect(centeredSettingsLabelRule).toContain('transform: translateX(-50%)')
+  })
+
+  it('keeps delayed sidebar tooltips out of the rail flex layout', () => {
+    const sidebarLayerSelector = CSS.match(
+      /body\[data-dsh-maid-atelier\] :is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div > :not\(([\s\S]*?)\)\s*\{/,
+    )?.[1] ?? ''
+    expect(sidebarLayerSelector).toContain("[role='tooltip']")
+  })
+
+  it('paints the sidebar double rule without shrinking the collapsed rail', () => {
+    const sidebarRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(sidebarRule).toContain('border-right: 0')
+    expect(sidebarRule).toContain('inset -1px 0 rgba(255, 245, 215, 0.82)')
+    expect(sidebarRule).toContain('inset -3px 0 rgba(226, 207, 166, 0.72)')
+  })
+
+  it('restores the large hero text floor without fixing the workspace height', () => {
+    const mirrorRule = CSS.match(/\[data-input-mirror\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const heroMirrorRule = CSS.match(
+      /\[data-phase='hero'\] \[data-input-mirror\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(mirrorRule).toContain('min-height: 0')
+    expect(heroMirrorRule).toContain('min-height: clamp(72px, 9vh, 118px)')
+    expect(mirrorRule).toContain('transition: min-height 520ms')
+    expect(CSS).not.toMatch(/\[data-phase='hero'\] \[data-composer-card\][^{]*\{[^}]*min-height/s)
+  })
+
+  it('scales and translucently backs the landing composer through official width hooks', () => {
+    const heroRule = CSS.match(/\[data-phase='hero'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const heroCardRule = CSS.match(
+      /\[data-phase='hero'\] \[data-composer-card\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const heroBackingRule = CSS.match(
+      /\[data-phase='hero'\]\s*\[data-composer-card\]::after\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(heroRule).toContain('--dsh-chat-content-width: clamp(560px, 41vw, 740px)')
+    expect(heroRule).toContain('--dsh-composer-card-max-width')
+    expect(heroCardRule).toContain('rgba(255, 254, 250, 0.54)')
+    expect(heroCardRule).toContain('backdrop-filter: blur(2.5px)')
+    expect(heroBackingRule).toContain('rgba(248, 250, 255, 0.2)')
+  })
+
+  it('keeps hero workspace, permission, and model controls in the official composer flow', () => {
+    const permissionRule = CSS.match(
+      /\[class\*='modes'\] button\[class\*='trigger'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const modelRule = CSS.match(
+      /\[class\*='trailing'\] button\[class\*='trigger'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(CSS).not.toMatch(
+      /\[data-phase='hero'\]\s*:has\(> \[data-composer-card\]\)\s*\{[^}]*transform/s,
+    )
+    expect(permissionRule).toContain('justify-content: center')
+    expect(permissionRule).toContain('gap: 0')
+    expect(modelRule).toContain('width: auto')
+    expect(modelRule).toContain('max-width: 220px')
+    expect(modelRule).toContain('padding: 0 4px 0 8px')
+    expect(CSS).not.toMatch(
+      /\[class\*='trailing'\][\s\S]*?:is\(\[class\*='triggerLabel'\], \[class\*='triggerEffort'\]\)\s*\{[^}]*display: none/s,
+    )
+  })
+
+  it('rebuilds the hero logo surround, caption rule, and embedded circular controls', () => {
+    const headlineRule = CSS.match(
+      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const medallionRule = CSS.match(
+      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\) > \[class\*='fish'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const captionRule = CSS.match(
+      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\)::after\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const addRule = CSS.match(
+      /\[data-composer-card\] button\[class\*='add'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const sendRule = CSS.match(
+      /\[data-composer-card\] button\[class\*='primary'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const titleRule = CSS.match(
+      /\[data-phase='hero'\] \[class\*='headlineText'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const previewRule = CSS.match(
+      /\[data-phase='hero'\] \[class\*='previewBadge'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(headlineRule).toContain('grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr)')
+    expect(titleRule).toContain('grid-column: 2')
+    expect(previewRule).toContain('grid-column: 3')
+    expect(previewRule).toContain('justify-self: start')
+    expect(medallionRule).toContain('width: 70px')
+    expect(medallionRule).toContain('outline: 1px solid')
+    expect(captionRule).toContain('linear-gradient(45deg')
+    expect(addRule).toContain('width: 42px')
+    expect(addRule).toContain('border-radius: 50%')
+    expect(sendRule).toContain('width: 44px')
+    expect(sendRule).toContain('linear-gradient(145deg, #6079b5, #294587)')
+  })
+
+  it('keeps the dark hero title and preview badge legible over the night palace', () => {
+    const titleRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\]\s*\[data-phase='hero'\] \[class\*='headlineText'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const badgeRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\]\s*\[data-phase='hero'\] \[class\*='previewBadge'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(titleRule).toContain('color: #fffaf0')
+    expect(titleRule).toContain('-webkit-text-stroke: 0.35px')
+    expect(titleRule).toContain('0 3px 7px rgba(0, 0, 0, 0.86)')
+    expect(badgeRule).toContain('color: #f0dfba')
+    expect(badgeRule).toContain('rgba(7, 18, 52, 0.58)')
+  })
+
+  it('moves character art only for active Chat and preserves inspection-page composition', () => {
+    const stageRule = CSS.match(
+      /\[data-skin-chrome='character-stage'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const chatLeftRule = CSS.match(
+      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)[\s\S]*?\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const chatRightRule = CSS.match(
+      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)[\s\S]*?\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(stageRule).toContain('position: fixed')
+    expect(stageRule).toContain('contain: strict')
+    expect(chatLeftRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
+    expect(chatRightRule).toContain('right: clamp(-70px, -3vw, -24px)')
+    expect(CSS).not.toMatch(/:has\(\[data-phase='active'\]\)\s*\[data-maid-character/s)
+  })
+
+  it('coordinates composer docking and rising with the curtain duration', () => {
+    expect(CSS).toContain("data-maid-composer-motion='dock'")
+    expect(CSS).toContain("data-maid-composer-motion='rise'")
+    expect(CSS).toContain('animation: maidAtelierComposerDock 520ms')
+    expect(CSS).toContain('animation: maidAtelierComposerRise 520ms')
+    expect(CSS).toContain('@keyframes maidAtelierComposerDock')
+    expect(CSS).toContain('@keyframes maidAtelierComposerRise')
+    expect(CSS).toMatch(/\[data-maid-composer-motion\][^{]*\{[^}]*will-change: transform, opacity/s)
+  })
+
+  it('styles assistant Markdown blocks through the stable flow-kind hook', () => {
+    const bubbleRule = CSS.match(
+      /\[data-chat-flow-kind='assistant-step'\] > \* > \* > div:not\(\[data-variant\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(bubbleRule).toContain('max-width: min(680px, 96%)')
+    expect(bubbleRule).toContain('padding: 14px 18px')
+    expect(bubbleRule).toContain('border-radius: 18px 18px 18px 7px')
+    expect(bubbleRule).not.toContain('backdrop-filter')
+    expect(CSS).toContain("[data-variant='think']")
+  })
+
+  it('marks only live hero and workspace phase changes for composer motion', async () => {
+    document.body.innerHTML = '<div data-phase="hero"></div>'
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
+
+    document.querySelector<HTMLElement>('[data-phase]')!.dataset.phase = 'active'
+    await flushMutations()
+    expect(document.body.dataset.maidComposerMotion).toBe('dock')
+
+    document.querySelector<HTMLElement>('[data-phase]')!.dataset.phase = 'hero'
+    await flushMutations()
+    expect(document.body.dataset.maidComposerMotion).toBe('rise')
+    await fiber.dispose()
+    expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
+  })
+
+  it('preserves mirror-driven composer sizing and clears the statistics dock', () => {
+    const cardRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const textareaRule = CSS.match(/\[data-composer-card\] textarea\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const footerClearanceRule = CSS.match(
+      /\[data-phase='active'\] \[data-composer-card\]:has\(\+ \*\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(cardRule).toContain('min-height: 0')
+    expect(cardRule).not.toContain('min-height: 210px')
+    expect(textareaRule).not.toContain('min-height: 112px')
+    expect(footerClearanceRule).toContain('margin-block-end: 12px')
+  })
+
+  it('gives inspect-only overlay views the full canvas without the composer seat', () => {
+    const inspectRule = CSS.match(
+      /\[data-phase='active'\]\s*\[data-conversation-scroll\]:not\(:has\(\[data-chat-flow\]\)\)\s*> \[data-composer-seat\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(inspectRule).toContain('display: none')
+  })
+
+  it('lets the lower sidebar swag own the bottom boundary without a rectangular tint seam', () => {
+    const innerFrameRule = CSS.match(/\:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const fadeRule = CSS.match(/\:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) \[class\*='fade'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(innerFrameRule).toContain('inset: 9px 7px 0')
+    expect(innerFrameRule).toContain('border: 0')
+    expect(innerFrameRule).not.toContain('box-shadow')
+    expect(fadeRule).toContain('background: none')
+  })
+
+  it('keeps internal tool-card headers out of the navy page-header treatment', () => {
+    const pageHeaderRule = CSS.match(
+      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const terminalRule = CSS.match(/\[data-terminal\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const darkTerminalRule = CSS.match(
+      /\[data-ds-dark-theme\] \[data-terminal\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(pageHeaderRule).toContain('color: #f8f3e8')
+    expect(CSS).not.toMatch(
+      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) \[class\*='header'\]\s*\{/,
+    )
+    expect(terminalRule).toContain('--dsw-alias-markdown-code-block: rgba(249, 250, 253, 0.97)')
+    expect(terminalRule).toContain('--dsw-alias-label-primary: #172347')
+    expect(terminalRule).toContain('text-shadow: none')
+    expect(darkTerminalRule).toContain('--dsw-alias-markdown-code-block: rgba(10, 20, 48, 0.97)')
+    expect(darkTerminalRule).toContain('--dsw-alias-label-primary: #edf1fa')
+  })
+
+  it('scales the lower sidebar swag at its source aspect ratio', () => {
+    const sidebarInnerRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const footRule = CSS.match(/\[class\*='footArea'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const swagRule = CSS.match(/\[class\*='footArea'\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(sidebarInnerRule).not.toContain('container-type')
+    expect(footRule).toContain('flex: 0 0 calc(var(--maid-sidebar-swag-height) + 56px)')
+    expect(footRule).toContain('padding: calc(var(--maid-sidebar-swag-height) - 6px) 18px 12px')
+    expect(swagRule).toContain('height: var(--maid-sidebar-swag-height)')
+    expect(swagRule).toContain('background: var(--maid-sidebar-swag-art) center top / 100% 100% no-repeat')
+  })
+
+  it('keeps generated corner ornaments fixed while the sidebar frame can resize', () => {
+    const frameRule = CSS.match(
+      /\[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const cornerRule = CSS.match(
+      /\[data-skin-chrome='sidebar-corners'\] > \[data-skin-corner\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(CSS).toContain('--maid-sidebar-corner-art')
+    expect(frameRule).toContain('--maid-sidebar-frame-line-x: 1.35px')
+    expect(frameRule).toContain('--maid-sidebar-frame-line-y: 1.25px')
+    expect(frameRule).toContain('left 62px top 8.875px / calc(100% - 124px) var(--maid-sidebar-frame-line-y) no-repeat')
+    expect(frameRule).toContain('left 62px bottom 8.875px / calc(100% - 124px) var(--maid-sidebar-frame-line-y) no-repeat')
+    expect(frameRule).toContain('left 8.05px top 62px / var(--maid-sidebar-frame-line-x) calc(100% - 124px) no-repeat')
+    expect(frameRule).toContain('right 8.05px top 62px / var(--maid-sidebar-frame-line-x) calc(100% - 124px) no-repeat')
+    expect(cornerRule).toContain('width: 62px')
+    expect(cornerRule).toContain('height: 62px')
+    expect(cornerRule).toContain('background: var(--maid-sidebar-corner-art) top right / 130px 130px no-repeat')
+    expect(CSS).toContain("[data-skin-corner='bottom-left']")
+    expect(CSS).toContain('transform: scale(-1)')
+  })
+
+  it('styles the workspace heading, search field, and settings surround in antique gold', () => {
+    const headingRule = CSS.match(/\[class\*='sectionHeader'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const searchRule = CSS.match(
+      /\[class\*='search'\]:has\(> input\[class\*='searchInput'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const settingsRule = CSS.match(
+      /\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(headingRule).toContain('color: #d9bd83')
+    expect(searchRule).toContain('border: 1px solid rgba(225, 191, 124, 0.72)')
+    expect(searchRule).toContain('--dsh-search-input-fill: transparent')
+    expect(settingsRule).toContain('min-height: 50px')
+    expect(settingsRule).toContain('border-image-source: var(--maid-settings-frame-art)')
+    expect(settingsRule).toContain('border-image-slice: 0 220 0 220 fill')
+    expect(settingsRule).toContain('border-image-width: 0 34px')
+  })
+
+  it('lets the official settings mask blur every skin-owned layer', () => {
+    const sidebarRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const sidebarInnerRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const portalRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > \[class\*='footArea'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(sidebarRule).toContain('z-index: auto')
+    expect(sidebarInnerRule).toContain('isolation: auto')
+    expect(sidebarInnerRule).not.toContain('container-type')
+    expect(portalRule).toContain('z-index: auto')
+    expect(topTrimRule).toContain('z-index: 20')
+    expect(bottomTrimRule).toContain('z-index: 19')
+  })
+
+  it('renders the active workspace as a crested ribbon with a connected session tree', () => {
+    const ribbonShapeRule = CSS.match(/\[data-maid-workspace-active\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const shieldRule = CSS.match(
+      /\[data-maid-workspace-row\] > \[class\*='folder'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const selectedSessionRule = CSS.match(
+      /\[data-maid-session-row\]\[aria-selected='true'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const sessionBranchRule = CSS.match(
+      /\[data-maid-session-row\]::before\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(CSS).toContain('--maid-workspace-crest-art')
+    expect(CSS).toContain('--maid-workspace-ribbon-art')
+    expect(shieldRule).toContain('background: var(--maid-workspace-crest-art)')
+    expect(shieldRule).not.toContain('clip-path')
+    expect(ribbonShapeRule).toContain('border-image-source: var(--maid-workspace-ribbon-art)')
+    expect(ribbonShapeRule).toContain('border-image-slice: 0 145 0 140 fill')
+    expect(ribbonShapeRule).toContain('border-image-width: 0 36px 0 35px')
+    expect(ribbonShapeRule).toContain('border-image-repeat: stretch')
+    expect(ribbonShapeRule).toContain('inset: -3px 0 -3px -12px')
+    expect(ribbonShapeRule).toContain('animation: maidAtelierWorkspaceRibbonEnter 420ms')
+    expect(ribbonShapeRule).not.toContain('background-size')
+    expect(ribbonShapeRule).not.toContain('clip-path')
+    expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonEnter')
+    expect(CSS).toContain('clip-path: inset(0 100% 0 0)')
+    expect(CSS).toContain('clip-path: inset(0 12% 0 0)')
+    expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonContentEnter')
+    expect(selectedSessionRule).toContain('rgba(87, 117, 190, 0.34)')
+    expect(selectedSessionRule).toContain('color: #fff8e8')
+    expect(sessionBranchRule).toContain('repeating-linear-gradient')
+    expect(sessionBranchRule).toContain('left: 8px')
+    expect(sessionBranchRule).toContain('width: 10px')
+    expect(CSS).toMatch(/\[data-maid-session-last\]::before\s*\{[^}]*1px 50% no-repeat/s)
+  })
+
+  it('skins the official running StateDot as a recognizable atelier jewel chase', () => {
+    const runningDotRule = CSS.match(
+      /\[data-maid-session-row\] svg\[data-state='ongoing'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const runningCellRule = CSS.match(
+      /\[data-maid-session-row\] svg\[data-state='ongoing'\] > rect\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const reducedMotionRules = [...CSS.matchAll(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/g,
+    )].map(match => match[1]).join('\n')
+    expect(runningDotRule).toContain('width: 12px')
+    expect(runningDotRule).toContain('radial-gradient')
+    expect(runningDotRule).toContain('shape-rendering: geometricPrecision')
+    expect(runningCellRule).toContain('fill: currentColor')
+    expect(runningCellRule).toContain('animation: maidAtelierSessionJewelChase 1s linear infinite')
+    expect(CSS).toContain('@keyframes maidAtelierSessionJewelChase')
+    expect(reducedMotionRules).toContain("svg[data-state='ongoing'] > rect")
+    expect(reducedMotionRules).toContain('animation: none')
+  })
+
+  it('keeps the sidebar mascot subordinate to navigation and behind the lower ornament', () => {
+    const mascotRule = CSS.match(/\[data-skin-chrome='sidebar-mascot'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(mascotRule).toContain('bottom: calc(var(--maid-sidebar-swag-height) + 64px)')
+    expect(mascotRule).toContain('width: var(--maid-sidebar-mascot-width)')
+    expect(mascotRule).toContain('max-height: 38%')
+    expect(mascotRule).toContain('z-index: 1')
+    expect(mascotRule).toContain('opacity: 0.52')
+    expect(mascotRule).toContain('saturate(0.86)')
+  })
+
+  it('keeps independently sized landing and workspace trim layers', () => {
+    const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const landingTrimRule = CSS.match(/\[data-skin-trim-layer='landing'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const workspaceTrimRule = CSS.match(/\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(topTrimRule).toContain('height: 76px')
+    expect(topTrimRule).toContain('overflow: hidden')
+    expect(landingTrimRule).toContain('height: 48px')
+    expect(landingTrimRule).toContain('background: var(--maid-top-trim-art) left -2px / auto 51px repeat-x')
+    expect(workspaceTrimRule).toContain('height: 76px')
+    expect(workspaceTrimRule).toContain('background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x')
+    expect(CSS).not.toMatch(/var\(--maid-top-trim-art\)[^;]*100% 100%/)
+    expect(topTrimRule).toContain('inset: 0 0 auto 0')
+    expect(topTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(topTrimRule).not.toContain('box-shadow')
+  })
+
+  it('tiles the bottom border while keeping its center crest independently sized', () => {
+    const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const crestRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]::after\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(bottomTrimRule).toContain('inset: auto 0 0 0')
+    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).toContain('background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x')
+    expect(bottomTrimRule).not.toContain('100% 100%')
+    expect(crestRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(crestRule).toContain('transform: translateX(-50%)')
+    expect(crestRule).toContain('background: var(--maid-bottom-crest-art) center / contain no-repeat')
+  })
+
+  it('moves the bottom embroidery with the composer phase', () => {
+    const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const activeTrimRule = CSS.match(
+      /:has\(\[data-phase='active'\]\) \[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const movingTrimRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-maid-composer-motion\]\s*\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).toContain('transform: translateY(0)')
+    expect(bottomTrimRule).toContain('transition: transform 520ms')
+    expect(bottomTrimRule).not.toContain('transition: translate 520ms')
+    expect(activeTrimRule).toContain('transform: translateY(100%)')
+    expect(activeTrimRule).not.toContain('--maid-sidebar-width')
+    expect(movingTrimRule).toContain('will-change: transform')
+  })
+
+  it('slides the landing trim upward while the workspace trim drops from above', () => {
+    const trimLayerRule = CSS.match(/\[data-skin-trim-layer\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const landingTrimRule = CSS.match(/\[data-skin-trim-layer='landing'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const workspaceTrimRule = CSS.match(/\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const activeLandingRule = CSS.match(
+      /:has\(header \[role='tablist'\]\)[\s\S]*?\[data-skin-trim-layer='landing'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const activeWorkspaceRule = CSS.match(
+      /:has\(header \[role='tablist'\]\)[\s\S]*?\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(trimLayerRule).toContain('transition: transform 520ms')
+    expect(landingTrimRule).toContain('transform: translateY(0)')
+    expect(workspaceTrimRule).toContain('transform: translateY(-100%)')
+    expect(activeLandingRule).toContain('transform: translateY(-100%)')
+    expect(activeWorkspaceRule).toContain('transform: translateY(0)')
+  })
+
+  it('keeps the bow on the landing trim and leaves the workspace band plain', () => {
+    const landingBowRule = CSS.match(
+      /\[data-skin-trim-layer='landing'\]::after\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(landingBowRule).toContain("content: ''")
+    expect(landingBowRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(landingBowRule).toContain('background: var(--maid-bow-art) center / contain no-repeat')
+    expect(CSS).not.toMatch(/\[data-skin-trim-layer='workspace'\]::after/)
+  })
+
+  it('keeps the animated workspace trim above its tablist without reserving lace space', () => {
+    const workspaceHeaderRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(workspaceHeaderRule).toContain('position: relative')
+    expect(workspaceHeaderRule).toContain('z-index: 21')
+    expect(workspaceHeaderRule).not.toContain('padding-bottom')
+    expect(workspaceHeaderRule).toContain('border-bottom: 0')
+    const rootRule = CSS.match(/\[id='root'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(rootRule).toContain('position: relative')
+    expect(rootRule).not.toContain('z-index')
+  })
+
+  it('does not reserve or paint a lace field in active conversation and inspection views', () => {
+    expect(CSS).not.toContain('padding-bottom: 66px')
+    expect(CSS).not.toContain('padding-bottom: 28px')
+    expect(CSS).not.toMatch(
+      /:has\(header \[role='tablist'\]\):not\(:has\(\[data-conversation-scroll\] \[data-chat-flow\]\)\)[\s\S]*?background-color:/s,
+    )
+    expect(CSS).not.toMatch(
+      /:has\(\[role='toolbar'\]\[aria-label='Trajectory toolbar'\]\)[\s\S]*?background-color:/s,
+    )
+  })
+
+  it('softens workspace entry and disables decorative motion when requested', () => {
+    const workspaceHeaderRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const reducedMotionRule = CSS.match(
+      /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    const workspaceHeaderKeyframes = CSS.match(
+      /@keyframes maidAtelierWorkspaceHeaderEnter\s*\{[\s\S]*?\r?\n\}/,
+    )?.[0] ?? ''
+    expect(workspaceHeaderRule).toContain('animation: maidAtelierWorkspaceHeaderEnter 320ms 110ms both')
+    expect(workspaceHeaderKeyframes).toContain('@keyframes maidAtelierWorkspaceHeaderEnter')
+    expect(workspaceHeaderKeyframes).not.toContain('padding-bottom:')
+    expect(reducedMotionRule).toContain('transition: none')
+    expect(reducedMotionRule).toContain('animation: none')
+    expect(reducedMotionRule).toContain('[data-maid-workspace-active]::before')
+  })
+
+  it('keeps the skin chrome aligned to the live sidebar width and restores the prior value', async () => {
+    document.body.style.setProperty('--maid-sidebar-width', 'legacy')
+    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")
+    sidebar!.getBoundingClientRect = () => ({
+      x: 0,
+      y: 0,
+      width: 312,
+      height: 900,
+      top: 0,
+      right: 312,
+      bottom: 900,
+      left: 0,
+      toJSON: () => ({}),
+    })
+
+    fiber = await mount()
+    const widthRule = document.head
+      .querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")!
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-width: 312px')
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 80.34px')
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-mascot-width: 255.84px')
+    expect(document.body.dataset.maidSidebarSize).toBe('wide')
+    await fiber.dispose()
+    expect(document.body.style.getPropertyValue('--maid-sidebar-width')).toBe('legacy')
+    expect(document.head.querySelector("[data-skin-chrome='sidebar-width-rule']")).toBeNull()
+  })
+
+  it('tracks animated sidebar width without mutating the body style attribute', async () => {
+    let resize: ResizeObserverCallback | undefined
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        resize = callback
+      }
+
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    })
+    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
+
+    fiber = await mount()
+    const bodyStyle = document.body.getAttribute('style')
+    resize?.([
+      { contentRect: { width: 96 } as DOMRectReadOnly } as ResizeObserverEntry,
+    ], {} as ResizeObserver)
+
+    const widthRule = document.head
+      .querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")!
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-width: 96px')
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 54px')
+    expect(document.body.dataset.maidSidebarSize).toBe('rail')
+    expect(document.body.getAttribute('style')).toBe(bodyStyle)
+  })
+
+  it('marks narrow and missing sidebars so Chat can reclaim the left gutter', async () => {
+    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    sidebar.getBoundingClientRect = () => ({
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 900,
+      top: 0,
+      right: 80,
+      bottom: 900,
+      left: 0,
+      toJSON: () => ({}),
+    })
+
+    fiber = await mount()
+    expect(document.body.dataset.maidSidebarCompact).toBe('')
+    expect(document.body.dataset.maidSidebarSize).toBe('rail')
+    const widthRule = document.head
+      .querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")!
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-width: 80px')
+    sidebar.remove()
+    await flushMutations()
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-width: 0px')
+    await fiber.dispose()
+    expect(document.body.hasAttribute('data-maid-sidebar-compact')).toBe(false)
+    expect(document.body.hasAttribute('data-maid-sidebar-size')).toBe(false)
+  })
+
+  it('switches between matched day and night backgrounds with the base theme', async () => {
+    fiber = await mount()
+    const light = document.body.style.backgroundImage
+    document.body.dataset.dsDarkTheme = ''
+    await flushMutations()
+    const dark = document.body.style.backgroundImage
+    expect(dark).not.toBe(light)
+    expect(dark).toContain('data:image/png;base64,')
+    expect(dark).not.toContain('linear-gradient')
+    delete document.body.dataset.dsDarkTheme
+    await flushMutations()
+    expect(document.body.style.backgroundImage).toBe(light)
+  })
+})
