@@ -25,7 +25,8 @@
     "cordis": "^4.0.0-rc.7"
   },
   "files": [
-    "lib",
+    "lib/index.js",
+    "lib/client.js",
     "cordis.patch.yml",
     "skin.json",
     "preview",

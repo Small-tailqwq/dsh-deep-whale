@@ -1,3 +1,4 @@
 node_modules/
 *.tsbuildinfo
+*.js.map
 .DS_Store
