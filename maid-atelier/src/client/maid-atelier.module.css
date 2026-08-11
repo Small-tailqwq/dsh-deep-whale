@@ -538,17 +538,36 @@ body[data-dsh-maid-atelier] [class*='logoRow'] {
     0 7px 18px rgba(2, 7, 25, 0.28);
 }
 
-body[data-dsh-maid-atelier] button[class*='brand']:has([data-skin-chrome='brand-lockup']) > svg {
-  display: none;
+/* Reuse the product's exact 182x24 vector wordmark. Porcelain ink keeps the
+   DeepSeek paths crisp on navy, while the HARNESS plate uses the same gold
+   accent as the surrounding frame and knocks its lettering back to navy. */
+body[data-dsh-maid-atelier] button[class*='brand'] {
+  color: #f3e3c0;
+  --dsw-alias-label-primary-inverted: #10204d;
 }
 
-body[data-dsh-maid-atelier] [data-skin-chrome='brand-lockup'] {
+body[data-dsh-maid-atelier] button[class*='brand'] > svg {
   display: block;
-  width: min(190px, calc(100% - 6px));
+  width: min(182px, 100%);
   height: auto;
-  object-fit: contain;
-  object-position: left center;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+  flex: none;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.72));
+  transition: color 150ms ease, filter 150ms ease;
+}
+
+body[data-dsh-maid-atelier] button[class*='brand'] > svg > rect {
+  fill: #d7b46a;
+  transition: fill 150ms ease;
+}
+
+body[data-dsh-maid-atelier] button[class*='brand']:is(:hover, :focus-visible) > svg {
+  color: #fff4d9;
+  filter: drop-shadow(0 1px 3px rgba(2, 8, 28, 0.82));
+}
+
+body[data-dsh-maid-atelier] button[class*='brand']:is(:hover, :focus-visible) > svg > rect {
+  fill: #e6c77e;
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-skin-chrome='sidebar-corners'] {
@@ -570,10 +589,6 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='logoRow'] {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-}
-
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-skin-chrome='brand-lockup'] {
-  display: none;
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='logoRow'] [class*='toggle'] {
@@ -668,9 +683,10 @@ body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button']) {
   transition: color 150ms ease, filter 150ms ease, transform 150ms ease;
 }
 
-/* Keep the label optically centered in the framed wide trigger. The icon
-   remains at the leading edge of the content box instead of pushing the text
-   away from the frame's center line. */
+/* Keep the icon and label side by side in the framed wide trigger, exactly
+   like the New Session button: a fixed gap binds them into one pair that
+   moves together, so resizing the sidebar never separates them. The pair
+   stays optically centered in the content box. */
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [class*='footArea']
     > :is(button, [role='button'])
@@ -678,6 +694,8 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
   position: relative;
   flex: 1 1 auto;
   width: 100%;
+  justify-content: center;
+  gap: 8px;
 }
 
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
@@ -685,10 +703,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     > :is(button, [role='button'])
     > [class*='triggerContent']
     > [class*='triggerLabel'] {
-  position: absolute;
-  left: 50%;
   line-height: 1;
-  transform: translateX(-50%);
 }
 
 body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button'])::before {
@@ -1120,17 +1135,9 @@ body[data-dsh-maid-atelier] [data-maid-session-row] {
 }
 
 body[data-dsh-maid-atelier] [data-maid-session-row][aria-selected='true'] {
-  background: linear-gradient(
-    90deg,
-    transparent 0 18px,
-    rgba(87, 117, 190, 0.34) 18px,
-    rgba(32, 57, 123, 0.18) 72%,
-    rgba(13, 31, 75, 0.08) 100%
-  );
+  background: transparent;
   color: #fff8e8;
-  box-shadow:
-    inset 0 1px rgba(232, 207, 151, 0.22),
-    inset 0 -1px rgba(232, 207, 151, 0.18);
+  box-shadow: none;
 }
 
 body[data-dsh-maid-atelier] [data-maid-session-row][aria-selected='true'] [class*='title'] {
@@ -1241,6 +1248,35 @@ body[data-dsh-maid-atelier] [data-maid-session-row]:not(:last-child)::after {
   pointer-events: none;
 }
 
+body[data-dsh-maid-atelier]
+  [data-maid-session-row]:not([data-maid-session-flat])[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 18px;
+  z-index: 0;
+  width: auto;
+  height: auto;
+  border: 1px solid rgba(226, 190, 112, 0.72);
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(82, 111, 184, 0.74),
+    rgba(43, 70, 139, 0.62) 72%,
+    rgba(20, 42, 94, 0.5)
+  );
+  box-shadow:
+    inset 0 1px rgba(255, 244, 215, 0.18),
+    inset 0 -1px rgba(7, 19, 55, 0.24);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-maid-session-row]:not([data-maid-session-flat])[aria-selected='true']
+  > :is([class*='title'], [class*='time'], [class*='rowActions']) {
+  position: relative;
+  z-index: 2;
+}
+
 body[data-dsh-maid-atelier] [data-maid-session-row] [class*='title'] {
   font-size: 13px;
   font-weight: 400;
@@ -1249,6 +1285,56 @@ body[data-dsh-maid-atelier] [data-maid-session-row] [class*='title'] {
 body[data-dsh-maid-atelier] [data-maid-session-row] [class*='time'] {
   color: #c8b891;
   font-size: 12px;
+}
+
+/* Flat mode has no Workspace stem, so give its current Session a complete
+   compact plaque instead of reserving the grouped tree's connector gutter. */
+body[data-dsh-maid-atelier] [data-maid-session-flat] {
+  box-sizing: border-box;
+  height: 36px;
+  margin-inline: 2px;
+  padding-inline: 26px 9px;
+  border-radius: 7px;
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-flat]::before {
+  content: none;
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-flat]:not(:last-child)::after {
+  right: 9px;
+  left: 26px;
+  background: linear-gradient(90deg, rgba(183, 196, 226, 0.26), rgba(183, 196, 226, 0.08));
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-flat][aria-selected='true'] {
+  border: 1px solid rgba(226, 190, 112, 0.72);
+  background:
+    linear-gradient(90deg, rgba(82, 111, 184, 0.74), rgba(43, 70, 139, 0.62) 72%, rgba(20, 42, 94, 0.5));
+  box-shadow:
+    inset 0 1px rgba(255, 244, 215, 0.2),
+    inset 0 -1px rgba(7, 19, 55, 0.28),
+    0 3px 9px rgba(2, 8, 28, 0.3);
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-flat][aria-selected='true']::before {
+  content: '';
+  position: absolute;
+  inset: 7px auto 7px 5px;
+  display: block;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(#fff0c5, #d4a951);
+  box-shadow: 0 0 5px rgba(231, 199, 128, 0.72);
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-flat][aria-selected='true']::after {
+  content: none;
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-flat]:hover:not([aria-selected='true']) {
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgba(97, 122, 183, 0.16), rgba(97, 122, 183, 0.06));
 }
 
 /* The hero inherits the official responsive width contract, but scales from
@@ -2218,6 +2304,85 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu
   box-shadow: var(--maid-shadow), inset 0 1px rgba(255, 255, 255, 0.08);
 }
 
+/* The official title bar (Web-app window-controls-overlay and the desktop
+   shell) leads with a menu button that only duplicates the sidebar's own
+   expand/collapse control. Hide it so the skin's sidebar chrome starts at
+   the frame's top edge without the stray floating control; the close /
+   window-control buttons on the right remain. */
+body[data-dsh-maid-atelier] [class*='titlebar'] > [class*='button']:first-of-type {
+  display: none;
+}
+
+/* The frameless title bar (Web-app overlay / desktop shell) carries the
+   whale-free wordmark dead-center of the window, mirroring the sidebar
+   brand at a smaller scale. It rides the navy gradient and never hides
+   with the rail: it is purely decorative (pointer-events none), so the
+   drag region and the window buttons stay fully usable. */
+body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f3e3c0;
+  --dsw-alias-label-primary-inverted: #10204d;
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
+  display: block;
+  height: 18px;
+  width: auto;
+  flex: none;
+  filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.62));
+}
+/* The top curtain is position:fixed against the viewport, so it paints over
+   the frame's own title-bar row in frameless surfaces (Web-app overlay /
+   desktop shell). Move it below that row. env() cannot be used here: the
+   CSS-modules pipeline rewrites its identifier, so the fallback always
+   wins; the skin runtime instead measures the sidebar column's rendered
+   top edge (the exact row boundary) into --maid-titlebar-height. */
+body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
+  top: var(--maid-titlebar-height, 0px);
+}
+
+/* Dress the official title-bar row with the sidebar navy so the sidebar
+   reads as starting at the very top of the window. The strip is a vertical
+   gradient, deepest where it meets the sidebar and the trim band, lightening
+   toward the top edge; the gold seam that the trim band repeats below. */
+body[data-dsh-maid-atelier] [class*='titlebar'] {
+  position: relative;
+  background: linear-gradient(
+    to top,
+    rgba(9, 19, 51, 0.98) 0%,
+    rgba(13, 29, 70, 0.96) 45%,
+    rgba(22, 43, 97, 0.93) 75%,
+    rgba(31, 56, 118, 0.9) 100%
+  );
+  border-bottom: 1px solid rgba(197, 164, 104, 0.42);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [class*='titlebar'] {
+  background: linear-gradient(
+    to top,
+    rgba(4, 11, 38, 0.98) 0%,
+    rgba(8, 19, 52, 0.96) 45%,
+    rgba(15, 30, 72, 0.93) 75%,
+    rgba(23, 41, 92, 0.9) 100%
+  );
+  border-bottom-color: rgba(211, 180, 119, 0.5);
+}
+
+body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button'] {
+  color: #d9bd83;
+}
+
+body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
+  color: #f3e3c0;
+  background: rgba(87, 117, 190, 0.28);
+}
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > rect {
     animation: none;

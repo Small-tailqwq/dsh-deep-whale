@@ -1,13 +1,12 @@
 /**
  * Deep-sea maid atelier skin. The client entry keeps the bare two-character
- * background, collapsible sidebar artwork, brand lockup, and ornamental
- * chrome as independent layers. Every write is restored by the Cordis effect
- * disposer.
+ * background, collapsible sidebar artwork, and ornamental chrome as
+ * independent layers. The sidebar keeps the product's native vector
+ * wordmark; every skin-owned write is restored by the Cordis effect disposer.
  */
 import type { Context } from 'cordis'
 import {
   MAID_ATELIER_BOW_CLEAN,
-  MAID_ATELIER_BRAND,
   MAID_ATELIER_CHIBI,
   MAID_ATELIER_ICON,
   MAID_ATELIER_NEW_SESSION,
@@ -32,9 +31,11 @@ import {
   MAID_ATELIER_WORKSPACE_SHIELD,
 } from './workspace-art.generated.ts'
 import './maid-atelier.module.css'
+import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
+const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 
 const BACKDROP_PROPERTIES = [
@@ -77,16 +78,6 @@ function createCharacterStage(): HTMLDivElement {
   return stage
 }
 
-function createBrandLockup(): HTMLImageElement {
-  const lockup = document.createElement('img')
-  lockup.dataset.skinChrome = 'brand-lockup'
-  lockup.dataset.skinOwner = SKIN_OWNER
-  lockup.setAttribute('aria-hidden', 'true')
-  lockup.alt = ''
-  lockup.src = MAID_ATELIER_BRAND
-  return lockup
-}
-
 function createSidebarCorners(): HTMLDivElement {
   const corners = document.createElement('div')
   corners.dataset.skinChrome = 'sidebar-corners'
@@ -100,6 +91,22 @@ function createSidebarCorners(): HTMLDivElement {
   return corners
 }
 
+/**
+ * Place the whale-free DeepSeek Harness wordmark at the left of the
+ * frameless title bar (Web-app overlay / desktop shell), mirroring the
+ * sidebar brand at a smaller scale.
+ */
+function decorateTitlebarBrand(): void {
+  const titlebar = document.querySelector<HTMLElement>("[class*='titlebar']")
+  if (!titlebar) return
+  if (titlebar.querySelector("[data-skin-chrome='titlebar-brand']")) return
+  const brand = document.createElement('span')
+  brand.dataset.skinChrome = 'titlebar-brand'
+  brand.dataset.skinOwner = SKIN_OWNER
+  brand.setAttribute('aria-hidden', 'true')
+  brand.innerHTML = MAID_ATELIER_TITLEBAR_BRAND
+  titlebar.prepend(brand)
+}
 function decorateSidebar(): void {
   const sidebarRoot = document.querySelector<HTMLElement>(
     `${SIDEBAR_COLUMN_SELECTOR} > div`,
@@ -120,10 +127,6 @@ function decorateSidebar(): void {
     sidebarRoot.prepend(mascot)
   }
 
-  const brand = sidebarRoot.querySelector<HTMLElement>("button[class*='brand']")
-  if (brand && !brand.querySelector("[data-skin-chrome='brand-lockup']")) {
-    brand.append(createBrandLockup())
-  }
 }
 
 function decorateWorkspaceTree(): void {
@@ -131,17 +134,27 @@ function decorateWorkspaceTree(): void {
   if (!sidebar) return
 
   sidebar.querySelectorAll<HTMLElement>(
-    '[data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-first], [data-maid-session-last]',
+    '[data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-flat], [data-maid-session-first], [data-maid-session-last]',
   ).forEach((element) => {
     delete element.dataset.maidWorkspaceGroup
     delete element.dataset.maidWorkspaceRow
     delete element.dataset.maidWorkspaceActive
     delete element.dataset.maidSessionRow
+    delete element.dataset.maidSessionFlat
     delete element.dataset.maidSessionFirst
     delete element.dataset.maidSessionLast
   })
 
   sidebar.querySelectorAll<HTMLElement>("[role='tree']").forEach((tree) => {
+    const rows = [...tree.querySelectorAll<HTMLElement>("[role='treeitem']")]
+    if (tree.matches("[class*='flatList']") && !rows.some(row => row.hasAttribute('aria-expanded'))) {
+      rows.filter(row => row.hasAttribute('aria-selected')).forEach((sessionRow) => {
+        sessionRow.dataset.maidSessionRow = ''
+        sessionRow.dataset.maidSessionFlat = ''
+      })
+      return
+    }
+
     let workspaceRow: HTMLElement | undefined
     let sessionRows: HTMLElement[] = []
     const decorateGroup = (): void => {
@@ -160,7 +173,7 @@ function decorateWorkspaceTree(): void {
       if (containsCurrent) workspaceRow.dataset.maidWorkspaceActive = ''
     }
 
-    tree.querySelectorAll<HTMLElement>("[role='treeitem']").forEach((row) => {
+    rows.forEach((row) => {
       if (row.hasAttribute('aria-expanded')) {
         decorateGroup()
         workspaceRow = row
@@ -180,6 +193,25 @@ function decorateWorkspaceTree(): void {
 export function apply(ctx: Context): void {
   const body = document.body
   const originalTitle = document.title
+  let themeColorMeta: HTMLMetaElement | null = null
+  let previousThemeColor: string | undefined
+  const syncSystemChrome = (): void => {
+    const meta = document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    if (meta === null) return
+    if (meta !== themeColorMeta) {
+      themeColorMeta = meta
+      previousThemeColor = meta.content
+    }
+    if (meta.content !== SKIN_SYSTEM_CHROME_COLOR) meta.content = SKIN_SYSTEM_CHROME_COLOR
+  }
+  const themeColorObserver = new MutationObserver(syncSystemChrome)
+  themeColorObserver.observe(document.head, {
+    attributes: true,
+    attributeFilter: ['content'],
+    childList: true,
+    subtree: true,
+  })
+  syncSystemChrome()
   const previous = new Map<string, string>()
   for (const property of BACKDROP_PROPERTIES) {
     previous.set(property, body.style.getPropertyValue(property))
@@ -222,8 +254,50 @@ export function apply(ctx: Context): void {
   widthSheet.dataset.skinChrome = 'sidebar-width-rule'
   widthSheet.dataset.skinOwner = SKIN_OWNER
   document.head.append(widthSheet)
-  widthSheet.sheet!.insertRule('body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; }')
+  widthSheet.sheet!.insertRule('body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; --maid-titlebar-height: 0px; }')
+  // The official frame rules reference env(titlebar-area-height), but the
+  // CSS-modules pipeline rewrites the env() identifier there too, so the
+  // title-bar row silently falls back to an auto row: expanding the sidebar
+  // is fine, but collapsing it lets the content row’s max-content grow and
+  // stretches the title-bar row to hundreds of pixels. Re-assert the rows
+  // here through CSSOM, where env() survives verbatim (fallback 40px keeps
+  // the headless/plain-tab mock sane), and pin the drag handles to the same
+  // boundary.
+  // insertRule defaults to index 0, which would push the body rule aside and
+  // orphan the widthRule reference; append explicitly so cssRules[0] stays
+  // the body variable rule.
+  const appendRule = (rule: string): void => {
+    widthSheet.sheet!.insertRule(rule, widthSheet.sheet!.cssRules.length)
+  }
+  appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"][data-wco] { grid-template-rows: env(titlebar-area-height, 40px) 1fr; }')
+  appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }')
+  appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }')
+
   const widthRule = widthSheet.sheet!.cssRules[0] as CSSStyleRule
+  // The curtain is position:fixed, so it needs the viewport-space top of
+  // the frame's title-bar row. Measuring the sidebar column (the row below
+  // it) is authoritative: whatever the title-bar height is — WCO env(), the
+  // desktop 32px row, or a scaled window — the curtain lands exactly on the
+  // rendered boundary, never a pixel off.
+  const syncTitlebarHeight = (): void => {
+    const columns = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
+    if (columns !== null) {
+      const top = columns.getBoundingClientRect().top
+      if (top > 0) {
+        widthRule.style.setProperty('--maid-titlebar-height', `${top}px`)
+        return
+      }
+    }
+    // Desktop shell: fixed 32px row (columns not laid out yet).
+    if (window.dshDesktop !== undefined) {
+      widthRule.style.setProperty('--maid-titlebar-height', '32px')
+      return
+    }
+    widthRule.style.setProperty('--maid-titlebar-height', '0px')
+  }
+  const titlebarOverlay = navigator.windowControlsOverlay
+  titlebarOverlay?.addEventListener('geometrychange', syncTitlebarHeight)
+  syncTitlebarHeight()
 
   const applySidebarWidth = (width: number): void => {
     if (width <= 0) return
@@ -285,6 +359,8 @@ export function apply(ctx: Context): void {
   body.prepend(createCharacterStage())
 
   const syncSidebarDecorations = (): void => {
+    syncTitlebarHeight()
+    decorateTitlebarBrand()
     decorateSidebar()
     decorateWorkspaceTree()
     ensureSidebarObserved()
@@ -371,21 +447,27 @@ export function apply(ctx: Context): void {
     delete body.dataset.maidSidebarSize
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     observer.disconnect()
+    themeColorObserver.disconnect()
+    titlebarOverlay?.removeEventListener('geometrychange', syncTitlebarHeight)
     resizeObserver?.disconnect()
     for (const [property, value] of previous) {
       body.style.setProperty(property, value)
     }
     document.querySelectorAll(`[data-skin-owner='${SKIN_OWNER}']`).forEach(element => element.remove())
     document.querySelectorAll<HTMLElement>(
-      '[data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-first], [data-maid-session-last]',
+      '[data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-flat], [data-maid-session-first], [data-maid-session-last]',
     ).forEach((element) => {
       delete element.dataset.maidWorkspaceGroup
       delete element.dataset.maidWorkspaceRow
       delete element.dataset.maidWorkspaceActive
       delete element.dataset.maidSessionRow
+      delete element.dataset.maidSessionFlat
       delete element.dataset.maidSessionFirst
       delete element.dataset.maidSessionLast
     })
+    if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) {
+      themeColorMeta.content = previousThemeColor ?? ''
+    }
     if (document.title === SKIN_TITLE) document.title = originalTitle
   }, 'ui-skin-maid-atelier: layered background and ornament')
 }

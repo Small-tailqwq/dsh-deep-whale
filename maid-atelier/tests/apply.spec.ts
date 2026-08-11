@@ -42,6 +42,25 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
   })
 
+  it('colors the installed Web-app system controls navy and restores the presenter color', async () => {
+    const meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    meta.content = '#ffffff'
+    document.head.append(meta)
+
+    fiber = await mount()
+    expect(document.head.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1)
+    expect(meta.content).toBe('#0b193f')
+
+    meta.content = '#dce6f5'
+    await flushMutations()
+    expect(meta.content).toBe('#0b193f')
+
+    await fiber.dispose()
+    expect(meta.content).toBe('#ffffff')
+    meta.remove()
+  })
+
   it('injects chrome and retracts every element on dispose', async () => {
     fiber = await mount()
     expect(document.body.querySelectorAll('[data-skin-chrome]').length).toBeGreaterThan(0)
@@ -51,7 +70,7 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.querySelectorAll('[data-skin-trim-layer]')).toHaveLength(0)
   })
 
-  it('keeps the mascot and custom brand as independent layers', async () => {
+  it('keeps the mascot independent and leaves the native vector brand intact', async () => {
     document.body.innerHTML = `
       <div data-pane="sidebar">
         <div>
@@ -64,11 +83,12 @@ describe('Maid Atelier skin apply', () => {
     fiber = await mount()
 
     const mascot = document.querySelector<HTMLImageElement>("[data-skin-chrome='sidebar-mascot']")
-    expect(mascot?.src).toContain('data:image/png;base64,')
+    expect(mascot?.src).toContain('data:image/webp;base64,')
     const corners = document.querySelector("[data-skin-chrome='sidebar-corners']")
     expect(corners?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
-    const brand = document.querySelector<HTMLImageElement>("[data-skin-chrome='brand-lockup']")
-    expect(brand?.src).toContain('data:image/png;base64,')
+    const brand = document.querySelector("button[class*='brand'] > svg")
+    expect(brand).not.toBeNull()
+    expect(document.querySelector("[data-skin-chrome='brand-lockup']")).toBeNull()
 
     await fiber.dispose()
     expect(document.querySelector("[data-skin-owner='maid-atelier']")).toBeNull()
@@ -83,7 +103,8 @@ describe('Maid Atelier skin apply', () => {
     await flushMutations()
 
     expect(document.querySelector("[data-skin-chrome='sidebar-mascot']")).not.toBeNull()
-    expect(document.querySelector("[data-skin-chrome='brand-lockup']")).not.toBeNull()
+    expect(document.querySelector("button[class*='brand'] > svg")).not.toBeNull()
+    expect(document.querySelector("[data-skin-chrome='brand-lockup']")).toBeNull()
   })
 
   it('marks the active workspace group and its session tree, then retracts every hook', async () => {
@@ -123,6 +144,26 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector('[data-maid-session-last]')).toBeNull()
   })
 
+  it('marks every Session row in the flat list without inventing a Workspace group', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div class="fixture_flatList" role="tree" aria-label="Sessions">
+          <div role="treeitem" aria-selected="true"><span class="fixture_title">Current</span></div>
+          <div role="treeitem" aria-selected="false"><span class="fixture_title">Other</span></div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+
+    const sessions = document.querySelectorAll<HTMLElement>("[role='treeitem'][aria-selected]")
+    expect([...sessions].every(session => session.hasAttribute('data-maid-session-row'))).toBe(true)
+    expect([...sessions].every(session => session.hasAttribute('data-maid-session-flat'))).toBe(true)
+    expect(document.querySelector('[data-maid-workspace-row]')).toBeNull()
+
+    await fiber.dispose()
+    expect(document.querySelector('[data-maid-session-flat]')).toBeNull()
+  })
+
   it('pins the skin title and restores the original on dispose', async () => {
     document.title = 'original'
     fiber = await mount()
@@ -134,7 +175,7 @@ describe('Maid Atelier skin apply', () => {
   it('installs an inlined background and restores prior body styles', async () => {
     document.body.style.setProperty('background-position', 'left bottom')
     fiber = await mount()
-    expect(document.body.style.backgroundImage).toContain('data:image/png;base64,')
+    expect(document.body.style.backgroundImage).toContain('data:image/webp;base64,')
     expect(document.body.style.backgroundImage).not.toContain('linear-gradient')
     expect(document.body.style.backgroundPosition).toBe('center top')
     expect(document.body.style.backgroundSize).toBe('cover')
@@ -150,7 +191,7 @@ describe('Maid Atelier skin apply', () => {
     expect(characters).toHaveLength(2)
     expect(characters?.[0]?.dataset.maidCharacter).toBe('left')
     expect(characters?.[1]?.dataset.maidCharacter).toBe('right')
-    expect([...characters ?? []].every(character => character.src.startsWith('data:image/png;base64,'))).toBe(true)
+    expect([...characters ?? []].every(character => character.src.startsWith('data:image/webp;base64,'))).toBe(true)
     await fiber.dispose()
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
   }, 10_000)
@@ -159,17 +200,17 @@ describe('Maid Atelier skin apply', () => {
     document.body.style.setProperty('--maid-new-session-art', 'legacy')
     document.body.style.setProperty('--maid-workspace-ribbon-art', 'legacy-ribbon')
     fiber = await mount()
-    expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-bottom-trim-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-bottom-crest-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-bow-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/png;base64,')
-    expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-bottom-trim-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-bottom-crest-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-bow-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toContain('data:image/webp;base64,')
     expect(document.querySelector("[data-skin-ornament='crest']")).toBeNull()
     await fiber.dispose()
     expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toBe('')
@@ -193,6 +234,14 @@ describe('Maid Atelier skin apply', () => {
     expect(backingRule).toContain('inset: 0 -0.52% -2%')
     expect(backingRule).toContain('background: inherit')
     expect(backingRule).toContain('pointer-events: none')
+  })
+
+  it('recolors the native vector wordmark without replacing it with raster art', () => {
+    expect(CSS).toMatch(/button\[class\*='brand'\]\s*\{[^}]*color: #f3e3c0/s)
+    expect(CSS).toMatch(/button\[class\*='brand'\]\s*\{[^}]*--dsw-alias-label-primary-inverted: #10204d/s)
+    expect(CSS).toMatch(/button\[class\*='brand'\] > svg\s*\{[^}]*width: min\(182px, 100%\)/s)
+    expect(CSS).toMatch(/button\[class\*='brand'\] > svg > rect\s*\{[^}]*fill: #d7b46a/s)
+    expect(CSS).not.toContain("[data-skin-chrome='brand-lockup']")
   })
 
   it('keeps question and todo copy paired with readable skin surfaces', () => {
@@ -301,10 +350,110 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     expect(railIconSelectors.length).toBeGreaterThan(0)
     expect(railIconSelectors.every(selector => selector.includes(":not([role='dialog'] *)"))).toBe(true)
+    // The icon and label travel as one pair: a fixed gap binds them (like the
+    // New Session button) and the pair stays centered, so resizing the sidebar
+    // never stretches the space between the gear and the text.
     expect(centeredSettingsContentRule).toContain('position: relative')
     expect(centeredSettingsContentRule).toContain('flex: 1 1 auto')
-    expect(centeredSettingsLabelRule).toContain('left: 50%')
-    expect(centeredSettingsLabelRule).toContain('transform: translateX(-50%)')
+    expect(centeredSettingsContentRule).toContain('justify-content: center')
+    expect(centeredSettingsContentRule).toContain('gap: 8px')
+    expect(centeredSettingsLabelRule).not.toContain('position: absolute')
+    expect(centeredSettingsLabelRule).not.toContain('left: 50%')
+    expect(centeredSettingsLabelRule).toContain('line-height: 1')
+  })
+
+  it('hides the duplicated title-bar menu button in frameless surfaces', () => {
+    const titlebarMenuRule = CSS.match(
+      /\[class\*='titlebar'\] > \[class\*='button'\]:first-of-type\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(titlebarMenuRule).toContain('display: none')
+    expect(CSS).toMatch(/\[class\*='titlebar'\] > \[class\*='button'\]:first-of-type/)
+  })
+
+  it('places the whale-free wordmark at the left of the frameless title bar', async () => {
+    fiber = await mount()
+    document.body.insertAdjacentHTML('beforeend', '<div class="fixture_titlebar"></div>')
+    await flushMutations()
+    const titlebar = document.querySelector<HTMLElement>("[class*='titlebar']")
+    const brand = titlebar?.querySelector<HTMLElement>("[data-skin-chrome='titlebar-brand']")
+    expect(brand).not.toBeNull()
+    const svg = brand?.querySelector('svg')
+    expect(svg?.getAttribute('viewBox')).toBe('26 4.2 155.6 17.6')
+    expect(svg?.innerHTML ?? '').toContain('maid-titlebar-brand-clip')
+    expect(svg?.innerHTML ?? '').not.toContain('whale-clip')
+    expect(svg?.innerHTML ?? '').not.toContain('M23.0584')
+    await fiber.dispose()
+    expect(document.querySelector("[data-skin-chrome='titlebar-brand']")).toBeNull()
+  })
+
+  it('styles the title-bar wordmark centered on the window, always visible', () => {
+    expect(CSS).toMatch(/\[data-skin-chrome='titlebar-brand'\]\s*\{[^}]*left: 50%/s)
+    expect(CSS).toMatch(/\[data-skin-chrome='titlebar-brand'\]\s*\{[^}]*transform: translate\(-50%, -50%\)/s)
+    expect(CSS).toMatch(/\[data-skin-chrome='titlebar-brand'\]\s*\{[^}]*pointer-events: none/s)
+    expect(CSS).toMatch(/\[data-skin-chrome='titlebar-brand'\] svg\s*\{[^}]*height: 18px/s)
+    // The wordmark must not hide with the rail: it is decorative and centered.
+    expect(CSS).not.toMatch(/\[data-maid-sidebar-size='rail'\]\s*\[data-skin-chrome='titlebar-brand'\]\s*\{[^}]*display: none/s)
+  })
+
+  it('re-asserts the frameless frame rows through CSSOM env(), bypassing the module pipeline', async () => {
+    fiber = await mount()
+    const sheet = document.querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")
+    const cssText = [...(sheet?.sheet?.cssRules ?? [])].map(rule => rule.cssText).join(' ')
+    // jsdom's CSS parser drops the env() declaration body (the real browser
+    // keeps `grid-template-rows: env(titlebar-area-height, 40px) 1fr`), so
+    // assert the repaired selectors and the handle boundary instead.
+    expect(cssText).toContain('[data-wco]')
+    expect(cssText).toContain('[data-desktop]')
+    expect(cssText).toContain('handle"]')
+    expect(cssText).toContain('top: var(--maid-titlebar-height, 0px)')
+  })
+
+  it('starts the top curtain below the frameless title-bar row', () => {
+    // The offset height must come from the runtime variable, never from env():
+    // the CSS-modules pipeline rewrites env() identifiers, so a hardcoded
+    // env() rule would silently fall back to 0 and paint over the title bar.
+    const trimOffsetRule = CSS.match(
+      /\[data-skin-chrome='top-trim'\]\s*\{\s*top: var\(--maid-titlebar-height, 0px\)/s,
+    )?.[1] ?? ''
+    expect(trimOffsetRule).not.toBeNull()
+    expect(CSS).not.toMatch(/env\(titlebar-area-height/)
+  })
+
+  it('falls back to zero title-bar height when no sidebar column is laid out', async () => {
+    fiber = await mount()
+    const sheet = document.querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")
+    expect(sheet?.sheet?.cssRules[0]?.cssText ?? '').toMatch(/--maid-titlebar-height\s*:\s*0px/)
+    await fiber.dispose()
+    expect(document.querySelector("[data-skin-chrome='sidebar-width-rule']")).toBeNull()
+  })
+
+  it('mirrors the sidebar column top as the curtain offset when a column exists', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div class="fixture_logoRow"><button class="fixture_brand"><svg></svg></button></div>
+      </div>
+    `
+    const column = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    // jsdom has no layout; pretend the column sits 40px below the viewport top.
+    vi.spyOn(column, 'getBoundingClientRect').mockReturnValue({
+      top: 40, left: 0, right: 280, bottom: 760, width: 280, height: 720,
+      x: 0, y: 40, toJSON: () => ({}),
+    })
+    fiber = await mount()
+    const sheet = document.querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")
+    expect(sheet?.sheet?.cssRules[0]?.cssText ?? '').toContain('--maid-titlebar-height: 40px')
+    await fiber.dispose()
+  })
+
+  it('dresses the frameless title bar with the sidebar navy gradient', () => {
+    const titlebarRule = CSS.match(/\[class\*='titlebar'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(titlebarRule).toContain('linear-gradient')
+    // Vertical gradient, deepest at the bottom where it meets the sidebar and
+    // the trim band, lightening toward the top edge.
+    expect(titlebarRule).toContain('to top')
+    expect(titlebarRule).toContain('rgba(197, 164, 104, 0.42)')
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[class\*='titlebar'\]\s*\{[^}]*to top/s)
+    expect(CSS).toMatch(/\[class\*='titlebar'\] \[class\*='button'\]\s*\{[^}]*color: #d9bd83/s)
   })
 
   it('keeps delayed sidebar tooltips out of the rail flex layout', () => {
@@ -602,6 +751,9 @@ describe('Maid Atelier skin apply', () => {
     const sessionBranchRule = CSS.match(
       /\[data-maid-session-row\]::before\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const selectedSessionPlaqueRule = CSS.match(
+      /\[data-maid-session-row\]:not\(\[data-maid-session-flat\]\)\[aria-selected='true'\]::after\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     expect(CSS).toContain('--maid-workspace-crest-art')
     expect(CSS).toContain('--maid-workspace-ribbon-art')
     expect(shieldRule).toContain('background: var(--maid-workspace-crest-art)')
@@ -618,12 +770,32 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain('clip-path: inset(0 100% 0 0)')
     expect(CSS).toContain('clip-path: inset(0 12% 0 0)')
     expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonContentEnter')
-    expect(selectedSessionRule).toContain('rgba(87, 117, 190, 0.34)')
+    expect(selectedSessionRule).toContain('background: transparent')
     expect(selectedSessionRule).toContain('color: #fff8e8')
+    expect(selectedSessionPlaqueRule).toContain('inset: 0 0 0 18px')
+    expect(selectedSessionPlaqueRule).toContain('border-radius: 8px')
+    expect(selectedSessionPlaqueRule).toContain('rgba(226, 190, 112, 0.72)')
+    expect(selectedSessionPlaqueRule).toContain('rgba(82, 111, 184, 0.74)')
     expect(sessionBranchRule).toContain('repeating-linear-gradient')
     expect(sessionBranchRule).toContain('left: 8px')
     expect(sessionBranchRule).toContain('width: 10px')
     expect(CSS).toMatch(/\[data-maid-session-last\]::before\s*\{[^}]*1px 50% no-repeat/s)
+  })
+
+  it('renders the selected flat-list Session as a complete gold-edged plaque', () => {
+    const flatRule = CSS.match(/\[data-maid-session-flat\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const selectedRule = CSS.match(
+      /\[data-maid-session-flat\]\[aria-selected='true'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const accentRule = CSS.match(
+      /\[data-maid-session-flat\]\[aria-selected='true'\]::before\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(flatRule).toContain('box-sizing: border-box')
+    expect(flatRule).toContain('border-radius: 7px')
+    expect(selectedRule).toContain('rgba(226, 190, 112, 0.72)')
+    expect(selectedRule).toContain('rgba(82, 111, 184, 0.74)')
+    expect(accentRule).toContain('linear-gradient(#fff0c5, #d4a951)')
+    expect(accentRule).toContain('inset: 7px auto 7px 5px')
   })
 
   it('skins the official running StateDot as a recognizable atelier jewel chase', () => {
@@ -861,7 +1033,7 @@ describe('Maid Atelier skin apply', () => {
     await flushMutations()
     const dark = document.body.style.backgroundImage
     expect(dark).not.toBe(light)
-    expect(dark).toContain('data:image/png;base64,')
+    expect(dark).toContain('data:image/webp;base64,')
     expect(dark).not.toContain('linear-gradient')
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
