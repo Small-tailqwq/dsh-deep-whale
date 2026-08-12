@@ -6,7 +6,7 @@
  * removed. Extend with assertions specific to your surface.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context, type Fiber } from 'cordis'
+import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { apply } from '../src/client/index.ts'

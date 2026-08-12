@@ -22,7 +22,7 @@
   },
   "license": "CC-BY-NC-SA-4.0",
   "peerDependencies": {
-    "cordis": "^4.0.0-rc.7"
+    "@deepseek-ai/cordis": "^4.0.1-rc.1"
   },
   "files": [
     "lib/index.js",

@@ -4,7 +4,7 @@
  * independent layers. The sidebar keeps the product's native vector
  * wordmark; every skin-owned write is restored by the Cordis effect disposer.
  */
-import type { Context } from 'cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import {
   MAID_ATELIER_BOW_CLEAN,
   MAID_ATELIER_CHIBI,
