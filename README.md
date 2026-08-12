@@ -2,6 +2,14 @@
 
 DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
+## 效果预览
+
+点击图片可查看完整尺寸。
+
+| 亮色模式 | 暗色模式 |
+|---|---|
+| [![maid-atelier 亮色模式](maid-atelier/preview/light.webp)](maid-atelier/preview/light.webp) | [![maid-atelier 暗色模式](maid-atelier/preview/dark.webp)](maid-atelier/preview/dark.webp) |
+
 ## 住户
 
 | 皮肤 | 包名 | 说明 | 许可 |
