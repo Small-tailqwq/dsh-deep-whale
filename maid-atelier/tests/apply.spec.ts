@@ -35,6 +35,13 @@ afterEach(async () => {
 })
 
 describe('Maid Atelier skin apply', () => {
+  it('declares only the public rc.6 client manifest', () => {
+    const manifest = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'))
+    expect(manifest.dsh.client).toEqual({ inject: [], platform: 'web' })
+    expect(manifest).not.toHaveProperty('dshClient')
+    expect(manifest.peerDependencies).toHaveProperty('@deepseek-ai/cordis', '^4.0.1')
+  })
+
   it('sets the body attribute and retracts it on dispose', async () => {
     fiber = await mount()
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
@@ -105,6 +112,29 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector("[data-skin-chrome='sidebar-mascot']")).not.toBeNull()
     expect(document.querySelector("button[class*='brand'] > svg")).not.toBeNull()
     expect(document.querySelector("[data-skin-chrome='brand-lockup']")).toBeNull()
+  })
+
+  it('anchors the public rc.6 settings slot to the real sidebar footer', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div>
+          <div class="fixture_footArea fixture_header"></div>
+          <div class="fixture_footer">
+            <div data-slot="sidebar.footer.action"></div>
+            <div><div data-slot="sidebar.settings" style="display: contents">
+              <button><div data-slot="settings.trigger">设置</div></button>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+
+    expect(document.querySelector('.fixture_header')?.hasAttribute('data-maid-sidebar-footer')).toBe(false)
+    expect(document.querySelector('.fixture_footer')?.hasAttribute('data-maid-sidebar-footer')).toBe(true)
+
+    await fiber.dispose()
+    expect(document.querySelector('[data-maid-sidebar-footer]')).toBeNull()
   })
 
   it('marks the active workspace group and its session tree, then retracts every hook', async () => {
@@ -307,17 +337,17 @@ describe('Maid Atelier skin apply', () => {
       /button\[class\*='newSession'\] svg\s*\{([^}]*)\}/g,
     )].map(match => match[1] ?? '').find(rule => rule.includes('#efd7a1')) ?? ''
     const collapsedFootRule = [...CSS.matchAll(
-      /\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/g,
+      /\[data-slot='sidebar\.settings'\][\s\S]*?> :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/g,
     )].map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
     const collapsedSessionRule = [...CSS.matchAll(/button\[class\*='newSession'\]\s*\{([^}]*)\}/g)]
       .map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
-    const collapsedFootAreaRule = [...CSS.matchAll(/\[class\*='footArea'\]\s*\{([^}]*)\}/g)]
+    const collapsedFootAreaRule = [...CSS.matchAll(/\[data-maid-sidebar-footer\]\s*\{([^}]*)\}/g)]
       .map(match => match[1] ?? '').find(rule => rule.includes('display: flex')) ?? ''
     const sharedRailRule = CSS.match(
-      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\)\s*\{([^}]*)\}/s,
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] > :is\(button, \[role='button'\]\)\s*\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const sharedRailHoverRule = CSS.match(
-      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\):is\(:hover, :focus-visible\)\s*\{([^}]*)\}/s,
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] > :is\(button, \[role='button'\]\)\s*\):is\(:hover, :focus-visible\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(toggleRule).toContain('border-radius: 50%')
     expect(sharedRailRule).toContain('width: var(--maid-rail-control-size)')
@@ -343,10 +373,10 @@ describe('Maid Atelier skin apply', () => {
       /body\[data-dsh-maid-atelier\]\[data-maid-sidebar-size='rail'\][^{]+:is\(\[class\*='iconButton'\], \[class\*='searchButton'\]\)[^{]+\{/g,
     )].map(match => match[0] ?? '')
     const centeredSettingsContentRule = CSS.match(
-      /\[class\*='footArea'\][\s\S]*?> :is\(button, \[role='button'\]\)[\s\S]*?> \[class\*='triggerContent'\]\s*\{([^}]*)\}/s,
+      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?> :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const centeredSettingsLabelRule = CSS.match(
-      /\[class\*='triggerContent'\][\s\S]*?> \[class\*='triggerLabel'\]\s*\{([^}]*)\}/s,
+      /\[data-slot='settings\.trigger'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(railIconSelectors.length).toBeGreaterThan(0)
     expect(railIconSelectors.every(selector => selector.includes(":not([role='dialog'] *)"))).toBe(true)
@@ -673,9 +703,11 @@ describe('Maid Atelier skin apply', () => {
     const sidebarInnerRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const footRule = CSS.match(/\[class\*='footArea'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
-    const swagRule = CSS.match(/\[class\*='footArea'\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const footRule = CSS.match(/\[data-maid-sidebar-footer\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const swagRule = CSS.match(/\[data-maid-sidebar-footer\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
     expect(sidebarInnerRule).not.toContain('container-type')
+    expect(footRule).toContain('box-sizing: border-box')
+    expect(footRule).toContain('position: relative')
     expect(footRule).toContain('flex: 0 0 calc(var(--maid-sidebar-swag-height) + 56px)')
     expect(footRule).toContain('padding: calc(var(--maid-sidebar-swag-height) - 6px) 18px 12px')
     expect(swagRule).toContain('height: var(--maid-sidebar-swag-height)')
@@ -709,7 +741,7 @@ describe('Maid Atelier skin apply', () => {
       /\[class\*='search'\]\[class\*='searchExpanded'\]:has\(> input\[class\*='searchInput'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const settingsRule = CSS.match(
-      /\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
+      /\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(headingRule).toContain('color: #d9bd83')
     expect(searchRule).toContain('border: 1px solid rgba(225, 191, 124, 0.72)')
@@ -729,7 +761,7 @@ describe('Maid Atelier skin apply', () => {
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const portalRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > \[class\*='footArea'\]\s*\{([^}]*)\}/s,
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > \[data-maid-sidebar-footer\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -821,12 +853,12 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the sidebar mascot subordinate to navigation and behind the lower ornament', () => {
     const mascotRule = CSS.match(/\[data-skin-chrome='sidebar-mascot'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
-    expect(mascotRule).toContain('bottom: calc(var(--maid-sidebar-swag-height) + 64px)')
+    expect(mascotRule).toContain('bottom: calc(var(--maid-sidebar-swag-height) + 68px)')
     expect(mascotRule).toContain('width: var(--maid-sidebar-mascot-width)')
     expect(mascotRule).toContain('max-height: 38%')
     expect(mascotRule).toContain('z-index: 1')
-    expect(mascotRule).toContain('opacity: 0.52')
-    expect(mascotRule).toContain('saturate(0.86)')
+    expect(mascotRule).toContain('opacity: 0.7')
+    expect(mascotRule).toContain('saturate(0.94)')
   })
 
   it('keeps independently sized landing and workspace trim layers', () => {

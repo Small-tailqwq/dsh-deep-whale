@@ -492,7 +492,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [c
 body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   position: absolute;
   left: 52%;
-  bottom: calc(var(--maid-sidebar-swag-height) + 64px);
+  bottom: calc(var(--maid-sidebar-swag-height) + 68px);
   z-index: 1;
   width: var(--maid-sidebar-mascot-width);
   height: auto;
@@ -500,10 +500,10 @@ body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   object-fit: contain;
   object-position: center bottom;
   pointer-events: none;
-  opacity: 0.52;
+  opacity: 0.7;
   filter:
-    saturate(0.86)
-    brightness(0.88)
+    saturate(0.94)
+    brightness(0.96)
     contrast(0.98)
     drop-shadow(0 5px 12px rgba(2, 7, 24, 0.24));
   transform: translateX(-50%) translateZ(0);
@@ -640,7 +640,9 @@ body[data-dsh-maid-atelier] button[class*='newSession'] svg {
    button uses fixed raster end caps and a stretchable center slice.
    Direct-child scoping: overlay surfaces (dialogs/menus) are portaled into
    this element and must not inherit the navy-and-gold foot button face. */
-body[data-dsh-maid-atelier] [class*='footArea'] {
+body[data-dsh-maid-atelier] [data-maid-sidebar-footer] {
+  box-sizing: border-box;
+  position: relative;
   isolation: auto;
   flex: 0 0 calc(var(--maid-sidebar-swag-height) + 56px);
   min-height: calc(var(--maid-sidebar-swag-height) + 56px);
@@ -650,7 +652,7 @@ body[data-dsh-maid-atelier] [class*='footArea'] {
   box-shadow: none;
 }
 
-body[data-dsh-maid-atelier] [class*='footArea']::before {
+body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
   content: '';
   position: absolute;
   inset: 0 0 auto;
@@ -661,7 +663,10 @@ body[data-dsh-maid-atelier] [class*='footArea']::before {
   filter: drop-shadow(0 4px 9px rgba(2, 8, 28, 0.26));
 }
 
-body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button']) {
+body[data-dsh-maid-atelier]
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :is(button, [role='button']) {
   position: relative;
   z-index: 1;
   width: 100%;
@@ -688,9 +693,9 @@ body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button']) {
    moves together, so resizing the sidebar never separates them. The pair
    stays optically centered in the content box. */
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
-    [class*='footArea']
-    > :is(button, [role='button'])
-    > [class*='triggerContent'] {
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :is(button, [role='button']) {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
@@ -699,18 +704,24 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 }
 
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
-    [class*='footArea']
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
     > :is(button, [role='button'])
-    > [class*='triggerContent']
-    > [class*='triggerLabel'] {
+    [data-slot='settings.trigger'] {
   line-height: 1;
 }
 
-body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button'])::before {
+body[data-dsh-maid-atelier]
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :is(button, [role='button'])::before {
   content: none;
 }
 
-body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button']):is(:hover, :focus-visible) {
+body[data-dsh-maid-atelier]
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :is(button, [role='button']):is(:hover, :focus-visible) {
   color: #fff8e8;
   background: none;
   filter: brightness(1.1) drop-shadow(0 5px 12px rgba(2, 8, 28, 0.3));
@@ -718,7 +729,10 @@ body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button']):i
   outline: none;
 }
 
-body[data-dsh-maid-atelier] [class*='footArea'] > :is(button, [role='button']) svg {
+body[data-dsh-maid-atelier]
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :is(button, [role='button']) svg {
   color: #e8c77f;
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.62));
 }
@@ -775,7 +789,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   outline: none;
 }
 
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='footArea'] {
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-maid-sidebar-footer] {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -786,11 +800,14 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='footArea'] {
   box-shadow: none;
 }
 
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='footArea']::before {
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-maid-sidebar-footer]::before {
   display: none;
 }
 
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='footArea'] > :is(button, [role='button']) {
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :is(button, [role='button']) {
   width: 38px;
   min-width: 38px;
   min-height: 38px;
@@ -805,7 +822,10 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='footArea'] >
     0 3px 9px rgba(1, 7, 24, 0.24);
 }
 
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='footArea'] > :is(button, [role='button'])::before {
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :is(button, [role='button'])::before {
   display: none;
 }
 
@@ -906,7 +926,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [class*='footArea'] > :is(button, [role='button'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] > :is(button, [role='button'])
     ) {
   box-sizing: border-box;
   width: var(--maid-rail-control-size);
@@ -941,7 +961,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [class*='footArea'] > :is(button, [role='button'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] > :is(button, [role='button'])
     ):is(:hover, :focus-visible) {
   color: #fff1ce;
   border-color: rgba(244, 218, 164, 0.94);
@@ -1593,7 +1613,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
    official z-index and backdrop-filter must cover every skin-owned layer. */
 body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
-  > div > [class*='footArea'] {
+  > div > [data-maid-sidebar-footer] {
   z-index: auto;
 }
 

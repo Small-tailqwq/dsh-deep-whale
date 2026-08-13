@@ -108,10 +108,24 @@ function decorateTitlebarBrand(): void {
   titlebar.prepend(brand)
 }
 function decorateSidebar(): void {
-  const sidebarRoot = document.querySelector<HTMLElement>(
-    `${SIDEBAR_COLUMN_SELECTOR} > div`,
-  )
-  if (!sidebarRoot) return
+  const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
+  const sidebarRoot = sidebar?.querySelector<HTMLElement>(':scope > div')
+  if (!sidebar || !sidebarRoot) return
+
+  sidebar.querySelectorAll<HTMLElement>('[data-maid-sidebar-footer]').forEach((element) => {
+    delete element.dataset.maidSidebarFooter
+  })
+  const settingsSlot = sidebar.querySelector<HTMLElement>("[data-slot='sidebar.settings']")
+  if (settingsSlot) {
+    let footer = settingsSlot.parentElement
+    while (footer && footer !== sidebar) {
+      if (footer.querySelector("[data-slot='sidebar.footer.action']")) {
+        footer.dataset.maidSidebarFooter = ''
+        break
+      }
+      footer = footer.parentElement
+    }
+  }
 
   if (!sidebarRoot.querySelector("[data-skin-chrome='sidebar-corners']")) {
     sidebarRoot.prepend(createSidebarCorners())
@@ -455,8 +469,9 @@ export function apply(ctx: Context): void {
     }
     document.querySelectorAll(`[data-skin-owner='${SKIN_OWNER}']`).forEach(element => element.remove())
     document.querySelectorAll<HTMLElement>(
-      '[data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-flat], [data-maid-session-first], [data-maid-session-last]',
+      '[data-maid-sidebar-footer], [data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-flat], [data-maid-session-first], [data-maid-session-last]',
     ).forEach((element) => {
+      delete element.dataset.maidSidebarFooter
       delete element.dataset.maidWorkspaceGroup
       delete element.dataset.maidWorkspaceRow
       delete element.dataset.maidWorkspaceActive
