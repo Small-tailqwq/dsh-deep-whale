@@ -843,7 +843,7 @@ body[data-dsh-maid-atelier] [class*='sectionHeader'] [class*='iconButton'] svg {
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.68));
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search']:has(> input[class*='searchInput']) {
+body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']) {
   --dsh-search-input-fill: transparent;
   height: 42px;
   margin: 0 2px 12px;
@@ -857,7 +857,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [c
   transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search']:has(> input[class*='searchInput']):focus-within {
+body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']):focus-within {
   border-color: rgba(244, 218, 164, 0.94);
   background: linear-gradient(180deg, rgba(17, 39, 85, 0.68), rgba(8, 23, 59, 0.52));
   box-shadow:
@@ -888,16 +888,6 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     :is([data-pane='sidebar'], [class*='sidebarCol'])
     [class*='search']:has(> [class*='searchButton']) {
   justify-content: center;
-}
-
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search']:has(> input[class*='searchInput']) {
-  width: 36px;
-  height: 36px;
-  margin-inline: 0;
-  padding: 0;
-  justify-content: center;
-  border-color: rgba(225, 191, 124, 0.56);
-  background: rgba(8, 23, 59, 0.46);
 }
 
 /* Every rail action shares the stock 36px control box. Keeping the ornament

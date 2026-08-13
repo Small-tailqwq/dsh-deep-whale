@@ -706,7 +706,7 @@ describe('Maid Atelier skin apply', () => {
   it('styles the workspace heading, search field, and settings surround in antique gold', () => {
     const headingRule = CSS.match(/\[class\*='sectionHeader'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const searchRule = CSS.match(
-      /\[class\*='search'\]:has\(> input\[class\*='searchInput'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='search'\]\[class\*='searchExpanded'\]:has\(> input\[class\*='searchInput'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const settingsRule = CSS.match(
       /\[class\*='footArea'\] > :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
@@ -714,6 +714,7 @@ describe('Maid Atelier skin apply', () => {
     expect(headingRule).toContain('color: #d9bd83')
     expect(searchRule).toContain('border: 1px solid rgba(225, 191, 124, 0.72)')
     expect(searchRule).toContain('--dsh-search-input-fill: transparent')
+    expect(CSS).not.toMatch(/\[class\*='search'\]:has\(> input\[class\*='searchInput'\]\)\s*\{/)
     expect(settingsRule).toContain('min-height: 50px')
     expect(settingsRule).toContain('border-image-source: var(--maid-settings-frame-art)')
     expect(settingsRule).toContain('border-image-slice: 0 220 0 220 fill')
