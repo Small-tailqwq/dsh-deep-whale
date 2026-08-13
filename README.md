@@ -1,4 +1,4 @@
-# dsh-deep-whale · 鲸娘皮肤系列
+# dsh-deep-whale · 鲸鱼娘皮肤系列
 
 DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
@@ -15,6 +15,13 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 | 皮肤 | 包名 | 说明 | 许可 |
 |---|---|---|---|
 | [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | CC BY-NC-SA 4.0 |
+
+## 版权所有人
+
+| 版权所有人 | 版权所有内容 | 个人主页 |
+|---|---|---|
+| 上善 | 鲸鱼娘角色形象原作 | [Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili（上善无形）](https://b23.tv/8h5L4xz) |
+| zipzip | 加入 DeepSeek 元素的女仆鲸鱼娘二次设计 | [Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili（ZipZipPipe）](https://b23.tv/Pnw6nG8) |
 
 ## 安装
 

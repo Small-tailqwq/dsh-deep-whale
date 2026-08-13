@@ -26,8 +26,8 @@ dsh plugin --profile web add ../dsh-deep-whale/maid-atelier
 
 皮肤素材为衍生创作,署名链(详见 `NOTICE`):
 
-1. **一创 @上善** —— 鲸鱼娘角色形象原作者
-2. **二创 @ZipZipPipe** —— 在其形象上加入 DeepSeek 元素的女仆鲸鱼娘二次设计(生成模型 GPT Image 2)
+1. **一创 上善**（[Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili：上善无形](https://b23.tv/8h5L4xz)）—— 鲸鱼娘角色形象原作者
+2. **二创 zipzip**（[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili：ZipZipPipe](https://b23.tv/Pnw6nG8)）—— 在其形象上加入 DeepSeek 元素的女仆鲸鱼娘二次设计(生成模型 GPT Image 2)
 3. **三创(本皮肤)Small-tailqwq** —— DeepSeek 元素再设计
 
 完整许可文本见 `LICENSE`;素材源文件在 `assets/`。
