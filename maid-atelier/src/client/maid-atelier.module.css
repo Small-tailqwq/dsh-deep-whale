@@ -119,10 +119,12 @@ body[data-dsh-maid-atelier] [data-maid-character] {
     filter 420ms ease;
 }
 
-/* The sticky composer mirrors the fixed character art to occlude transcript
-   rows. During viewport resize both copies must adopt the new vh geometry in
-   the same frame; transitioning only the img layer exposes their boundary. */
-body[data-dsh-maid-atelier][data-maid-viewport-resizing] [data-maid-character] {
+/* The active composer mirrors the fixed character art to occlude transcript
+   rows. While their shared geometry changes, both copies must sample it in
+   the same frame. Hero has no mirrored copy and keeps its full transition. */
+body[data-dsh-maid-atelier][data-maid-viewport-resizing]:has(
+  [data-phase='active'] [data-composer-seat]
+) [data-maid-character] {
   transition: none;
 }
 
@@ -651,7 +653,7 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer] {
   box-sizing: border-box;
   position: relative;
   isolation: auto;
-  flex: 0 0 calc(var(--maid-sidebar-swag-height) + 82px);
+  flex: 0 0 auto;
   min-height: calc(var(--maid-sidebar-swag-height) + 82px);
   padding: calc(var(--maid-sidebar-swag-height) + 2px) 18px 22px;
   border: 0;
@@ -710,6 +712,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
   position: relative;
   flex: 1 1 auto;
   width: 100%;
+  margin-inline: 0;
   justify-content: center;
   gap: 8px;
 }
@@ -838,6 +841,144 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-slot='sidebar.settings']
     > :is(button, [role='button'])::before {
   display: none;
+}
+
+/* Cordis contributes a second footer action. The wide footer grows from its
+   content; the fixed-height rail needs explicit room for both circles. */
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
+    [data-maid-sidebar-footer]:has([data-cordis-badge]) {
+  flex-basis: 100px;
+  min-height: 100px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* CordisPanel is fixed but remains inside the sidebar content root. Promote
+   that root only while the panel is open so the sticky composer occlusion
+   layer cannot cover the panel's lower rows and approval actions. */
+body[data-dsh-maid-atelier]:has([data-cordis-panel])
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :has([data-cordis-panel]) {
+  z-index: 40;
+}
+
+body[data-dsh-maid-atelier]
+    [data-slot='sidebar.footer.action']
+    > :has([data-cordis-badge]) {
+  width: 100%;
+  margin-top: 0;
+}
+
+body[data-dsh-maid-atelier] [data-cordis-badge] {
+  min-height: 49px;
+  color: #f4e3bf;
+  border: 1px solid rgba(225, 191, 124, 0.58);
+  background: linear-gradient(145deg, rgba(44, 68, 132, 0.74), rgba(8, 23, 59, 0.92));
+  box-shadow:
+    inset 0 0 0 2px rgba(5, 15, 45, 0.64),
+    0 4px 11px rgba(1, 7, 24, 0.24);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-badge]:is(:hover, :focus-visible, [data-active]) {
+  color: #fff8e8;
+  border-color: rgba(244, 218, 164, 0.92);
+  background: linear-gradient(145deg, rgba(91, 119, 188, 0.72), rgba(13, 31, 76, 0.96));
+  outline: none;
+}
+
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-cordis-badge] {
+  box-sizing: border-box;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* The Cordis panel uses --dsw-alias-bg-base for both its shell and rows. The
+   skin makes that global token transparent, so restore a self-contained glass
+   palette on the plugin's stable panel hook. */
+body[data-dsh-maid-atelier] [data-cordis-panel] {
+  left: calc(var(--maid-sidebar-width) + 12px);
+  width: min(420px, calc(100vw - var(--maid-sidebar-width) - 24px));
+  min-width: min(300px, calc(100vw - var(--maid-sidebar-width) - 24px));
+  --dsw-alias-bg-base: rgba(230, 237, 250, 0.96);
+  --dsw-alias-label-primary: #17284f;
+  --dsw-alias-label-secondary: #304875;
+  --dsw-alias-label-tertiary: #526789;
+  --dsw-alias-label-caption: #6a7895;
+  --dsw-alias-border-l1: rgba(190, 153, 82, 0.72);
+  --dsw-alias-border-l2: rgba(83, 105, 158, 0.34);
+  --dsw-alias-interactive-bg-hover: rgba(86, 112, 174, 0.16);
+  --dsw-alias-state-warn-tertiary: rgba(218, 180, 104, 0.2);
+  --dsw-alias-state-warn-label: #815c18;
+  border-color: rgba(190, 153, 82, 0.78);
+  background: linear-gradient(145deg, rgba(239, 244, 253, 0.97), rgba(207, 220, 244, 0.94));
+  color: #17284f;
+  box-shadow:
+    0 18px 44px rgba(13, 29, 68, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(16px) saturate(0.9);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-panel] > header {
+  background: rgba(226, 235, 250, 0.88);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-row] {
+  background: rgba(247, 249, 254, 0.72);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.5);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-row][data-cordis-awaiting] {
+  border-color: rgba(190, 153, 82, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 248, 226, 0.46),
+    0 4px 12px rgba(31, 52, 99, 0.1);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-panel]
+    :is([data-cordis-approve], [data-cordis-approve-plugin], [data-cordis-decline]) {
+  color: #334d7d;
+  border: 1px solid rgba(91, 112, 166, 0.34);
+  background: rgba(239, 244, 253, 0.82);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel] {
+  --dsw-alias-bg-base: rgba(10, 22, 54, 0.96);
+  --dsw-alias-label-primary: #f3e8cf;
+  --dsw-alias-label-secondary: #d6def1;
+  --dsw-alias-label-tertiary: #afbddc;
+  --dsw-alias-label-caption: #95a6cb;
+  --dsw-alias-border-l1: rgba(211, 180, 119, 0.68);
+  --dsw-alias-border-l2: rgba(143, 163, 211, 0.32);
+  --dsw-alias-interactive-bg-hover: rgba(151, 171, 218, 0.16);
+  --dsw-alias-state-warn-tertiary: rgba(211, 164, 72, 0.18);
+  --dsw-alias-state-warn-label: #f0cf8c;
+  border-color: rgba(211, 180, 119, 0.7);
+  background: linear-gradient(145deg, rgba(19, 38, 82, 0.97), rgba(7, 19, 51, 0.96));
+  color: #f3e8cf;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel] > header {
+  background: rgba(16, 34, 75, 0.9);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-row] {
+  background: rgba(18, 36, 77, 0.78);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel]
+    :is([data-cordis-approve], [data-cordis-approve-plugin], [data-cordis-decline]) {
+  color: #d6def1;
+  border-color: rgba(143, 163, 211, 0.34);
+  background: rgba(29, 51, 99, 0.82);
 }
 
 body[data-dsh-maid-atelier] [class*='sectionHeader'] {

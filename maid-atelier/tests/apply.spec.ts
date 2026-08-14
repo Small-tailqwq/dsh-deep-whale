@@ -723,6 +723,58 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).not.toMatch(/:has\(\[data-phase='active'\]\)\s*\[data-maid-character/s)
   })
 
+  it('recovers the rc.6 rail search after its stale click collapses the wide field', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div class="fixture_search">
+          <button class="fixture_searchButton" type="button">search</button>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+    document.querySelector<HTMLButtonElement>('.fixture_searchButton')!.click()
+
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    sidebar.innerHTML = `
+      <div class="fixture_search">
+        <input class="fixture_searchInput" />
+      </div>
+    `
+    const searchRoot = sidebar.querySelector<HTMLElement>('.fixture_search')!
+    const input = sidebar.querySelector<HTMLInputElement>('.fixture_searchInput')!
+    let reopened = 0
+    searchRoot.addEventListener('click', () => { reopened += 1 })
+
+    await new Promise<void>(resolve => requestAnimationFrame(() => { resolve() }))
+
+    expect(reopened).toBe(1)
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('themes Cordis footer actions and approval panels without displacing settings', () => {
+    expect(CSS).toMatch(
+      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?> :is\(button, \[role='button'\]\)\s*\{[^}]*margin-inline: 0/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-maid-sidebar-footer\]\s*\{[^}]*flex: 0 0 auto[^}]*min-height: calc\(var\(--maid-sidebar-swag-height\) \+ 82px\)/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-maid-sidebar-size='rail'\][\s\S]*?\[data-maid-sidebar-footer\]:has\(\[data-cordis-badge\]\)\s*\{[^}]*flex-basis: 100px/s,
+    )
+    expect(CSS).toMatch(
+      /:has\(\[data-cordis-panel\]\)[\s\S]*?> :has\(\[data-cordis-panel\]\)\s*\{[^}]*z-index: 40/s,
+    )
+    expect(CSS).toMatch(/\[data-cordis-badge\]\s*\{[^}]*border: 1px solid[^}]*linear-gradient/s)
+    expect(CSS).toMatch(
+      /\[data-cordis-panel\]\s*\{[^}]*left: calc\(var\(--maid-sidebar-width\) \+ 12px\)[^}]*--dsw-alias-bg-base: rgba\(230, 237, 250, 0\.96\)[^}]*backdrop-filter: blur\(16px\)/s,
+    )
+    expect(CSS).toMatch(/\[data-cordis-row\]\s*\{[^}]*rgba\(247, 249, 254, 0\.72\)/s)
+    expect(CSS).toContain('[data-cordis-approve-plugin]')
+    expect(CSS).toMatch(
+      /\[data-ds-dark-theme\] \[data-cordis-panel\]\s*\{[^}]*--dsw-alias-bg-base: rgba\(10, 22, 54, 0\.96\)/s,
+    )
+  })
+
   it('keeps the fixed and composer character copies aligned during viewport resize', async () => {
     vi.useFakeTimers()
     try {
@@ -730,7 +782,10 @@ describe('Maid Atelier skin apply', () => {
       window.dispatchEvent(new Event('resize'))
 
       expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
-      expect(CSS).toMatch(/\[data-maid-viewport-resizing\] \[data-maid-character\]\s*\{[^}]*transition: none/s)
+      expect(CSS).toMatch(
+        /\[data-maid-viewport-resizing\]:has\(\s*\[data-phase='active'\] \[data-composer-seat\]\s*\) \[data-maid-character\]\s*\{[^}]*transition: none/s,
+      )
+      expect(CSS).not.toMatch(/\[data-maid-viewport-resizing\] \[data-maid-character\]/)
 
       vi.advanceTimersByTime(180)
       expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
@@ -738,6 +793,41 @@ describe('Maid Atelier skin apply', () => {
       window.dispatchEvent(new Event('resize'))
       await fiber.dispose()
       fiber = undefined
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps the fixed and composer character copies aligned during sidebar resize', async () => {
+    vi.useFakeTimers()
+    let resizeSidebar: ((width: number) => void) | undefined
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeSidebar = (width: number): void => callback(
+          [{ contentRect: { width } } as ResizeObserverEntry],
+          this as unknown as ResizeObserver,
+        )
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    })
+    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
+
+    try {
+      fiber = await mount()
+      resizeSidebar?.(280)
+
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.dataset.maidSidebarSize).toBe('wide')
+
+      vi.advanceTimersByTime(179)
+      resizeSidebar?.(56)
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.dataset.maidSidebarSize).toBe('rail')
+
+      vi.advanceTimersByTime(180)
       expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
     } finally {
       vi.useRealTimers()
@@ -835,12 +925,16 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[role='tree'\][^{]*:is\(\[class\*='summary'\], \[class\*='metrics'\], \[class\*='notice'\]\)\s*\{[^}]*color: #b8c5e1/s)
   })
 
-  it('marks only live hero and workspace phase changes for composer motion', async () => {
+  it('marks only live hero and chat layout changes for composer motion', async () => {
     document.body.innerHTML = '<div data-phase="hero"></div>'
     fiber = await mount()
     expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
 
-    document.querySelector<HTMLElement>('[data-phase]')!.dataset.phase = 'active'
+    const phaseRoot = document.querySelector<HTMLElement>('[data-phase]')!
+    phaseRoot.dataset.phase = 'active'
+    const chatFlow = document.createElement('div')
+    chatFlow.dataset.chatFlow = ''
+    phaseRoot.append(chatFlow)
     await flushMutations()
     expect(document.body.dataset.maidComposerMotion).toBe('dock')
 
@@ -849,6 +943,19 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.dataset.maidComposerMotion).toBe('rise')
     await fiber.dispose()
     expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
+  })
+
+  it('synchronizes character docking when chat flow mounts after the active shell', async () => {
+    document.body.innerHTML = '<div data-phase="active"><div data-composer-seat></div></div>'
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
+
+    const chatFlow = document.createElement('div')
+    chatFlow.dataset.chatFlow = ''
+    document.querySelector<HTMLElement>("[data-phase='active']")!.append(chatFlow)
+    await flushMutations()
+
+    expect(document.body.dataset.maidComposerMotion).toBe('dock')
   })
 
   it('preserves mirror-driven composer sizing and clears the statistics dock', () => {
@@ -907,7 +1014,8 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarInnerRule).not.toContain('container-type')
     expect(footRule).toContain('box-sizing: border-box')
     expect(footRule).toContain('position: relative')
-    expect(footRule).toContain('flex: 0 0 calc(var(--maid-sidebar-swag-height) + 82px)')
+    expect(footRule).toContain('flex: 0 0 auto')
+    expect(footRule).toContain('min-height: calc(var(--maid-sidebar-swag-height) + 82px)')
     expect(footRule).toContain('padding: calc(var(--maid-sidebar-swag-height) + 2px) 18px 22px')
     expect(swagRule).toContain('height: var(--maid-sidebar-swag-height)')
     expect(swagRule).toContain('background: var(--maid-sidebar-swag-art) center top / 100% 100% no-repeat')

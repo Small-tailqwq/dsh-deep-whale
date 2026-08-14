@@ -235,9 +235,11 @@ export function apply(ctx: Context): void {
   let themeColorObserver: MutationObserver | undefined
   let observedSidebar: HTMLElement | undefined
   let resizeObserver: ResizeObserver | undefined
-  let composerPhase: 'hero' | 'active' | undefined
+  let composerLayout: 'hero' | 'active-chat' | 'active-other' | undefined
   let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
   let viewportResizeTimer: ReturnType<typeof setTimeout> | undefined
+  let railSearchFocusFrame: number | undefined
+  let recoverRailSearchFocus: ((event: MouseEvent) => void) | undefined
   let markViewportResize: (() => void) | undefined
   let settingsBackdropFrame: HTMLDivElement | undefined
   let observer: MutationObserver | undefined
@@ -252,7 +254,11 @@ export function apply(ctx: Context): void {
     delete body.dataset.maidSidebarSize
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
     if (markViewportResize !== undefined) window.removeEventListener('resize', markViewportResize)
+    if (recoverRailSearchFocus !== undefined) {
+      document.removeEventListener('click', recoverRailSearchFocus)
+    }
     observer?.disconnect()
     themeColorObserver?.disconnect()
     if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
@@ -409,13 +415,6 @@ export function apply(ctx: Context): void {
     resizeObserver.observe(sidebar)
   }
 
-  if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries.at(-1)
-      if (entry) applySidebarWidth(entry.contentRect.width)
-    })
-  }
-
   markViewportResize = (): void => {
     body.dataset.maidViewportResizing = ''
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
@@ -426,20 +425,79 @@ export function apply(ctx: Context): void {
   }
   window.addEventListener('resize', markViewportResize)
 
+  /* rc.6 can mount its wide search and its outside-click listener during the
+     rail button's own click. That same event then reaches document with the
+     detached rail button as its target and immediately collapses the field.
+     Re-enter the component through its wide search root after the slide has
+     mounted; newer workspace builds already keep the wide field open, so the
+     rail-only origin check makes this compatibility path inert there. */
+  recoverRailSearchFocus = (event: MouseEvent): void => {
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLElement>("button[class*='searchButton']")
+      : null
+    const railSearch = target?.closest<HTMLElement>("[class*='search']")
+    if (target === null || railSearch === null
+      || railSearch.querySelector("input[class*='searchInput']") !== null) return
+
+    if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
+    const startedAt = performance.now()
+    const recover = (): void => {
+      railSearchFocusFrame = undefined
+      const input = document.querySelector<HTMLInputElement>(
+        `${SIDEBAR_COLUMN_SELECTOR} input[class*='searchInput']`,
+      )
+      const searchRoot = input?.closest<HTMLElement>("[class*='search']")
+      if (input !== null && input !== undefined && searchRoot !== null && searchRoot !== undefined) {
+        searchRoot.click()
+        input.focus({ preventScroll: true })
+        return
+      }
+      if (performance.now() - startedAt < 500) {
+        railSearchFocusFrame = requestAnimationFrame(recover)
+      }
+    }
+    railSearchFocusFrame = requestAnimationFrame(recover)
+  }
+  document.addEventListener('click', recoverRailSearchFocus)
+
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries.at(-1)
+      if (!entry) return
+      // The fixed <img> and the composer copy both consume the live sidebar
+      // width. Suppress the image's own transition while the shell animates
+      // that width so the two copies sample identical geometry each frame.
+      markViewportResize?.()
+      applySidebarWidth(entry.contentRect.width)
+    })
+  }
+
   const syncComposerMotion = (): void => {
     const phaseRoot = document.querySelector<HTMLElement>("[data-phase='hero'], [data-phase='active']")
-    const next = phaseRoot?.dataset.phase
-    if (next !== 'hero' && next !== 'active') return
+    const phase = phaseRoot?.dataset.phase
+    if (phase !== 'hero' && phase !== 'active') return
+    const next = phase === 'hero'
+      ? 'hero'
+      : phaseRoot.querySelector('[data-chat-flow]') === null
+        ? 'active-other'
+        : 'active-chat'
 
-    if (composerPhase !== undefined && composerPhase !== next) {
-      body.dataset.maidComposerMotion = next === 'active' ? 'dock' : 'rise'
+    const motion = composerLayout !== undefined && composerLayout !== next
+      ? next === 'active-chat'
+        ? 'dock'
+        : next === 'hero'
+          ? 'rise'
+          : undefined
+      : undefined
+    if (motion !== undefined) {
+      body.dataset.maidComposerMotion = motion
       if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
       composerMotionTimer = setTimeout(() => {
         delete body.dataset.maidComposerMotion
         composerMotionTimer = undefined
       }, 660)
     }
-    composerPhase = next
+    composerLayout = next
   }
 
   /* The settings mask is mounted inside a promoted sidebar descendant. Chrome
@@ -525,7 +583,8 @@ export function apply(ctx: Context): void {
           workspaceStateChanged = true
         } else if (record.attributeName === 'data-ds-dark-theme' && record.target === body) {
           backdropChanged = true
-        } else if (record.attributeName === 'data-phase' && target?.matches(composerSelector)) {
+        } else if ((record.attributeName === 'data-phase' || record.attributeName === 'data-chat-flow')
+          && target?.closest(composerSelector) !== null) {
           composerChanged = true
         }
         continue
@@ -553,7 +612,7 @@ export function apply(ctx: Context): void {
   })
   observer.observe(body, {
     attributes: true,
-    attributeFilter: ['aria-expanded', 'aria-selected', 'data-ds-dark-theme', 'data-phase'],
+    attributeFilter: ['aria-expanded', 'aria-selected', 'data-ds-dark-theme', 'data-phase', 'data-chat-flow'],
     childList: true,
     subtree: true,
   })
