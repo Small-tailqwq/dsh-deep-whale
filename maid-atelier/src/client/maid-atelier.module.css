@@ -1516,6 +1516,69 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='workspace']:hover
   background: rgba(30, 46, 87, 0.68);
 }
 
+/* Mirror the fixed backdrop inside the sticky seat. The opaque palace pixels
+   stop transcript rows from painting below the composer while the duplicated
+   character layer keeps the exposed footer visually continuous. */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] {
+  --dsw-alias-bg-base: transparent;
+  isolation: isolate;
+  background: var(--maid-palace-art) center top / cover fixed no-repeat;
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+  background-image: var(--maid-character-left-art), var(--maid-character-right-art);
+  background-repeat: no-repeat;
+  background-position:
+    left clamp(8px, 1.3vw, 24px) bottom clamp(-24px, -1.5vh, -8px),
+    right clamp(-70px, -3vw, -24px) bottom clamp(-24px, -1.5vh, -8px);
+  background-size:
+    auto clamp(420px, 64vh, 760px),
+    auto clamp(420px, 62vh, 730px);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-phase='active'] [data-composer-seat]::before {
+  filter: brightness(0.84) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier][data-maid-composer-motion='dock']
+  [data-phase='active'] [data-composer-seat]::before {
+  animation: maidAtelierComposerBackdropDock 620ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+@keyframes maidAtelierComposerBackdropDock {
+  from {
+    opacity: 1;
+    background-position:
+      left clamp(8px, 1.3vw, 24px) bottom clamp(-34px, -2.4vh, -12px),
+      right clamp(-18px, 0.2vw, 8px) bottom clamp(-26px, -1.8vh, -8px);
+    background-size:
+      auto clamp(560px, 96vh, 1180px),
+      auto clamp(540px, 92vh, 1120px);
+  }
+
+  to {
+    opacity: 0.9;
+    background-position:
+      left clamp(8px, 1.3vw, 24px) bottom clamp(-24px, -1.5vh, -8px),
+      right clamp(-70px, -3vw, -24px) bottom clamp(-24px, -1.5vh, -8px);
+    background-size:
+      auto clamp(420px, 64vh, 760px),
+      auto clamp(420px, 62vh, 730px);
+  }
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Composer card: live controls sit beneath one hollow raster plate that keeps
    the reference frame, porcelain rim, continuous lace, and bow aligned. */
 body[data-dsh-maid-atelier] [data-composer-card] {
@@ -2490,7 +2553,8 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier] [data-composer-card],
-  body[data-dsh-maid-atelier] [data-input-mirror] {
+  body[data-dsh-maid-atelier] [data-input-mirror],
+  body[data-dsh-maid-atelier] [data-composer-seat]::before {
     animation: none;
     transition: none;
   }
