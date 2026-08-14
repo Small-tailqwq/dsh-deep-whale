@@ -37,6 +37,8 @@ const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
+const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
+const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
 
 const BACKDROP_PROPERTIES = [
   'background-image',
@@ -96,7 +98,7 @@ function createSidebarCorners(): HTMLDivElement {
  * frameless title bar (Web-app overlay / desktop shell), mirroring the
  * sidebar brand at a smaller scale.
  */
-function decorateTitlebarBrand(): void {
+function decorateTitlebarBrand(ownedNodes: Set<Element>): void {
   const titlebar = document.querySelector<HTMLElement>("[class*='titlebar']")
   if (!titlebar) return
   if (titlebar.querySelector("[data-skin-chrome='titlebar-brand']")) return
@@ -105,9 +107,10 @@ function decorateTitlebarBrand(): void {
   brand.dataset.skinOwner = SKIN_OWNER
   brand.setAttribute('aria-hidden', 'true')
   brand.innerHTML = MAID_ATELIER_TITLEBAR_BRAND
+  ownedNodes.add(brand)
   titlebar.prepend(brand)
 }
-function decorateSidebar(): void {
+function decorateSidebar(ownedNodes: Set<Element>, decoratedElements: Set<HTMLElement>): void {
   const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   const sidebarRoot = sidebar?.querySelector<HTMLElement>(':scope > div')
   if (!sidebar || !sidebarRoot) return
@@ -121,6 +124,7 @@ function decorateSidebar(): void {
     while (footer && footer !== sidebar) {
       if (footer.querySelector("[data-slot='sidebar.footer.action']")) {
         footer.dataset.maidSidebarFooter = ''
+        decoratedElements.add(footer)
         break
       }
       footer = footer.parentElement
@@ -128,7 +132,9 @@ function decorateSidebar(): void {
   }
 
   if (!sidebarRoot.querySelector("[data-skin-chrome='sidebar-corners']")) {
-    sidebarRoot.prepend(createSidebarCorners())
+    const corners = createSidebarCorners()
+    ownedNodes.add(corners)
+    sidebarRoot.prepend(corners)
   }
 
   if (!sidebarRoot.querySelector("[data-skin-chrome='sidebar-mascot']")) {
@@ -138,12 +144,13 @@ function decorateSidebar(): void {
     mascot.setAttribute('aria-hidden', 'true')
     mascot.alt = ''
     mascot.src = MAID_ATELIER_CHIBI
+    ownedNodes.add(mascot)
     sidebarRoot.prepend(mascot)
   }
 
 }
 
-function decorateWorkspaceTree(): void {
+function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
   const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (!sidebar) return
 
@@ -165,6 +172,7 @@ function decorateWorkspaceTree(): void {
       rows.filter(row => row.hasAttribute('aria-selected')).forEach((sessionRow) => {
         sessionRow.dataset.maidSessionRow = ''
         sessionRow.dataset.maidSessionFlat = ''
+        decoratedElements.add(sessionRow)
       })
       return
     }
@@ -175,9 +183,14 @@ function decorateWorkspaceTree(): void {
       if (!workspaceRow) return
 
       workspaceRow.dataset.maidWorkspaceRow = ''
-      if (workspaceRow.parentElement) workspaceRow.parentElement.dataset.maidWorkspaceGroup = ''
+      decoratedElements.add(workspaceRow)
+      if (workspaceRow.parentElement) {
+        workspaceRow.parentElement.dataset.maidWorkspaceGroup = ''
+        decoratedElements.add(workspaceRow.parentElement)
+      }
       sessionRows.forEach((sessionRow) => {
         sessionRow.dataset.maidSessionRow = ''
+        decoratedElements.add(sessionRow)
       })
       if (sessionRows[0]) sessionRows[0].dataset.maidSessionFirst = ''
       if (sessionRows.at(-1)) sessionRows.at(-1)!.dataset.maidSessionLast = ''
@@ -207,8 +220,57 @@ function decorateWorkspaceTree(): void {
 export function apply(ctx: Context): void {
   const body = document.body
   const originalTitle = document.title
+  const previous = new Map<string, string>()
+  for (const property of BACKDROP_PROPERTIES) {
+    previous.set(property, body.style.getPropertyValue(property))
+  }
+
+  const ownedNodes = new Set<Element>()
+  const decoratedElements = new Set<HTMLElement>()
   let themeColorMeta: HTMLMetaElement | null = null
   let previousThemeColor: string | undefined
+  let themeColorObserver: MutationObserver | undefined
+  let observedSidebar: HTMLElement | undefined
+  let resizeObserver: ResizeObserver | undefined
+  let composerPhase: 'hero' | 'active' | undefined
+  let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
+  let settingsBackdropFrame: HTMLDivElement | undefined
+  let observer: MutationObserver | undefined
+  let titlebarOverlay: WindowControlsOverlay | undefined
+  let syncTitlebarHeight: (() => void) | undefined
+
+  ctx.effect(() => () => {
+    delete body.dataset.dshMaidAtelier
+    delete body.dataset.maidComposerMotion
+    delete body.dataset.maidSidebarCompact
+    delete body.dataset.maidSidebarSize
+    if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
+    observer?.disconnect()
+    themeColorObserver?.disconnect()
+    if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
+      titlebarOverlay.removeEventListener('geometrychange', syncTitlebarHeight)
+    }
+    resizeObserver?.disconnect()
+    for (const [property, value] of previous) {
+      body.style.setProperty(property, value)
+    }
+    ownedNodes.forEach(element => element.remove())
+    decoratedElements.forEach((element) => {
+      delete element.dataset.maidSidebarFooter
+      delete element.dataset.maidWorkspaceGroup
+      delete element.dataset.maidWorkspaceRow
+      delete element.dataset.maidWorkspaceActive
+      delete element.dataset.maidSessionRow
+      delete element.dataset.maidSessionFlat
+      delete element.dataset.maidSessionFirst
+      delete element.dataset.maidSessionLast
+    })
+    if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) {
+      themeColorMeta.content = previousThemeColor ?? ''
+    }
+    if (document.title === SKIN_TITLE) document.title = originalTitle
+  }, 'ui-skin-maid-atelier: layered background and ornament')
+
   const syncSystemChrome = (): void => {
     const meta = document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
     if (meta === null) return
@@ -218,7 +280,7 @@ export function apply(ctx: Context): void {
     }
     if (meta.content !== SKIN_SYSTEM_CHROME_COLOR) meta.content = SKIN_SYSTEM_CHROME_COLOR
   }
-  const themeColorObserver = new MutationObserver(syncSystemChrome)
+  themeColorObserver = new MutationObserver(syncSystemChrome)
   themeColorObserver.observe(document.head, {
     attributes: true,
     attributeFilter: ['content'],
@@ -226,11 +288,6 @@ export function apply(ctx: Context): void {
     subtree: true,
   })
   syncSystemChrome()
-  const previous = new Map<string, string>()
-  for (const property of BACKDROP_PROPERTIES) {
-    previous.set(property, body.style.getPropertyValue(property))
-  }
-
   body.dataset.dshMaidAtelier = ''
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
   body.style.setProperty('--maid-bottom-trim-art', `url(${MAID_ATELIER_BOTTOM_TRIM_TILE})`)
@@ -256,17 +313,13 @@ export function apply(ctx: Context): void {
   body.style.setProperty('background-attachment', 'fixed')
   body.style.setProperty('background-repeat', 'no-repeat')
 
-  let observedSidebar: HTMLElement | undefined
-  let resizeObserver: ResizeObserver | undefined
-  let composerPhase: 'hero' | 'active' | undefined
-  let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
-
   // 宽度联动写入独立的 <style> 规则而非 body style：CSSOM 修改不产生
   // attribute mutation，Chrome autofill 的 MutationObserver 不会逐帧触发，
   // 因此可以每帧跟随侧边栏宽度（幕布瞬移跟手）而无需防抖节流。
   const widthSheet = document.createElement('style')
   widthSheet.dataset.skinChrome = 'sidebar-width-rule'
   widthSheet.dataset.skinOwner = SKIN_OWNER
+  ownedNodes.add(widthSheet)
   document.head.append(widthSheet)
   widthSheet.sheet!.insertRule('body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; --maid-titlebar-height: 0px; }')
   // The official frame rules reference env(titlebar-area-height), but the
@@ -293,7 +346,7 @@ export function apply(ctx: Context): void {
   // it) is authoritative: whatever the title-bar height is — WCO env(), the
   // desktop 32px row, or a scaled window — the curtain lands exactly on the
   // rendered boundary, never a pixel off.
-  const syncTitlebarHeight = (): void => {
+  syncTitlebarHeight = (): void => {
     const columns = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (columns !== null) {
       const top = columns.getBoundingClientRect().top
@@ -303,13 +356,13 @@ export function apply(ctx: Context): void {
       }
     }
     // Desktop shell: fixed 32px row (columns not laid out yet).
-    if (window.dshDesktop !== undefined) {
+    if (document.querySelector("[class*='frame'][data-desktop]") !== null) {
       widthRule.style.setProperty('--maid-titlebar-height', '32px')
       return
     }
     widthRule.style.setProperty('--maid-titlebar-height', '0px')
   }
-  const titlebarOverlay = navigator.windowControlsOverlay
+  titlebarOverlay = navigator.windowControlsOverlay
   titlebarOverlay?.addEventListener('geometrychange', syncTitlebarHeight)
   syncTitlebarHeight()
 
@@ -334,7 +387,12 @@ export function apply(ctx: Context): void {
 
   const ensureSidebarObserved = (): void => {
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
-    if (!sidebar || !resizeObserver || sidebar === observedSidebar) return
+    if (!resizeObserver || sidebar === observedSidebar) return
+    if (!sidebar) {
+      if (observedSidebar) resizeObserver.unobserve(observedSidebar)
+      observedSidebar = undefined
+      return
+    }
     if (observedSidebar) resizeObserver.unobserve(observedSidebar)
     observedSidebar = sidebar
     resizeObserver.observe(sidebar)
@@ -363,20 +421,50 @@ export function apply(ctx: Context): void {
     composerPhase = next
   }
 
-  decorateSidebar()
-  decorateWorkspaceTree()
+  /* The settings mask is mounted inside a promoted sidebar descendant. Chrome
+     can omit sibling composited layers from that backdrop sample, so seat a
+     copy of the existing frame immediately before the mask while it is open. */
+  const syncSettingsBackdropFrame = (): void => {
+    const expanded = document.querySelector(
+      `${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`,
+    )
+    const mask = expanded === null
+      ? null
+      : document.querySelector<HTMLElement>(SETTINGS_MASK_SELECTOR)
+    const overlay = mask?.parentElement
+    if (overlay === undefined || overlay === null) {
+      settingsBackdropFrame?.remove()
+      return
+    }
+
+    if (settingsBackdropFrame === undefined) {
+      settingsBackdropFrame = createSidebarCorners()
+      settingsBackdropFrame.dataset.maidSettingsBackdropFrame = ''
+      ownedNodes.add(settingsBackdropFrame)
+    }
+    if (settingsBackdropFrame.parentElement !== overlay) {
+      overlay.insertBefore(settingsBackdropFrame, mask)
+    }
+  }
+
+  decorateTitlebarBrand(ownedNodes)
+  decorateSidebar(ownedNodes, decoratedElements)
+  decorateWorkspaceTree(decoratedElements)
   ensureSidebarObserved()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
   syncComposerMotion()
+  syncSettingsBackdropFrame()
 
-  body.prepend(createCharacterStage())
+  const characterStage = createCharacterStage()
+  ownedNodes.add(characterStage)
+  body.prepend(characterStage)
 
   const syncSidebarDecorations = (): void => {
-    syncTitlebarHeight()
-    decorateTitlebarBrand()
-    decorateSidebar()
-    decorateWorkspaceTree()
+    syncTitlebarHeight?.()
+    decorateTitlebarBrand(ownedNodes)
+    decorateSidebar(ownedNodes, decoratedElements)
+    decorateWorkspaceTree(decoratedElements)
     ensureSidebarObserved()
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar === null) clearSidebarWidth()
@@ -387,38 +475,60 @@ export function apply(ctx: Context): void {
     node instanceof Element && node.getAttribute('data-skin-owner') === SKIN_OWNER
   )
 
+  const nodeTouches = (node: Node, selector: string): boolean => (
+    node instanceof Element && (node.matches(selector) || node.querySelector(selector) !== null)
+  )
+  const sidebarChromeSelector = `${SIDEBAR_COLUMN_SELECTOR}, [class*='titlebar']`
+  const composerSelector = "[data-phase='hero'], [data-phase='active']"
+
   // ResizeObserver writes the animated width through CSSOM, so it never enters
   // this observer. Keep structural decoration in the MutationObserver checkpoint
   // before paint: delaying every change made the wide/rail hand-off visibly late.
   // Skin-owned insertions are ignored so decorating a React-owned node cannot
   // schedule a redundant whole-sidebar pass.
-  const observer = new MutationObserver((records) => {
+  observer = new MutationObserver((records) => {
     let sidebarStructureChanged = false
     let workspaceStateChanged = false
     let backdropChanged = false
     let composerChanged = false
+    let settingsStateChanged = false
     for (const record of records) {
       if (record.type === 'attributes') {
-        if (record.attributeName === 'aria-expanded' || record.attributeName === 'aria-selected') {
+        const target = record.target instanceof Element ? record.target : undefined
+        if (record.attributeName === 'aria-expanded'
+          && target !== undefined
+          && target.closest("[data-slot='sidebar.settings']") !== null) {
+          settingsStateChanged = true
+        } else if ((record.attributeName === 'aria-expanded' || record.attributeName === 'aria-selected')
+          && target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null) {
           workspaceStateChanged = true
-        } else if (record.attributeName === 'data-ds-dark-theme') {
+        } else if (record.attributeName === 'data-ds-dark-theme' && record.target === body) {
           backdropChanged = true
-        } else if (record.attributeName === 'data-phase') {
+        } else if (record.attributeName === 'data-phase' && target?.matches(composerSelector)) {
           composerChanged = true
         }
         continue
       }
       const appNodes = [...record.addedNodes, ...record.removedNodes]
-        .some(node => node instanceof Element && !isSkinChrome(node))
-      if (appNodes) {
+        .filter(node => node instanceof Element && !isSkinChrome(node))
+      const target = record.target instanceof Element ? record.target : undefined
+      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, sidebarChromeSelector))
+        || (target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null))) {
         sidebarStructureChanged = true
+      }
+      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, composerSelector))
+        || (target !== undefined && target.closest(composerSelector) !== null))) {
         composerChanged = true
+      }
+      if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
+        settingsStateChanged = true
       }
     }
     if (sidebarStructureChanged) syncSidebarDecorations()
-    else if (workspaceStateChanged) decorateWorkspaceTree()
+    else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
     if (backdropChanged) syncBackdrop()
     if (composerChanged) syncComposerMotion()
+    if (settingsStateChanged) syncSettingsBackdropFrame()
   })
   observer.observe(body, {
     attributes: true,
@@ -436,12 +546,14 @@ export function apply(ctx: Context): void {
   const workspaceTrimLayer = document.createElement('div')
   workspaceTrimLayer.dataset.skinTrimLayer = 'workspace'
   topTrim.append(landingTrimLayer, workspaceTrimLayer)
+  ownedNodes.add(topTrim)
   body.append(topTrim)
 
   const bottomTrim = document.createElement('div')
   bottomTrim.dataset.skinChrome = 'bottom-trim'
   bottomTrim.dataset.skinOwner = SKIN_OWNER
   bottomTrim.setAttribute('aria-hidden', 'true')
+  ownedNodes.add(bottomTrim)
   body.append(bottomTrim)
 
   const favicon = document.createElement('link')
@@ -450,39 +562,8 @@ export function apply(ctx: Context): void {
   favicon.href = MAID_ATELIER_ICON
   favicon.dataset.skinChrome = 'favicon'
   favicon.dataset.skinOwner = SKIN_OWNER
+  ownedNodes.add(favicon)
   document.head.append(favicon)
 
   document.title = SKIN_TITLE
-
-  ctx.effect(() => () => {
-    delete body.dataset.dshMaidAtelier
-    delete body.dataset.maidComposerMotion
-    delete body.dataset.maidSidebarCompact
-    delete body.dataset.maidSidebarSize
-    if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
-    observer.disconnect()
-    themeColorObserver.disconnect()
-    titlebarOverlay?.removeEventListener('geometrychange', syncTitlebarHeight)
-    resizeObserver?.disconnect()
-    for (const [property, value] of previous) {
-      body.style.setProperty(property, value)
-    }
-    document.querySelectorAll(`[data-skin-owner='${SKIN_OWNER}']`).forEach(element => element.remove())
-    document.querySelectorAll<HTMLElement>(
-      '[data-maid-sidebar-footer], [data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-flat], [data-maid-session-first], [data-maid-session-last]',
-    ).forEach((element) => {
-      delete element.dataset.maidSidebarFooter
-      delete element.dataset.maidWorkspaceGroup
-      delete element.dataset.maidWorkspaceRow
-      delete element.dataset.maidWorkspaceActive
-      delete element.dataset.maidSessionRow
-      delete element.dataset.maidSessionFlat
-      delete element.dataset.maidSessionFirst
-      delete element.dataset.maidSessionLast
-    })
-    if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) {
-      themeColorMeta.content = previousThemeColor ?? ''
-    }
-    if (document.title === SKIN_TITLE) document.title = originalTitle
-  }, 'ui-skin-maid-atelier: layered background and ornament')
 }

@@ -20,9 +20,20 @@
       "platform": "web"
     }
   },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run"
+  },
   "license": "CC-BY-NC-SA-4.0",
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "jsdom": "29.1.1",
+    "lightningcss": "^1.32.0",
+    "tsdown": "0.22.14",
+    "vitest": "4.1.10"
   },
   "files": [
     "lib/index.js",

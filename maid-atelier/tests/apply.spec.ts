@@ -49,6 +49,27 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
   })
 
+  it('registers cleanup before a later CSSOM initialization failure', () => {
+    let dispose: (() => void) | undefined
+    const ctx = {
+      effect(factory: () => () => void): void {
+        dispose = factory()
+      },
+    } as unknown as Context
+    const insertRule = vi.spyOn(CSSStyleSheet.prototype, 'insertRule')
+      .mockImplementationOnce(() => {
+        throw new Error('fixture CSSOM failure')
+      })
+
+    expect(() => apply(ctx)).toThrow('fixture CSSOM failure')
+    expect(dispose).toBeTypeOf('function')
+    dispose?.()
+
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
+    expect(document.querySelector("[data-skin-owner='maid-atelier']")).toBeNull()
+    insertRule.mockRestore()
+  })
+
   it('colors the installed Web-app system controls navy and restores the presenter color', async () => {
     const meta = document.createElement('meta')
     meta.name = 'theme-color'
@@ -75,6 +96,17 @@ describe('Maid Atelier skin apply', () => {
     await fiber.dispose()
     expect(document.body.querySelectorAll('[data-skin-chrome]').length).toBe(0)
     expect(document.body.querySelectorAll('[data-skin-trim-layer]')).toHaveLength(0)
+  })
+
+  it('does not remove a foreign node that happens to reuse the owner marker', async () => {
+    fiber = await mount()
+    const foreign = document.createElement('div')
+    foreign.dataset.skinOwner = 'maid-atelier'
+    document.body.append(foreign)
+
+    await fiber.dispose()
+    expect(foreign.isConnected).toBe(true)
+    foreign.remove()
   })
 
   it('keeps the mascot independent and leaves the native vector brand intact', async () => {
@@ -112,6 +144,65 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector("[data-skin-chrome='sidebar-mascot']")).not.toBeNull()
     expect(document.querySelector("button[class*='brand'] > svg")).not.toBeNull()
     expect(document.querySelector("[data-skin-chrome='brand-lockup']")).toBeNull()
+  })
+
+  it('does not rescan the sidebar when ordinary conversation content changes', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar"><div></div></div>
+      <main data-phase="active"></main>
+    `
+    fiber = await mount()
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    const querySelectorAll = vi.spyOn(sidebar, 'querySelectorAll')
+    const querySelector = vi.spyOn(document, 'querySelector')
+
+    document.querySelector('main')!.append(document.createElement('article'))
+    await flushMutations()
+
+    expect(querySelectorAll).not.toHaveBeenCalled()
+    expect(querySelector).not.toHaveBeenCalledWith(
+      "[data-slot='sidebar.settings'] > :is(button, [role='button'])[aria-expanded='true']",
+    )
+  })
+
+  it('uses the public desktop frame marker without a private window global', async () => {
+    document.body.innerHTML = '<div class="fixture_frame" data-desktop></div>'
+    fiber = await mount()
+
+    const sheet = document.querySelector<HTMLStyleElement>(
+      "style[data-skin-chrome='sidebar-width-rule']",
+    )!.sheet!
+    const variables = sheet.cssRules[0] as CSSStyleRule
+    expect(variables.style.getPropertyValue('--maid-titlebar-height')).toBe('32px')
+  })
+
+  it('seats a sidebar frame copy beneath the open settings mask', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div>
+          <div><div data-slot="sidebar.settings"><button aria-expanded="false">Settings</button></div></div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+    const trigger = document.querySelector<HTMLButtonElement>("[data-slot='sidebar.settings'] > button")!
+    const overlay = document.createElement('div')
+    overlay.setAttribute('role', 'presentation')
+    const mask = document.createElement('div')
+    mask.className = 'fixture_mask'
+    overlay.append(mask)
+    document.body.append(overlay)
+    trigger.setAttribute('aria-expanded', 'true')
+    await flushMutations()
+
+    const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
+    expect(copy?.parentElement).toBe(overlay)
+    expect(copy?.nextElementSibling).toBe(mask)
+    expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
+
+    trigger.setAttribute('aria-expanded', 'false')
+    await flushMutations()
+    expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
   })
 
   it('anchors the public rc.6 settings slot to the real sidebar footer', async () => {
@@ -627,13 +718,34 @@ describe('Maid Atelier skin apply', () => {
 
   it('styles assistant Markdown blocks through the stable flow-kind hook', () => {
     const bubbleRule = CSS.match(
-      /\[data-chat-flow-kind='assistant-step'\] > \* > \* > div:not\(\[data-variant\]\)\s*\{([^}]*)\}/s,
+      /\[data-chat-flow-kind='assistant-step'\] > \* > \* > \* > div\[class\*='markdown'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(bubbleRule).toContain('max-width: min(680px, 96%)')
     expect(bubbleRule).toContain('padding: 14px 18px')
     expect(bubbleRule).toContain('border-radius: 18px 18px 18px 7px')
     expect(bubbleRule).not.toContain('backdrop-filter')
+    expect(CSS).not.toContain("div:not([data-variant])")
     expect(CSS).toContain("[data-variant='think']")
+  })
+
+  it('keeps reasoning and command-style assistant blocks outside Markdown bubbles', () => {
+    document.body.innerHTML = `
+      <div data-chat-flow-kind="assistant-step">
+        <div class="renderer-seat">
+          <div class="assistant-root">
+            <div class="assistant-body">
+              <div class="hash_markdown_hash" data-fixture="markdown"></div>
+              <div data-variant="think" data-fixture="think"></div>
+              <div data-variant="others" data-fixture="command"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const matches = document.querySelectorAll(
+      "[data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown']",
+    )
+    expect([...matches].map((element) => element.getAttribute('data-fixture'))).toEqual(['markdown'])
   })
 
   it('marks only live hero and workspace phase changes for composer motion', async () => {
@@ -708,10 +820,11 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarInnerRule).not.toContain('container-type')
     expect(footRule).toContain('box-sizing: border-box')
     expect(footRule).toContain('position: relative')
-    expect(footRule).toContain('flex: 0 0 calc(var(--maid-sidebar-swag-height) + 56px)')
-    expect(footRule).toContain('padding: calc(var(--maid-sidebar-swag-height) - 6px) 18px 12px')
+    expect(footRule).toContain('flex: 0 0 calc(var(--maid-sidebar-swag-height) + 82px)')
+    expect(footRule).toContain('padding: calc(var(--maid-sidebar-swag-height) + 2px) 18px 22px')
     expect(swagRule).toContain('height: var(--maid-sidebar-swag-height)')
     expect(swagRule).toContain('background: var(--maid-sidebar-swag-art) center top / 100% 100% no-repeat')
+    expect(swagRule).toContain('brightness(1.1)')
   })
 
   it('keeps generated corner ornaments fixed while the sidebar frame can resize', () => {
@@ -740,12 +853,18 @@ describe('Maid Atelier skin apply', () => {
     const searchRule = CSS.match(
       /\[class\*='search'\]\[class\*='searchExpanded'\]:has\(> input\[class\*='searchInput'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const expandedHeaderRule = CSS.match(
+      /\[class\*='sectionHeader'\]:has\(\[class\*='searchSlotExpanded'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     const settingsRule = CSS.match(
       /\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(headingRule).toContain('color: #d9bd83')
     expect(searchRule).toContain('border: 1px solid rgba(225, 191, 124, 0.72)')
     expect(searchRule).toContain('--dsh-search-input-fill: transparent')
+    expect(searchRule).toContain('margin: 0 2px')
+    expect(expandedHeaderRule).toContain('height: 46px')
+    expect(expandedHeaderRule).toContain('overflow: visible')
     expect(CSS).not.toMatch(/\[class\*='search'\]:has\(> input\[class\*='searchInput'\]\)\s*\{/)
     expect(settingsRule).toContain('min-height: 50px')
     expect(settingsRule).toContain('border-image-source: var(--maid-settings-frame-art)')
@@ -765,12 +884,29 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const obscuredComposerRule = CSS.match(
+      /:has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\) \[data-composer-card\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const promotedSettingsRootRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const preservedSidebarFrameRule = CSS.match(
+      /:has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     expect(sidebarRule).toContain('z-index: auto')
     expect(sidebarInnerRule).toContain('isolation: auto')
     expect(sidebarInnerRule).not.toContain('container-type')
     expect(portalRule).toContain('z-index: auto')
     expect(topTrimRule).toContain('z-index: 20')
     expect(bottomTrimRule).toContain('z-index: 19')
+    expect(promotedSettingsRootRule).toContain('z-index: 1000')
+    expect(preservedSidebarFrameRule).toContain('--maid-sidebar-frame-line-x: 2.6px')
+    expect(preservedSidebarFrameRule).toContain('--maid-sidebar-frame-line-y: 2.4px')
+    expect(preservedSidebarFrameRule).toContain('filter: none')
+    expect(preservedSidebarFrameRule).not.toContain('z-index')
+    expect(obscuredComposerRule).toContain('z-index: 0')
+    expect(obscuredComposerRule).toContain('opacity: 0.12')
+    expect(obscuredComposerRule).toContain('pointer-events: none')
   })
 
   it('renders the active workspace as a crested ribbon with a connected session tree', () => {
@@ -853,12 +989,13 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the sidebar mascot subordinate to navigation and behind the lower ornament', () => {
     const mascotRule = CSS.match(/\[data-skin-chrome='sidebar-mascot'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
-    expect(mascotRule).toContain('bottom: calc(var(--maid-sidebar-swag-height) + 68px)')
+    expect(mascotRule).toContain('bottom: calc(var(--maid-sidebar-swag-height) + 94px)')
     expect(mascotRule).toContain('width: var(--maid-sidebar-mascot-width)')
     expect(mascotRule).toContain('max-height: 38%')
     expect(mascotRule).toContain('z-index: 1')
-    expect(mascotRule).toContain('opacity: 0.7')
-    expect(mascotRule).toContain('saturate(0.94)')
+    expect(mascotRule).toContain('opacity: 0.92')
+    expect(mascotRule).toContain('saturate(1)')
+    expect(mascotRule).toContain('brightness(1.08)')
   })
 
   it('keeps independently sized landing and workspace trim layers', () => {

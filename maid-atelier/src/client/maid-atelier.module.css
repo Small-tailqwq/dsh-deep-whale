@@ -492,7 +492,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [c
 body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   position: absolute;
   left: 52%;
-  bottom: calc(var(--maid-sidebar-swag-height) + 68px);
+  bottom: calc(var(--maid-sidebar-swag-height) + 94px);
   z-index: 1;
   width: var(--maid-sidebar-mascot-width);
   height: auto;
@@ -500,11 +500,11 @@ body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   object-fit: contain;
   object-position: center bottom;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.92;
   filter:
-    saturate(0.94)
-    brightness(0.96)
-    contrast(0.98)
+    saturate(1)
+    brightness(1.08)
+    contrast(1.04)
     drop-shadow(0 5px 12px rgba(2, 7, 24, 0.24));
   transform: translateX(-50%) translateZ(0);
 }
@@ -644,9 +644,9 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer] {
   box-sizing: border-box;
   position: relative;
   isolation: auto;
-  flex: 0 0 calc(var(--maid-sidebar-swag-height) + 56px);
-  min-height: calc(var(--maid-sidebar-swag-height) + 56px);
-  padding: calc(var(--maid-sidebar-swag-height) - 6px) 18px 12px;
+  flex: 0 0 calc(var(--maid-sidebar-swag-height) + 82px);
+  min-height: calc(var(--maid-sidebar-swag-height) + 82px);
+  padding: calc(var(--maid-sidebar-swag-height) + 2px) 18px 22px;
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -660,7 +660,11 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
   height: var(--maid-sidebar-swag-height);
   background: var(--maid-sidebar-swag-art) center top / 100% 100% no-repeat;
   pointer-events: none;
-  filter: drop-shadow(0 4px 9px rgba(2, 8, 28, 0.26));
+  filter:
+    brightness(1.1)
+    saturate(1.04)
+    contrast(1.04)
+    drop-shadow(0 4px 9px rgba(2, 8, 28, 0.26));
 }
 
 body[data-dsh-maid-atelier]
@@ -863,10 +867,19 @@ body[data-dsh-maid-atelier] [class*='sectionHeader'] [class*='iconButton'] svg {
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.68));
 }
 
+/* RC6 centers the expanded 42px search capsule inside a 36px clipped header.
+   Give the expanded row its own height so the porcelain rim remains intact. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sectionHeader']:has([class*='searchSlotExpanded']) {
+  height: 46px;
+  overflow: visible;
+}
+
 body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']) {
   --dsh-search-input-fill: transparent;
   height: 42px;
-  margin: 0 2px 12px;
+  margin: 0 2px;
   padding-inline: 14px;
   color: #d8bc80;
   border: 1px solid rgba(225, 191, 124, 0.72);
@@ -1617,6 +1630,71 @@ body[data-dsh-maid-atelier]
   z-index: auto;
 }
 
+/* The sidebar content root normally sits at layer 2 above the mascot. Since
+   SettingsPanel is mounted inside that root instead of a document portal,
+   promote the owning root while the dialog is open. Its fixed layer can then
+   cover sticky Markdown banners and the skin's conversation header. */
+body[data-dsh-maid-atelier]:has(
+    [data-slot='sidebar.settings']
+      > :is(button, [role='button'])[aria-expanded='true']
+  )
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :has(
+    [data-slot='sidebar.settings']
+      > :is(button, [role='button'])[aria-expanded='true']
+  ) {
+  z-index: 1000;
+}
+
+/* The enclosure stays below the official settings mask and receives the same
+   blur as the rest of the sidebar. The mask applies a two-pixel blur plus a
+   dark wash, so slightly wider pre-mask strokes preserve a soft gold trace
+   instead of dissolving into the navy surface. */
+body[data-dsh-maid-atelier]:has(
+    [data-slot='sidebar.settings']
+      > :is(button, [role='button'])[aria-expanded='true']
+  ) [data-skin-chrome='sidebar-corners'] {
+  --maid-sidebar-frame-line-x: 2.6px;
+  --maid-sidebar-frame-line-y: 2.4px;
+  background:
+    linear-gradient(90deg, #ffe7ad, #d9ad62, #ffe7ad) left 62px top 8.875px / calc(100% - 124px) var(--maid-sidebar-frame-line-y) no-repeat,
+    linear-gradient(90deg, #ffe7ad, #d9ad62, #ffe7ad) left 62px bottom 8.875px / calc(100% - 124px) var(--maid-sidebar-frame-line-y) no-repeat,
+    linear-gradient(180deg, #ffe7ad, #d9ad62, #ffe7ad) left 8.05px top 62px / var(--maid-sidebar-frame-line-x) calc(100% - 124px) no-repeat,
+    linear-gradient(180deg, #ffe7ad, #d9ad62, #ffe7ad) right 8.05px top 62px / var(--maid-sidebar-frame-line-x) calc(100% - 124px) no-repeat;
+  filter: none;
+}
+
+body[data-dsh-maid-atelier]:has(
+    [data-slot='sidebar.settings']
+      > :is(button, [role='button'])[aria-expanded='true']
+  ) [data-skin-chrome='sidebar-corners'] > [data-skin-corner] {
+  filter: none;
+}
+
+/* This copy sits immediately before the official mask, so the mask samples
+   and blurs it together with the rest of the sidebar instead of dropping the
+   sibling frame's composited layer. */
+body[data-dsh-maid-atelier] [data-maid-settings-backdrop-frame] {
+  inset: 0 auto 0 0;
+  width: var(--maid-sidebar-width);
+  height: 100%;
+  z-index: 0;
+}
+
+/* The settings surface is translucent by design. Demote the raster composer
+   while its trigger owns the expanded dialog so the ornate input frame does
+   not visually compete with, or accept input through, the modal surface. */
+body[data-dsh-maid-atelier]:has(
+    [data-slot='sidebar.settings']
+      > :is(button, [role='button'])[aria-expanded='true']
+  ) [data-composer-card] {
+  z-index: 0;
+  opacity: 0.12;
+  pointer-events: none;
+  animation: none;
+}
+
 body[data-dsh-maid-atelier] [data-phase='hero']
   [data-composer-card] button[class*='primary'] {
   width: 44px;
@@ -2013,11 +2091,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [class*='userRow'] [class*='bubb
   background: rgba(30, 47, 90, 0.97);
 }
 
-/* Assistant steps expose a stable flow-kind hook. The two intermediate
-   wrappers are the AssistantMarkdown root and its ordered block column;
-   decorate only untyped div blocks so Think keeps its independent surface. */
+/* Assistant steps expose a stable flow-kind hook. The three intermediate
+   wrappers are the renderer seat, AssistantMarkdown root, and block column.
+   Select the MarkdownText root positively: reasoning, images, and other
+   assistant blocks keep the same disclosure treatment as command rows. */
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] > * > * > div:not([data-variant]) {
+  [data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown'] {
   box-sizing: border-box;
   align-self: flex-start;
   width: fit-content;
@@ -2030,7 +2109,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] > * > * > div:not([data-variant]) {
+  [data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown'] {
   border-color: rgba(211, 180, 119, 0.4);
   background: rgba(18, 31, 67, 0.94);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
