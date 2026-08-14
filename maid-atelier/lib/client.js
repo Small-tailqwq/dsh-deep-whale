@@ -79,6 +79,8 @@ window.__ModuleLoader__.load({
 		const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])";
 		const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])";
 		const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']";
+		/** The composer's model seat; its trigger title/aria-label carries the model name. */
+		const MODEL_SEAT_SELECTOR = "[data-slot='conversation.input.model']";
 		const BACKDROP_PROPERTIES = [
 			"background-image",
 			"background-position",
@@ -257,6 +259,7 @@ window.__ModuleLoader__.load({
 			let syncTitlebarHeight;
 			ctx.effect(() => () => {
 				delete body.dataset.dshMaidAtelier;
+				delete body.dataset.maidModel;
 				delete body.dataset.maidComposerMotion;
 				delete body.dataset.maidSidebarCompact;
 				delete body.dataset.maidSidebarSize;
@@ -420,6 +423,18 @@ window.__ModuleLoader__.load({
 			const characterStage = createCharacterStage();
 			ownedNodes.add(characterStage);
 			body.prepend(characterStage);
+			const characterLeft = characterStage.querySelector("[data-maid-character='left']");
+			const characterRight = characterStage.querySelector("[data-maid-character='right']");
+			const syncCharacterPose = () => {
+				const trigger = document.querySelector(MODEL_SEAT_SELECTOR)?.querySelector("button");
+				const label = (trigger?.getAttribute("title") ?? trigger?.getAttribute("aria-label") ?? "").split("·")[0].trim().toLowerCase();
+				const mode = label.includes("flash") ? "flash" : /\bpro\b/.test(label) ? "pro" : body.dataset.maidModel === "flash" ? "flash" : "pro";
+				if (body.dataset.maidModel === mode) return;
+				body.dataset.maidModel = mode;
+				characterLeft.src = mode === "flash" ? MAID_ATELIER_MAID_RIGHT : MAID_ATELIER_MAID_LEFT;
+				characterRight.src = mode === "flash" ? MAID_ATELIER_MAID_LEFT : MAID_ATELIER_MAID_RIGHT;
+			};
+			syncCharacterPose();
 			const syncSidebarDecorations = () => {
 				syncTitlebarHeight?.();
 				decorateTitlebarBrand(ownedNodes);
@@ -440,6 +455,7 @@ window.__ModuleLoader__.load({
 				let backdropChanged = false;
 				let composerChanged = false;
 				let settingsStateChanged = false;
+				let modelChanged = false;
 				for (const record of records) {
 					if (record.type === "attributes") {
 						const target = record.target instanceof Element ? record.target : void 0;
@@ -447,18 +463,26 @@ window.__ModuleLoader__.load({
 						else if ((record.attributeName === "aria-expanded" || record.attributeName === "aria-selected") && target !== void 0 && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null) workspaceStateChanged = true;
 						else if (record.attributeName === "data-ds-dark-theme" && record.target === body) backdropChanged = true;
 						else if (record.attributeName === "data-phase" && target?.matches(composerSelector)) composerChanged = true;
+						else if ((record.attributeName === "title" || record.attributeName === "aria-label") && target !== void 0 && target.closest(MODEL_SEAT_SELECTOR) !== null) modelChanged = true;
+						continue;
+					}
+					if (record.type === "characterData") {
+						const parent = record.target instanceof Node ? record.target.parentElement : void 0;
+						if (parent !== void 0 && parent.closest(MODEL_SEAT_SELECTOR) !== null) modelChanged = true;
 						continue;
 					}
 					const appNodes = [...record.addedNodes, ...record.removedNodes].filter((node) => node instanceof Element && !isSkinChrome(node));
 					const target = record.target instanceof Element ? record.target : void 0;
 					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, sidebarChromeSelector)) || target !== void 0 && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null)) sidebarStructureChanged = true;
 					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, composerSelector)) || target !== void 0 && target.closest(composerSelector) !== null)) composerChanged = true;
+					if (appNodes.some((node) => nodeTouches(node, MODEL_SEAT_SELECTOR)) || target !== void 0 && target.closest(MODEL_SEAT_SELECTOR) !== null) modelChanged = true;
 					if (appNodes.some((node) => nodeTouches(node, SETTINGS_MASK_SELECTOR))) settingsStateChanged = true;
 				}
 				if (sidebarStructureChanged) syncSidebarDecorations();
 				else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements);
 				if (backdropChanged) syncBackdrop();
 				if (composerChanged) syncComposerMotion();
+				if (modelChanged) syncCharacterPose();
 				if (settingsStateChanged) syncSettingsBackdropFrame();
 			});
 			observer.observe(body, {
@@ -467,9 +491,12 @@ window.__ModuleLoader__.load({
 					"aria-expanded",
 					"aria-selected",
 					"data-ds-dark-theme",
-					"data-phase"
+					"data-phase",
+					"title",
+					"aria-label"
 				],
 				childList: true,
+				characterData: true,
 				subtree: true
 			});
 			const topTrim = document.createElement("div");

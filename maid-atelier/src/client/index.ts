@@ -39,6 +39,8 @@ const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
+/** The composer's model seat; its trigger title/aria-label carries the model name. */
+const MODEL_SEAT_SELECTOR = "[data-slot='conversation.input.model']"
 
 const BACKDROP_PROPERTIES = [
   'background-image',
@@ -241,6 +243,7 @@ export function apply(ctx: Context): void {
 
   ctx.effect(() => () => {
     delete body.dataset.dshMaidAtelier
+    delete body.dataset.maidModel
     delete body.dataset.maidComposerMotion
     delete body.dataset.maidSidebarCompact
     delete body.dataset.maidSidebarSize
@@ -459,6 +462,32 @@ export function apply(ctx: Context): void {
   const characterStage = createCharacterStage()
   ownedNodes.add(characterStage)
   body.prepend(characterStage)
+  const characterLeft = characterStage.querySelector<HTMLImageElement>("[data-maid-character='left']")!
+  const characterRight = characterStage.querySelector<HTMLImageElement>("[data-maid-character='right']")!
+
+  // Model-driven pose: DeepSeek-V4-Flash and V4-Pro trade the two maid
+  // figures' sides. The model seat's trigger title carries the model name
+  // ("flash" wins, a "pro" token falls back, anything else — including a
+  // missing seat — keeps the last pose; the originals start at their designed
+  // sides, the V4-Pro arrangement).
+  const syncCharacterPose = (): void => {
+    const seat = document.querySelector<HTMLElement>(MODEL_SEAT_SELECTOR)
+    const trigger = seat?.querySelector<HTMLElement>('button')
+    const label = (trigger?.getAttribute('title') ?? trigger?.getAttribute('aria-label') ?? '')
+      .split('·')[0]
+      .trim()
+      .toLowerCase()
+    const mode: 'flash' | 'pro' = label.includes('flash')
+      ? 'flash'
+      : /\bpro\b/.test(label)
+        ? 'pro'
+        : body.dataset.maidModel === 'flash' ? 'flash' : 'pro'
+    if (body.dataset.maidModel === mode) return
+    body.dataset.maidModel = mode
+    characterLeft.src = mode === 'flash' ? MAID_ATELIER_MAID_RIGHT : MAID_ATELIER_MAID_LEFT
+    characterRight.src = mode === 'flash' ? MAID_ATELIER_MAID_LEFT : MAID_ATELIER_MAID_RIGHT
+  }
+  syncCharacterPose()
 
   const syncSidebarDecorations = (): void => {
     syncTitlebarHeight?.()
@@ -492,6 +521,7 @@ export function apply(ctx: Context): void {
     let backdropChanged = false
     let composerChanged = false
     let settingsStateChanged = false
+    let modelChanged = false
     for (const record of records) {
       if (record.type === 'attributes') {
         const target = record.target instanceof Element ? record.target : undefined
@@ -506,6 +536,16 @@ export function apply(ctx: Context): void {
           backdropChanged = true
         } else if (record.attributeName === 'data-phase' && target?.matches(composerSelector)) {
           composerChanged = true
+        } else if ((record.attributeName === 'title' || record.attributeName === 'aria-label')
+          && target !== undefined && target.closest(MODEL_SEAT_SELECTOR) !== null) {
+          modelChanged = true
+        }
+        continue
+      }
+      if (record.type === 'characterData') {
+        const parent = record.target instanceof Node ? record.target.parentElement : undefined
+        if (parent !== undefined && parent.closest(MODEL_SEAT_SELECTOR) !== null) {
+          modelChanged = true
         }
         continue
       }
@@ -520,6 +560,10 @@ export function apply(ctx: Context): void {
         || (target !== undefined && target.closest(composerSelector) !== null))) {
         composerChanged = true
       }
+      if (appNodes.some(node => nodeTouches(node, MODEL_SEAT_SELECTOR))
+        || (target !== undefined && target.closest(MODEL_SEAT_SELECTOR) !== null)) {
+        modelChanged = true
+      }
       if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
         settingsStateChanged = true
       }
@@ -528,12 +572,14 @@ export function apply(ctx: Context): void {
     else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
     if (backdropChanged) syncBackdrop()
     if (composerChanged) syncComposerMotion()
+    if (modelChanged) syncCharacterPose()
     if (settingsStateChanged) syncSettingsBackdropFrame()
   })
   observer.observe(body, {
     attributes: true,
-    attributeFilter: ['aria-expanded', 'aria-selected', 'data-ds-dark-theme', 'data-phase'],
+    attributeFilter: ['aria-expanded', 'aria-selected', 'data-ds-dark-theme', 'data-phase', 'title', 'aria-label'],
     childList: true,
+    characterData: true,
     subtree: true,
   })
 

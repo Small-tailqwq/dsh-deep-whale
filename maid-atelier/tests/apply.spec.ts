@@ -1209,4 +1209,69 @@ describe('Maid Atelier skin apply', () => {
     await flushMutations()
     expect(document.body.style.backgroundImage).toBe(light)
   })
+
+  it('swaps the two maid figures when the model seat toggles V4-Pro and V4-Flash', async () => {
+    document.body.innerHTML = `
+      <div data-slot="conversation.input.model">
+        <button type="button" title="DeepSeek-V4-Pro">DeepSeek-V4-Pro</button>
+      </div>
+    `
+    fiber = await mount()
+    const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")!
+    const left = stage.querySelector<HTMLImageElement>("[data-maid-character='left']")!
+    const right = stage.querySelector<HTMLImageElement>("[data-maid-character='right']")!
+    expect(document.body.dataset.maidModel).toBe('pro')
+    const proLeft = left.src
+    const proRight = right.src
+    expect(proLeft).not.toBe(proRight)
+    expect(proLeft).toContain('data:image/webp;base64,')
+    expect(proRight).toContain('data:image/webp;base64,')
+
+    const trigger = document.querySelector<HTMLButtonElement>(
+      "[data-slot='conversation.input.model'] button",
+    )!
+    trigger.setAttribute('title', 'DeepSeek-V4-Flash')
+    await flushMutations()
+    expect(document.body.dataset.maidModel).toBe('flash')
+    expect(left.src).toBe(proRight)
+    expect(right.src).toBe(proLeft)
+
+    trigger.setAttribute('title', 'DeepSeek-V4-Pro')
+    await flushMutations()
+    expect(document.body.dataset.maidModel).toBe('pro')
+    expect(left.src).toBe(proLeft)
+    expect(right.src).toBe(proRight)
+
+    await fiber.dispose()
+    expect(document.body.hasAttribute('data-maid-model')).toBe(false)
+  })
+
+  it('picks up the flash pose when the model seat mounts after the skin', async () => {
+    fiber = await mount()
+    expect(document.body.dataset.maidModel).toBe('pro')
+
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div data-slot="conversation.input.model"><button type="button" title="DeepSeek-V4-Flash">DeepSeek-V4-Flash</button></div>',
+    )
+    await flushMutations()
+    expect(document.body.dataset.maidModel).toBe('flash')
+
+    const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")!
+    const left = stage.querySelector<HTMLImageElement>("[data-maid-character='left']")!
+    const right = stage.querySelector<HTMLImageElement>("[data-maid-character='right']")!
+    expect(left.src).not.toBe(right.src)
+    await fiber.dispose()
+  })
+
+  it('keeps the pro pose when the seat label matches neither model', async () => {
+    document.body.innerHTML = `
+      <div data-slot="conversation.input.model">
+        <button type="button" title="deepseek-reasoner">deepseek-reasoner</button>
+      </div>
+    `
+    fiber = await mount()
+    expect(document.body.dataset.maidModel).toBe('pro')
+    await fiber.dispose()
+  })
 })
