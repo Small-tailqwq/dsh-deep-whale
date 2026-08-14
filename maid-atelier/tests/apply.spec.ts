@@ -328,6 +328,9 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-character-left-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-character-right-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/webp;base64,')
@@ -341,6 +344,9 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-new-session-art')).toBe('legacy')
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-character-left-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-character-right-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toBe('')
@@ -355,6 +361,17 @@ describe('Maid Atelier skin apply', () => {
     expect(backingRule).toContain('inset: 0 -0.52% -2%')
     expect(backingRule).toContain('background: inherit')
     expect(backingRule).toContain('pointer-events: none')
+  })
+
+  it('masks transcript content below the active composer seat', () => {
+    const seatRule = CSS.match(
+      /\[data-phase='active'\]\s*\[data-composer-seat\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(seatRule).toContain('--dsw-alias-bg-base: transparent')
+    expect(seatRule).toContain('background: var(--maid-palace-art) center top / cover fixed no-repeat')
+    expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*--maid-character-left-art[^}]*--maid-character-right-art/s)
+    expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*background-attachment: fixed, fixed/s)
+    expect(CSS).toContain('left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px))')
   })
 
   it('recolors the native vector wordmark without replacing it with raster art', () => {
@@ -711,8 +728,10 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("data-maid-composer-motion='rise'")
     expect(CSS).toContain('animation: maidAtelierComposerDock 520ms')
     expect(CSS).toContain('animation: maidAtelierComposerRise 520ms')
+    expect(CSS).toContain('animation: maidAtelierComposerBackdropDock 620ms')
     expect(CSS).toContain('@keyframes maidAtelierComposerDock')
     expect(CSS).toContain('@keyframes maidAtelierComposerRise')
+    expect(CSS).toContain('@keyframes maidAtelierComposerBackdropDock')
     expect(CSS).toMatch(/\[data-maid-composer-motion\][^{]*\{[^}]*will-change: transform, opacity/s)
   })
 
@@ -879,7 +898,10 @@ describe('Maid Atelier skin apply', () => {
     const sidebarInnerRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const portalRule = CSS.match(
+    const sidebarContentRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > :has\(\[data-maid-sidebar-footer\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const footerRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > \[data-maid-sidebar-footer\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -896,17 +918,30 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarRule).toContain('z-index: auto')
     expect(sidebarInnerRule).toContain('isolation: auto')
     expect(sidebarInnerRule).not.toContain('container-type')
-    expect(portalRule).toContain('z-index: auto')
+    expect(sidebarContentRule).toBe('')
+    expect(footerRule).toContain('z-index: auto')
     expect(topTrimRule).toContain('z-index: 20')
     expect(bottomTrimRule).toContain('z-index: 19')
     expect(promotedSettingsRootRule).toContain('z-index: 1000')
-    expect(preservedSidebarFrameRule).toContain('--maid-sidebar-frame-line-x: 2.6px')
-    expect(preservedSidebarFrameRule).toContain('--maid-sidebar-frame-line-y: 2.4px')
-    expect(preservedSidebarFrameRule).toContain('filter: none')
-    expect(preservedSidebarFrameRule).not.toContain('z-index')
+    expect(preservedSidebarFrameRule).toBe('')
     expect(obscuredComposerRule).toContain('z-index: 0')
-    expect(obscuredComposerRule).toContain('opacity: 0.12')
+    expect(obscuredComposerRule).toContain('opacity: 0.75')
     expect(obscuredComposerRule).toContain('pointer-events: none')
+  })
+
+  it('keeps the settings panel translucent above the dimmed composer', () => {
+    const settingsSurfaceRule = CSS.match(
+      /\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkSettingsSurfaceRule = CSS.match(
+      /\[data-ds-dark-theme\]\s+\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(settingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68)')
+    expect(settingsSurfaceRule).toContain('backdrop-filter: blur(6px) saturate(0.9)')
+    expect(darkSettingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82)')
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]/s,
+    )
   })
 
   it('renders the active workspace as a crested ribbon with a connected session tree', () => {

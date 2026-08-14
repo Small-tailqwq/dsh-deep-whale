@@ -56,6 +56,9 @@ const BACKDROP_PROPERTIES = [
   '--maid-new-session-art',
   '--maid-sidebar-swag-art',
   '--maid-sidebar-corner-art',
+  '--maid-palace-art',
+  '--maid-character-left-art',
+  '--maid-character-right-art',
   '--maid-composer-frame-art',
   '--maid-settings-frame-art',
   '--maid-workspace-crest-art',
@@ -299,6 +302,8 @@ export function apply(ctx: Context): void {
   body.style.setProperty('--maid-new-session-art', `url(${MAID_ATELIER_NEW_SESSION})`)
   body.style.setProperty('--maid-sidebar-swag-art', `url(${MAID_ATELIER_SIDEBAR_SWAG})`)
   body.style.setProperty('--maid-sidebar-corner-art', `url(${MAID_ATELIER_SIDEBAR_CORNER})`)
+  body.style.setProperty('--maid-character-left-art', `url(${MAID_ATELIER_MAID_LEFT})`)
+  body.style.setProperty('--maid-character-right-art', `url(${MAID_ATELIER_MAID_RIGHT})`)
   body.style.setProperty('--maid-composer-frame-art', `url(${MAID_ATELIER_COMPOSER_FRAME})`)
   body.style.setProperty('--maid-settings-frame-art', `url(${MAID_ATELIER_SETTINGS_FRAME})`)
   body.style.setProperty('--maid-workspace-crest-art', `url(${MAID_ATELIER_WORKSPACE_SHIELD})`)
@@ -309,6 +314,7 @@ export function apply(ctx: Context): void {
       ? MAID_ATELIER_PALACE_DARK
       : MAID_ATELIER_PALACE_LIGHT
     body.style.setProperty('background-image', `url(${source})`)
+    body.style.setProperty('--maid-palace-art', `url(${source})`)
   }
   syncBackdrop()
   body.style.setProperty('background-position', 'center top')
@@ -419,7 +425,7 @@ export function apply(ctx: Context): void {
       composerMotionTimer = setTimeout(() => {
         delete body.dataset.maidComposerMotion
         composerMotionTimer = undefined
-      }, 560)
+      }, 660)
     }
     composerPhase = next
   }
