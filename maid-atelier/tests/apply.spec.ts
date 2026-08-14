@@ -328,6 +328,9 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-character-left-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-character-right-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/webp;base64,')
@@ -341,6 +344,9 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-new-session-art')).toBe('legacy')
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-character-left-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-character-right-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toBe('')
@@ -355,6 +361,17 @@ describe('Maid Atelier skin apply', () => {
     expect(backingRule).toContain('inset: 0 -0.52% -2%')
     expect(backingRule).toContain('background: inherit')
     expect(backingRule).toContain('pointer-events: none')
+  })
+
+  it('masks transcript content below the active composer seat', () => {
+    const seatRule = CSS.match(
+      /\[data-phase='active'\]\s*\[data-composer-seat\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(seatRule).toContain('--dsw-alias-bg-base: transparent')
+    expect(seatRule).toContain('background: var(--maid-palace-art) center top / cover fixed no-repeat')
+    expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*--maid-character-left-art[^}]*--maid-character-right-art/s)
+    expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*background-attachment: fixed, fixed/s)
+    expect(CSS).toContain('left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px))')
   })
 
   it('recolors the native vector wordmark without replacing it with raster art', () => {
@@ -711,8 +728,10 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("data-maid-composer-motion='rise'")
     expect(CSS).toContain('animation: maidAtelierComposerDock 520ms')
     expect(CSS).toContain('animation: maidAtelierComposerRise 520ms')
+    expect(CSS).toContain('animation: maidAtelierComposerBackdropDock 620ms')
     expect(CSS).toContain('@keyframes maidAtelierComposerDock')
     expect(CSS).toContain('@keyframes maidAtelierComposerRise')
+    expect(CSS).toContain('@keyframes maidAtelierComposerBackdropDock')
     expect(CSS).toMatch(/\[data-maid-composer-motion\][^{]*\{[^}]*will-change: transform, opacity/s)
   })
 
