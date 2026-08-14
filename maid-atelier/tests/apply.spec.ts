@@ -806,6 +806,8 @@ describe('Maid Atelier skin apply', () => {
     expect(catalogRule).toContain('backdrop-filter: blur(8px) saturate(0.92)')
     expect(CSS).toMatch(/\[role='tree'\][^{]*:is\(\[role='treeitem'\], \[class\*='label'\]\)\s*\{[^}]*color: #233763/s)
     expect(CSS).toMatch(/\[role='tree'\][^{]*:is\(\[class\*='summary'\], \[class\*='metrics'\], \[class\*='notice'\]\)\s*\{[^}]*color: #596b8e/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-slot='conversation\.session\.header\.actions'\] \[role='tree'\]\s*\{[^}]*rgba\(10, 20, 48, 0\.93\)[^}]*rgba\(18, 31, 67, 0\.89\)[^}]*backdrop-filter: blur\(8px\) saturate\(0\.92\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[role='tree'\][^{]*:is\(\[class\*='summary'\], \[class\*='metrics'\], \[class\*='notice'\]\)\s*\{[^}]*color: #b8c5e1/s)
   })
 
   it('marks only live hero and workspace phase changes for composer motion', async () => {

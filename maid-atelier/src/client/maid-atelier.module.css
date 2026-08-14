@@ -2335,6 +2335,40 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   text-shadow: none;
 }
 
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.session.header.actions'] [role='tree'] {
+  --dsw-alias-label-primary: #edf1fa;
+  --dsw-alias-label-secondary: #d3ddf2;
+  --dsw-alias-label-tertiary: #b8c5e1;
+  --dsw-alias-label-dimmed: #7f90b4;
+  --dsw-alias-border-l2: rgba(151, 169, 216, 0.4);
+  --dsw-alias-interactive-bg-hover: rgba(164, 183, 229, 0.14);
+  border: 1px solid rgba(151, 169, 216, 0.26);
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 48, 0.93),
+    rgba(18, 31, 67, 0.89)
+  );
+  color: #edf1fa;
+  text-shadow: none;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([role='treeitem'], [class*='label']) {
+  color: #edf1fa;
+  text-shadow: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([class*='summary'], [class*='metrics'], [class*='notice']) {
+  color: #b8c5e1;
+  text-shadow: none;
+}
+
 /* Question takeover: this component is seated directly in the composer and
    is not a portaled dialog. Pair each card surface with its own readable
    copy instead of inheriting unrelated composer descendants' colors. */
