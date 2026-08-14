@@ -119,6 +119,15 @@ body[data-dsh-maid-atelier] [data-maid-character] {
     filter 420ms ease;
 }
 
+/* The active composer mirrors the fixed character art to occlude transcript
+   rows. While their shared geometry changes, both copies must sample it in
+   the same frame. Hero has no mirrored copy and keeps its full transition. */
+body[data-dsh-maid-atelier][data-maid-viewport-resizing]:has(
+  [data-phase='active'] [data-composer-seat]
+) [data-maid-character] {
+  transition: none;
+}
+
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
   bottom: clamp(-34px, -2.4vh, -12px);
   left: clamp(8px, 1.3vw, 24px);
@@ -644,7 +653,7 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer] {
   box-sizing: border-box;
   position: relative;
   isolation: auto;
-  flex: 0 0 calc(var(--maid-sidebar-swag-height) + 82px);
+  flex: 0 0 auto;
   min-height: calc(var(--maid-sidebar-swag-height) + 82px);
   padding: calc(var(--maid-sidebar-swag-height) + 2px) 18px 22px;
   border: 0;
@@ -703,6 +712,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
   position: relative;
   flex: 1 1 auto;
   width: 100%;
+  margin-inline: 0;
   justify-content: center;
   gap: 8px;
 }
@@ -831,6 +841,144 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-slot='sidebar.settings']
     > :is(button, [role='button'])::before {
   display: none;
+}
+
+/* Cordis contributes a second footer action. The wide footer grows from its
+   content; the fixed-height rail needs explicit room for both circles. */
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
+    [data-maid-sidebar-footer]:has([data-cordis-badge]) {
+  flex-basis: 100px;
+  min-height: 100px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* CordisPanel is fixed but remains inside the sidebar content root. Promote
+   that root only while the panel is open so the sticky composer occlusion
+   layer cannot cover the panel's lower rows and approval actions. */
+body[data-dsh-maid-atelier]:has([data-cordis-panel])
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :has([data-cordis-panel]) {
+  z-index: 40;
+}
+
+body[data-dsh-maid-atelier]
+    [data-slot='sidebar.footer.action']
+    > :has([data-cordis-badge]) {
+  width: 100%;
+  margin-top: 0;
+}
+
+body[data-dsh-maid-atelier] [data-cordis-badge] {
+  min-height: 49px;
+  color: #f4e3bf;
+  border: 1px solid rgba(225, 191, 124, 0.58);
+  background: linear-gradient(145deg, rgba(44, 68, 132, 0.74), rgba(8, 23, 59, 0.92));
+  box-shadow:
+    inset 0 0 0 2px rgba(5, 15, 45, 0.64),
+    0 4px 11px rgba(1, 7, 24, 0.24);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-badge]:is(:hover, :focus-visible, [data-active]) {
+  color: #fff8e8;
+  border-color: rgba(244, 218, 164, 0.92);
+  background: linear-gradient(145deg, rgba(91, 119, 188, 0.72), rgba(13, 31, 76, 0.96));
+  outline: none;
+}
+
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-cordis-badge] {
+  box-sizing: border-box;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* The Cordis panel uses --dsw-alias-bg-base for both its shell and rows. The
+   skin makes that global token transparent, so restore a self-contained glass
+   palette on the plugin's stable panel hook. */
+body[data-dsh-maid-atelier] [data-cordis-panel] {
+  left: calc(var(--maid-sidebar-width) + 12px);
+  width: min(420px, calc(100vw - var(--maid-sidebar-width) - 24px));
+  min-width: min(300px, calc(100vw - var(--maid-sidebar-width) - 24px));
+  --dsw-alias-bg-base: rgba(230, 237, 250, 0.96);
+  --dsw-alias-label-primary: #17284f;
+  --dsw-alias-label-secondary: #304875;
+  --dsw-alias-label-tertiary: #526789;
+  --dsw-alias-label-caption: #6a7895;
+  --dsw-alias-border-l1: rgba(190, 153, 82, 0.72);
+  --dsw-alias-border-l2: rgba(83, 105, 158, 0.34);
+  --dsw-alias-interactive-bg-hover: rgba(86, 112, 174, 0.16);
+  --dsw-alias-state-warn-tertiary: rgba(218, 180, 104, 0.2);
+  --dsw-alias-state-warn-label: #815c18;
+  border-color: rgba(190, 153, 82, 0.78);
+  background: linear-gradient(145deg, rgba(239, 244, 253, 0.97), rgba(207, 220, 244, 0.94));
+  color: #17284f;
+  box-shadow:
+    0 18px 44px rgba(13, 29, 68, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(16px) saturate(0.9);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-panel] > header {
+  background: rgba(226, 235, 250, 0.88);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-row] {
+  background: rgba(247, 249, 254, 0.72);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.5);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-row][data-cordis-awaiting] {
+  border-color: rgba(190, 153, 82, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 248, 226, 0.46),
+    0 4px 12px rgba(31, 52, 99, 0.1);
+}
+
+body[data-dsh-maid-atelier] [data-cordis-panel]
+    :is([data-cordis-approve], [data-cordis-approve-plugin], [data-cordis-decline]) {
+  color: #334d7d;
+  border: 1px solid rgba(91, 112, 166, 0.34);
+  background: rgba(239, 244, 253, 0.82);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel] {
+  --dsw-alias-bg-base: rgba(10, 22, 54, 0.96);
+  --dsw-alias-label-primary: #f3e8cf;
+  --dsw-alias-label-secondary: #d6def1;
+  --dsw-alias-label-tertiary: #afbddc;
+  --dsw-alias-label-caption: #95a6cb;
+  --dsw-alias-border-l1: rgba(211, 180, 119, 0.68);
+  --dsw-alias-border-l2: rgba(143, 163, 211, 0.32);
+  --dsw-alias-interactive-bg-hover: rgba(151, 171, 218, 0.16);
+  --dsw-alias-state-warn-tertiary: rgba(211, 164, 72, 0.18);
+  --dsw-alias-state-warn-label: #f0cf8c;
+  border-color: rgba(211, 180, 119, 0.7);
+  background: linear-gradient(145deg, rgba(19, 38, 82, 0.97), rgba(7, 19, 51, 0.96));
+  color: #f3e8cf;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel] > header {
+  background: rgba(16, 34, 75, 0.9);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-row] {
+  background: rgba(18, 36, 77, 0.78);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel]
+    :is([data-cordis-approve], [data-cordis-approve-plugin], [data-cordis-decline]) {
+  color: #d6def1;
+  border-color: rgba(143, 163, 211, 0.34);
+  background: rgba(29, 51, 99, 0.82);
 }
 
 body[data-dsh-maid-atelier] [class*='sectionHeader'] {
@@ -1863,6 +2011,42 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(+ *) 
   margin-block-end: 12px;
 }
 
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.composer.dock'] > * {
+  color: #4a5d82;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(248, 250, 255, 0.3) 10%,
+    rgba(248, 250, 255, 0.3) 90%,
+    transparent
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.composer.dock'] > * [class*='sep'] {
+  color: rgba(74, 93, 130, 0.55);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.composer.dock'] > * {
+  color: #aebdde;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(10, 20, 48, 0.48) 10%,
+    rgba(10, 20, 48, 0.48) 90%,
+    transparent
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.composer.dock'] > * [class*='sep'] {
+  color: rgba(174, 189, 222, 0.5);
+}
+
 /* ChatView exposes data-chat-flow in every loading and content state. Give
    Trajectory, Timeline, and other inspect-only views the full canvas while
    leaving the resident composer DOM and its draft state mounted. */
@@ -2163,10 +2347,113 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
+/* Collapsed reasoning, tool, and context rows sit directly over detailed
+   background art. A low-contrast porcelain wash stabilizes legibility without
+   turning the compact disclosure list into a stack of message cards. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  :is([data-variant], [data-chat-flow-kind='context']) {
+  --dsw-alias-label-secondary: #2f4778;
+  --dsw-alias-label-tertiary: #405273;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  :is([data-variant], [data-chat-flow-kind='context']) {
+  --dsw-alias-label-secondary: #d3ddf2;
+  --dsw-alias-label-tertiary: #b8c5e1;
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row='true'] {
+  border-radius: 7px;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 250, 255, 0.32),
+    rgba(248, 250, 255, 0.2) 72%,
+    rgba(248, 250, 255, 0.08)
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row='true'] {
+  border-radius: 7px;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 20, 48, 0.58),
+    rgba(13, 25, 59, 0.4) 72%,
+    rgba(13, 25, 59, 0.16)
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) {
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 255, 0.5),
+    rgba(248, 250, 255, 0.3)
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(3px);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) {
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(10, 20, 48, 0.76),
+    rgba(18, 31, 67, 0.54)
+  );
+  box-shadow: inset 0 0 0 1px rgba(151, 169, 216, 0.18);
+  backdrop-filter: blur(3px);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) > [data-disclosure-row='true'] {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) > [data-disclosure-row='true'] {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
+  padding-right: 12px;
+  padding-bottom: 8px;
+  color: #34486f;
+  line-height: 1.65;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
+  padding-right: 12px;
+  padding-bottom: 8px;
+  color: #c7d2e9;
+  line-height: 1.65;
+}
+
 /* Running reasoning becomes a restrained gold-and-periwinkle service sweep.
-   The data hooks are stable and later assets can replace this CSS-only pass.
-   The collapsed Think row itself carries no container decoration: it stays a
-   bare disclosure row, matching the tool-call rows beside it. */
+   The data hooks are stable and later assets can replace this CSS-only pass. */
 body[data-dsh-maid-atelier] [data-variant='think'][data-state='running'] [class*='row']::after {
   width: 240px;
   background: linear-gradient(90deg, transparent, rgba(225, 207, 170, 0.3) 46%, rgba(142, 165, 218, 0.24) 62%, transparent);
@@ -2182,6 +2469,76 @@ body[data-dsh-maid-atelier] [data-variant='think'][data-state='running'] [class*
 
 body[data-dsh-maid-atelier] [data-state='running'] :is([class*='runState'], [class*='stateDot']) {
   filter: drop-shadow(0 0 6px rgba(197, 164, 104, 0.7));
+}
+
+/* The subagent catalog is mounted inside the navy conversation header. Reset
+   that header's inverted copy before presenting the light porcelain tree. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.session.header.actions'] [role='tree'] {
+  --dsw-alias-label-primary: #233763;
+  --dsw-alias-label-secondary: #40557f;
+  --dsw-alias-label-tertiary: #596b8e;
+  --dsw-alias-label-dimmed: #8995ad;
+  --dsw-alias-border-l2: rgba(95, 117, 169, 0.4);
+  --dsw-alias-interactive-bg-hover: rgba(103, 126, 183, 0.14);
+  border: 1px solid rgba(95, 117, 169, 0.26);
+  background: linear-gradient(
+    145deg,
+    rgba(248, 250, 255, 0.93),
+    rgba(232, 238, 250, 0.89)
+  );
+  color: #233763;
+  text-shadow: none;
+  box-shadow: 0 16px 36px rgba(19, 38, 87, 0.2);
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([role='treeitem'], [class*='label']) {
+  color: #233763;
+  text-shadow: none;
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([class*='summary'], [class*='metrics'], [class*='notice']) {
+  color: #596b8e;
+  text-shadow: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.session.header.actions'] [role='tree'] {
+  --dsw-alias-label-primary: #edf1fa;
+  --dsw-alias-label-secondary: #d3ddf2;
+  --dsw-alias-label-tertiary: #b8c5e1;
+  --dsw-alias-label-dimmed: #7f90b4;
+  --dsw-alias-border-l2: rgba(151, 169, 216, 0.4);
+  --dsw-alias-interactive-bg-hover: rgba(164, 183, 229, 0.14);
+  border: 1px solid rgba(151, 169, 216, 0.26);
+  background: linear-gradient(
+    145deg,
+    rgba(10, 20, 48, 0.93),
+    rgba(18, 31, 67, 0.89)
+  );
+  color: #edf1fa;
+  text-shadow: none;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([role='treeitem'], [class*='label']) {
+  color: #edf1fa;
+  text-shadow: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([class*='summary'], [class*='metrics'], [class*='notice']) {
+  color: #b8c5e1;
+  text-shadow: none;
 }
 
 /* Question takeover: this component is seated directly in the composer and
