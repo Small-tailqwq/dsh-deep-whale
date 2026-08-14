@@ -2005,6 +2005,12 @@ body[data-dsh-maid-atelier] [data-composer-card] textarea {
   caret-color: #405a99;
 }
 
+/* The navy caret disappears against the dark composer card (≈2:1 contrast);
+   the light periwinkle keeps the caret legible on the night palette. */
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] textarea {
+  caret-color: #bcd2ff;
+}
+
 /* The raster extends below the naturally sized active card. Reserve that
    bleed before the docked statistics line so the gold rim cannot cover it. */
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(+ *) {
