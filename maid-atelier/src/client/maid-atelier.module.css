@@ -2538,6 +2538,36 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   color: #f3e3c0;
   background: rgba(87, 117, 190, 0.28);
 }
+/* 对话区字体：正文统一为衬线字族，与侧栏标题/按钮的 Georgia 体系呼应。
+   拉丁字母走 Georgia/Times New Roman，中文落到宋体系（macOS Songti SC、
+   跨平台 Noto Serif CJK SC / STSong / SimSun），最后 serif 兜底。 */
+body[data-dsh-maid-atelier] [data-chat-flow],
+body[data-dsh-maid-atelier] [class*='userRow'] [class*='bubble'] {
+  --dsw-font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
+  font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
+}
+
+/* 产品的 markdown 字体 token（--dsw-font-markdown-*）在 body 声明时已将
+   var(--dsw-font-family) 解析固定为无衬线，无法靠变量覆盖，因此直接在
+   markdown 容器及其标题/段落上覆盖 font-family。代码 token 独立引用
+   --ds-font-family-code，等宽不受影响。 */
+body[data-dsh-maid-atelier] [data-chat-flow] div[class*='markdown'],
+body[data-dsh-maid-atelier] [data-chat-flow] div[class*='markdown']
+  :is(h1, h2, h3, h4, h5, h6, p, li, blockquote, td, th) {
+  font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
+}
+
+/* 对话输入框跟随正文字体，输入预览与渲染结果一致。 */
+body[data-dsh-maid-atelier] [data-composer-card] textarea {
+  font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
+}
+
+/* 输入工具栏（附件/模式/上下文/发送等）的标签统一为衬线。 */
+body[data-dsh-maid-atelier] [data-composer-card] button,
+body[data-dsh-maid-atelier] [data-composer-card] [class*='triggerLabel'] {
+  font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
+}
+
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > rect {
     animation: none;
