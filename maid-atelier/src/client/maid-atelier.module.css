@@ -1621,11 +1621,9 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   box-shadow: none;
 }
 
-/* SettingsRoot keeps its fixed overlay inside the sidebar tree. Do not let
-   the sidebar content root trap that overlay below the active composer. */
-body[data-dsh-maid-atelier]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
-  > div > :has([data-maid-sidebar-footer]),
+/* SettingsRoot keeps its fixed overlay inside the sidebar tree. Let the
+   footer release its local stacking context without demoting the content
+   root that keeps workspace cards above the decorative mascot. */
 body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div > [data-maid-sidebar-footer] {
@@ -1647,31 +1645,6 @@ body[data-dsh-maid-atelier]:has(
       > :is(button, [role='button'])[aria-expanded='true']
   ) {
   z-index: 1000;
-}
-
-/* The enclosure stays below the official settings mask and receives the same
-   blur as the rest of the sidebar. The mask applies a two-pixel blur plus a
-   dark wash, so slightly wider pre-mask strokes preserve a soft gold trace
-   instead of dissolving into the navy surface. */
-body[data-dsh-maid-atelier]:has(
-    [data-slot='sidebar.settings']
-      > :is(button, [role='button'])[aria-expanded='true']
-  ) [data-skin-chrome='sidebar-corners'] {
-  --maid-sidebar-frame-line-x: 2.6px;
-  --maid-sidebar-frame-line-y: 2.4px;
-  background:
-    linear-gradient(90deg, #ffe7ad, #d9ad62, #ffe7ad) left 62px top 8.875px / calc(100% - 124px) var(--maid-sidebar-frame-line-y) no-repeat,
-    linear-gradient(90deg, #ffe7ad, #d9ad62, #ffe7ad) left 62px bottom 8.875px / calc(100% - 124px) var(--maid-sidebar-frame-line-y) no-repeat,
-    linear-gradient(180deg, #ffe7ad, #d9ad62, #ffe7ad) left 8.05px top 62px / var(--maid-sidebar-frame-line-x) calc(100% - 124px) no-repeat,
-    linear-gradient(180deg, #ffe7ad, #d9ad62, #ffe7ad) right 8.05px top 62px / var(--maid-sidebar-frame-line-x) calc(100% - 124px) no-repeat;
-  filter: none;
-}
-
-body[data-dsh-maid-atelier]:has(
-    [data-slot='sidebar.settings']
-      > :is(button, [role='button'])[aria-expanded='true']
-  ) [data-skin-chrome='sidebar-corners'] > [data-skin-corner] {
-  filter: none;
 }
 
 /* This copy sits immediately before the official mask, so the mask samples
@@ -2398,6 +2371,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu
 /* Keep the settings surface above the composer while leaving the composer
    visible as a dimmed, blurred background layer. */
 body[data-dsh-maid-atelier]
+  [data-slot='sidebar.settings']
   [role='presentation']
   > [role='dialog'][aria-modal='true'] {
   --dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68);
@@ -2406,6 +2380,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='sidebar.settings']
   [role='presentation']
   > [role='dialog'][aria-modal='true'] {
   --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82);
