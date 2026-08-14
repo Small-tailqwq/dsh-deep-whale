@@ -723,6 +723,27 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).not.toMatch(/:has\(\[data-phase='active'\]\)\s*\[data-maid-character/s)
   })
 
+  it('keeps the fixed and composer character copies aligned during viewport resize', async () => {
+    vi.useFakeTimers()
+    try {
+      fiber = await mount()
+      window.dispatchEvent(new Event('resize'))
+
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(CSS).toMatch(/\[data-maid-viewport-resizing\] \[data-maid-character\]\s*\{[^}]*transition: none/s)
+
+      vi.advanceTimersByTime(180)
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+
+      window.dispatchEvent(new Event('resize'))
+      await fiber.dispose()
+      fiber = undefined
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('coordinates composer docking and rising with the curtain duration', () => {
     expect(CSS).toContain("data-maid-composer-motion='dock'")
     expect(CSS).toContain("data-maid-composer-motion='rise'")

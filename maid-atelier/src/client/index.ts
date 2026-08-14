@@ -237,6 +237,8 @@ export function apply(ctx: Context): void {
   let resizeObserver: ResizeObserver | undefined
   let composerPhase: 'hero' | 'active' | undefined
   let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
+  let viewportResizeTimer: ReturnType<typeof setTimeout> | undefined
+  let markViewportResize: (() => void) | undefined
   let settingsBackdropFrame: HTMLDivElement | undefined
   let observer: MutationObserver | undefined
   let titlebarOverlay: WindowControlsOverlay | undefined
@@ -245,9 +247,12 @@ export function apply(ctx: Context): void {
   ctx.effect(() => () => {
     delete body.dataset.dshMaidAtelier
     delete body.dataset.maidComposerMotion
+    delete body.dataset.maidViewportResizing
     delete body.dataset.maidSidebarCompact
     delete body.dataset.maidSidebarSize
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    if (markViewportResize !== undefined) window.removeEventListener('resize', markViewportResize)
     observer?.disconnect()
     themeColorObserver?.disconnect()
     if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
@@ -410,6 +415,16 @@ export function apply(ctx: Context): void {
       if (entry) applySidebarWidth(entry.contentRect.width)
     })
   }
+
+  markViewportResize = (): void => {
+    body.dataset.maidViewportResizing = ''
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    viewportResizeTimer = setTimeout(() => {
+      delete body.dataset.maidViewportResizing
+      viewportResizeTimer = undefined
+    }, 180)
+  }
+  window.addEventListener('resize', markViewportResize)
 
   const syncComposerMotion = (): void => {
     const phaseRoot = document.querySelector<HTMLElement>("[data-phase='hero'], [data-phase='active']")

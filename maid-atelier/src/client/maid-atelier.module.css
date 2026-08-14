@@ -119,6 +119,13 @@ body[data-dsh-maid-atelier] [data-maid-character] {
     filter 420ms ease;
 }
 
+/* The sticky composer mirrors the fixed character art to occlude transcript
+   rows. During viewport resize both copies must adopt the new vh geometry in
+   the same frame; transitioning only the img layer exposes their boundary. */
+body[data-dsh-maid-atelier][data-maid-viewport-resizing] [data-maid-character] {
+  transition: none;
+}
+
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
   bottom: clamp(-34px, -2.4vh, -12px);
   left: clamp(8px, 1.3vw, 24px);
