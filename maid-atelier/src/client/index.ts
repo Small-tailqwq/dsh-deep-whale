@@ -35,6 +35,8 @@ import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
+/** localStorage key backing the original/whale-girl skin toggle. */
+const SKIN_TOGGLE_KEY = 'dsh-skin-maid-atelier-enabled'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
@@ -221,7 +223,11 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
  * @param ctx - owning context whose effect retracts every DOM and CSS write.
  */
 export function apply(ctx: Context): void {
-  const body = document.body
+	let dispose: (() => void) | undefined
+
+	const mount = (): void => {
+		if (dispose !== undefined) return
+	const body = document.body
   const originalTitle = document.title
   const previous = new Map<string, string>()
   for (const property of BACKDROP_PROPERTIES) {
@@ -246,7 +252,7 @@ export function apply(ctx: Context): void {
   let titlebarOverlay: WindowControlsOverlay | undefined
   let syncTitlebarHeight: (() => void) | undefined
 
-  ctx.effect(() => () => {
+  dispose = ctx.effect(() => () => {
     delete body.dataset.dshMaidAtelier
     delete body.dataset.maidComposerMotion
     delete body.dataset.maidViewportResizing
@@ -646,4 +652,79 @@ export function apply(ctx: Context): void {
   document.head.append(favicon)
 
   document.title = SKIN_TITLE
+  }
+
+  const unmount = (): void => {
+    const current = dispose
+    if (current === undefined) return
+    dispose = undefined
+    current()
+  }
+
+  const readEnabled = (): boolean => {
+    try {
+      return localStorage.getItem(SKIN_TOGGLE_KEY) !== 'off'
+    } catch {
+      return true
+    }
+  }
+
+  const sync = (): void => {
+    if (readEnabled()) mount()
+    else unmount()
+  }
+
+  const button = document.createElement('button')
+  button.dataset.skinChrome = 'skin-toggle'
+  button.type = 'button'
+  button.style.cssText = [
+    'position:fixed', 'right:20px', 'bottom:20px', 'z-index:9999',
+    'height:34px', 'padding:0 14px', 'border-radius:17px', 'border:1px solid rgba(130,140,180,.45)',
+    'background:rgba(14,18,38,.78)', 'color:#d7ddff', 'font:12px/1 system-ui,sans-serif',
+    'cursor:pointer', 'display:flex', 'align-items:center', 'gap:6px',
+    'backdrop-filter:blur(4px)', 'box-shadow:0 2px 10px rgba(0,0,0,.3)', 'opacity:.85',
+    'transition:opacity .2s',
+  ].join(';')
+  button.innerHTML = '<span style="font-size:15px;line-height:1">🐋</span><span style="line-height:1"></span>'
+  const label = button.querySelector<HTMLSpanElement>('span:last-child')
+  const refreshLabel = (): void => {
+    if (label === null) return
+    if (readEnabled()) {
+      label.textContent = '切回原版'
+      button.title = '当前：深海女仆工坊皮肤 · 点击切回原版'
+    } else {
+      label.textContent = '启用鲸鱼娘'
+      button.title = '当前：原版皮肤 · 点击启用鲸鱼娘（深海女仆工坊）'
+    }
+  }
+  refreshLabel()
+  button.addEventListener('click', () => {
+    try {
+      localStorage.setItem(SKIN_TOGGLE_KEY, readEnabled() ? 'off' : 'on')
+    } catch {
+      /* localStorage unavailable — keep current state */
+    }
+    refreshLabel()
+    sync()
+  })
+  button.addEventListener('mouseenter', () => {
+    button.style.opacity = '1'
+  })
+  button.addEventListener('mouseleave', () => {
+    button.style.opacity = '.85'
+  })
+  const onStorage = (event: StorageEvent): void => {
+    if (event.key === SKIN_TOGGLE_KEY || event.key === null) {
+      refreshLabel()
+      sync()
+    }
+  }
+  document.body.append(button)
+  window.addEventListener('storage', onStorage)
+  ctx.effect(() => () => {
+    button.remove()
+    window.removeEventListener('storage', onStorage)
+  }, 'ui-skin-maid-atelier: toggle control')
+
+  sync()
 }

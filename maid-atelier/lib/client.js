@@ -75,6 +75,8 @@ window.__ModuleLoader__.load({
 		//#region src/client/index.ts
 		const SKIN_TITLE = "深海女仆工坊 · DeepSeek Harness";
 		const SKIN_OWNER = "maid-atelier";
+		/** localStorage key backing the original/whale-girl skin toggle. */
+		const SKIN_TOGGLE_KEY = "dsh-skin-maid-atelier-enabled";
 		const SKIN_SYSTEM_CHROME_COLOR = "#0b193f";
 		const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])";
 		const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])";
@@ -241,313 +243,397 @@ window.__ModuleLoader__.load({
 		* @param ctx - owning context whose effect retracts every DOM and CSS write.
 		*/
 		function apply(ctx) {
-			const body = document.body;
-			const originalTitle = document.title;
-			const previous = /* @__PURE__ */ new Map();
-			for (const property of BACKDROP_PROPERTIES) previous.set(property, body.style.getPropertyValue(property));
-			const ownedNodes = /* @__PURE__ */ new Set();
-			const decoratedElements = /* @__PURE__ */ new Set();
-			let themeColorMeta = null;
-			let previousThemeColor;
-			let themeColorObserver;
-			let observedSidebar;
-			let resizeObserver;
-			let composerLayout;
-			let composerMotionTimer;
-			let viewportResizeTimer;
-			let railSearchFocusFrame;
-			let recoverRailSearchFocus;
-			let markViewportResize;
-			let settingsBackdropFrame;
-			let observer;
-			let titlebarOverlay;
-			let syncTitlebarHeight;
-			ctx.effect(() => () => {
-				delete body.dataset.dshMaidAtelier;
-				delete body.dataset.maidComposerMotion;
-				delete body.dataset.maidViewportResizing;
-				delete body.dataset.maidSidebarCompact;
-				delete body.dataset.maidSidebarSize;
-				if (composerMotionTimer !== void 0) clearTimeout(composerMotionTimer);
-				if (viewportResizeTimer !== void 0) clearTimeout(viewportResizeTimer);
-				if (railSearchFocusFrame !== void 0) cancelAnimationFrame(railSearchFocusFrame);
-				if (markViewportResize !== void 0) window.removeEventListener("resize", markViewportResize);
-				if (recoverRailSearchFocus !== void 0) document.removeEventListener("click", recoverRailSearchFocus);
-				observer?.disconnect();
-				themeColorObserver?.disconnect();
-				if (titlebarOverlay !== void 0 && syncTitlebarHeight !== void 0) titlebarOverlay.removeEventListener("geometrychange", syncTitlebarHeight);
-				resizeObserver?.disconnect();
-				for (const [property, value] of previous) body.style.setProperty(property, value);
-				ownedNodes.forEach((element) => element.remove());
-				decoratedElements.forEach((element) => {
-					delete element.dataset.maidSidebarFooter;
-					delete element.dataset.maidWorkspaceGroup;
-					delete element.dataset.maidWorkspaceRow;
-					delete element.dataset.maidWorkspaceActive;
-					delete element.dataset.maidSessionRow;
-					delete element.dataset.maidSessionFlat;
-					delete element.dataset.maidSessionFirst;
-					delete element.dataset.maidSessionLast;
-				});
-				if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) themeColorMeta.content = previousThemeColor ?? "";
-				if (document.title === SKIN_TITLE) document.title = originalTitle;
-			}, "ui-skin-maid-atelier: layered background and ornament");
-			const syncSystemChrome = () => {
-				const meta = document.head.querySelector("meta[name=\"theme-color\"]");
-				if (meta === null) return;
-				if (meta !== themeColorMeta) {
-					themeColorMeta = meta;
-					previousThemeColor = meta.content;
-				}
-				if (meta.content !== SKIN_SYSTEM_CHROME_COLOR) meta.content = SKIN_SYSTEM_CHROME_COLOR;
-			};
-			themeColorObserver = new MutationObserver(syncSystemChrome);
-			themeColorObserver.observe(document.head, {
-				attributes: true,
-				attributeFilter: ["content"],
-				childList: true,
-				subtree: true
-			});
-			syncSystemChrome();
-			body.dataset.dshMaidAtelier = "";
-			body.style.setProperty("--maid-top-trim-art", `url(${MAID_ATELIER_TOP_TRIM_TILE})`);
-			body.style.setProperty("--maid-bottom-trim-art", `url(${MAID_ATELIER_BOTTOM_TRIM_TILE})`);
-			body.style.setProperty("--maid-bottom-crest-art", `url(${MAID_ATELIER_BOTTOM_CREST})`);
-			body.style.setProperty("--maid-bow-art", `url(${MAID_ATELIER_BOW_CLEAN})`);
-			body.style.setProperty("--maid-new-session-art", `url(${MAID_ATELIER_NEW_SESSION})`);
-			body.style.setProperty("--maid-sidebar-swag-art", `url(${MAID_ATELIER_SIDEBAR_SWAG})`);
-			body.style.setProperty("--maid-sidebar-corner-art", `url(${MAID_ATELIER_SIDEBAR_CORNER})`);
-			body.style.setProperty("--maid-character-left-art", `url(${MAID_ATELIER_MAID_LEFT})`);
-			body.style.setProperty("--maid-character-right-art", `url(${MAID_ATELIER_MAID_RIGHT})`);
-			body.style.setProperty("--maid-composer-frame-art", `url(${MAID_ATELIER_COMPOSER_FRAME})`);
-			body.style.setProperty("--maid-settings-frame-art", `url(${MAID_ATELIER_SETTINGS_FRAME})`);
-			body.style.setProperty("--maid-workspace-crest-art", `url(${MAID_ATELIER_WORKSPACE_SHIELD})`);
-			body.style.setProperty("--maid-workspace-ribbon-art", `url(${MAID_ATELIER_WORKSPACE_RIBBON})`);
-			const syncBackdrop = () => {
-				const source = body.hasAttribute("data-ds-dark-theme") ? MAID_ATELIER_PALACE_DARK : MAID_ATELIER_PALACE_LIGHT;
-				body.style.setProperty("background-image", `url(${source})`);
-				body.style.setProperty("--maid-palace-art", `url(${source})`);
-			};
-			syncBackdrop();
-			body.style.setProperty("background-position", "center top");
-			body.style.setProperty("background-size", "cover");
-			body.style.setProperty("background-attachment", "fixed");
-			body.style.setProperty("background-repeat", "no-repeat");
-			const widthSheet = document.createElement("style");
-			widthSheet.dataset.skinChrome = "sidebar-width-rule";
-			widthSheet.dataset.skinOwner = SKIN_OWNER;
-			ownedNodes.add(widthSheet);
-			document.head.append(widthSheet);
-			widthSheet.sheet.insertRule("body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; --maid-titlebar-height: 0px; }");
-			const appendRule = (rule) => {
-				widthSheet.sheet.insertRule(rule, widthSheet.sheet.cssRules.length);
-			};
-			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-wco] { grid-template-rows: env(titlebar-area-height, 40px) 1fr; }");
-			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }");
-			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }");
-			const widthRule = widthSheet.sheet.cssRules[0];
-			syncTitlebarHeight = () => {
-				const columns = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
-				if (columns !== null) {
-					const top = columns.getBoundingClientRect().top;
-					if (top > 0) {
-						widthRule.style.setProperty("--maid-titlebar-height", `${top}px`);
-						return;
-					}
-				}
-				if (document.querySelector("[class*='frame'][data-desktop]") !== null) {
-					widthRule.style.setProperty("--maid-titlebar-height", "32px");
-					return;
-				}
-				widthRule.style.setProperty("--maid-titlebar-height", "0px");
-			};
-			titlebarOverlay = navigator.windowControlsOverlay;
-			titlebarOverlay?.addEventListener("geometrychange", syncTitlebarHeight);
-			syncTitlebarHeight();
-			const applySidebarWidth = (width) => {
-				if (width <= 0) return;
-				const roundPx = (value) => `${Math.round(value * 100) / 100}px`;
-				widthRule.style.setProperty("--maid-sidebar-width", roundPx(width));
-				widthRule.style.setProperty("--maid-sidebar-swag-height", roundPx(Math.min(94, Math.max(54, width * .2575))));
-				widthRule.style.setProperty("--maid-sidebar-mascot-width", roundPx(Math.min(320, width * .82)));
-				body.dataset.maidSidebarSize = width <= 120 ? "rail" : width <= 220 ? "narrow" : "wide";
-				if (width <= 104) body.dataset.maidSidebarCompact = "";
-				else delete body.dataset.maidSidebarCompact;
-			};
-			const clearSidebarWidth = () => {
-				widthRule.style.setProperty("--maid-sidebar-width", "0px");
-				widthRule.style.setProperty("--maid-sidebar-swag-height", "54px");
-				widthRule.style.setProperty("--maid-sidebar-mascot-width", "0px");
-				body.dataset.maidSidebarSize = "rail";
-				body.dataset.maidSidebarCompact = "";
-			};
-			const ensureSidebarObserved = () => {
-				const sidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
-				if (!resizeObserver || sidebar === observedSidebar) return;
-				if (!sidebar) {
-					if (observedSidebar) resizeObserver.unobserve(observedSidebar);
-					observedSidebar = void 0;
-					return;
-				}
-				if (observedSidebar) resizeObserver.unobserve(observedSidebar);
-				observedSidebar = sidebar;
-				resizeObserver.observe(sidebar);
-			};
-			markViewportResize = () => {
-				body.dataset.maidViewportResizing = "";
-				if (viewportResizeTimer !== void 0) clearTimeout(viewportResizeTimer);
-				viewportResizeTimer = setTimeout(() => {
+			let dispose;
+			const mount = () => {
+				if (dispose !== void 0) return;
+				const body = document.body;
+				const originalTitle = document.title;
+				const previous = /* @__PURE__ */ new Map();
+				for (const property of BACKDROP_PROPERTIES) previous.set(property, body.style.getPropertyValue(property));
+				const ownedNodes = /* @__PURE__ */ new Set();
+				const decoratedElements = /* @__PURE__ */ new Set();
+				let themeColorMeta = null;
+				let previousThemeColor;
+				let themeColorObserver;
+				let observedSidebar;
+				let resizeObserver;
+				let composerLayout;
+				let composerMotionTimer;
+				let viewportResizeTimer;
+				let railSearchFocusFrame;
+				let recoverRailSearchFocus;
+				let markViewportResize;
+				let settingsBackdropFrame;
+				let observer;
+				let titlebarOverlay;
+				let syncTitlebarHeight;
+				dispose = ctx.effect(() => () => {
+					delete body.dataset.dshMaidAtelier;
+					delete body.dataset.maidComposerMotion;
 					delete body.dataset.maidViewportResizing;
-					viewportResizeTimer = void 0;
-				}, 180);
-			};
-			window.addEventListener("resize", markViewportResize);
-			recoverRailSearchFocus = (event) => {
-				const target = event.target instanceof Element ? event.target.closest("button[class*='searchButton']") : null;
-				const railSearch = target?.closest("[class*='search']");
-				if (target === null || railSearch === null || railSearch.querySelector("input[class*='searchInput']") !== null) return;
-				if (railSearchFocusFrame !== void 0) cancelAnimationFrame(railSearchFocusFrame);
-				const startedAt = performance.now();
-				const recover = () => {
-					railSearchFocusFrame = void 0;
-					const input = document.querySelector(`${SIDEBAR_COLUMN_SELECTOR} input[class*='searchInput']`);
-					const searchRoot = input?.closest("[class*='search']");
-					if (input !== null && input !== void 0 && searchRoot !== null && searchRoot !== void 0) {
-						searchRoot.click();
-						input.focus({ preventScroll: true });
+					delete body.dataset.maidSidebarCompact;
+					delete body.dataset.maidSidebarSize;
+					if (composerMotionTimer !== void 0) clearTimeout(composerMotionTimer);
+					if (viewportResizeTimer !== void 0) clearTimeout(viewportResizeTimer);
+					if (railSearchFocusFrame !== void 0) cancelAnimationFrame(railSearchFocusFrame);
+					if (markViewportResize !== void 0) window.removeEventListener("resize", markViewportResize);
+					if (recoverRailSearchFocus !== void 0) document.removeEventListener("click", recoverRailSearchFocus);
+					observer?.disconnect();
+					themeColorObserver?.disconnect();
+					if (titlebarOverlay !== void 0 && syncTitlebarHeight !== void 0) titlebarOverlay.removeEventListener("geometrychange", syncTitlebarHeight);
+					resizeObserver?.disconnect();
+					for (const [property, value] of previous) body.style.setProperty(property, value);
+					ownedNodes.forEach((element) => element.remove());
+					decoratedElements.forEach((element) => {
+						delete element.dataset.maidSidebarFooter;
+						delete element.dataset.maidWorkspaceGroup;
+						delete element.dataset.maidWorkspaceRow;
+						delete element.dataset.maidWorkspaceActive;
+						delete element.dataset.maidSessionRow;
+						delete element.dataset.maidSessionFlat;
+						delete element.dataset.maidSessionFirst;
+						delete element.dataset.maidSessionLast;
+					});
+					if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) themeColorMeta.content = previousThemeColor ?? "";
+					if (document.title === SKIN_TITLE) document.title = originalTitle;
+				}, "ui-skin-maid-atelier: layered background and ornament");
+				const syncSystemChrome = () => {
+					const meta = document.head.querySelector("meta[name=\"theme-color\"]");
+					if (meta === null) return;
+					if (meta !== themeColorMeta) {
+						themeColorMeta = meta;
+						previousThemeColor = meta.content;
+					}
+					if (meta.content !== SKIN_SYSTEM_CHROME_COLOR) meta.content = SKIN_SYSTEM_CHROME_COLOR;
+				};
+				themeColorObserver = new MutationObserver(syncSystemChrome);
+				themeColorObserver.observe(document.head, {
+					attributes: true,
+					attributeFilter: ["content"],
+					childList: true,
+					subtree: true
+				});
+				syncSystemChrome();
+				body.dataset.dshMaidAtelier = "";
+				body.style.setProperty("--maid-top-trim-art", `url(${MAID_ATELIER_TOP_TRIM_TILE})`);
+				body.style.setProperty("--maid-bottom-trim-art", `url(${MAID_ATELIER_BOTTOM_TRIM_TILE})`);
+				body.style.setProperty("--maid-bottom-crest-art", `url(${MAID_ATELIER_BOTTOM_CREST})`);
+				body.style.setProperty("--maid-bow-art", `url(${MAID_ATELIER_BOW_CLEAN})`);
+				body.style.setProperty("--maid-new-session-art", `url(${MAID_ATELIER_NEW_SESSION})`);
+				body.style.setProperty("--maid-sidebar-swag-art", `url(${MAID_ATELIER_SIDEBAR_SWAG})`);
+				body.style.setProperty("--maid-sidebar-corner-art", `url(${MAID_ATELIER_SIDEBAR_CORNER})`);
+				body.style.setProperty("--maid-character-left-art", `url(${MAID_ATELIER_MAID_LEFT})`);
+				body.style.setProperty("--maid-character-right-art", `url(${MAID_ATELIER_MAID_RIGHT})`);
+				body.style.setProperty("--maid-composer-frame-art", `url(${MAID_ATELIER_COMPOSER_FRAME})`);
+				body.style.setProperty("--maid-settings-frame-art", `url(${MAID_ATELIER_SETTINGS_FRAME})`);
+				body.style.setProperty("--maid-workspace-crest-art", `url(${MAID_ATELIER_WORKSPACE_SHIELD})`);
+				body.style.setProperty("--maid-workspace-ribbon-art", `url(${MAID_ATELIER_WORKSPACE_RIBBON})`);
+				const syncBackdrop = () => {
+					const source = body.hasAttribute("data-ds-dark-theme") ? MAID_ATELIER_PALACE_DARK : MAID_ATELIER_PALACE_LIGHT;
+					body.style.setProperty("background-image", `url(${source})`);
+					body.style.setProperty("--maid-palace-art", `url(${source})`);
+				};
+				syncBackdrop();
+				body.style.setProperty("background-position", "center top");
+				body.style.setProperty("background-size", "cover");
+				body.style.setProperty("background-attachment", "fixed");
+				body.style.setProperty("background-repeat", "no-repeat");
+				const widthSheet = document.createElement("style");
+				widthSheet.dataset.skinChrome = "sidebar-width-rule";
+				widthSheet.dataset.skinOwner = SKIN_OWNER;
+				ownedNodes.add(widthSheet);
+				document.head.append(widthSheet);
+				widthSheet.sheet.insertRule("body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; --maid-titlebar-height: 0px; }");
+				const appendRule = (rule) => {
+					widthSheet.sheet.insertRule(rule, widthSheet.sheet.cssRules.length);
+				};
+				appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-wco] { grid-template-rows: env(titlebar-area-height, 40px) 1fr; }");
+				appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }");
+				appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }");
+				const widthRule = widthSheet.sheet.cssRules[0];
+				syncTitlebarHeight = () => {
+					const columns = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
+					if (columns !== null) {
+						const top = columns.getBoundingClientRect().top;
+						if (top > 0) {
+							widthRule.style.setProperty("--maid-titlebar-height", `${top}px`);
+							return;
+						}
+					}
+					if (document.querySelector("[class*='frame'][data-desktop]") !== null) {
+						widthRule.style.setProperty("--maid-titlebar-height", "32px");
 						return;
 					}
-					if (performance.now() - startedAt < 500) railSearchFocusFrame = requestAnimationFrame(recover);
+					widthRule.style.setProperty("--maid-titlebar-height", "0px");
 				};
-				railSearchFocusFrame = requestAnimationFrame(recover);
-			};
-			document.addEventListener("click", recoverRailSearchFocus);
-			if (typeof ResizeObserver !== "undefined") resizeObserver = new ResizeObserver((entries) => {
-				const entry = entries.at(-1);
-				if (!entry) return;
-				markViewportResize?.();
-				applySidebarWidth(entry.contentRect.width);
-			});
-			const syncComposerMotion = () => {
-				const phaseRoot = document.querySelector("[data-phase='hero'], [data-phase='active']");
-				const phase = phaseRoot?.dataset.phase;
-				if (phase !== "hero" && phase !== "active") return;
-				const next = phase === "hero" ? "hero" : phaseRoot.querySelector("[data-chat-flow]") === null ? "active-other" : "active-chat";
-				const motion = composerLayout !== void 0 && composerLayout !== next ? next === "active-chat" ? "dock" : next === "hero" ? "rise" : void 0 : void 0;
-				if (motion !== void 0) {
-					body.dataset.maidComposerMotion = motion;
-					if (composerMotionTimer !== void 0) clearTimeout(composerMotionTimer);
-					composerMotionTimer = setTimeout(() => {
-						delete body.dataset.maidComposerMotion;
-						composerMotionTimer = void 0;
-					}, 660);
-				}
-				composerLayout = next;
-			};
-			const syncSettingsBackdropFrame = () => {
-				const mask = document.querySelector(`${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`) === null ? null : document.querySelector(SETTINGS_MASK_SELECTOR);
-				const overlay = mask?.parentElement;
-				if (overlay === void 0 || overlay === null) {
-					settingsBackdropFrame?.remove();
-					return;
-				}
-				if (settingsBackdropFrame === void 0) {
-					settingsBackdropFrame = createSidebarCorners();
-					settingsBackdropFrame.dataset.maidSettingsBackdropFrame = "";
-					ownedNodes.add(settingsBackdropFrame);
-				}
-				if (settingsBackdropFrame.parentElement !== overlay) overlay.insertBefore(settingsBackdropFrame, mask);
-			};
-			decorateTitlebarBrand(ownedNodes);
-			decorateSidebar(ownedNodes, decoratedElements);
-			decorateWorkspaceTree(decoratedElements);
-			ensureSidebarObserved();
-			const initialSidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
-			if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width);
-			syncComposerMotion();
-			syncSettingsBackdropFrame();
-			const characterStage = createCharacterStage();
-			ownedNodes.add(characterStage);
-			body.prepend(characterStage);
-			const syncSidebarDecorations = () => {
-				syncTitlebarHeight?.();
+				titlebarOverlay = navigator.windowControlsOverlay;
+				titlebarOverlay?.addEventListener("geometrychange", syncTitlebarHeight);
+				syncTitlebarHeight();
+				const applySidebarWidth = (width) => {
+					if (width <= 0) return;
+					const roundPx = (value) => `${Math.round(value * 100) / 100}px`;
+					widthRule.style.setProperty("--maid-sidebar-width", roundPx(width));
+					widthRule.style.setProperty("--maid-sidebar-swag-height", roundPx(Math.min(94, Math.max(54, width * .2575))));
+					widthRule.style.setProperty("--maid-sidebar-mascot-width", roundPx(Math.min(320, width * .82)));
+					body.dataset.maidSidebarSize = width <= 120 ? "rail" : width <= 220 ? "narrow" : "wide";
+					if (width <= 104) body.dataset.maidSidebarCompact = "";
+					else delete body.dataset.maidSidebarCompact;
+				};
+				const clearSidebarWidth = () => {
+					widthRule.style.setProperty("--maid-sidebar-width", "0px");
+					widthRule.style.setProperty("--maid-sidebar-swag-height", "54px");
+					widthRule.style.setProperty("--maid-sidebar-mascot-width", "0px");
+					body.dataset.maidSidebarSize = "rail";
+					body.dataset.maidSidebarCompact = "";
+				};
+				const ensureSidebarObserved = () => {
+					const sidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
+					if (!resizeObserver || sidebar === observedSidebar) return;
+					if (!sidebar) {
+						if (observedSidebar) resizeObserver.unobserve(observedSidebar);
+						observedSidebar = void 0;
+						return;
+					}
+					if (observedSidebar) resizeObserver.unobserve(observedSidebar);
+					observedSidebar = sidebar;
+					resizeObserver.observe(sidebar);
+				};
+				markViewportResize = () => {
+					body.dataset.maidViewportResizing = "";
+					if (viewportResizeTimer !== void 0) clearTimeout(viewportResizeTimer);
+					viewportResizeTimer = setTimeout(() => {
+						delete body.dataset.maidViewportResizing;
+						viewportResizeTimer = void 0;
+					}, 180);
+				};
+				window.addEventListener("resize", markViewportResize);
+				recoverRailSearchFocus = (event) => {
+					const target = event.target instanceof Element ? event.target.closest("button[class*='searchButton']") : null;
+					const railSearch = target?.closest("[class*='search']");
+					if (target === null || railSearch === null || railSearch.querySelector("input[class*='searchInput']") !== null) return;
+					if (railSearchFocusFrame !== void 0) cancelAnimationFrame(railSearchFocusFrame);
+					const startedAt = performance.now();
+					const recover = () => {
+						railSearchFocusFrame = void 0;
+						const input = document.querySelector(`${SIDEBAR_COLUMN_SELECTOR} input[class*='searchInput']`);
+						const searchRoot = input?.closest("[class*='search']");
+						if (input !== null && input !== void 0 && searchRoot !== null && searchRoot !== void 0) {
+							searchRoot.click();
+							input.focus({ preventScroll: true });
+							return;
+						}
+						if (performance.now() - startedAt < 500) railSearchFocusFrame = requestAnimationFrame(recover);
+					};
+					railSearchFocusFrame = requestAnimationFrame(recover);
+				};
+				document.addEventListener("click", recoverRailSearchFocus);
+				if (typeof ResizeObserver !== "undefined") resizeObserver = new ResizeObserver((entries) => {
+					const entry = entries.at(-1);
+					if (!entry) return;
+					markViewportResize?.();
+					applySidebarWidth(entry.contentRect.width);
+				});
+				const syncComposerMotion = () => {
+					const phaseRoot = document.querySelector("[data-phase='hero'], [data-phase='active']");
+					const phase = phaseRoot?.dataset.phase;
+					if (phase !== "hero" && phase !== "active") return;
+					const next = phase === "hero" ? "hero" : phaseRoot.querySelector("[data-chat-flow]") === null ? "active-other" : "active-chat";
+					const motion = composerLayout !== void 0 && composerLayout !== next ? next === "active-chat" ? "dock" : next === "hero" ? "rise" : void 0 : void 0;
+					if (motion !== void 0) {
+						body.dataset.maidComposerMotion = motion;
+						if (composerMotionTimer !== void 0) clearTimeout(composerMotionTimer);
+						composerMotionTimer = setTimeout(() => {
+							delete body.dataset.maidComposerMotion;
+							composerMotionTimer = void 0;
+						}, 660);
+					}
+					composerLayout = next;
+				};
+				const syncSettingsBackdropFrame = () => {
+					const mask = document.querySelector(`${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`) === null ? null : document.querySelector(SETTINGS_MASK_SELECTOR);
+					const overlay = mask?.parentElement;
+					if (overlay === void 0 || overlay === null) {
+						settingsBackdropFrame?.remove();
+						return;
+					}
+					if (settingsBackdropFrame === void 0) {
+						settingsBackdropFrame = createSidebarCorners();
+						settingsBackdropFrame.dataset.maidSettingsBackdropFrame = "";
+						ownedNodes.add(settingsBackdropFrame);
+					}
+					if (settingsBackdropFrame.parentElement !== overlay) overlay.insertBefore(settingsBackdropFrame, mask);
+				};
 				decorateTitlebarBrand(ownedNodes);
 				decorateSidebar(ownedNodes, decoratedElements);
 				decorateWorkspaceTree(decoratedElements);
 				ensureSidebarObserved();
-				const sidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
-				if (sidebar === null) clearSidebarWidth();
-				else if (resizeObserver === void 0) applySidebarWidth(sidebar.getBoundingClientRect().width);
-			};
-			const isSkinChrome = (node) => node instanceof Element && node.getAttribute("data-skin-owner") === SKIN_OWNER;
-			const nodeTouches = (node, selector) => node instanceof Element && (node.matches(selector) || node.querySelector(selector) !== null);
-			const sidebarChromeSelector = `${SIDEBAR_COLUMN_SELECTOR}, [class*='titlebar']`;
-			const composerSelector = "[data-phase='hero'], [data-phase='active']";
-			observer = new MutationObserver((records) => {
-				let sidebarStructureChanged = false;
-				let workspaceStateChanged = false;
-				let backdropChanged = false;
-				let composerChanged = false;
-				let settingsStateChanged = false;
-				for (const record of records) {
-					if (record.type === "attributes") {
+				const initialSidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
+				if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width);
+				syncComposerMotion();
+				syncSettingsBackdropFrame();
+				const characterStage = createCharacterStage();
+				ownedNodes.add(characterStage);
+				body.prepend(characterStage);
+				const syncSidebarDecorations = () => {
+					syncTitlebarHeight?.();
+					decorateTitlebarBrand(ownedNodes);
+					decorateSidebar(ownedNodes, decoratedElements);
+					decorateWorkspaceTree(decoratedElements);
+					ensureSidebarObserved();
+					const sidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
+					if (sidebar === null) clearSidebarWidth();
+					else if (resizeObserver === void 0) applySidebarWidth(sidebar.getBoundingClientRect().width);
+				};
+				const isSkinChrome = (node) => node instanceof Element && node.getAttribute("data-skin-owner") === SKIN_OWNER;
+				const nodeTouches = (node, selector) => node instanceof Element && (node.matches(selector) || node.querySelector(selector) !== null);
+				const sidebarChromeSelector = `${SIDEBAR_COLUMN_SELECTOR}, [class*='titlebar']`;
+				const composerSelector = "[data-phase='hero'], [data-phase='active']";
+				observer = new MutationObserver((records) => {
+					let sidebarStructureChanged = false;
+					let workspaceStateChanged = false;
+					let backdropChanged = false;
+					let composerChanged = false;
+					let settingsStateChanged = false;
+					for (const record of records) {
+						if (record.type === "attributes") {
+							const target = record.target instanceof Element ? record.target : void 0;
+							if (record.attributeName === "aria-expanded" && target !== void 0 && target.closest("[data-slot='sidebar.settings']") !== null) settingsStateChanged = true;
+							else if ((record.attributeName === "aria-expanded" || record.attributeName === "aria-selected") && target !== void 0 && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null) workspaceStateChanged = true;
+							else if (record.attributeName === "data-ds-dark-theme" && record.target === body) backdropChanged = true;
+							else if ((record.attributeName === "data-phase" || record.attributeName === "data-chat-flow") && target?.closest(composerSelector) !== null) composerChanged = true;
+							continue;
+						}
+						const appNodes = [...record.addedNodes, ...record.removedNodes].filter((node) => node instanceof Element && !isSkinChrome(node));
 						const target = record.target instanceof Element ? record.target : void 0;
-						if (record.attributeName === "aria-expanded" && target !== void 0 && target.closest("[data-slot='sidebar.settings']") !== null) settingsStateChanged = true;
-						else if ((record.attributeName === "aria-expanded" || record.attributeName === "aria-selected") && target !== void 0 && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null) workspaceStateChanged = true;
-						else if (record.attributeName === "data-ds-dark-theme" && record.target === body) backdropChanged = true;
-						else if ((record.attributeName === "data-phase" || record.attributeName === "data-chat-flow") && target?.closest(composerSelector) !== null) composerChanged = true;
-						continue;
+						if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, sidebarChromeSelector)) || target !== void 0 && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null)) sidebarStructureChanged = true;
+						if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, composerSelector)) || target !== void 0 && target.closest(composerSelector) !== null)) composerChanged = true;
+						if (appNodes.some((node) => nodeTouches(node, SETTINGS_MASK_SELECTOR))) settingsStateChanged = true;
 					}
-					const appNodes = [...record.addedNodes, ...record.removedNodes].filter((node) => node instanceof Element && !isSkinChrome(node));
-					const target = record.target instanceof Element ? record.target : void 0;
-					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, sidebarChromeSelector)) || target !== void 0 && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null)) sidebarStructureChanged = true;
-					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, composerSelector)) || target !== void 0 && target.closest(composerSelector) !== null)) composerChanged = true;
-					if (appNodes.some((node) => nodeTouches(node, SETTINGS_MASK_SELECTOR))) settingsStateChanged = true;
+					if (sidebarStructureChanged) syncSidebarDecorations();
+					else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements);
+					if (backdropChanged) syncBackdrop();
+					if (composerChanged) syncComposerMotion();
+					if (settingsStateChanged) syncSettingsBackdropFrame();
+				});
+				observer.observe(body, {
+					attributes: true,
+					attributeFilter: [
+						"aria-expanded",
+						"aria-selected",
+						"data-ds-dark-theme",
+						"data-phase",
+						"data-chat-flow"
+					],
+					childList: true,
+					subtree: true
+				});
+				const topTrim = document.createElement("div");
+				topTrim.dataset.skinChrome = "top-trim";
+				topTrim.dataset.skinOwner = SKIN_OWNER;
+				topTrim.setAttribute("aria-hidden", "true");
+				const landingTrimLayer = document.createElement("div");
+				landingTrimLayer.dataset.skinTrimLayer = "landing";
+				const workspaceTrimLayer = document.createElement("div");
+				workspaceTrimLayer.dataset.skinTrimLayer = "workspace";
+				topTrim.append(landingTrimLayer, workspaceTrimLayer);
+				ownedNodes.add(topTrim);
+				body.append(topTrim);
+				const bottomTrim = document.createElement("div");
+				bottomTrim.dataset.skinChrome = "bottom-trim";
+				bottomTrim.dataset.skinOwner = SKIN_OWNER;
+				bottomTrim.setAttribute("aria-hidden", "true");
+				ownedNodes.add(bottomTrim);
+				body.append(bottomTrim);
+				const favicon = document.createElement("link");
+				favicon.rel = "icon";
+				favicon.type = "image/png";
+				favicon.href = MAID_ATELIER_ICON;
+				favicon.dataset.skinChrome = "favicon";
+				favicon.dataset.skinOwner = SKIN_OWNER;
+				ownedNodes.add(favicon);
+				document.head.append(favicon);
+				document.title = SKIN_TITLE;
+			};
+			const unmount = () => {
+				const current = dispose;
+				if (current === void 0) return;
+				dispose = void 0;
+				current();
+			};
+			const readEnabled = () => {
+				try {
+					return localStorage.getItem(SKIN_TOGGLE_KEY) !== "off";
+				} catch {
+					return true;
 				}
-				if (sidebarStructureChanged) syncSidebarDecorations();
-				else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements);
-				if (backdropChanged) syncBackdrop();
-				if (composerChanged) syncComposerMotion();
-				if (settingsStateChanged) syncSettingsBackdropFrame();
+			};
+			const sync = () => {
+				if (readEnabled()) mount();
+				else unmount();
+			};
+			const button = document.createElement("button");
+			button.dataset.skinChrome = "skin-toggle";
+			button.type = "button";
+			button.style.cssText = [
+				"position:fixed",
+				"right:20px",
+				"bottom:20px",
+				"z-index:9999",
+				"height:34px",
+				"padding:0 14px",
+				"border-radius:17px",
+				"border:1px solid rgba(130,140,180,.45)",
+				"background:rgba(14,18,38,.78)",
+				"color:#d7ddff",
+				"font:12px/1 system-ui,sans-serif",
+				"cursor:pointer",
+				"display:flex",
+				"align-items:center",
+				"gap:6px",
+				"backdrop-filter:blur(4px)",
+				"box-shadow:0 2px 10px rgba(0,0,0,.3)",
+				"opacity:.85",
+				"transition:opacity .2s"
+			].join(";");
+			button.innerHTML = "<span style=\"font-size:15px;line-height:1\">🐋</span><span style=\"line-height:1\"></span>";
+			const label = button.querySelector("span:last-child");
+			const refreshLabel = () => {
+				if (label === null) return;
+				if (readEnabled()) {
+					label.textContent = "切回原版";
+					button.title = "当前：深海女仆工坊皮肤 · 点击切回原版";
+				} else {
+					label.textContent = "启用鲸鱼娘";
+					button.title = "当前：原版皮肤 · 点击启用鲸鱼娘（深海女仆工坊）";
+				}
+			};
+			refreshLabel();
+			button.addEventListener("click", () => {
+				try {
+					localStorage.setItem(SKIN_TOGGLE_KEY, readEnabled() ? "off" : "on");
+				} catch {}
+				refreshLabel();
+				sync();
 			});
-			observer.observe(body, {
-				attributes: true,
-				attributeFilter: [
-					"aria-expanded",
-					"aria-selected",
-					"data-ds-dark-theme",
-					"data-phase",
-					"data-chat-flow"
-				],
-				childList: true,
-				subtree: true
+			button.addEventListener("mouseenter", () => {
+				button.style.opacity = "1";
 			});
-			const topTrim = document.createElement("div");
-			topTrim.dataset.skinChrome = "top-trim";
-			topTrim.dataset.skinOwner = SKIN_OWNER;
-			topTrim.setAttribute("aria-hidden", "true");
-			const landingTrimLayer = document.createElement("div");
-			landingTrimLayer.dataset.skinTrimLayer = "landing";
-			const workspaceTrimLayer = document.createElement("div");
-			workspaceTrimLayer.dataset.skinTrimLayer = "workspace";
-			topTrim.append(landingTrimLayer, workspaceTrimLayer);
-			ownedNodes.add(topTrim);
-			body.append(topTrim);
-			const bottomTrim = document.createElement("div");
-			bottomTrim.dataset.skinChrome = "bottom-trim";
-			bottomTrim.dataset.skinOwner = SKIN_OWNER;
-			bottomTrim.setAttribute("aria-hidden", "true");
-			ownedNodes.add(bottomTrim);
-			body.append(bottomTrim);
-			const favicon = document.createElement("link");
-			favicon.rel = "icon";
-			favicon.type = "image/png";
-			favicon.href = MAID_ATELIER_ICON;
-			favicon.dataset.skinChrome = "favicon";
-			favicon.dataset.skinOwner = SKIN_OWNER;
-			ownedNodes.add(favicon);
-			document.head.append(favicon);
-			document.title = SKIN_TITLE;
+			button.addEventListener("mouseleave", () => {
+				button.style.opacity = ".85";
+			});
+			const onStorage = (event) => {
+				if (event.key === SKIN_TOGGLE_KEY || event.key === null) {
+					refreshLabel();
+					sync();
+				}
+			};
+			document.body.append(button);
+			window.addEventListener("storage", onStorage);
+			ctx.effect(() => () => {
+				button.remove();
+				window.removeEventListener("storage", onStorage);
+			}, "ui-skin-maid-atelier: toggle control");
+			sync();
 		}
 		//#endregion
 		exports.apply = apply;
