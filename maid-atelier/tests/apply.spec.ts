@@ -765,6 +765,49 @@ describe('Maid Atelier skin apply', () => {
     expect([...matches].map((element) => element.getAttribute('data-fixture'))).toEqual(['markdown'])
   })
 
+  it('stabilizes light-theme disclosure text over the illustrated backdrop', () => {
+    const variantRule = CSS.match(
+      /:not\(\[data-ds-dark-theme\]\) \[data-variant\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const rowRule = CSS.match(
+      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-variant\] \[data-disclosure-row='true'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(variantRule).toContain('--dsw-alias-label-secondary: #2f4778')
+    expect(variantRule).toContain('--dsw-alias-label-tertiary: #405273')
+    expect(rowRule).toContain('rgba(248, 250, 255, 0.32)')
+    expect(rowRule).toContain('backdrop-filter: blur(2px)')
+    expect(CSS).toMatch(/\[data-variant\] > \[data-open='true'\]\s*\{[^}]*rgba\(248, 250, 255, 0\.5\)[^}]*backdrop-filter: blur\(3px\)/s)
+    expect(CSS).toMatch(/\[data-open='true'\] > \[data-disclosure-row='true'\]\s*\{[^}]*background: transparent[^}]*backdrop-filter: none/s)
+    expect(CSS).toMatch(/\[data-variant='think'\][^{]*\[data-disclosure-row='true'\] \+ \*\s*\{[^}]*color: #34486f[^}]*line-height: 1\.65/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-variant\]\s*\{[^}]*#d3ddf2[^}]*#b8c5e1/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant\] \[data-disclosure-row='true'\]\s*\{[^}]*rgba\(10, 20, 48, 0\.58\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant='think'\][^{]*\+ \*\s*\{[^}]*color: #c7d2e9/s)
+  })
+
+  it('keeps the light-theme composer statistics legible over the backdrop', () => {
+    const dockRule = CSS.match(
+      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-slot='conversation\.composer\.dock'\] > \*\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(dockRule).toContain('color: #4a5d82')
+    expect(dockRule).toContain('rgba(248, 250, 255, 0.3)')
+    expect(dockRule).toContain('backdrop-filter: blur(2px)')
+    expect(CSS).toMatch(/\[data-slot='conversation\.composer\.dock'\] > \* \[class\*='sep'\]\s*\{[^}]*rgba\(74, 93, 130, 0\.55\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-slot='conversation\.composer\.dock'\] > \*\s*\{[^}]*color: #aebdde[^}]*rgba\(10, 20, 48, 0\.48\)/s)
+  })
+
+  it('resets the light-theme subagent catalog inherited from the navy header', () => {
+    const catalogRule = CSS.match(
+      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-slot='conversation\.session\.header\.actions'\] \[role='tree'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(catalogRule).toContain('--dsw-alias-label-primary: #233763')
+    expect(catalogRule).toContain('--dsw-alias-label-tertiary: #596b8e')
+    expect(catalogRule).toContain('rgba(248, 250, 255, 0.93)')
+    expect(catalogRule).toContain('text-shadow: none')
+    expect(catalogRule).toContain('backdrop-filter: blur(8px) saturate(0.92)')
+    expect(CSS).toMatch(/\[role='tree'\][^{]*:is\(\[role='treeitem'\], \[class\*='label'\]\)\s*\{[^}]*color: #233763/s)
+    expect(CSS).toMatch(/\[role='tree'\][^{]*:is\(\[class\*='summary'\], \[class\*='metrics'\], \[class\*='notice'\]\)\s*\{[^}]*color: #596b8e/s)
+  })
+
   it('marks only live hero and workspace phase changes for composer motion', async () => {
     document.body.innerHTML = '<div data-phase="hero"></div>'
     fiber = await mount()

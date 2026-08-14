@@ -1853,6 +1853,42 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(+ *) 
   margin-block-end: 12px;
 }
 
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.composer.dock'] > * {
+  color: #4a5d82;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(248, 250, 255, 0.3) 10%,
+    rgba(248, 250, 255, 0.3) 90%,
+    transparent
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.composer.dock'] > * [class*='sep'] {
+  color: rgba(74, 93, 130, 0.55);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.composer.dock'] > * {
+  color: #aebdde;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(10, 20, 48, 0.48) 10%,
+    rgba(10, 20, 48, 0.48) 90%,
+    transparent
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='conversation.composer.dock'] > * [class*='sep'] {
+  color: rgba(174, 189, 222, 0.5);
+}
+
 /* ChatView exposes data-chat-flow in every loading and content state. Give
    Trajectory, Timeline, and other inspect-only views the full canvas while
    leaving the resident composer DOM and its draft state mounted. */
@@ -2153,10 +2189,99 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
+/* Collapsed reasoning and tool rows sit directly over detailed background art.
+   A low-contrast porcelain wash stabilizes legibility without turning the
+   compact disclosure list into a stack of message cards. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-variant] {
+  --dsw-alias-label-secondary: #2f4778;
+  --dsw-alias-label-tertiary: #405273;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-variant] {
+  --dsw-alias-label-secondary: #d3ddf2;
+  --dsw-alias-label-tertiary: #b8c5e1;
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-variant] [data-disclosure-row='true'] {
+  border-radius: 7px;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 250, 255, 0.32),
+    rgba(248, 250, 255, 0.2) 72%,
+    rgba(248, 250, 255, 0.08)
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-variant] [data-disclosure-row='true'] {
+  border-radius: 7px;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 20, 48, 0.58),
+    rgba(13, 25, 59, 0.4) 72%,
+    rgba(13, 25, 59, 0.16)
+  );
+  backdrop-filter: blur(2px);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-variant] > [data-open='true'] {
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 255, 0.5),
+    rgba(248, 250, 255, 0.3)
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(3px);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-variant] > [data-open='true'] {
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(10, 20, 48, 0.76),
+    rgba(18, 31, 67, 0.54)
+  );
+  box-shadow: inset 0 0 0 1px rgba(151, 169, 216, 0.18);
+  backdrop-filter: blur(3px);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-variant] > [data-open='true'] > [data-disclosure-row='true'] {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-variant] > [data-open='true'] > [data-disclosure-row='true'] {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
+  padding-right: 12px;
+  padding-bottom: 8px;
+  color: #34486f;
+  line-height: 1.65;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
+  padding-right: 12px;
+  padding-bottom: 8px;
+  color: #c7d2e9;
+  line-height: 1.65;
+}
+
 /* Running reasoning becomes a restrained gold-and-periwinkle service sweep.
-   The data hooks are stable and later assets can replace this CSS-only pass.
-   The collapsed Think row itself carries no container decoration: it stays a
-   bare disclosure row, matching the tool-call rows beside it. */
+   The data hooks are stable and later assets can replace this CSS-only pass. */
 body[data-dsh-maid-atelier] [data-variant='think'][data-state='running'] [class*='row']::after {
   width: 240px;
   background: linear-gradient(90deg, transparent, rgba(225, 207, 170, 0.3) 46%, rgba(142, 165, 218, 0.24) 62%, transparent);
@@ -2172,6 +2297,42 @@ body[data-dsh-maid-atelier] [data-variant='think'][data-state='running'] [class*
 
 body[data-dsh-maid-atelier] [data-state='running'] :is([class*='runState'], [class*='stateDot']) {
   filter: drop-shadow(0 0 6px rgba(197, 164, 104, 0.7));
+}
+
+/* The subagent catalog is mounted inside the navy conversation header. Reset
+   that header's inverted copy before presenting the light porcelain tree. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.session.header.actions'] [role='tree'] {
+  --dsw-alias-label-primary: #233763;
+  --dsw-alias-label-secondary: #40557f;
+  --dsw-alias-label-tertiary: #596b8e;
+  --dsw-alias-label-dimmed: #8995ad;
+  --dsw-alias-border-l2: rgba(95, 117, 169, 0.4);
+  --dsw-alias-interactive-bg-hover: rgba(103, 126, 183, 0.14);
+  border: 1px solid rgba(95, 117, 169, 0.26);
+  background: linear-gradient(
+    145deg,
+    rgba(248, 250, 255, 0.93),
+    rgba(232, 238, 250, 0.89)
+  );
+  color: #233763;
+  text-shadow: none;
+  box-shadow: 0 16px 36px rgba(19, 38, 87, 0.2);
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([role='treeitem'], [class*='label']) {
+  color: #233763;
+  text-shadow: none;
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='conversation.session.header.actions'] [role='tree']
+  :is([class*='summary'], [class*='metrics'], [class*='notice']) {
+  color: #596b8e;
+  text-shadow: none;
 }
 
 /* Question takeover: this component is seated directly in the composer and
