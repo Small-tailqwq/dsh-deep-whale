@@ -879,7 +879,10 @@ describe('Maid Atelier skin apply', () => {
     const sidebarInnerRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const portalRule = CSS.match(
+    const sidebarContentRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > :has\(\[data-maid-sidebar-footer\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const footerRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > \[data-maid-sidebar-footer\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -896,7 +899,8 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarRule).toContain('z-index: auto')
     expect(sidebarInnerRule).toContain('isolation: auto')
     expect(sidebarInnerRule).not.toContain('container-type')
-    expect(portalRule).toContain('z-index: auto')
+    expect(sidebarContentRule).toContain('z-index: auto')
+    expect(footerRule).toContain('z-index: auto')
     expect(topTrimRule).toContain('z-index: 20')
     expect(bottomTrimRule).toContain('z-index: 19')
     expect(promotedSettingsRootRule).toContain('z-index: 1000')
@@ -905,8 +909,20 @@ describe('Maid Atelier skin apply', () => {
     expect(preservedSidebarFrameRule).toContain('filter: none')
     expect(preservedSidebarFrameRule).not.toContain('z-index')
     expect(obscuredComposerRule).toContain('z-index: 0')
-    expect(obscuredComposerRule).toContain('opacity: 0.12')
+    expect(obscuredComposerRule).toContain('opacity: 0.75')
     expect(obscuredComposerRule).toContain('pointer-events: none')
+  })
+
+  it('keeps the settings panel translucent above the dimmed composer', () => {
+    const settingsSurfaceRule = CSS.match(
+      /\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkSettingsSurfaceRule = CSS.match(
+      /\[data-ds-dark-theme\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(settingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68)')
+    expect(settingsSurfaceRule).toContain('backdrop-filter: blur(6px) saturate(0.9)')
+    expect(darkSettingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82)')
   })
 
   it('renders the active workspace as a crested ribbon with a connected session tree', () => {
