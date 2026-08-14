@@ -370,6 +370,8 @@ describe('Maid Atelier skin apply', () => {
     expect(seatRule).toContain('--dsw-alias-bg-base: transparent')
     expect(seatRule).toContain('background: var(--maid-palace-art) center top / cover fixed no-repeat')
     expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*--maid-character-left-art[^}]*--maid-character-right-art/s)
+    expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*background-attachment: fixed, fixed/s)
+    expect(CSS).toContain('left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px))')
   })
 
   it('recolors the native vector wordmark without replacing it with raster art', () => {

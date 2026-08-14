@@ -1534,8 +1534,9 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat]::before {
   opacity: 0.9;
   background-image: var(--maid-character-left-art), var(--maid-character-right-art);
   background-repeat: no-repeat;
+  background-attachment: fixed, fixed;
   background-position:
-    left clamp(8px, 1.3vw, 24px) bottom clamp(-24px, -1.5vh, -8px),
+    left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) bottom clamp(-24px, -1.5vh, -8px),
     right clamp(-70px, -3vw, -24px) bottom clamp(-24px, -1.5vh, -8px);
   background-size:
     auto clamp(420px, 64vh, 760px),
@@ -1556,7 +1557,7 @@ body[data-dsh-maid-atelier][data-maid-composer-motion='dock']
   from {
     opacity: 1;
     background-position:
-      left clamp(8px, 1.3vw, 24px) bottom clamp(-34px, -2.4vh, -12px),
+      left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) bottom clamp(-34px, -2.4vh, -12px),
       right clamp(-18px, 0.2vw, 8px) bottom clamp(-26px, -1.8vh, -8px);
     background-size:
       auto clamp(560px, 96vh, 1180px),
@@ -1566,7 +1567,7 @@ body[data-dsh-maid-atelier][data-maid-composer-motion='dock']
   to {
     opacity: 0.9;
     background-position:
-      left clamp(8px, 1.3vw, 24px) bottom clamp(-24px, -1.5vh, -8px),
+      left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) bottom clamp(-24px, -1.5vh, -8px),
       right clamp(-70px, -3vw, -24px) bottom clamp(-24px, -1.5vh, -8px);
     background-size:
       auto clamp(420px, 64vh, 760px),
@@ -1577,6 +1578,15 @@ body[data-dsh-maid-atelier][data-maid-composer-motion='dock']
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] > * {
   position: relative;
   z-index: 1;
+}
+
+@media (max-width: 1080px) {
+  body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat]::before {
+    opacity: 0.74;
+    background-position:
+      left var(--maid-sidebar-width) bottom clamp(-24px, -1.5vh, -8px),
+      right -6vw bottom clamp(-24px, -1.5vh, -8px);
+  }
 }
 
 /* Composer card: live controls sit beneath one hollow raster plate that keeps
