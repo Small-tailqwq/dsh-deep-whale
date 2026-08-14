@@ -2189,21 +2189,23 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
-/* Collapsed reasoning and tool rows sit directly over detailed background art.
-   A low-contrast porcelain wash stabilizes legibility without turning the
-   compact disclosure list into a stack of message cards. */
-body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-variant] {
+/* Collapsed reasoning, tool, and context rows sit directly over detailed
+   background art. A low-contrast porcelain wash stabilizes legibility without
+   turning the compact disclosure list into a stack of message cards. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  :is([data-variant], [data-chat-flow-kind='context']) {
   --dsw-alias-label-secondary: #2f4778;
   --dsw-alias-label-tertiary: #405273;
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-variant] {
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  :is([data-variant], [data-chat-flow-kind='context']) {
   --dsw-alias-label-secondary: #d3ddf2;
   --dsw-alias-label-tertiary: #b8c5e1;
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-variant] [data-disclosure-row='true'] {
+  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row='true'] {
   border-radius: 7px;
   background: linear-gradient(
     90deg,
@@ -2215,7 +2217,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-variant] [data-disclosure-row='true'] {
+  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row='true'] {
   border-radius: 7px;
   background: linear-gradient(
     90deg,
@@ -2227,7 +2229,10 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-variant] > [data-open='true'] {
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) {
   overflow: hidden;
   border-radius: 10px;
   background: linear-gradient(
@@ -2240,7 +2245,10 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-variant] > [data-open='true'] {
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) {
   overflow: hidden;
   border-radius: 10px;
   background: linear-gradient(
@@ -2253,13 +2261,19 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-variant] > [data-open='true'] > [data-disclosure-row='true'] {
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) > [data-disclosure-row='true'] {
   background: transparent;
   backdrop-filter: none;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-variant] > [data-open='true'] > [data-disclosure-row='true'] {
+  :is(
+    [data-variant] > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) > [data-disclosure-row='true'] {
   background: transparent;
   backdrop-filter: none;
 }
