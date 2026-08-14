@@ -182,12 +182,15 @@ body[data-dsh-maid-atelier][data-maid-sidebar-compact]
 
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
    independently translated layers let the landing ornament leave upward
-   while the lace-free workspace band drops in from above. */
+   while the lace-free workspace band drops in from above. z-index 18 keeps
+   the band above the conversation header content (auto) yet below the
+   app's shell.overlay layer (z-index 20): floating panels mounted there
+   (e.g. the file-explorer panel) must paint above the decorative band. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
   position: fixed;
   inset: 0 0 auto 0;
   translate: var(--maid-sidebar-width) 0;
-  z-index: 20;
+  z-index: 18;
   height: 76px;
   overflow: hidden;
   pointer-events: none;
