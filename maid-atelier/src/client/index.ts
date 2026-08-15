@@ -47,6 +47,61 @@ const BETTER_SIDEBAR_SELECTOR = '[data-dsh-better-sidebar]'
 const CORDIS_PANEL_SELECTOR = '[data-cordis-panel]'
 const TERMINAL_SELECTOR = `${BETTER_SIDEBAR_SELECTOR} .xterm`
 
+interface AttributeLeaseState {
+  originalValue: string | null
+  owners: Set<symbol>
+  value: string
+}
+
+const bodyAttributeLeases = new WeakMap<HTMLElement, Map<string, AttributeLeaseState>>()
+
+function createBodyAttributeLease(body: HTMLElement, attribute: string, value = ''): {
+  acquire: () => void
+  release: () => void
+} {
+  const owner = Symbol(attribute)
+  let active = false
+
+  return {
+    acquire(): void {
+      if (active) return
+      let attributes = bodyAttributeLeases.get(body)
+      if (attributes === undefined) {
+        attributes = new Map()
+        bodyAttributeLeases.set(body, attributes)
+      }
+      let state = attributes.get(attribute)
+      if (state === undefined) {
+        state = {
+          originalValue: body.getAttribute(attribute),
+          owners: new Set(),
+          value,
+        }
+        attributes.set(attribute, state)
+      }
+      state.owners.add(owner)
+      active = true
+      body.setAttribute(attribute, state.value)
+    },
+    release(): void {
+      if (!active) return
+      active = false
+      const attributes = bodyAttributeLeases.get(body)
+      const state = attributes?.get(attribute)
+      if (state === undefined || !state.owners.delete(owner)) return
+      if (state.owners.size > 0) {
+        body.setAttribute(attribute, state.value)
+        return
+      }
+      attributes?.delete(attribute)
+      if (attributes?.size === 0) bodyAttributeLeases.delete(body)
+      if (body.getAttribute(attribute) !== state.value) return
+      if (state.originalValue === null) body.removeAttribute(attribute)
+      else body.setAttribute(attribute, state.originalValue)
+    },
+  }
+}
+
 const PROJECTED_STATE_ATTRIBUTES = {
   activeChat: 'data-maid-chat-active',
   activeConversation: 'data-maid-conversation-active',
@@ -262,8 +317,8 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
 export function apply(ctx: Context): void {
   const body = document.body
   const originalTitle = document.title
-  const previousViewportResizing = body.getAttribute('data-maid-viewport-resizing')
-  const previousLowPower = body.getAttribute('data-maid-low-power')
+  const viewportResizeLease = createBodyAttributeLease(body, 'data-maid-viewport-resizing')
+  const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
   const previous = new Map<string, string>()
   for (const property of BACKDROP_PROPERTIES) {
     previous.set(property, body.style.getPropertyValue(property))
@@ -296,10 +351,6 @@ export function apply(ctx: Context): void {
     delete body.dataset.maidComposerMotion
     delete body.dataset.maidSidebarCompact
     delete body.dataset.maidSidebarSize
-    if (previousViewportResizing === null) delete body.dataset.maidViewportResizing
-    else body.setAttribute('data-maid-viewport-resizing', previousViewportResizing)
-    if (previousLowPower === null) delete body.dataset.maidLowPower
-    else body.setAttribute('data-maid-low-power', previousLowPower)
     for (const [attribute, value] of previousProjectedStates) {
       if (value === null) body.removeAttribute(attribute)
       else body.setAttribute(attribute, value)
@@ -307,6 +358,8 @@ export function apply(ctx: Context): void {
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
+    viewportResizeLease.release()
+    lowPowerLease.release()
     if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
     if (recoverRailSearchFocus !== undefined) {
       document.removeEventListener('click', recoverRailSearchFocus)
@@ -338,16 +391,15 @@ export function apply(ctx: Context): void {
   }, 'ui-skin-maid-atelier: layered background and ornament')
 
   handleViewportResize = (): void => {
-    body.dataset.maidViewportResizing = ''
+    viewportResizeLease.acquire()
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     viewportResizeTimer = setTimeout(() => {
-      if (previousViewportResizing === null) delete body.dataset.maidViewportResizing
-      else body.setAttribute('data-maid-viewport-resizing', previousViewportResizing)
+      viewportResizeLease.release()
       viewportResizeTimer = undefined
     }, VIEWPORT_RESIZE_SETTLE_MS)
   }
   window.addEventListener('resize', handleViewportResize)
-  if (!hasAcceleratedWebGL()) body.dataset.maidLowPower = ''
+  if (!hasAcceleratedWebGL()) lowPowerLease.acquire()
 
   const syncSystemChrome = (): void => {
     const meta = document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')

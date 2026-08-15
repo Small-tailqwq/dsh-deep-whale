@@ -86,6 +86,49 @@ window.__ModuleLoader__.load({
 		const BETTER_SIDEBAR_SELECTOR = "[data-dsh-better-sidebar]";
 		const CORDIS_PANEL_SELECTOR = "[data-cordis-panel]";
 		const TERMINAL_SELECTOR = `${BETTER_SIDEBAR_SELECTOR} .xterm`;
+		const bodyAttributeLeases = /* @__PURE__ */ new WeakMap();
+		function createBodyAttributeLease(body, attribute, value = "") {
+			const owner = Symbol(attribute);
+			let active = false;
+			return {
+				acquire() {
+					if (active) return;
+					let attributes = bodyAttributeLeases.get(body);
+					if (attributes === void 0) {
+						attributes = /* @__PURE__ */ new Map();
+						bodyAttributeLeases.set(body, attributes);
+					}
+					let state = attributes.get(attribute);
+					if (state === void 0) {
+						state = {
+							originalValue: body.getAttribute(attribute),
+							owners: /* @__PURE__ */ new Set(),
+							value
+						};
+						attributes.set(attribute, state);
+					}
+					state.owners.add(owner);
+					active = true;
+					body.setAttribute(attribute, state.value);
+				},
+				release() {
+					if (!active) return;
+					active = false;
+					const attributes = bodyAttributeLeases.get(body);
+					const state = attributes?.get(attribute);
+					if (state === void 0 || !state.owners.delete(owner)) return;
+					if (state.owners.size > 0) {
+						body.setAttribute(attribute, state.value);
+						return;
+					}
+					attributes?.delete(attribute);
+					if (attributes?.size === 0) bodyAttributeLeases.delete(body);
+					if (body.getAttribute(attribute) !== state.value) return;
+					if (state.originalValue === null) body.removeAttribute(attribute);
+					else body.setAttribute(attribute, state.originalValue);
+				}
+			};
+		}
 		const PROJECTED_STATE_ATTRIBUTES = {
 			activeChat: "data-maid-chat-active",
 			activeConversation: "data-maid-conversation-active",
@@ -275,8 +318,8 @@ window.__ModuleLoader__.load({
 		function apply(ctx) {
 			const body = document.body;
 			const originalTitle = document.title;
-			const previousViewportResizing = body.getAttribute("data-maid-viewport-resizing");
-			const previousLowPower = body.getAttribute("data-maid-low-power");
+			const viewportResizeLease = createBodyAttributeLease(body, "data-maid-viewport-resizing");
+			const lowPowerLease = createBodyAttributeLease(body, "data-maid-low-power");
 			const previous = /* @__PURE__ */ new Map();
 			for (const property of BACKDROP_PROPERTIES) previous.set(property, body.style.getPropertyValue(property));
 			const previousProjectedStates = /* @__PURE__ */ new Map();
@@ -303,15 +346,13 @@ window.__ModuleLoader__.load({
 				delete body.dataset.maidComposerMotion;
 				delete body.dataset.maidSidebarCompact;
 				delete body.dataset.maidSidebarSize;
-				if (previousViewportResizing === null) delete body.dataset.maidViewportResizing;
-				else body.setAttribute("data-maid-viewport-resizing", previousViewportResizing);
-				if (previousLowPower === null) delete body.dataset.maidLowPower;
-				else body.setAttribute("data-maid-low-power", previousLowPower);
 				for (const [attribute, value] of previousProjectedStates) if (value === null) body.removeAttribute(attribute);
 				else body.setAttribute(attribute, value);
 				if (composerMotionTimer !== void 0) clearTimeout(composerMotionTimer);
 				if (viewportResizeTimer !== void 0) clearTimeout(viewportResizeTimer);
 				if (handleViewportResize !== void 0) window.removeEventListener("resize", handleViewportResize);
+				viewportResizeLease.release();
+				lowPowerLease.release();
 				if (railSearchFocusFrame !== void 0) cancelAnimationFrame(railSearchFocusFrame);
 				if (recoverRailSearchFocus !== void 0) document.removeEventListener("click", recoverRailSearchFocus);
 				observer?.disconnect();
@@ -334,16 +375,15 @@ window.__ModuleLoader__.load({
 				if (document.title === SKIN_TITLE) document.title = originalTitle;
 			}, "ui-skin-maid-atelier: layered background and ornament");
 			handleViewportResize = () => {
-				body.dataset.maidViewportResizing = "";
+				viewportResizeLease.acquire();
 				if (viewportResizeTimer !== void 0) clearTimeout(viewportResizeTimer);
 				viewportResizeTimer = setTimeout(() => {
-					if (previousViewportResizing === null) delete body.dataset.maidViewportResizing;
-					else body.setAttribute("data-maid-viewport-resizing", previousViewportResizing);
+					viewportResizeLease.release();
 					viewportResizeTimer = void 0;
 				}, VIEWPORT_RESIZE_SETTLE_MS);
 			};
 			window.addEventListener("resize", handleViewportResize);
-			if (!hasAcceleratedWebGL()) body.dataset.maidLowPower = "";
+			if (!hasAcceleratedWebGL()) lowPowerLease.acquire();
 			const syncSystemChrome = () => {
 				const meta = document.head.querySelector("meta[name=\"theme-color\"]");
 				if (meta === null) return;

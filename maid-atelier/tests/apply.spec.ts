@@ -425,6 +425,35 @@ describe('Maid Atelier skin apply', () => {
     document.body.removeAttribute('data-maid-low-power')
   })
 
+  it('keeps resize and low-power markers owned across overlapping activations', async () => {
+    const originalBodyStyle = document.body.getAttribute('style')
+    const first = await mount()
+    const second = await mount()
+    vi.useFakeTimers()
+    try {
+      window.dispatchEvent(new Event('resize'))
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
+
+      await first.dispose()
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
+
+      vi.advanceTimersByTime(120)
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
+
+      await second.dispose()
+      expect(document.body.hasAttribute('data-maid-low-power')).toBe(false)
+    } finally {
+      await first.dispose()
+      await second.dispose()
+      if (originalBodyStyle === null) document.body.removeAttribute('style')
+      else document.body.setAttribute('style', originalBodyStyle)
+      vi.useRealTimers()
+    }
+  })
+
   it('keeps full character effects when accelerated WebGL is available', async () => {
     vi.stubGlobal('WebGLRenderingContext', class WebGLRenderingContext {})
     const loseContext = vi.fn()
