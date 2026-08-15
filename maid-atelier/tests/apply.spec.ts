@@ -716,6 +716,7 @@ describe('Maid Atelier skin apply', () => {
       /:has\(\[data-phase='active'\] \[data-chat-flow\]\)[\s\S]*?\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(stageRule).toContain('position: fixed')
+    expect(stageRule).toContain('z-index: -1')
     expect(stageRule).toContain('contain: strict')
     expect(chatLeftRule).toContain('translate: var(--maid-sidebar-width) 0')
     expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')

@@ -91,11 +91,19 @@ body[data-dsh-maid-atelier] [id='root'] {
 }
 
 /* High-resolution characters remain independent from the palace so viewport
-   and conversation changes never resample the architecture behind them. */
+   and conversation changes never resample the architecture behind them. The
+   stage is prepended to body and fixed against the viewport; as a positioned
+   element at z-index 0 it paints above every non-positioned app surface
+   (the chat flow, tool cards, the cordis run/approval card), so the figures
+   visually covered those cards at the bottom of the column. Keep the stage
+   at z-index -1: a true backdrop above the palace yet below ALL app content,
+   so interactive cards stay legible. The composer seat's own mirrored copy
+   (data-composer-seat::before) keeps the transcript-occlusion effect at the
+   dock, where it belongs. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   overflow: hidden;
   pointer-events: none;
   contain: strict;
