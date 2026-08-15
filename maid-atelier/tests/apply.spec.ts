@@ -378,6 +378,72 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
   }, 10_000)
 
+  it('follows live viewport resizing without transition lag and restores the marker', async () => {
+    fiber = await mount()
+    const resizeRule = CSS.match(
+      /\[data-maid-viewport-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(resizeRule).toContain('transition: none')
+    expect(resizeRule).toContain('filter: none')
+
+    vi.useFakeTimers()
+    try {
+      window.dispatchEvent(new Event('resize'))
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      vi.advanceTimersByTime(120)
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+
+      window.dispatchEvent(new Event('resize'))
+      await fiber.dispose()
+      fiber = undefined
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      window.dispatchEvent(new Event('resize'))
+      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('uses a CPU-safe character path without accelerated WebGL and restores overrides', async () => {
+    fiber = await mount()
+    const lowPowerRule = CSS.match(
+      /\[data-maid-low-power\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
+    expect(lowPowerRule).toContain('filter: none')
+    expect(lowPowerRule).toContain('transition: opacity 180ms ease')
+
+    await fiber.dispose()
+    fiber = undefined
+    expect(document.body.hasAttribute('data-maid-low-power')).toBe(false)
+
+    document.body.setAttribute('data-maid-low-power', 'manual')
+    fiber = await mount()
+    await fiber.dispose()
+    fiber = undefined
+    expect(document.body.getAttribute('data-maid-low-power')).toBe('manual')
+    document.body.removeAttribute('data-maid-low-power')
+  })
+
+  it('keeps full character effects when accelerated WebGL is available', async () => {
+    vi.stubGlobal('WebGLRenderingContext', class WebGLRenderingContext {})
+    const loseContext = vi.fn()
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        getExtension: () => ({ loseContext }),
+      } as unknown as WebGL2RenderingContext)
+    try {
+      fiber = await mount()
+      expect(document.body.hasAttribute('data-maid-low-power')).toBe(false)
+      expect(getContext).toHaveBeenCalledWith('webgl2', {
+        failIfMajorPerformanceCaveat: true,
+      })
+      expect(loseContext).toHaveBeenCalledOnce()
+    } finally {
+      getContext.mockRestore()
+    }
+  })
+
   it('installs and restores the raster control plates', async () => {
     document.body.style.setProperty('--maid-new-session-art', 'legacy')
     document.body.style.setProperty('--maid-workspace-ribbon-art', 'legacy-ribbon')
@@ -426,8 +492,8 @@ describe('Maid Atelier skin apply', () => {
     expect(seatRule).toContain('background: none')
     expect(CSS).not.toContain("[data-skin-chrome='character-stage']::before")
     expect(CSS).toMatch(/\[data-maid-character\]\s*\{[^}]*z-index: 1/s)
-    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='left'\]\s*\{[^}]*left: var\(--maid-sidebar-width\)[^}]*translate: 0/s)
-    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*right: 0/s)
+    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='left'\]\s*\{[^}]*translate: var\(--maid-sidebar-width\) 0/s)
+    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: 0/s)
     expect(CSS).not.toContain('left: -82px')
     expect(CSS).not.toContain('right: -82px')
     expect(CSS).not.toContain('--maid-character-left-art')
@@ -777,11 +843,28 @@ describe('Maid Atelier skin apply', () => {
     const chatRightRule = CSS.match(
       /\[data-maid-chat-active\]\s*\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const sharedRule = CSS.match(
+      /\[data-maid-character\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const baseLeftRule = CSS.match(
+      /\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const baseRightRule = CSS.match(
+      /\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     expect(stageRule).toContain('position: fixed')
     expect(stageRule).toContain('contain: strict')
-    expect(chatLeftRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(sharedRule).toContain('translate 620ms')
+    expect(sharedRule).not.toContain('left 620ms')
+    expect(sharedRule).not.toContain('right 620ms')
+    expect(sharedRule).not.toContain('filter 420ms')
+    expect(baseLeftRule).toContain('left: 0')
+    expect(baseLeftRule).toContain('translate: calc(var(--maid-sidebar-width) + clamp(')
+    expect(baseRightRule).toContain('right: 0')
+    expect(baseRightRule).toContain('translate: clamp(-8px, -0.2vw, 0px) 0')
+    expect(chatLeftRule).toContain('translate: calc(var(--maid-sidebar-width) + clamp(')
     expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
-    expect(chatRightRule).toContain('right: clamp(0px, 0.5vw, 8px)')
+    expect(chatRightRule).toContain('translate: clamp(-8px, -0.5vw, 0px) 0')
     expect(CSS).not.toMatch(/\[data-maid-character='(?:left|right)'\]\s*\{[^}]*(?:left|right):\s*-/s)
     expect(CSS).not.toMatch(/\[data-maid-conversation-active\]\s*\[data-maid-character/s)
   })
@@ -846,7 +929,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-ds-dark-theme\] \[data-dsh-better-sidebar\]\s*\{[^}]*--dsw-specific-sidebar-fill: rgba\(10, 22, 54, 0\.96\)/s,
     )
     expect(CSS).toMatch(
-      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*right: clamp\(320px, 24vw, 460px\)/s,
+      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: clamp\(-460px, -24vw, -320px\) 0/s,
     )
   })
 
@@ -1210,6 +1293,19 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain('@keyframes maidAtelierSessionJewelChase')
     expect(reducedMotionRules).toContain("svg[data-state='ongoing'] > rect")
     expect(reducedMotionRules).toContain('animation: none')
+  })
+
+  it('moves the running reasoning sweep on the compositor instead of relayout', () => {
+    const sweepRule = CSS.match(
+      /\[data-variant='think'\]\[data-state='running'\] \[class\*='row'\]::after\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const sweepKeyframes = CSS.match(
+      /@keyframes maid-atelier-reasoning-sweep\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(sweepRule).toContain('left: -240px')
+    expect(sweepRule).toContain('will-change: transform, opacity')
+    expect(sweepKeyframes).toContain('transform: translate3d(')
+    expect(sweepKeyframes).not.toMatch(/\bleft\s*:/)
   })
 
   it('keeps the sidebar mascot subordinate to navigation and behind the lower ornament', () => {

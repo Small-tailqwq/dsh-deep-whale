@@ -36,6 +36,7 @@ import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
+const VIEWPORT_RESIZE_SETTLE_MS = 120
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
@@ -102,6 +103,23 @@ function createCharacterStage(): HTMLDivElement {
 
   stage.append(left, right)
   return stage
+}
+
+function hasAcceleratedWebGL(): boolean {
+  if (typeof WebGLRenderingContext === 'undefined') return false
+  const canvas = document.createElement('canvas')
+  const options: WebGLContextAttributes = { failIfMajorPerformanceCaveat: true }
+  for (const kind of ['webgl2', 'webgl'] as const) {
+    try {
+      const context = canvas.getContext(kind, options)
+      if (context === null) continue
+      context.getExtension('WEBGL_lose_context')?.loseContext()
+      return true
+    } catch {
+      // A blocked or software-only context should use the CPU-safe CSS path.
+    }
+  }
+  return false
 }
 
 function createSidebarCorners(): HTMLDivElement {
@@ -244,6 +262,8 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
 export function apply(ctx: Context): void {
   const body = document.body
   const originalTitle = document.title
+  const previousViewportResizing = body.getAttribute('data-maid-viewport-resizing')
+  const previousLowPower = body.getAttribute('data-maid-low-power')
   const previous = new Map<string, string>()
   for (const property of BACKDROP_PROPERTIES) {
     previous.set(property, body.style.getPropertyValue(property))
@@ -262,6 +282,8 @@ export function apply(ctx: Context): void {
   let resizeObserver: ResizeObserver | undefined
   let composerPhase: 'hero' | 'active' | undefined
   let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
+  let viewportResizeTimer: ReturnType<typeof setTimeout> | undefined
+  let handleViewportResize: (() => void) | undefined
   let railSearchFocusFrame: number | undefined
   let recoverRailSearchFocus: ((event: MouseEvent) => void) | undefined
   let settingsBackdropFrame: HTMLDivElement | undefined
@@ -274,11 +296,17 @@ export function apply(ctx: Context): void {
     delete body.dataset.maidComposerMotion
     delete body.dataset.maidSidebarCompact
     delete body.dataset.maidSidebarSize
+    if (previousViewportResizing === null) delete body.dataset.maidViewportResizing
+    else body.setAttribute('data-maid-viewport-resizing', previousViewportResizing)
+    if (previousLowPower === null) delete body.dataset.maidLowPower
+    else body.setAttribute('data-maid-low-power', previousLowPower)
     for (const [attribute, value] of previousProjectedStates) {
       if (value === null) body.removeAttribute(attribute)
       else body.setAttribute(attribute, value)
     }
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
     if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
     if (recoverRailSearchFocus !== undefined) {
       document.removeEventListener('click', recoverRailSearchFocus)
@@ -308,6 +336,18 @@ export function apply(ctx: Context): void {
     }
     if (document.title === SKIN_TITLE) document.title = originalTitle
   }, 'ui-skin-maid-atelier: layered background and ornament')
+
+  handleViewportResize = (): void => {
+    body.dataset.maidViewportResizing = ''
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    viewportResizeTimer = setTimeout(() => {
+      if (previousViewportResizing === null) delete body.dataset.maidViewportResizing
+      else body.setAttribute('data-maid-viewport-resizing', previousViewportResizing)
+      viewportResizeTimer = undefined
+    }, VIEWPORT_RESIZE_SETTLE_MS)
+  }
+  window.addEventListener('resize', handleViewportResize)
+  if (!hasAcceleratedWebGL()) body.dataset.maidLowPower = ''
 
   const syncSystemChrome = (): void => {
     const meta = document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')

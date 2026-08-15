@@ -111,24 +111,22 @@ body[data-dsh-maid-atelier] [data-maid-character] {
   object-position: center bottom;
   filter: drop-shadow(0 20px 24px rgba(27, 44, 91, 0.14));
   transition:
-    left 620ms cubic-bezier(0.22, 0.78, 0.2, 1),
     translate 620ms cubic-bezier(0.22, 0.78, 0.2, 1),
-    right 620ms cubic-bezier(0.22, 0.78, 0.2, 1),
     bottom 620ms cubic-bezier(0.22, 0.78, 0.2, 1),
     height 620ms cubic-bezier(0.22, 0.78, 0.2, 1),
-    opacity 420ms ease,
-    filter 420ms ease;
+    opacity 420ms ease;
 }
 
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
   bottom: clamp(-34px, -2.4vh, -12px);
-  left: clamp(8px, 1.3vw, 24px);
-  translate: var(--maid-sidebar-width) 0;
+  left: 0;
+  translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
   height: clamp(560px, 96vh, 1180px);
 }
 
 body[data-dsh-maid-atelier] [data-maid-character='right'] {
-  right: clamp(0px, 0.2vw, 8px);
+  right: 0;
+  translate: clamp(-8px, -0.2vw, 0px) 0;
   bottom: clamp(-26px, -1.8vh, -8px);
   height: clamp(540px, 92vh, 1120px);
 }
@@ -144,8 +142,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
    not expose data-chat-flow, so Trajectory and similar canvases stay put. */
 body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='left'] {
-  left: clamp(8px, 1.3vw, 24px);
-  translate: var(--maid-sidebar-width) 0;
+  translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
   bottom: clamp(-24px, -1.5vh, -8px);
   height: clamp(420px, 64vh, 760px);
   opacity: 0.9;
@@ -153,19 +150,21 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
 
 body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='right'] {
-  right: clamp(0px, 0.5vw, 8px);
+  translate: clamp(-8px, -0.5vw, 0px) 0;
   bottom: clamp(-24px, -1.5vh, -8px);
   height: clamp(420px, 62vh, 730px);
   opacity: 0.9;
 }
 
 @media (max-width: 1080px) {
-  body[data-dsh-maid-atelier] [data-maid-character='left'] {
-    left: 0;
+  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
+    [data-maid-character='left'] {
+    translate: var(--maid-sidebar-width) 0;
   }
 
-  body[data-dsh-maid-atelier] [data-maid-character='right'] {
-    right: 0;
+  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
+    [data-maid-character='right'] {
+    translate: 0;
   }
 
   body[data-dsh-maid-atelier] [data-maid-character] {
@@ -176,14 +175,13 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
 @media (max-width: 700px) {
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='left'] {
-    left: var(--maid-sidebar-width);
-    translate: 0;
+    translate: var(--maid-sidebar-width) 0;
     height: clamp(300px, 46vh, 410px);
   }
 
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='right'] {
-    right: 0;
+    translate: 0;
     height: clamp(300px, 44vh, 390px);
   }
 }
@@ -194,12 +192,12 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
    without a root :has(), so terminal row writes stay locally invalidated. */
 body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
   [data-maid-character='right'] {
-  right: clamp(320px, 24vw, 460px);
+  translate: clamp(-460px, -24vw, -320px) 0;
 }
 
 body[data-dsh-maid-atelier][data-maid-better-sidebar-open][data-maid-chat-active]
   [data-maid-character='right'] {
-  right: clamp(320px, 24vw, 460px);
+  translate: clamp(-460px, -24vw, -320px) 0;
   height: clamp(360px, 56vh, 680px);
   opacity: 0.86;
 }
@@ -209,9 +207,25 @@ body[data-dsh-maid-atelier][data-maid-better-sidebar-open][data-maid-chat-active
 @media (max-width: 700px) {
   body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
     [data-maid-character='right'] {
-    right: 0;
+    translate: 0;
     opacity: 0;
   }
+}
+
+/* A continuously changing viewport gives layout transitions a new destination
+   every frame. Follow the resize directly, then restore state-change motion. */
+body[data-dsh-maid-atelier][data-maid-viewport-resizing]
+  [data-maid-character] {
+  transition: none;
+  filter: none;
+}
+
+/* Chromium rejects failIfMajorPerformanceCaveat when it would fall back to a
+   software renderer. Keep large transparent character layers cheap there. */
+body[data-dsh-maid-atelier][data-maid-low-power]
+  [data-maid-character] {
+  filter: none;
+  transition: opacity 180ms ease;
 }
 
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
@@ -2485,16 +2499,18 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 /* Running reasoning becomes a restrained gold-and-periwinkle service sweep.
    The data hooks are stable and later assets can replace this CSS-only pass. */
 body[data-dsh-maid-atelier] [data-variant='think'][data-state='running'] [class*='row']::after {
+  left: -240px;
   width: 240px;
   background: linear-gradient(90deg, transparent, rgba(225, 207, 170, 0.3) 46%, rgba(142, 165, 218, 0.24) 62%, transparent);
   animation: maid-atelier-reasoning-sweep 2.8s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes maid-atelier-reasoning-sweep {
-  0% { left: -240px; opacity: 0; }
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
   15% { opacity: 1; }
   88% { opacity: 1; }
-  100% { left: 100%; opacity: 0; }
+  100% { transform: translate3d(calc(100vw + 240px), 0, 0); opacity: 0; }
 }
 
 body[data-dsh-maid-atelier] [data-state='running'] :is([class*='runState'], [class*='stateDot']) {
