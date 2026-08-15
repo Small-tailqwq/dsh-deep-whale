@@ -39,6 +39,30 @@ const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
+const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
+const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
+const WORKSPACE_SELECTOR = "header [role='tablist']"
+const BETTER_SIDEBAR_SELECTOR = '[data-dsh-better-sidebar]'
+const CORDIS_PANEL_SELECTOR = '[data-cordis-panel]'
+const TERMINAL_SELECTOR = `${BETTER_SIDEBAR_SELECTOR} .xterm`
+
+const PROJECTED_STATE_ATTRIBUTES = {
+  activeChat: 'data-maid-chat-active',
+  activeConversation: 'data-maid-conversation-active',
+  betterSidebarOpen: 'data-maid-better-sidebar-open',
+  cordisPanelOpen: 'data-maid-cordis-panel-open',
+  settingsOpen: 'data-maid-settings-open',
+  workspace: 'data-maid-workspace',
+} as const
+
+const PROJECTED_STATE_SELECTOR = [
+  ACTIVE_CONVERSATION_SELECTOR,
+  '[data-chat-flow]',
+  WORKSPACE_SELECTOR,
+  BETTER_SIDEBAR_SELECTOR,
+  CORDIS_PANEL_SELECTOR,
+  "[data-slot='sidebar.settings']",
+].join(', ')
 
 const BACKDROP_PROPERTIES = [
   'background-image',
@@ -224,6 +248,10 @@ export function apply(ctx: Context): void {
   for (const property of BACKDROP_PROPERTIES) {
     previous.set(property, body.style.getPropertyValue(property))
   }
+  const previousProjectedStates = new Map<string, string | null>()
+  for (const attribute of Object.values(PROJECTED_STATE_ATTRIBUTES)) {
+    previousProjectedStates.set(attribute, body.getAttribute(attribute))
+  }
 
   const ownedNodes = new Set<Element>()
   const decoratedElements = new Set<HTMLElement>()
@@ -246,6 +274,10 @@ export function apply(ctx: Context): void {
     delete body.dataset.maidComposerMotion
     delete body.dataset.maidSidebarCompact
     delete body.dataset.maidSidebarSize
+    for (const [attribute, value] of previousProjectedStates) {
+      if (value === null) body.removeAttribute(attribute)
+      else body.setAttribute(attribute, value)
+    }
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
     if (recoverRailSearchFocus !== undefined) {
@@ -316,7 +348,7 @@ export function apply(ctx: Context): void {
   syncBackdrop()
   body.style.setProperty('background-position', 'center top')
   body.style.setProperty('background-size', 'cover')
-  body.style.setProperty('background-attachment', 'fixed')
+  body.style.setProperty('background-attachment', 'scroll')
   body.style.setProperty('background-repeat', 'no-repeat')
 
   // 宽度联动写入独立的 <style> 规则而非 body style：CSSOM 修改不产生
@@ -389,6 +421,37 @@ export function apply(ctx: Context): void {
     widthRule.style.setProperty('--maid-sidebar-mascot-width', '0px')
     body.dataset.maidSidebarSize = 'rail'
     body.dataset.maidSidebarCompact = ''
+  }
+
+  const syncProjectedState = (): void => {
+    const set = (attribute: string, active: boolean): void => {
+      body.toggleAttribute(attribute, active)
+    }
+    set(
+      PROJECTED_STATE_ATTRIBUTES.activeChat,
+      document.querySelector(ACTIVE_CHAT_SELECTOR) !== null,
+    )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.activeConversation,
+      document.querySelector(ACTIVE_CONVERSATION_SELECTOR) !== null,
+    )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.workspace,
+      document.querySelector(WORKSPACE_SELECTOR) !== null,
+    )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.betterSidebarOpen,
+      document.querySelector(BETTER_SIDEBAR_SELECTOR) !== null
+        && !body.hasAttribute('data-dsh-sidebar-collapsed'),
+    )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.cordisPanelOpen,
+      document.querySelector(CORDIS_PANEL_SELECTOR) !== null,
+    )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.settingsOpen,
+      document.querySelector(`${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`) !== null,
+    )
   }
 
   const ensureSidebarObserved = (): void => {
@@ -497,6 +560,7 @@ export function apply(ctx: Context): void {
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
   syncComposerMotion()
   syncSettingsBackdropFrame()
+  syncProjectedState()
 
   const characterStage = createCharacterStage()
   ownedNodes.add(characterStage)
@@ -534,27 +598,38 @@ export function apply(ctx: Context): void {
     let backdropChanged = false
     let composerChanged = false
     let settingsStateChanged = false
+    let projectedStateChanged = false
     for (const record of records) {
+      const target = record.target instanceof Element ? record.target : undefined
+      if (target?.closest(TERMINAL_SELECTOR) !== null) continue
+
       if (record.type === 'attributes') {
-        const target = record.target instanceof Element ? record.target : undefined
         if (record.attributeName === 'aria-expanded'
           && target !== undefined
           && target.closest("[data-slot='sidebar.settings']") !== null) {
           settingsStateChanged = true
+          projectedStateChanged = true
         } else if ((record.attributeName === 'aria-expanded' || record.attributeName === 'aria-selected')
           && target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null) {
           workspaceStateChanged = true
         } else if (record.attributeName === 'data-ds-dark-theme' && record.target === body) {
           backdropChanged = true
-        } else if (record.attributeName === 'data-phase'
-          && target?.closest(composerSelector) !== null) {
+        } else if (record.attributeName === 'data-phase') {
           composerChanged = true
+        }
+        if (record.attributeName === 'data-phase'
+          || record.attributeName === 'data-chat-flow'
+          || record.attributeName === 'data-dsh-better-sidebar'
+          || record.attributeName === 'data-dsh-sidebar-collapsed'
+          || record.attributeName === 'data-cordis-panel'
+          || record.attributeName === 'data-slot'
+          || record.attributeName === 'role') {
+          projectedStateChanged = true
         }
         continue
       }
       const appNodes = [...record.addedNodes, ...record.removedNodes]
         .filter(node => node instanceof Element && !isSkinChrome(node))
-      const target = record.target instanceof Element ? record.target : undefined
       if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, sidebarChromeSelector))
         || (target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null))) {
         sidebarStructureChanged = true
@@ -566,7 +641,12 @@ export function apply(ctx: Context): void {
       if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
         settingsStateChanged = true
       }
+      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))
+        || target?.matches("header, [data-slot='sidebar.settings']") === true)) {
+        projectedStateChanged = true
+      }
     }
+    if (projectedStateChanged) syncProjectedState()
     if (sidebarStructureChanged) syncSidebarDecorations()
     else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
     if (backdropChanged) syncBackdrop()
@@ -577,7 +657,18 @@ export function apply(ctx: Context): void {
   })
   observer.observe(body, {
     attributes: true,
-    attributeFilter: ['aria-expanded', 'aria-selected', 'data-ds-dark-theme', 'data-phase'],
+    attributeFilter: [
+      'aria-expanded',
+      'aria-selected',
+      'data-chat-flow',
+      'data-cordis-panel',
+      'data-ds-dark-theme',
+      'data-dsh-better-sidebar',
+      'data-dsh-sidebar-collapsed',
+      'data-phase',
+      'data-slot',
+      'role',
+    ],
     childList: true,
     subtree: true,
   })

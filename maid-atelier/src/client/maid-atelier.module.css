@@ -142,7 +142,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
 
 /* Chat alone retreats the two figures toward the edges. Inspection views do
    not expose data-chat-flow, so Trajectory and similar canvases stay put. */
-body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
+body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='left'] {
   left: clamp(8px, 1.3vw, 24px);
   translate: var(--maid-sidebar-width) 0;
@@ -151,7 +151,7 @@ body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
   opacity: 0.9;
 }
 
-body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
+body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='right'] {
   right: clamp(0px, 0.5vw, 8px);
   bottom: clamp(-24px, -1.5vh, -8px);
@@ -174,17 +174,43 @@ body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
 }
 
 @media (max-width: 700px) {
-  body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
+  body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='left'] {
     left: var(--maid-sidebar-width);
     translate: 0;
     height: clamp(300px, 46vh, 410px);
   }
 
-  body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
+  body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='right'] {
     right: 0;
     height: clamp(300px, 44vh, 390px);
+  }
+}
+
+/* dsh-better-sidebar ports a right workbench onto document.body. While its
+   right panel is open, pull the right maid left of the panel so the artwork
+   is not hidden behind the fixed workbench. The skin projects that state
+   without a root :has(), so terminal row writes stay locally invalidated. */
+body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
+  [data-maid-character='right'] {
+  right: clamp(320px, 24vw, 460px);
+}
+
+body[data-dsh-maid-atelier][data-maid-better-sidebar-open][data-maid-chat-active]
+  [data-maid-character='right'] {
+  right: clamp(320px, 24vw, 460px);
+  height: clamp(360px, 56vh, 680px);
+  opacity: 0.86;
+}
+
+/* On narrow viewports better-sidebar becomes a full-width drawer; hide the
+   right maid instead of pushing it past the left edge. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
+    [data-maid-character='right'] {
+    right: 0;
+    opacity: 0;
   }
 }
 
@@ -224,12 +250,12 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='workspace'] {
   transform: translateY(-100%);
 }
 
-body[data-dsh-maid-atelier]:has(header [role='tablist'])
+body[data-dsh-maid-atelier][data-maid-workspace]
   [data-skin-trim-layer='landing'] {
   transform: translateY(-100%);
 }
 
-body[data-dsh-maid-atelier]:has(header [role='tablist'])
+body[data-dsh-maid-atelier][data-maid-workspace]
   [data-skin-trim-layer='workspace'] {
   transform: translateY(0);
 }
@@ -269,7 +295,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   transition: transform 520ms cubic-bezier(0.22, 0.78, 0.2, 1);
 }
 
-body[data-dsh-maid-atelier]:has([data-phase='active']) [data-skin-chrome='bottom-trim'] {
+body[data-dsh-maid-atelier][data-maid-conversation-active] [data-skin-chrome='bottom-trim'] {
   transform: translateY(100%);
 }
 
@@ -855,7 +881,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 /* Cordis mounts its fixed panel inside the sidebar content root instead of a
    document portal. Promote that owning root while the panel is open so it
    follows the same overlay tier as portalled menus and dialogs. */
-body[data-dsh-maid-atelier]:has([data-cordis-panel])
+body[data-dsh-maid-atelier][data-maid-cordis-panel-open]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
   > :has([data-cordis-panel]) {
@@ -978,6 +1004,80 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel]
   color: #d6def1;
   border-color: rgba(143, 163, 211, 0.34);
   background: rgba(29, 51, 99, 0.82);
+}
+
+/* dsh-better-sidebar mounts its workbench directly on document.body and
+   inherits the skin's global tokens. Restore a self-contained porcelain
+   palette so its shell, panes and terminal are not transparent over the
+   palace art and keep readable labels in both themes. */
+body[data-dsh-maid-atelier] [data-dsh-better-sidebar] {
+  --dsw-specific-sidebar-fill: rgba(230, 237, 250, 0.96);
+  --dsw-alias-bg-base: rgba(248, 250, 255, 0.96);
+  --dsw-alias-bg-layer-1: rgba(235, 240, 250, 0.92);
+  --dsw-alias-bg-layer-2: rgba(224, 231, 246, 0.94);
+  --dsw-alias-bg-layer-3: rgba(214, 223, 242, 0.96);
+  --dsw-alias-bg-overlay: rgba(248, 250, 255, 0.98);
+  --dsw-alias-label-primary: #172347;
+  --dsw-alias-label-primary-bluish: #243866;
+  --dsw-alias-label-secondary: #4d5d7f;
+  --dsw-alias-label-tertiary: #6f7c99;
+  --dsw-alias-label-caption: #8a94aa;
+  --dsw-alias-border-l1: rgba(71, 91, 145, 0.18);
+  --dsw-alias-border-l2-darkmode-thin: rgba(71, 91, 145, 0.25);
+  --dsw-alias-border-l2: rgba(71, 91, 145, 0.3);
+  --dsw-alias-border-l3: rgba(197, 164, 104, 0.64);
+  --dsw-alias-brand-primary: #526aa8;
+  --dsw-alias-brand-text: #172347;
+  --dsw-alias-button-elevated-fill: rgba(255, 253, 248, 0.9);
+  --dsw-alias-button-floating-fill: rgba(255, 253, 248, 0.94);
+  --dsw-alias-button-floating-hover: #ece6d8;
+  --dsw-alias-button-info-fill: #536eae;
+  --dsw-alias-button-info-hover: #405a99;
+  --dsw-alias-interactive-bg-active: rgba(197, 164, 104, 0.24);
+  --dsw-alias-interactive-bg-hover: rgba(103, 126, 183, 0.12);
+  --dsw-alias-interactive-bg-hover-solid: #e2e8f5;
+  --dsw-alias-state-business-primary: #536eae;
+  --dsw-alias-state-business-tertiary: #e1e7f5;
+  --dsw-alias-state-warn-tertiary: rgba(218, 180, 104, 0.2);
+  --dsw-alias-state-warn-label: #815c18;
+  --dsw-specific-input-major: rgba(255, 253, 248, 0.86);
+  --dsw-specific-selector: rgba(226, 232, 246, 0.9);
+  color: #172347;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-sidebar] {
+  --dsw-specific-sidebar-fill: rgba(10, 22, 54, 0.96);
+  --dsw-alias-bg-base: rgba(13, 25, 59, 0.96);
+  --dsw-alias-bg-layer-1: rgba(18, 31, 67, 0.94);
+  --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.95);
+  --dsw-alias-bg-layer-3: rgba(32, 49, 91, 0.96);
+  --dsw-alias-bg-overlay: rgba(13, 25, 59, 0.98);
+  --dsw-alias-label-primary: #e7ecf7;
+  --dsw-alias-label-primary-bluish: #d5dff3;
+  --dsw-alias-label-secondary: #bdc9e3;
+  --dsw-alias-label-tertiary: #96a6c9;
+  --dsw-alias-label-caption: #7f90b4;
+  --dsw-alias-border-l1: rgba(151, 169, 216, 0.2);
+  --dsw-alias-border-l2-darkmode-thin: rgba(151, 169, 216, 0.3);
+  --dsw-alias-border-l2: rgba(151, 169, 216, 0.34);
+  --dsw-alias-border-l3: rgba(211, 180, 119, 0.66);
+  --dsw-alias-brand-primary: #9bb0e1;
+  --dsw-alias-brand-text: #e7ecf7;
+  --dsw-alias-button-elevated-fill: rgba(28, 44, 84, 0.94);
+  --dsw-alias-button-floating-fill: rgba(31, 49, 92, 0.96);
+  --dsw-alias-button-floating-hover: #354d88;
+  --dsw-alias-button-info-fill: #8ca4dc;
+  --dsw-alias-button-info-hover: #a3b7e5;
+  --dsw-alias-interactive-bg-active: rgba(211, 180, 119, 0.24);
+  --dsw-alias-interactive-bg-hover: rgba(164, 183, 229, 0.14);
+  --dsw-alias-interactive-bg-hover-solid: #293f78;
+  --dsw-alias-state-business-primary: #9bb0e1;
+  --dsw-alias-state-business-tertiary: #293d73;
+  --dsw-alias-state-warn-tertiary: rgba(211, 164, 72, 0.18);
+  --dsw-alias-state-warn-label: #f0cf8c;
+  --dsw-specific-input-major: rgba(17, 30, 66, 0.9);
+  --dsw-specific-selector: rgba(45, 64, 111, 0.92);
+  color: #e7ecf7;
 }
 
 body[data-dsh-maid-atelier] [class*='sectionHeader'] {
@@ -1789,10 +1889,7 @@ body[data-dsh-maid-atelier]
    SettingsPanel is mounted inside that root instead of a document portal,
    promote the owning root while the dialog is open. Its fixed layer can then
    cover sticky Markdown banners and the skin's conversation header. */
-body[data-dsh-maid-atelier]:has(
-    [data-slot='sidebar.settings']
-      > :is(button, [role='button'])[aria-expanded='true']
-  )
+body[data-dsh-maid-atelier][data-maid-settings-open]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
   > :has(
@@ -1815,10 +1912,7 @@ body[data-dsh-maid-atelier] [data-maid-settings-backdrop-frame] {
 /* The settings surface is translucent by design. Demote the raster composer
    while its trigger owns the expanded dialog so the ornate input frame does
    not visually compete with, or accept input through, the modal surface. */
-body[data-dsh-maid-atelier]:has(
-    [data-slot='sidebar.settings']
-      > :is(button, [role='button'])[aria-expanded='true']
-  ) [data-composer-card] {
+body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
   z-index: 0;
   opacity: 0.75;
   pointer-events: none;
@@ -2311,7 +2405,6 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
     rgba(248, 250, 255, 0.2) 72%,
     rgba(248, 250, 255, 0.08)
   );
-  backdrop-filter: blur(2px);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
@@ -2323,7 +2416,6 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
     rgba(13, 25, 59, 0.4) 72%,
     rgba(13, 25, 59, 0.16)
   );
-  backdrop-filter: blur(2px);
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
@@ -2339,7 +2431,6 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
     rgba(248, 250, 255, 0.3)
   );
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
-  backdrop-filter: blur(3px);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
@@ -2355,7 +2446,6 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
     rgba(18, 31, 67, 0.54)
   );
   box-shadow: inset 0 0 0 1px rgba(151, 169, 216, 0.18);
-  backdrop-filter: blur(3px);
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])

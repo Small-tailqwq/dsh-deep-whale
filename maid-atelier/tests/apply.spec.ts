@@ -165,6 +165,66 @@ describe('Maid Atelier skin apply', () => {
     )
   })
 
+  it('projects relational page state onto skin-owned attributes', async () => {
+    document.body.innerHTML = `
+      <header><div role="tablist"></div></header>
+      <main data-phase="active"><div data-chat-flow></div></main>
+      <div data-dsh-better-sidebar></div>
+      <div data-cordis-panel></div>
+      <div data-slot="sidebar.settings"><button aria-expanded="true"></button></div>
+    `
+    fiber = await mount()
+
+    expect(document.body.hasAttribute('data-maid-chat-active')).toBe(true)
+    expect(document.body.hasAttribute('data-maid-conversation-active')).toBe(true)
+    expect(document.body.hasAttribute('data-maid-workspace')).toBe(true)
+    expect(document.body.hasAttribute('data-maid-better-sidebar-open')).toBe(true)
+    expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(true)
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
+
+    document.querySelector('header')!.remove()
+    document.querySelector('main')!.remove()
+    document.querySelector('[data-cordis-panel]')!.remove()
+    document.querySelector('[aria-expanded]')!.setAttribute('aria-expanded', 'false')
+    document.body.setAttribute('data-dsh-sidebar-collapsed', '')
+    await flushMutations()
+
+    expect(document.body.hasAttribute('data-maid-chat-active')).toBe(false)
+    expect(document.body.hasAttribute('data-maid-conversation-active')).toBe(false)
+    expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
+    expect(document.body.hasAttribute('data-maid-better-sidebar-open')).toBe(false)
+    expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(false)
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
+
+    await fiber.dispose()
+    document.body.removeAttribute('data-dsh-sidebar-collapsed')
+  })
+
+  it('restores pre-existing projected state attributes on dispose', async () => {
+    document.body.setAttribute('data-maid-workspace', 'presenter')
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
+
+    await fiber.dispose()
+    expect(document.body.getAttribute('data-maid-workspace')).toBe('presenter')
+    document.body.removeAttribute('data-maid-workspace')
+  })
+
+  it('ignores better-sidebar terminal row mutations', async () => {
+    document.body.innerHTML = `
+      <div data-dsh-better-sidebar><div class="xterm"><span data-terminal-row></span></div></div>
+    `
+    fiber = await mount()
+    await flushMutations()
+    const querySelector = vi.spyOn(document, 'querySelector')
+
+    document.querySelector('[data-terminal-row]')!.textContent = 'x'.repeat(32)
+    querySelector.mockClear()
+    await flushMutations()
+
+    expect(querySelector).not.toHaveBeenCalled()
+  })
+
   it('uses the public desktop frame marker without a private window global', async () => {
     document.body.innerHTML = '<div class="fixture_frame" data-desktop></div>'
     fiber = await mount()
@@ -300,6 +360,7 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.backgroundImage).not.toContain('linear-gradient')
     expect(document.body.style.backgroundPosition).toBe('center top')
     expect(document.body.style.backgroundSize).toBe('cover')
+    expect(document.body.style.backgroundAttachment).toBe('scroll')
     await fiber.dispose()
     expect(document.body.style.backgroundImage).toBe('')
     expect(document.body.style.backgroundPosition).toBe('left bottom')
@@ -711,10 +772,10 @@ describe('Maid Atelier skin apply', () => {
       /\[data-skin-chrome='character-stage'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const chatLeftRule = CSS.match(
-      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)\s*\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
+      /\[data-maid-chat-active\]\s*\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const chatRightRule = CSS.match(
-      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)\s*\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
+      /\[data-maid-chat-active\]\s*\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(stageRule).toContain('position: fixed')
     expect(stageRule).toContain('contain: strict')
@@ -722,7 +783,7 @@ describe('Maid Atelier skin apply', () => {
     expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
     expect(chatRightRule).toContain('right: clamp(0px, 0.5vw, 8px)')
     expect(CSS).not.toMatch(/\[data-maid-character='(?:left|right)'\]\s*\{[^}]*(?:left|right):\s*-/s)
-    expect(CSS).not.toMatch(/:has\(\[data-phase='active'\]\)\s*\[data-maid-character/s)
+    expect(CSS).not.toMatch(/\[data-maid-conversation-active\]\s*\[data-maid-character/s)
   })
 
   it('recovers the rc.6 rail search after its stale click collapses the wide field', async () => {
@@ -764,7 +825,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-sidebar-size='rail'\][\s\S]*?\[data-maid-sidebar-footer\]:has\(\[data-cordis-badge\]\)\s*\{[^}]*flex-basis: 100px/s,
     )
     expect(CSS).toMatch(
-      /:has\(\[data-cordis-panel\]\)[\s\S]*?> :has\(\[data-cordis-panel\]\)\s*\{[^}]*z-index: 40/s,
+      /\[data-maid-cordis-panel-open\][\s\S]*?> :has\(\[data-cordis-panel\]\)\s*\{[^}]*z-index: 40/s,
     )
     expect(CSS).toMatch(/\[data-cordis-badge\]\s*\{[^}]*border: 1px solid[^}]*linear-gradient/s)
     expect(CSS).toMatch(
@@ -774,6 +835,24 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain('[data-cordis-approve-plugin]')
     expect(CSS).toMatch(
       /\[data-ds-dark-theme\] \[data-cordis-panel\]\s*\{[^}]*--dsw-alias-bg-base: rgba\(10, 22, 54, 0\.96\)/s,
+    )
+  })
+
+  it('isolates dsh-better-sidebar from transparent skin tokens', () => {
+    expect(CSS).toMatch(
+      /\[data-dsh-better-sidebar\]\s*\{[^}]*--dsw-specific-sidebar-fill: rgba\(230, 237, 250, 0\.96\)/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-ds-dark-theme\] \[data-dsh-better-sidebar\]\s*\{[^}]*--dsw-specific-sidebar-fill: rgba\(10, 22, 54, 0\.96\)/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*right: clamp\(320px, 24vw, 460px\)/s,
+    )
+  })
+
+  it('keeps root-level relational selectors out of the skin scope', () => {
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\](?:\[[^\]]+\]|:not\([^)]*\))*:has\(/,
     )
   })
 
@@ -829,10 +908,11 @@ describe('Maid Atelier skin apply', () => {
     expect(variantRule).toContain('--dsw-alias-label-secondary: #2f4778')
     expect(variantRule).toContain('--dsw-alias-label-tertiary: #405273')
     expect(rowRule).toContain('rgba(248, 250, 255, 0.32)')
-    expect(rowRule).toContain('backdrop-filter: blur(2px)')
+    expect(rowRule).not.toContain('backdrop-filter')
     expect(CSS).toContain(":is([data-variant], [data-chat-flow-kind='context'])")
     expect(CSS).toContain("[data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']")
-    expect(CSS).toMatch(/:is\(\s*\[data-variant\] > \[data-open='true'\],[\s\S]*?\)\s*\{[^}]*rgba\(248, 250, 255, 0\.5\)[^}]*backdrop-filter: blur\(3px\)/s)
+    expect(CSS).toMatch(/:is\(\s*\[data-variant\] > \[data-open='true'\],[\s\S]*?\)\s*\{[^}]*rgba\(248, 250, 255, 0\.5\)/)
+    expect(CSS).not.toMatch(/\[data-variant\] > \[data-open='true'\][^{}]*backdrop-filter: blur\(3px\)/)
     expect(CSS).toMatch(/:is\([\s\S]*?\) > \[data-disclosure-row='true'\]\s*\{[^}]*background: transparent[^}]*backdrop-filter: none/s)
     expect(CSS).toMatch(/\[data-variant='think'\][^{]*\[data-disclosure-row='true'\] \+ \*\s*\{[^}]*color: #34486f[^}]*line-height: 1\.65/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\]\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\)\s*\{[^}]*#d3ddf2[^}]*#b8c5e1/s)
@@ -1017,7 +1097,7 @@ describe('Maid Atelier skin apply', () => {
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const obscuredComposerRule = CSS.match(
-      /:has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\) \[data-composer-card\]\s*\{([^}]*)\}/s,
+      /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const promotedSettingsRootRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\)\s*\{([^}]*)\}/s,
@@ -1174,7 +1254,7 @@ describe('Maid Atelier skin apply', () => {
   it('moves the bottom embroidery with the composer phase', () => {
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const activeTrimRule = CSS.match(
-      /:has\(\[data-phase='active'\]\) \[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
+      /\[data-maid-conversation-active\] \[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const movingTrimRule = CSS.match(
       /body\[data-dsh-maid-atelier\]\[data-maid-composer-motion\]\s*\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
@@ -1193,10 +1273,10 @@ describe('Maid Atelier skin apply', () => {
     const landingTrimRule = CSS.match(/\[data-skin-trim-layer='landing'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const workspaceTrimRule = CSS.match(/\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const activeLandingRule = CSS.match(
-      /:has\(header \[role='tablist'\]\)[\s\S]*?\[data-skin-trim-layer='landing'\]\s*\{([^}]*)\}/s,
+      /\[data-maid-workspace\][\s\S]*?\[data-skin-trim-layer='landing'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const activeWorkspaceRule = CSS.match(
-      /:has\(header \[role='tablist'\]\)[\s\S]*?\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s,
+      /\[data-maid-workspace\][\s\S]*?\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(trimLayerRule).toContain('transition: transform 520ms')
     expect(landingTrimRule).toContain('transform: translateY(0)')
