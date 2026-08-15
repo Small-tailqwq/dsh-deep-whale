@@ -54,9 +54,6 @@ const BACKDROP_PROPERTIES = [
   '--maid-new-session-art',
   '--maid-sidebar-swag-art',
   '--maid-sidebar-corner-art',
-  '--maid-palace-art',
-  '--maid-character-left-art',
-  '--maid-character-right-art',
   '--maid-composer-frame-art',
   '--maid-settings-frame-art',
   '--maid-workspace-crest-art',
@@ -235,12 +232,10 @@ export function apply(ctx: Context): void {
   let themeColorObserver: MutationObserver | undefined
   let observedSidebar: HTMLElement | undefined
   let resizeObserver: ResizeObserver | undefined
-  let composerLayout: 'hero' | 'active-chat' | 'active-other' | undefined
+  let composerPhase: 'hero' | 'active' | undefined
   let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
-  let viewportResizeTimer: ReturnType<typeof setTimeout> | undefined
   let railSearchFocusFrame: number | undefined
   let recoverRailSearchFocus: ((event: MouseEvent) => void) | undefined
-  let markViewportResize: (() => void) | undefined
   let settingsBackdropFrame: HTMLDivElement | undefined
   let observer: MutationObserver | undefined
   let titlebarOverlay: WindowControlsOverlay | undefined
@@ -249,13 +244,10 @@ export function apply(ctx: Context): void {
   ctx.effect(() => () => {
     delete body.dataset.dshMaidAtelier
     delete body.dataset.maidComposerMotion
-    delete body.dataset.maidViewportResizing
     delete body.dataset.maidSidebarCompact
     delete body.dataset.maidSidebarSize
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
-    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
-    if (markViewportResize !== undefined) window.removeEventListener('resize', markViewportResize)
     if (recoverRailSearchFocus !== undefined) {
       document.removeEventListener('click', recoverRailSearchFocus)
     }
@@ -310,8 +302,6 @@ export function apply(ctx: Context): void {
   body.style.setProperty('--maid-new-session-art', `url(${MAID_ATELIER_NEW_SESSION})`)
   body.style.setProperty('--maid-sidebar-swag-art', `url(${MAID_ATELIER_SIDEBAR_SWAG})`)
   body.style.setProperty('--maid-sidebar-corner-art', `url(${MAID_ATELIER_SIDEBAR_CORNER})`)
-  body.style.setProperty('--maid-character-left-art', `url(${MAID_ATELIER_MAID_LEFT})`)
-  body.style.setProperty('--maid-character-right-art', `url(${MAID_ATELIER_MAID_RIGHT})`)
   body.style.setProperty('--maid-composer-frame-art', `url(${MAID_ATELIER_COMPOSER_FRAME})`)
   body.style.setProperty('--maid-settings-frame-art', `url(${MAID_ATELIER_SETTINGS_FRAME})`)
   body.style.setProperty('--maid-workspace-crest-art', `url(${MAID_ATELIER_WORKSPACE_SHIELD})`)
@@ -322,7 +312,6 @@ export function apply(ctx: Context): void {
       ? MAID_ATELIER_PALACE_DARK
       : MAID_ATELIER_PALACE_LIGHT
     body.style.setProperty('background-image', `url(${source})`)
-    body.style.setProperty('--maid-palace-art', `url(${source})`)
   }
   syncBackdrop()
   body.style.setProperty('background-position', 'center top')
@@ -415,16 +404,6 @@ export function apply(ctx: Context): void {
     resizeObserver.observe(sidebar)
   }
 
-  markViewportResize = (): void => {
-    body.dataset.maidViewportResizing = ''
-    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
-    viewportResizeTimer = setTimeout(() => {
-      delete body.dataset.maidViewportResizing
-      viewportResizeTimer = undefined
-    }, 180)
-  }
-  window.addEventListener('resize', markViewportResize)
-
   /* rc.6 can mount its wide search and its outside-click listener during the
      rail button's own click. That same event then reaches document with the
      detached rail button as its target and immediately collapses the field.
@@ -464,40 +443,24 @@ export function apply(ctx: Context): void {
     resizeObserver = new ResizeObserver((entries) => {
       const entry = entries.at(-1)
       if (!entry) return
-      // The fixed <img> and the composer copy both consume the live sidebar
-      // width. Suppress the image's own transition while the shell animates
-      // that width so the two copies sample identical geometry each frame.
-      markViewportResize?.()
       applySidebarWidth(entry.contentRect.width)
     })
   }
 
   const syncComposerMotion = (): void => {
     const phaseRoot = document.querySelector<HTMLElement>("[data-phase='hero'], [data-phase='active']")
-    const phase = phaseRoot?.dataset.phase
-    if (phase !== 'hero' && phase !== 'active') return
-    const next = phase === 'hero'
-      ? 'hero'
-      : phaseRoot.querySelector('[data-chat-flow]') === null
-        ? 'active-other'
-        : 'active-chat'
+    const next = phaseRoot?.dataset.phase
+    if (next !== 'hero' && next !== 'active') return
 
-    const motion = composerLayout !== undefined && composerLayout !== next
-      ? next === 'active-chat'
-        ? 'dock'
-        : next === 'hero'
-          ? 'rise'
-          : undefined
-      : undefined
-    if (motion !== undefined) {
-      body.dataset.maidComposerMotion = motion
+    if (composerPhase !== undefined && composerPhase !== next) {
+      body.dataset.maidComposerMotion = next === 'active' ? 'dock' : 'rise'
       if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
       composerMotionTimer = setTimeout(() => {
         delete body.dataset.maidComposerMotion
         composerMotionTimer = undefined
-      }, 660)
+      }, 560)
     }
-    composerLayout = next
+    composerPhase = next
   }
 
   /* The settings mask is mounted inside a promoted sidebar descendant. Chrome
@@ -583,7 +546,7 @@ export function apply(ctx: Context): void {
           workspaceStateChanged = true
         } else if (record.attributeName === 'data-ds-dark-theme' && record.target === body) {
           backdropChanged = true
-        } else if ((record.attributeName === 'data-phase' || record.attributeName === 'data-chat-flow')
+        } else if (record.attributeName === 'data-phase'
           && target?.closest(composerSelector) !== null) {
           composerChanged = true
         }
@@ -607,12 +570,14 @@ export function apply(ctx: Context): void {
     if (sidebarStructureChanged) syncSidebarDecorations()
     else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
     if (backdropChanged) syncBackdrop()
-    if (composerChanged) syncComposerMotion()
+    if (composerChanged) {
+      syncComposerMotion()
+    }
     if (settingsStateChanged) syncSettingsBackdropFrame()
   })
   observer.observe(body, {
     attributes: true,
-    attributeFilter: ['aria-expanded', 'aria-selected', 'data-ds-dark-theme', 'data-phase', 'data-chat-flow'],
+    attributeFilter: ['aria-expanded', 'aria-selected', 'data-ds-dark-theme', 'data-phase'],
     childList: true,
     subtree: true,
   })

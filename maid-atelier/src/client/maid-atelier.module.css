@@ -104,6 +104,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
 body[data-dsh-maid-atelier] [data-maid-character] {
   position: absolute;
   display: block;
+  z-index: 1;
   width: auto;
   max-width: none;
   object-fit: contain;
@@ -119,15 +120,6 @@ body[data-dsh-maid-atelier] [data-maid-character] {
     filter 420ms ease;
 }
 
-/* The active composer mirrors the fixed character art to occlude transcript
-   rows. While their shared geometry changes, both copies must sample it in
-   the same frame. Hero has no mirrored copy and keeps its full transition. */
-body[data-dsh-maid-atelier][data-maid-viewport-resizing]:has(
-  [data-phase='active'] [data-composer-seat]
-) [data-maid-character] {
-  transition: none;
-}
-
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
   bottom: clamp(-34px, -2.4vh, -12px);
   left: clamp(8px, 1.3vw, 24px);
@@ -136,7 +128,7 @@ body[data-dsh-maid-atelier] [data-maid-character='left'] {
 }
 
 body[data-dsh-maid-atelier] [data-maid-character='right'] {
-  right: clamp(-18px, 0.2vw, 8px);
+  right: clamp(0px, 0.2vw, 8px);
   bottom: clamp(-26px, -1.8vh, -8px);
   height: clamp(540px, 92vh, 1120px);
 }
@@ -161,18 +153,10 @@ body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
 
 body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
   [data-maid-character='right'] {
-  right: clamp(-70px, -3vw, -24px);
+  right: clamp(0px, 0.5vw, 8px);
   bottom: clamp(-24px, -1.5vh, -8px);
   height: clamp(420px, 62vh, 730px);
   opacity: 0.9;
-}
-
-/* Once the sidebar collapses there is no panel to protect, so the left figure
-   follows the conversation column outward instead of leaving a dead gutter. */
-body[data-dsh-maid-atelier][data-maid-sidebar-compact]
-  :is([data-maid-character='left']) {
-  left: clamp(-72px, -4vw, -20px);
-  translate: 0;
 }
 
 @media (max-width: 1080px) {
@@ -181,11 +165,26 @@ body[data-dsh-maid-atelier][data-maid-sidebar-compact]
   }
 
   body[data-dsh-maid-atelier] [data-maid-character='right'] {
-    right: -6vw;
+    right: 0;
   }
 
   body[data-dsh-maid-atelier] [data-maid-character] {
     opacity: 0.74;
+  }
+}
+
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
+    [data-maid-character='left'] {
+    left: var(--maid-sidebar-width);
+    translate: 0;
+    height: clamp(300px, 46vh, 410px);
+  }
+
+  body[data-dsh-maid-atelier]:has([data-phase='active'] [data-chat-flow])
+    [data-maid-character='right'] {
+    right: 0;
+    height: clamp(300px, 44vh, 390px);
   }
 }
 
@@ -853,9 +852,9 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   gap: 2px;
 }
 
-/* CordisPanel is fixed but remains inside the sidebar content root. Promote
-   that root only while the panel is open so the sticky composer occlusion
-   layer cannot cover the panel's lower rows and approval actions. */
+/* Cordis mounts its fixed panel inside the sidebar content root instead of a
+   document portal. Promote that owning root while the panel is open so it
+   follows the same overlay tier as portalled menus and dialogs. */
 body[data-dsh-maid-atelier]:has([data-cordis-panel])
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
@@ -1664,77 +1663,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='workspace']:hover
   background: rgba(30, 46, 87, 0.68);
 }
 
-/* Mirror the fixed backdrop inside the sticky seat. The opaque palace pixels
-   stop transcript rows from painting below the composer while the duplicated
-   character layer keeps the exposed footer visually continuous. */
+/* Keep the sticky seat transparent outside the composer card. The card is the
+   only surface that covers transcript content; a full-width seat background
+   would cut through the decorative characters at one shared horizontal edge. */
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] {
   --dsw-alias-bg-base: transparent;
-  isolation: isolate;
-  background: var(--maid-palace-art) center top / cover fixed no-repeat;
-}
-
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat]::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.9;
-  background-image: var(--maid-character-left-art), var(--maid-character-right-art);
-  background-repeat: no-repeat;
-  background-attachment: fixed, fixed;
-  background-position:
-    left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) bottom clamp(-24px, -1.5vh, -8px),
-    right clamp(-70px, -3vw, -24px) bottom clamp(-24px, -1.5vh, -8px);
-  background-size:
-    auto clamp(420px, 64vh, 760px),
-    auto clamp(420px, 62vh, 730px);
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-phase='active'] [data-composer-seat]::before {
-  filter: brightness(0.84) saturate(0.92);
-}
-
-body[data-dsh-maid-atelier][data-maid-composer-motion='dock']
-  [data-phase='active'] [data-composer-seat]::before {
-  animation: maidAtelierComposerBackdropDock 620ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
-}
-
-@keyframes maidAtelierComposerBackdropDock {
-  from {
-    opacity: 1;
-    background-position:
-      left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) bottom clamp(-34px, -2.4vh, -12px),
-      right clamp(-18px, 0.2vw, 8px) bottom clamp(-26px, -1.8vh, -8px);
-    background-size:
-      auto clamp(560px, 96vh, 1180px),
-      auto clamp(540px, 92vh, 1120px);
-  }
-
-  to {
-    opacity: 0.9;
-    background-position:
-      left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) bottom clamp(-24px, -1.5vh, -8px),
-      right clamp(-70px, -3vw, -24px) bottom clamp(-24px, -1.5vh, -8px);
-    background-size:
-      auto clamp(420px, 64vh, 760px),
-      auto clamp(420px, 62vh, 730px);
-  }
-}
-
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] > * {
-  position: relative;
-  z-index: 1;
-}
-
-@media (max-width: 1080px) {
-  body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat]::before {
-    opacity: 0.74;
-    background-position:
-      left var(--maid-sidebar-width) bottom clamp(-24px, -1.5vh, -8px),
-      right -6vw bottom clamp(-24px, -1.5vh, -8px);
-  }
+  background: none;
 }
 
 /* Composer card: live controls sit beneath one hollow raster plate that keeps
@@ -2926,8 +2860,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier] [data-composer-card],
-  body[data-dsh-maid-atelier] [data-input-mirror],
-  body[data-dsh-maid-atelier] [data-composer-seat]::before {
+  body[data-dsh-maid-atelier] [data-input-mirror] {
     animation: none;
     transition: none;
   }

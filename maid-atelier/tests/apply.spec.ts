@@ -328,9 +328,6 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-palace-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-character-left-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-character-right-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/webp;base64,')
@@ -344,9 +341,6 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-new-session-art')).toBe('legacy')
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toBe('')
-    expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe('')
-    expect(document.body.style.getPropertyValue('--maid-character-left-art')).toBe('')
-    expect(document.body.style.getPropertyValue('--maid-character-right-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toBe('')
@@ -363,15 +357,22 @@ describe('Maid Atelier skin apply', () => {
     expect(backingRule).toContain('pointer-events: none')
   })
 
-  it('masks transcript content below the active composer seat', () => {
+  it('masks transcript content without duplicating character art', () => {
     const seatRule = CSS.match(
       /\[data-phase='active'\]\s*\[data-composer-seat\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(seatRule).toContain('--dsw-alias-bg-base: transparent')
-    expect(seatRule).toContain('background: var(--maid-palace-art) center top / cover fixed no-repeat')
-    expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*--maid-character-left-art[^}]*--maid-character-right-art/s)
-    expect(CSS).toMatch(/\[data-composer-seat\]::before\s*\{[^}]*background-attachment: fixed, fixed/s)
-    expect(CSS).toContain('left calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px))')
+    expect(seatRule).toContain('background: none')
+    expect(CSS).not.toContain("[data-skin-chrome='character-stage']::before")
+    expect(CSS).toMatch(/\[data-maid-character\]\s*\{[^}]*z-index: 1/s)
+    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='left'\]\s*\{[^}]*left: var\(--maid-sidebar-width\)[^}]*translate: 0/s)
+    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*right: 0/s)
+    expect(CSS).not.toContain('left: -82px')
+    expect(CSS).not.toContain('right: -82px')
+    expect(CSS).not.toContain('--maid-character-left-art')
+    expect(CSS).not.toContain('--maid-character-right-art')
+    expect(CSS).not.toContain('maidAtelierComposerBackdropDock')
+    expect(CSS).not.toContain('[data-composer-seat]::before')
   })
 
   it('recolors the native vector wordmark without replacing it with raster art', () => {
@@ -710,16 +711,17 @@ describe('Maid Atelier skin apply', () => {
       /\[data-skin-chrome='character-stage'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const chatLeftRule = CSS.match(
-      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)[\s\S]*?\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
+      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)\s*\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const chatRightRule = CSS.match(
-      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)[\s\S]*?\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
+      /:has\(\[data-phase='active'\] \[data-chat-flow\]\)\s*\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(stageRule).toContain('position: fixed')
     expect(stageRule).toContain('contain: strict')
     expect(chatLeftRule).toContain('translate: var(--maid-sidebar-width) 0')
     expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
-    expect(chatRightRule).toContain('right: clamp(-70px, -3vw, -24px)')
+    expect(chatRightRule).toContain('right: clamp(0px, 0.5vw, 8px)')
+    expect(CSS).not.toMatch(/\[data-maid-character='(?:left|right)'\]\s*\{[^}]*(?:left|right):\s*-/s)
     expect(CSS).not.toMatch(/:has\(\[data-phase='active'\]\)\s*\[data-maid-character/s)
   })
 
@@ -775,74 +777,13 @@ describe('Maid Atelier skin apply', () => {
     )
   })
 
-  it('keeps the fixed and composer character copies aligned during viewport resize', async () => {
-    vi.useFakeTimers()
-    try {
-      fiber = await mount()
-      window.dispatchEvent(new Event('resize'))
-
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
-      expect(CSS).toMatch(
-        /\[data-maid-viewport-resizing\]:has\(\s*\[data-phase='active'\] \[data-composer-seat\]\s*\) \[data-maid-character\]\s*\{[^}]*transition: none/s,
-      )
-      expect(CSS).not.toMatch(/\[data-maid-viewport-resizing\] \[data-maid-character\]/)
-
-      vi.advanceTimersByTime(180)
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
-
-      window.dispatchEvent(new Event('resize'))
-      await fiber.dispose()
-      fiber = undefined
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('keeps the fixed and composer character copies aligned during sidebar resize', async () => {
-    vi.useFakeTimers()
-    let resizeSidebar: ((width: number) => void) | undefined
-    vi.stubGlobal('ResizeObserver', class {
-      constructor(callback: ResizeObserverCallback) {
-        resizeSidebar = (width: number): void => callback(
-          [{ contentRect: { width } } as ResizeObserverEntry],
-          this as unknown as ResizeObserver,
-        )
-      }
-      observe(): void {}
-      unobserve(): void {}
-      disconnect(): void {}
-    })
-    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
-
-    try {
-      fiber = await mount()
-      resizeSidebar?.(280)
-
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
-      expect(document.body.dataset.maidSidebarSize).toBe('wide')
-
-      vi.advanceTimersByTime(179)
-      resizeSidebar?.(56)
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
-      expect(document.body.dataset.maidSidebarSize).toBe('rail')
-
-      vi.advanceTimersByTime(180)
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
   it('coordinates composer docking and rising with the curtain duration', () => {
     expect(CSS).toContain("data-maid-composer-motion='dock'")
     expect(CSS).toContain("data-maid-composer-motion='rise'")
     expect(CSS).toContain('animation: maidAtelierComposerDock 520ms')
     expect(CSS).toContain('animation: maidAtelierComposerRise 520ms')
-    expect(CSS).toContain('animation: maidAtelierComposerBackdropDock 620ms')
     expect(CSS).toContain('@keyframes maidAtelierComposerDock')
     expect(CSS).toContain('@keyframes maidAtelierComposerRise')
-    expect(CSS).toContain('@keyframes maidAtelierComposerBackdropDock')
     expect(CSS).toMatch(/\[data-maid-composer-motion\][^{]*\{[^}]*will-change: transform, opacity/s)
   })
 
@@ -925,16 +866,13 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[role='tree'\][^{]*:is\(\[class\*='summary'\], \[class\*='metrics'\], \[class\*='notice'\]\)\s*\{[^}]*color: #b8c5e1/s)
   })
 
-  it('marks only live hero and chat layout changes for composer motion', async () => {
+  it('marks only phase changes for composer motion', async () => {
     document.body.innerHTML = '<div data-phase="hero"></div>'
     fiber = await mount()
     expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
 
     const phaseRoot = document.querySelector<HTMLElement>('[data-phase]')!
     phaseRoot.dataset.phase = 'active'
-    const chatFlow = document.createElement('div')
-    chatFlow.dataset.chatFlow = ''
-    phaseRoot.append(chatFlow)
     await flushMutations()
     expect(document.body.dataset.maidComposerMotion).toBe('dock')
 
@@ -943,19 +881,6 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.dataset.maidComposerMotion).toBe('rise')
     await fiber.dispose()
     expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
-  })
-
-  it('synchronizes character docking when chat flow mounts after the active shell', async () => {
-    document.body.innerHTML = '<div data-phase="active"><div data-composer-seat></div></div>'
-    fiber = await mount()
-    expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
-
-    const chatFlow = document.createElement('div')
-    chatFlow.dataset.chatFlow = ''
-    document.querySelector<HTMLElement>("[data-phase='active']")!.append(chatFlow)
-    await flushMutations()
-
-    expect(document.body.dataset.maidComposerMotion).toBe('dock')
   })
 
   it('preserves mirror-driven composer sizing and clears the statistics dock', () => {
