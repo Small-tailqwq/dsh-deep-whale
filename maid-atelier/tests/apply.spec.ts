@@ -970,6 +970,15 @@ describe('Maid Atelier skin apply', () => {
     expect(footerClearanceRule).toContain('margin-block-end: 12px')
   })
 
+  it('keeps the composer caret legible in dark mode without washing out light mode', () => {
+    expect(CSS).toMatch(
+      /\[data-composer-card\] textarea\s*\{[^}]*caret-color: #405a99/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-ds-dark-theme\] \[data-composer-card\] textarea\s*\{[^}]*caret-color: #bcd2ff/s,
+    )
+  })
+
   it('gives inspect-only overlay views the full canvas without the composer seat', () => {
     const inspectRule = CSS.match(
       /\[data-phase='active'\]\s*\[data-conversation-scroll\]:not\(:has\(\[data-chat-flow\]\)\)\s*> \[data-composer-seat\]\s*\{([^}]*)\}/s,
