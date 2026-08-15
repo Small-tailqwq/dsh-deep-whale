@@ -109,6 +109,20 @@ body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
   contain: strict;
 }
 
+/* Interactive surfaces must never be covered by skin decoration. The cordis
+   run/approval card lives in the chat flow (in-flow content) and the plugin
+   approval panel rides the app's shell.overlay layer (z-index 20) — which the
+   skin-promoted workspace header (21) currently paints above. Elevate both
+   above every skin-owned layer so approval controls stay fully visible. */
+body[data-dsh-maid-atelier] [data-tool='cordis_run'],
+body[data-dsh-maid-atelier] [data-shell-overlay] {
+  z-index: 1000;
+}
+
+body[data-dsh-maid-atelier] [data-tool='cordis_run'] {
+  position: relative;
+}
+
 body[data-dsh-maid-atelier] [data-maid-character] {
   position: absolute;
   display: block;

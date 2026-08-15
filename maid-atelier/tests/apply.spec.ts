@@ -718,6 +718,14 @@ describe('Maid Atelier skin apply', () => {
     expect(stageRule).toContain('position: fixed')
     expect(stageRule).toContain('z-index: -1')
     expect(stageRule).toContain('contain: strict')
+    const runCardRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[data-tool='cordis_run'\],\s*body\[data-dsh-maid-atelier\] \[data-shell-overlay\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const runCardPositionRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[data-tool='cordis_run'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(runCardRule).toContain('z-index: 1000')
+    expect(runCardPositionRule).toContain('position: relative')
     expect(chatLeftRule).toContain('translate: var(--maid-sidebar-width) 0')
     expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
     expect(chatRightRule).toContain('right: clamp(-70px, -3vw, -24px)')
