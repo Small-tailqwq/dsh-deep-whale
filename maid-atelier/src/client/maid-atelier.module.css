@@ -897,7 +897,7 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-slot='sidebar.footer.action']
     > :has([data-cordis-badge]) {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 body[data-dsh-maid-atelier] [data-cordis-badge] {

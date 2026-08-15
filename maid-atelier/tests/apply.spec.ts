@@ -775,7 +775,7 @@ describe('Maid Atelier skin apply', () => {
     )
     expect(CSS).toMatch(/\[data-cordis-badge\]\s*\{[^}]*border: 1px solid[^}]*linear-gradient/s)
     expect(CSS).toMatch(
-      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.footer\.action'\][\s\S]*?> :has\(\[data-cordis-badge\]\)\s*\{[^}]*margin-bottom: 10px/s,
+      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.footer\.action'\][\s\S]*?> :has\(\[data-cordis-badge\]\)\s*\{[^}]*margin-bottom: 20px/s,
     )
     expect(CSS).toMatch(
       /\[data-cordis-panel\]\s*\{[^}]*left: calc\(var\(--maid-sidebar-width\) \+ 12px\)[^}]*--dsw-alias-bg-base: rgba\(230, 237, 250, 0\.96\)[^}]*backdrop-filter: blur\(16px\)/s,
