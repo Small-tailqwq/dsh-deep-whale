@@ -2335,6 +2335,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-terminal] {
   color: #edf1fa;
 }
 
+/* Message surfaces track the shared chat width so a width override widens
+   the boxes too. The user bubble stack is stock-capped at min(525px, 82%); */
+body[data-dsh-maid-atelier] [class*='userRow'] [class*='userStack'] {
+  max-width: min(100%, calc(var(--dsh-chat-content-width) - 32px));
+}
+
 body[data-dsh-maid-atelier] [class*='userRow'] [class*='bubble'] {
   border: 1px solid rgba(197, 164, 104, 0.48);
   background: rgba(232, 237, 249, 0.95);
@@ -2348,13 +2354,15 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [class*='userRow'] [class*='bubb
 /* Assistant steps expose a stable flow-kind hook. The three intermediate
    wrappers are the renderer seat, AssistantMarkdown root, and block column.
    Select the MarkdownText root positively: reasoning, images, and other
-   assistant blocks keep the same disclosure treatment as command rows. */
+   assistant blocks keep the same disclosure treatment as command rows. The
+   card cap follows --dsh-chat-content-width (32px inset) instead of the
+   former fixed 680px, so it widens together with the chat column. */
 body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown'] {
   box-sizing: border-box;
   align-self: flex-start;
   width: fit-content;
-  max-width: min(680px, 96%);
+  max-width: min(100%, calc(var(--dsh-chat-content-width) - 32px));
   padding: 14px 18px;
   border: 1px solid rgba(197, 164, 104, 0.42);
   border-radius: 18px 18px 18px 7px;

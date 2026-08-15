@@ -859,10 +859,14 @@ describe('Maid Atelier skin apply', () => {
     const bubbleRule = CSS.match(
       /\[data-chat-flow-kind='assistant-step'\] > \* > \* > \* > div\[class\*='markdown'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(bubbleRule).toContain('max-width: min(680px, 96%)')
+    const userStackRule = CSS.match(
+      /\[class\*='userRow'\] \[class\*='userStack'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(bubbleRule).toContain('max-width: min(100%, calc(var(--dsh-chat-content-width) - 32px))')
     expect(bubbleRule).toContain('padding: 14px 18px')
     expect(bubbleRule).toContain('border-radius: 18px 18px 18px 7px')
     expect(bubbleRule).not.toContain('backdrop-filter')
+    expect(userStackRule).toContain('max-width: min(100%, calc(var(--dsh-chat-content-width) - 32px))')
     expect(CSS).not.toContain("div:not([data-variant])")
     expect(CSS).toContain("[data-variant='think']")
   })
