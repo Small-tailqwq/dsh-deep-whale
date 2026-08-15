@@ -892,6 +892,14 @@ body[data-dsh-maid-atelier]
   margin-top: 0;
 }
 
+/* Keep the Cordis footer action clear of the settings trigger below it in
+   the wide/narrow footers; the rail layout owns its own 2px flex gap. */
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-slot='sidebar.footer.action']
+    > :has([data-cordis-badge]) {
+  margin-bottom: 10px;
+}
+
 body[data-dsh-maid-atelier] [data-cordis-badge] {
   min-height: 49px;
   color: #f4e3bf;
