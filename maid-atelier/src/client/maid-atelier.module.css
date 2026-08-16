@@ -1408,6 +1408,9 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] 
 
 body[data-dsh-maid-atelier] [data-maid-session-row] {
   position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   height: 32px;
   padding: 0 8px 0 24px;
   border: 0;
@@ -1903,10 +1906,23 @@ body[data-dsh-maid-atelier]
   z-index: auto;
 }
 
-/* The sidebar content root normally sits at layer 2 above the mascot. Since
-   SettingsPanel is mounted inside that root instead of a document portal,
-   promote the owning root while the dialog is open. Its fixed layer can then
-   cover sticky Markdown banners and the skin's conversation header. */
+/* The sidebar content root normally sits at layer 2 above the mascot (the
+   `> div > :not(...)` rule above gives it position: relative + z-index: 2).
+   SettingsPanel is mounted inside that root rather than in a document portal
+   and reaches the viewport with position: fixed — but that layer-2 pair makes
+   the root a STACKING CONTEXT, and that ancestor context is what the panel
+   could not paint out of on Safari 26.6, while the Blink builds this skin was
+   developed against composited it fine. Treat the difference as observed, not
+   as a rule to lean on either way.
+
+   Raising the root's z-index here (this rule used to say `z-index: 1000`)
+   keeps the stacking context, so it never helped Safari: the panel measured
+   at the right size, hit-tested as the topmost element, reported opacity 1
+   and visibility visible — and painted nowhere. Removing the context outright
+   is the part that is reliable, because it stops the skin from adding a
+   context the product never had: the panel's own z-index then applies at page
+   level, which is what let it cover sticky Markdown banners and the skin's
+   conversation header before. */
 body[data-dsh-maid-atelier][data-maid-settings-open]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
@@ -1914,7 +1930,8 @@ body[data-dsh-maid-atelier][data-maid-settings-open]
     [data-slot='sidebar.settings']
       > :is(button, [role='button'])[aria-expanded='true']
   ) {
-  z-index: 1000;
+  position: static;
+  z-index: auto;
 }
 
 /* This copy sits immediately before the official mask, so the mask samples
