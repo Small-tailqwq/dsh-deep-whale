@@ -3091,3 +3091,71 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
     transition: none;
   }
 }
+
+/* 空态胶囊：输入为空且未聚焦时，整卡收成一条轻量提示条，几乎不占空间；
+   点击胶囊（client 的 click 委托会聚焦 textarea）或输入后恢复原始输入框。 */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) {
+  max-width: 320px;
+  min-height: 34px;
+  gap: 0;
+  padding: 0;
+  border: 1px solid rgba(197, 164, 104, 0.5);
+  border-radius: 999px;
+  box-shadow:
+    0 4px 14px rgba(15, 30, 72, 0.14),
+    inset 0 1px rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  transition:
+    max-width 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    min-height 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    padding 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    border-radius 420ms cubic-bezier(0.22, 0.78, 0.2, 1);
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) [data-input-mirror],
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) [data-input-backdrop],
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) > [class*='row'] {
+  display: none !important;
+}
+
+/* textarea 必须保留可聚焦：压到 0 尺寸并隐藏占位，聚焦后立即恢复 */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) textarea {
+  min-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  opacity: 0;
+}
+
+/* 统计行（stats / Session log）随卡片一起收起 */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) ~ [data-slot='conversation.composer.dock'] {
+  display: none;
+}
+
+/* 金框装饰在胶囊态隐藏，胶囊内容由 ::after 呈现 */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true']))::before {
+  display: none;
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true']))::after {
+  content: '✎ 给智能体发消息';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 0;
+  color: var(--dsw-alias-label-caption);
+  font-family: Georgia, 'Times New Roman', var(--dsw-font-family);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  cursor: text;
+  border-radius: inherit;
+  background: transparent;
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])):hover {
+  border-color: rgba(225, 191, 124, 0.85);
+  box-shadow:
+    0 6px 18px rgba(15, 30, 72, 0.2),
+    inset 0 1px rgba(255, 255, 255, 0.7);
+  transform: translateY(-1px);
+}

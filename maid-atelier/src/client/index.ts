@@ -364,6 +364,7 @@ export function apply(ctx: Context): void {
     if (recoverRailSearchFocus !== undefined) {
       document.removeEventListener('click', recoverRailSearchFocus)
     }
+    document.removeEventListener('click', focusComposerOnClick)
     observer?.disconnect()
     themeColorObserver?.disconnect()
     if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
@@ -593,6 +594,22 @@ export function apply(ctx: Context): void {
     railSearchFocusFrame = requestAnimationFrame(recover)
   }
   document.addEventListener('click', recoverRailSearchFocus)
+
+  /* 空态胶囊：点击折叠的输入卡片（胶囊）时聚焦 textarea 展开输入框。只在
+     折叠态抢焦点——输入框已聚焦/展开时不打扰工具栏按钮（避免模型菜单等
+     弹出菜单因焦点被抢而立即关闭）。 */
+  const focusComposerOnClick = (event: MouseEvent): void => {
+    const target = event.target instanceof Element ? event.target : null
+    if (target === null) return
+    const card = target.closest<HTMLElement>("[data-phase='active'] [data-composer-card]")
+    if (card === null) return
+    const textarea = card.querySelector<HTMLTextAreaElement>("textarea")
+    if (textarea === null || textarea === target || textarea.contains(target)) return
+    if (!textarea.matches(':placeholder-shown')) return
+    if (card.matches(':focus-within')) return
+    textarea.focus()
+  }
+  document.addEventListener('click', focusComposerOnClick)
 
   if (typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver((entries) => {
