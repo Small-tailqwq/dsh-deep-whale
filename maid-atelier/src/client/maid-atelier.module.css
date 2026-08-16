@@ -1768,12 +1768,16 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [class*='headline'] [class*='fis
 }
 
 body[data-dsh-maid-atelier] button[class*='workspace'][aria-expanded],
-body[data-dsh-maid-atelier] button[class*='workspace']:hover {
+body[data-dsh-maid-atelier] button[class*='workspace']:hover,
+body[data-dsh-maid-atelier] button[class*='seat'][aria-expanded],
+body[data-dsh-maid-atelier] button[class*='seat']:hover {
   background: rgba(255, 253, 248, 0.54);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='workspace'][aria-expanded],
-body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='workspace']:hover {
+body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='workspace']:hover,
+body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='seat'][aria-expanded],
+body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='seat']:hover {
   background: rgba(30, 46, 87, 0.68);
 }
 
@@ -2434,7 +2438,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   :is(
-    [data-variant] > [data-open='true'],
+    [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
   ) {
   overflow: hidden;
@@ -2449,7 +2453,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   :is(
-    [data-variant] > [data-open='true'],
+    [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
   ) {
   overflow: hidden;
@@ -2462,9 +2466,71 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   box-shadow: inset 0 0 0 1px rgba(151, 169, 216, 0.18);
 }
 
+/* Tool/command/think/context disclosure surfaces stay translucent so the
+   character backdrop reads through them. Blur what is sampled underneath the
+   translucent wash: without it the navy-blue UI text sits directly on busy
+   palace art of the same hue. The header inside an expanded container keeps
+   `backdrop-filter: none` below and relies on its parent's single blur layer
+   (nested backdrop filters would double-sample the backdrop). */
+body[data-dsh-maid-atelier]
+  :is(
+    [data-variant]:not([data-variant='think']) > [data-open='true'],
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+  ) {
+  backdrop-filter: blur(12px) saturate(0.92);
+}
+
+/* Collapsed rows have no expanded container, so each row blurs its own strip.
+   `:not([data-open='true'])` keeps the already-covered in-card header alone. */
+body[data-dsh-maid-atelier]
+  :is(
+    [data-variant] > :not([data-open='true']),
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > :not([data-open='true'])
+  ) > [data-disclosure-row='true'] {
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+/* The bash toolview registers its own row without the shared DisclosureRow
+   (data-variant='bash' IS the single-line row itself). Its collapsed state is
+   transparent over the palace art, so blur that strip directly; the expanded
+   terminal/IO card below stays opaque and needs no filter. Keep a theme-tinted
+   background like the think rows so dark backdrop art cannot make the text
+   unreadable. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-variant='bash'] {
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 250, 255, 0.32),
+    rgba(248, 250, 255, 0.2) 72%,
+    rgba(248, 250, 255, 0.08)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-variant='bash'] {
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 20, 48, 0.58),
+    rgba(13, 25, 59, 0.4) 72%,
+    rgba(13, 25, 59, 0.16)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   :is(
-    [data-variant] > [data-open='true'],
+    [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
   ) > [data-disclosure-row='true'] {
   background: transparent;
@@ -2473,7 +2539,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   :is(
-    [data-variant] > [data-open='true'],
+    [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
   ) > [data-disclosure-row='true'] {
   background: transparent;
@@ -2481,17 +2547,71 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 250, 255, 0.32),
+    rgba(248, 250, 255, 0.2) 72%,
+    rgba(248, 250, 255, 0.08)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 20, 48, 0.58),
+    rgba(13, 25, 59, 0.4) 72%,
+    rgba(13, 25, 59, 0.16)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
-  padding-right: 12px;
-  padding-bottom: 8px;
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 250, 255, 0.32),
+    rgba(248, 250, 255, 0.2) 72%,
+    rgba(248, 250, 255, 0.08)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
   color: #34486f;
   line-height: 1.65;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
-  padding-right: 12px;
-  padding-bottom: 8px;
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 20, 48, 0.58),
+    rgba(13, 25, 59, 0.4) 72%,
+    rgba(13, 25, 59, 0.16)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
   color: #c7d2e9;
   line-height: 1.65;
 }
