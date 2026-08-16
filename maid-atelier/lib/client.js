@@ -78,8 +78,8 @@ window.__ModuleLoader__.load({
 		const SKIN_SYSTEM_CHROME_COLOR = "#0b193f";
 		const VIEWPORT_RESIZE_SETTLE_MS = 120;
 		const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])";
-		const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])";
 		const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']";
+		const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']";
 		const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']";
 		const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`;
 		const WORKSPACE_SELECTOR = "header [role='tablist']";
@@ -479,7 +479,7 @@ window.__ModuleLoader__.load({
 				set(PROJECTED_STATE_ATTRIBUTES.workspace, document.querySelector(WORKSPACE_SELECTOR) !== null);
 				set(PROJECTED_STATE_ATTRIBUTES.betterSidebarOpen, document.querySelector(BETTER_SIDEBAR_SELECTOR) !== null && !body.hasAttribute("data-dsh-sidebar-collapsed"));
 				set(PROJECTED_STATE_ATTRIBUTES.cordisPanelOpen, document.querySelector(CORDIS_PANEL_SELECTOR) !== null);
-				set(PROJECTED_STATE_ATTRIBUTES.settingsOpen, document.querySelector(`${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`) !== null);
+				set(PROJECTED_STATE_ATTRIBUTES.settingsOpen, document.querySelector(SETTINGS_DIALOG_SELECTOR) !== null);
 			};
 			const ensureSidebarObserved = () => {
 				const sidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
@@ -532,7 +532,7 @@ window.__ModuleLoader__.load({
 				composerPhase = next;
 			};
 			const syncSettingsBackdropFrame = () => {
-				const mask = document.querySelector(`${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`) === null ? null : document.querySelector(SETTINGS_MASK_SELECTOR);
+				const mask = document.querySelector(SETTINGS_DIALOG_SELECTOR) === null ? null : document.querySelector(SETTINGS_MASK_SELECTOR);
 				const overlay = mask?.parentElement;
 				if (overlay === void 0 || overlay === null) {
 					settingsBackdropFrame?.remove();
@@ -602,7 +602,7 @@ window.__ModuleLoader__.load({
 				else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements);
 				if (backdropChanged) syncBackdrop();
 				if (composerChanged) syncComposerMotion();
-				if (settingsStateChanged) syncSettingsBackdropFrame();
+				if (settingsStateChanged || projectedStateChanged) syncSettingsBackdropFrame();
 			});
 			observer.observe(body, {
 				attributes: true,

@@ -1934,8 +1934,8 @@ body[data-dsh-maid-atelier] [data-maid-settings-backdrop-frame] {
 }
 
 /* The settings surface is translucent by design. Demote the raster composer
-   while its trigger owns the expanded dialog so the ornate input frame does
-   not visually compete with, or accept input through, the modal surface. */
+   while the settings dialog is open. The projected attribute is driven by
+   the actual dialog presence, so closing the panel always restores input. */
 body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
   z-index: 0;
   opacity: 0.75;

@@ -171,7 +171,7 @@ describe('Maid Atelier skin apply', () => {
       <main data-phase="active"><div data-chat-flow></div></main>
       <div data-dsh-better-sidebar></div>
       <div data-cordis-panel></div>
-      <div data-slot="sidebar.settings"><button aria-expanded="true"></button></div>
+      <div data-slot="sidebar.settings"><div role="dialog" aria-modal="true"></div></div>
     `
     fiber = await mount()
 
@@ -185,7 +185,7 @@ describe('Maid Atelier skin apply', () => {
     document.querySelector('header')!.remove()
     document.querySelector('main')!.remove()
     document.querySelector('[data-cordis-panel]')!.remove()
-    document.querySelector('[aria-expanded]')!.setAttribute('aria-expanded', 'false')
+    document.querySelector('[data-slot="sidebar.settings"] [role="dialog"]')!.remove()
     document.body.setAttribute('data-dsh-sidebar-collapsed', '')
     await flushMutations()
 
@@ -245,14 +245,17 @@ describe('Maid Atelier skin apply', () => {
       </div>
     `
     fiber = await mount()
-    const trigger = document.querySelector<HTMLButtonElement>("[data-slot='sidebar.settings'] > button")!
+    const settingsSlot = document.querySelector<HTMLElement>("[data-slot='sidebar.settings']")!
     const overlay = document.createElement('div')
     overlay.setAttribute('role', 'presentation')
     const mask = document.createElement('div')
     mask.className = 'fixture_mask'
     overlay.append(mask)
     document.body.append(overlay)
-    trigger.setAttribute('aria-expanded', 'true')
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    settingsSlot.append(dialog)
     await flushMutations()
 
     const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
@@ -260,7 +263,7 @@ describe('Maid Atelier skin apply', () => {
     expect(copy?.nextElementSibling).toBe(mask)
     expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
 
-    trigger.setAttribute('aria-expanded', 'false')
+    dialog.remove()
     await flushMutations()
     expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
   })
