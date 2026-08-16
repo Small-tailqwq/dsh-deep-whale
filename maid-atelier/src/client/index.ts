@@ -36,6 +36,7 @@ import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
+const VIEWPORT_RESIZE_SETTLE_MS = 120
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
@@ -45,6 +46,61 @@ const WORKSPACE_SELECTOR = "header [role='tablist']"
 const BETTER_SIDEBAR_SELECTOR = '[data-dsh-better-sidebar]'
 const CORDIS_PANEL_SELECTOR = '[data-cordis-panel]'
 const TERMINAL_SELECTOR = `${BETTER_SIDEBAR_SELECTOR} .xterm`
+
+interface AttributeLeaseState {
+  originalValue: string | null
+  owners: Set<symbol>
+  value: string
+}
+
+const bodyAttributeLeases = new WeakMap<HTMLElement, Map<string, AttributeLeaseState>>()
+
+function createBodyAttributeLease(body: HTMLElement, attribute: string, value = ''): {
+  acquire: () => void
+  release: () => void
+} {
+  const owner = Symbol(attribute)
+  let active = false
+
+  return {
+    acquire(): void {
+      if (active) return
+      let attributes = bodyAttributeLeases.get(body)
+      if (attributes === undefined) {
+        attributes = new Map()
+        bodyAttributeLeases.set(body, attributes)
+      }
+      let state = attributes.get(attribute)
+      if (state === undefined) {
+        state = {
+          originalValue: body.getAttribute(attribute),
+          owners: new Set(),
+          value,
+        }
+        attributes.set(attribute, state)
+      }
+      state.owners.add(owner)
+      active = true
+      body.setAttribute(attribute, state.value)
+    },
+    release(): void {
+      if (!active) return
+      active = false
+      const attributes = bodyAttributeLeases.get(body)
+      const state = attributes?.get(attribute)
+      if (state === undefined || !state.owners.delete(owner)) return
+      if (state.owners.size > 0) {
+        body.setAttribute(attribute, state.value)
+        return
+      }
+      attributes?.delete(attribute)
+      if (attributes?.size === 0) bodyAttributeLeases.delete(body)
+      if (body.getAttribute(attribute) !== state.value) return
+      if (state.originalValue === null) body.removeAttribute(attribute)
+      else body.setAttribute(attribute, state.originalValue)
+    },
+  }
+}
 
 const PROJECTED_STATE_ATTRIBUTES = {
   activeChat: 'data-maid-chat-active',
@@ -102,6 +158,23 @@ function createCharacterStage(): HTMLDivElement {
 
   stage.append(left, right)
   return stage
+}
+
+function hasAcceleratedWebGL(): boolean {
+  if (typeof WebGLRenderingContext === 'undefined') return false
+  const canvas = document.createElement('canvas')
+  const options: WebGLContextAttributes = { failIfMajorPerformanceCaveat: true }
+  for (const kind of ['webgl2', 'webgl'] as const) {
+    try {
+      const context = canvas.getContext(kind, options)
+      if (context === null) continue
+      context.getExtension('WEBGL_lose_context')?.loseContext()
+      return true
+    } catch {
+      // A blocked or software-only context should use the CPU-safe CSS path.
+    }
+  }
+  return false
 }
 
 function createSidebarCorners(): HTMLDivElement {
@@ -244,6 +317,8 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
 export function apply(ctx: Context): void {
   const body = document.body
   const originalTitle = document.title
+  const viewportResizeLease = createBodyAttributeLease(body, 'data-maid-viewport-resizing')
+  const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
   const previous = new Map<string, string>()
   for (const property of BACKDROP_PROPERTIES) {
     previous.set(property, body.style.getPropertyValue(property))
@@ -262,6 +337,8 @@ export function apply(ctx: Context): void {
   let resizeObserver: ResizeObserver | undefined
   let composerPhase: 'hero' | 'active' | undefined
   let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
+  let viewportResizeTimer: ReturnType<typeof setTimeout> | undefined
+  let handleViewportResize: (() => void) | undefined
   let railSearchFocusFrame: number | undefined
   let recoverRailSearchFocus: ((event: MouseEvent) => void) | undefined
   let settingsBackdropFrame: HTMLDivElement | undefined
@@ -279,6 +356,10 @@ export function apply(ctx: Context): void {
       else body.setAttribute(attribute, value)
     }
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
+    viewportResizeLease.release()
+    lowPowerLease.release()
     if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
     if (recoverRailSearchFocus !== undefined) {
       document.removeEventListener('click', recoverRailSearchFocus)
@@ -308,6 +389,17 @@ export function apply(ctx: Context): void {
     }
     if (document.title === SKIN_TITLE) document.title = originalTitle
   }, 'ui-skin-maid-atelier: layered background and ornament')
+
+  handleViewportResize = (): void => {
+    viewportResizeLease.acquire()
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    viewportResizeTimer = setTimeout(() => {
+      viewportResizeLease.release()
+      viewportResizeTimer = undefined
+    }, VIEWPORT_RESIZE_SETTLE_MS)
+  }
+  window.addEventListener('resize', handleViewportResize)
+  if (!hasAcceleratedWebGL()) lowPowerLease.acquire()
 
   const syncSystemChrome = (): void => {
     const meta = document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
