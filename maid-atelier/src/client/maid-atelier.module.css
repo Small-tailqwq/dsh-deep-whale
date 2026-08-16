@@ -1905,16 +1905,22 @@ body[data-dsh-maid-atelier]
 
 /* The sidebar content root normally sits at layer 2 above the mascot. Since
    SettingsPanel is mounted inside that root instead of a document portal,
-   promote the owning root while the dialog is open. Its fixed layer can then
-   cover sticky Markdown banners and the skin's conversation header. */
-body[data-dsh-maid-atelier][data-maid-settings-open]
+   its own mask/dialog z-index (1000) can stay trapped in the content root's
+   local stacking context and lose to the conversation header, top trim and
+   composer. Promote the sidebar column while a modal settings dialog exists,
+   and release the containing row's z-index so the dialog's native 1000 layer
+   participates in the body-level stacking order again. Both rules are
+   :has()-scoped to the open dialog and self-restore when it unmounts. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='sidebar'], [class*='sidebarCol']):has([role='dialog'][aria-modal='true']) {
+  z-index: 1000;
+}
+
+body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
-  > :has(
-    [data-slot='sidebar.settings']
-      > :is(button, [role='button'])[aria-expanded='true']
-  ) {
-  z-index: 1000;
+  > :has([role='dialog'][aria-modal='true']) {
+  z-index: auto !important;
 }
 
 /* This copy sits immediately before the official mask, so the mask samples

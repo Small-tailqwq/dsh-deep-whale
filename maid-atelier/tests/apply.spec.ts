@@ -1211,11 +1211,14 @@ describe('Maid Atelier skin apply', () => {
     const obscuredComposerRule = CSS.match(
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const promotedSettingsRootRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\)\s*\{([^}]*)\}/s,
+    const promotedSettingsColumnRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*:has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const releasedSettingsRowRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const preservedSidebarFrameRule = CSS.match(
-      /:has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
+      /:has\(\[role='dialog'\]\[aria-modal='true'\]\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(sidebarRule).toContain('z-index: auto')
     expect(sidebarInnerRule).toContain('isolation: auto')
@@ -1224,7 +1227,9 @@ describe('Maid Atelier skin apply', () => {
     expect(footerRule).toContain('z-index: auto')
     expect(topTrimRule).toContain('z-index: 20')
     expect(bottomTrimRule).toContain('z-index: 19')
-    expect(promotedSettingsRootRule).toContain('z-index: 1000')
+    expect(promotedSettingsColumnRule).toContain('z-index: 1000')
+    expect(releasedSettingsRowRule).toContain('z-index: auto')
+    expect(releasedSettingsRowRule).toContain('!important')
     expect(preservedSidebarFrameRule).toBe('')
     expect(obscuredComposerRule).toContain('z-index: 0')
     expect(obscuredComposerRule).toContain('opacity: 0.75')
