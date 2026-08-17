@@ -90,12 +90,23 @@ body[data-dsh-maid-atelier] [id='root'] {
   background: transparent;
 }
 
-/* High-resolution characters remain independent from the palace so viewport
+/* Skin stacking contract (root level, in body child order):
+     decorative background < decorative chrome < app chrome < floating UI < modal
+   - character-stage  -1 : pure backdrop above the palace, below every app
+     surface (including in-flow cards that carry no positioning of their own)
+   - top/bottom-trim   0 : ornaments; appended after the app root, so they still
+     back transparent conversation chrome, but any explicitly layered surface
+     outranks them (workspace header 1, shell.overlay 20, dialogs 1000)
+   - workspace header  1 : skin-lifted app chrome, above the trims only
+   Nothing skin-owned may exceed the app's own floating (20) and modal (1000)
+   tiers, and decorative layers never compete with functional UI at all.
+
+   High-resolution characters remain independent from the palace so viewport
    and conversation changes never resample the architecture behind them. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   overflow: hidden;
   pointer-events: none;
   contain: strict;
@@ -230,12 +241,16 @@ body[data-dsh-maid-atelier][data-maid-low-power]
 
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
    independently translated layers let the landing ornament leave upward
-   while the lace-free workspace band drops in from above. */
+   while the lace-free workspace band drops in from above. It is decorative
+   chrome (tier 0): appended after the app root, so it still paints over the
+   transparent conversation header it backs, but it can no longer cover the
+   shell.overlay layer (20) that carries floating plugin panels, nor an app
+   root that another plugin lifted into its own stacking context. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
   position: fixed;
   inset: 0 0 auto 0;
   translate: var(--maid-sidebar-width) 0;
-  z-index: 20;
+  z-index: 0;
   height: 76px;
   overflow: hidden;
   pointer-events: none;
@@ -295,13 +310,14 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
 
 /* The bottom band repeats at its native height while the center crest remains
    an independent fixed-size layer. Resizing the sidebar therefore changes the
-   main-pane span without scaling either raster ornament. */
+   main-pane span without scaling either raster ornament. Same decorative
+   tier as the top curtain: below every layered application surface. */
 body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   position: fixed;
   inset: auto 0 0 0;
   translate: var(--maid-sidebar-width) 0;
   transform: translateY(0);
-  z-index: 19;
+  z-index: 0;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
@@ -331,10 +347,11 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
 }
 
 /* pointer-events does not affect painting order. Keep the semantic workspace
-   header above the fixed decorative layer so its controls remain visible. */
+   header one tier above the decorative trims (0) so its controls stay visible,
+   but below the app's shell.overlay tier (20) so floating panels cover it. */
 body[data-dsh-maid-atelier] header:has([role='tablist']) {
   position: relative;
-  z-index: 21;
+  z-index: 1;
   border-bottom: 0;
   animation: maidAtelierWorkspaceHeaderEnter 320ms 110ms both;
 }
@@ -1903,18 +1920,25 @@ body[data-dsh-maid-atelier]
   z-index: auto;
 }
 
-/* The sidebar content root normally sits at layer 2 above the mascot. Since
-   SettingsPanel is mounted inside that root instead of a document portal,
-   promote the owning root while the dialog is open. Its fixed layer can then
-   cover sticky Markdown banners and the skin's conversation header. */
-body[data-dsh-maid-atelier][data-maid-settings-open]
+/* The sidebar content root's direct children carry the blanket
+   `position: relative; z-index: 2` pair, which makes each of them a stacking
+   context. The settings panel is mounted inside that root instead of a
+   document portal, so its native modal layer (1000) stays trapped in the
+   child's local context and loses to the conversation header and the trims
+   (and on WebKit the fixed panel does not paint at all). Promoting the child
+   kept the trap and broke whenever the trigger's DOM shape shifted. Instead,
+   release the child's own z-index the moment a live modal dialog exists
+   beneath it: a positioned element with z-index auto is not a stacking
+   context, so the dialog's native layer competes at page level again — above
+   the skin's decorative tiers and the app chrome, exactly like a portaled
+   dialog. position: relative stays, so the footer's absolute ornaments keep
+   their containing block. The :has() anchor follows the dialog itself, not
+   the trigger's aria-expanded, and self-restores on unmount. */
+body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
-  > :has(
-    [data-slot='sidebar.settings']
-      > :is(button, [role='button'])[aria-expanded='true']
-  ) {
-  z-index: 1000;
+  > :has([role='dialog'][aria-modal='true']) {
+  z-index: auto;
 }
 
 /* This copy sits immediately before the official mask, so the mask samples

@@ -14,9 +14,46 @@ import { apply } from '../src/client/index.ts'
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
 
 let fiber: Fiber | undefined
+let sessions: ReturnType<typeof makeSessions> | undefined
 
-async function mount(): Promise<Fiber> {
-  const f = new Context().plugin({ apply })
+/** Fake `sessions` service: one current session whose agentPreset the gate reads. */
+function makeSessions(agentPreset: string | undefined) {
+  const listeners = new Set<() => void>()
+  const state = () => ({
+    current: 's1',
+    byId: {
+      s1: {
+        id: 's1',
+        agentPreset,
+        displayTitle: 's1',
+        blank: false,
+        updatedAt: 0,
+        running: false,
+      },
+    },
+  })
+  return {
+    list: {
+      getSnapshot: state,
+      subscribe(listener: () => void): () => void {
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
+      },
+    },
+    setPreset(next: string | undefined): void {
+      agentPreset = next
+      for (const listener of [...listeners]) listener()
+    },
+  }
+}
+
+async function mount(preset = 'whale-minimal'): Promise<Fiber> {
+  const root = new Context()
+  sessions = makeSessions(preset)
+  root.provide('sessions', sessions)
+  const f = root.plugin({ apply })
   await f.await()
   return f
 }
@@ -49,9 +86,23 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
   })
 
+  it('decorates only the whale-minimal preset and follows session switches', async () => {
+    fiber = await mount('cordis')
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
+
+    sessions?.setPreset('whale-minimal')
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
+
+    sessions?.setPreset('cordis')
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
+  })
+
   it('registers cleanup before a later CSSOM initialization failure', () => {
     let dispose: (() => void) | undefined
     const ctx = {
+      get(name: string): unknown {
+        return name === 'sessions' ? makeSessions('whale-minimal') : undefined
+      },
       effect(factory: () => () => void): void {
         dispose = factory()
       },
@@ -161,7 +212,7 @@ describe('Maid Atelier skin apply', () => {
 
     expect(querySelectorAll).not.toHaveBeenCalled()
     expect(querySelector).not.toHaveBeenCalledWith(
-      "[data-slot='sidebar.settings'] > :is(button, [role='button'])[aria-expanded='true']",
+      "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']",
     )
   })
 
@@ -171,7 +222,7 @@ describe('Maid Atelier skin apply', () => {
       <main data-phase="active"><div data-chat-flow></div></main>
       <div data-dsh-better-sidebar></div>
       <div data-cordis-panel></div>
-      <div data-slot="sidebar.settings"><button aria-expanded="true"></button></div>
+      <div data-slot="sidebar.settings"><div role="dialog" aria-modal="true"></div></div>
     `
     fiber = await mount()
 
@@ -185,7 +236,7 @@ describe('Maid Atelier skin apply', () => {
     document.querySelector('header')!.remove()
     document.querySelector('main')!.remove()
     document.querySelector('[data-cordis-panel]')!.remove()
-    document.querySelector('[aria-expanded]')!.setAttribute('aria-expanded', 'false')
+    document.querySelector("[data-slot='sidebar.settings'] [role='dialog']")!.remove()
     document.body.setAttribute('data-dsh-sidebar-collapsed', '')
     await flushMutations()
 
@@ -245,23 +296,60 @@ describe('Maid Atelier skin apply', () => {
       </div>
     `
     fiber = await mount()
-    const trigger = document.querySelector<HTMLButtonElement>("[data-slot='sidebar.settings'] > button")!
+    const settingsSlot = document.querySelector<HTMLElement>("[data-slot='sidebar.settings']")!
     const overlay = document.createElement('div')
     overlay.setAttribute('role', 'presentation')
     const mask = document.createElement('div')
     mask.className = 'fixture_mask'
-    overlay.append(mask)
-    document.body.append(overlay)
-    trigger.setAttribute('aria-expanded', 'true')
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    overlay.append(mask, dialog)
+    settingsSlot.append(overlay)
     await flushMutations()
 
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
     const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
     expect(copy?.parentElement).toBe(overlay)
     expect(copy?.nextElementSibling).toBe(mask)
     expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
 
-    trigger.setAttribute('aria-expanded', 'false')
+    overlay.remove()
     await flushMutations()
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
+    expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
+  })
+
+  it('detects the open settings dialog through shifted DOM nesting', async () => {
+    // Regression for #37: the projection must follow the live modal dialog,
+    // not the trigger button's aria-expanded, whose surroundings vary between
+    // product builds.
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div>
+          <div class="fixture_wrapper">
+            <section>
+              <div data-slot="sidebar.settings">
+                <button>Settings</button>
+                <div>
+                  <div role="presentation">
+                    <div class="fixture_mask"></div>
+                    <div role="dialog" aria-modal="true"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
+    expect(document.querySelector('[data-maid-settings-backdrop-frame]')).not.toBeNull()
+
+    document.querySelector("[role='presentation']")!.remove()
+    await flushMutations()
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
     expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
   })
 
@@ -1211,8 +1299,8 @@ describe('Maid Atelier skin apply', () => {
     const obscuredComposerRule = CSS.match(
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const promotedSettingsRootRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\)\s*\{([^}]*)\}/s,
+    const releasedSettingsRootRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const preservedSidebarFrameRule = CSS.match(
       /:has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
@@ -1222,9 +1310,16 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarInnerRule).not.toContain('container-type')
     expect(sidebarContentRule).toBe('')
     expect(footerRule).toContain('z-index: auto')
-    expect(topTrimRule).toContain('z-index: 20')
-    expect(bottomTrimRule).toContain('z-index: 19')
-    expect(promotedSettingsRootRule).toContain('z-index: 1000')
+    expect(topTrimRule).toContain('z-index: 0')
+    expect(bottomTrimRule).toContain('z-index: 0')
+    // Not a promotion: raising the trapped root to z-index 1000 kept the
+    // stacking context that cages the settings panel (and failed outright
+    // under WebKit). The rule must release the child's own z-index instead,
+    // anchored on the live modal dialog rather than the trigger's
+    // aria-expanded. An empty match would pass the negative checks silently.
+    expect(releasedSettingsRootRule).not.toBe('')
+    expect(releasedSettingsRootRule).toContain('z-index: auto')
+    expect(CSS).not.toContain('z-index: 1000')
     expect(preservedSidebarFrameRule).toBe('')
     expect(obscuredComposerRule).toContain('z-index: 0')
     expect(obscuredComposerRule).toContain('opacity: 0.75')
@@ -1425,7 +1520,8 @@ describe('Maid Atelier skin apply', () => {
       /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(workspaceHeaderRule).toContain('position: relative')
-    expect(workspaceHeaderRule).toContain('z-index: 21')
+    // Skin tier 1: above the decorative trims (0), below shell.overlay (20).
+    expect(workspaceHeaderRule).toContain('z-index: 1')
     expect(workspaceHeaderRule).not.toContain('padding-bottom')
     expect(workspaceHeaderRule).toContain('border-bottom: 0')
     const rootRule = CSS.match(/\[id='root'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -1558,5 +1654,83 @@ describe('Maid Atelier skin apply', () => {
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
     expect(document.body.style.backgroundImage).toBe(light)
+  })
+
+  it('keeps every decorative layer below the application stacking tiers', () => {
+    // Regression contract for #25 and #43: skin ornaments must never outrank
+    // application UI. The order is decorative background (-1) < decorative
+    // chrome (0) < app chrome (1) < the app's floating (shell.overlay, 20) and
+    // modal (1000) tiers. A larger z-index here is always the wrong fix.
+    const stageRule = CSS.match(
+      /\[data-skin-chrome='character-stage'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const workspaceHeaderRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(stageRule).toContain('z-index: -1')
+    expect(topTrimRule).toContain('z-index: 0')
+    expect(bottomTrimRule).toContain('z-index: 0')
+    expect(workspaceHeaderRule).toContain('z-index: 1')
+    // No skin-owned layer may reach or exceed the app's floating tier (20).
+    const skinLayerValues = [stageRule, topTrimRule, bottomTrimRule, workspaceHeaderRule]
+      .map(rule => Number(rule.match(/z-index:\s*(-?\d+)/)?.[1]))
+    expect(skinLayerValues.every(value => value < 20)).toBe(true)
+  })
+
+  it('does not inject duplicate chrome when applied twice on one document', async () => {
+    const originalBodyStyle = document.body.getAttribute('style')
+    try {
+      const first = await mount()
+      const second = await mount()
+
+      expect(document.body.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(1)
+      expect(document.body.querySelectorAll("[data-skin-chrome='top-trim']")).toHaveLength(1)
+      expect(document.body.querySelectorAll("[data-skin-chrome='bottom-trim']")).toHaveLength(1)
+      expect(document.head.querySelectorAll("[data-skin-chrome='sidebar-width-rule']")).toHaveLength(1)
+
+      // Disposing the first activation must not strip the skin while the
+      // second one still owns it.
+      await first.dispose()
+      expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
+      expect(document.body.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(1)
+
+      await second.dispose()
+      expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
+      expect(document.querySelector('[data-skin-chrome]')).toBeNull()
+    } finally {
+      if (originalBodyStyle === null) document.body.removeAttribute('style')
+      else document.body.setAttribute('style', originalBodyStyle)
+    }
+  })
+
+  it('re-applies cleanly after a full dispose', async () => {
+    fiber = await mount()
+    expect(document.body.querySelector("[data-skin-chrome='character-stage']")).not.toBeNull()
+    await fiber.dispose()
+    fiber = undefined
+    expect(document.querySelector('[data-skin-chrome]')).toBeNull()
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
+
+    // The activation registry must have been released: a fresh apply performs
+    // the full setup again instead of taking the shared-reference branch.
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
+    expect(document.body.querySelector("[data-skin-chrome='character-stage']")).not.toBeNull()
+    expect(document.body.querySelector("[data-skin-chrome='top-trim']")).not.toBeNull()
+    expect(document.body.style.backgroundImage).toContain('data:image/webp;base64,')
+  })
+
+  it('initializes without failure when landmark nodes are missing', async () => {
+    // No sidebar, no titlebar, no settings slot: every decorator must no-op
+    // while the core layers still mount.
+    document.body.innerHTML = '<main></main>'
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
+    expect(document.body.querySelector("[data-skin-chrome='character-stage']")).not.toBeNull()
+    expect(document.body.querySelector("[data-skin-chrome='top-trim']")).not.toBeNull()
+    expect(document.querySelector("[data-skin-chrome='sidebar-mascot']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='titlebar-brand']")).toBeNull()
   })
 })

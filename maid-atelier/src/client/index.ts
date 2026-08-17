@@ -38,8 +38,8 @@ const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const VIEWPORT_RESIZE_SETTLE_MS = 120
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
-const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
+const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']"
 const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
 const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
 const WORKSPACE_SELECTOR = "header [role='tablist']"
@@ -54,6 +54,20 @@ interface AttributeLeaseState {
 }
 
 const bodyAttributeLeases = new WeakMap<HTMLElement, Map<string, AttributeLeaseState>>()
+
+/**
+ * Live activation per document. apply() must be idempotent: a duplicated
+ * plugin entry or a hot switch that fails to dispose the previous fiber must
+ * not stack a second character stage, curtain, observer, or style sheet on
+ * the same body. The first activation owns every write; later ones only hold
+ * a reference, and the teardown runs when the last owner disposes.
+ */
+interface SkinActivation {
+  owners: number
+  teardown: () => void
+}
+
+const skinActivations = new WeakMap<HTMLElement, SkinActivation>()
 
 function createBodyAttributeLease(body: HTMLElement, attribute: string, value = ''): {
   acquire: () => void
@@ -312,10 +326,26 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
 
 /**
  * Apply the skin-owned background and independently retractable chrome.
+ * Returns the disposer of the layered-background effect so a gate can retract
+ * the skin mid-life; the returned disposer also runs when the owning fiber
+ * unloads, whichever comes first.
  * @param ctx - owning context whose effect retracts every DOM and CSS write.
  */
-export function apply(ctx: Context): void {
+function activate(ctx: Context): (() => Promise<void>) | undefined {
   const body = document.body
+  const running = skinActivations.get(body)
+  if (running !== undefined) {
+    running.owners += 1
+    return ctx.effect(() => () => {
+      running.owners -= 1
+      if (running.owners === 0) {
+        skinActivations.delete(body)
+        running.teardown()
+      }
+    }, 'ui-skin-maid-atelier: shared activation reference')
+  }
+  const activation: SkinActivation = { owners: 1, teardown: () => {} }
+  skinActivations.set(body, activation)
   const originalTitle = document.title
   const viewportResizeLease = createBodyAttributeLease(body, 'data-maid-viewport-resizing')
   const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
@@ -346,48 +376,57 @@ export function apply(ctx: Context): void {
   let titlebarOverlay: WindowControlsOverlay | undefined
   let syncTitlebarHeight: (() => void) | undefined
 
-  ctx.effect(() => () => {
-    delete body.dataset.dshMaidAtelier
-    delete body.dataset.maidComposerMotion
-    delete body.dataset.maidSidebarCompact
-    delete body.dataset.maidSidebarSize
-    for (const [attribute, value] of previousProjectedStates) {
-      if (value === null) body.removeAttribute(attribute)
-      else body.setAttribute(attribute, value)
+  const disposeActivation = ctx.effect(() => {
+    activation.teardown = (): void => {
+      delete body.dataset.dshMaidAtelier
+      delete body.dataset.maidComposerMotion
+      delete body.dataset.maidSidebarCompact
+      delete body.dataset.maidSidebarSize
+      for (const [attribute, value] of previousProjectedStates) {
+        if (value === null) body.removeAttribute(attribute)
+        else body.setAttribute(attribute, value)
+      }
+      if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
+      if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+      if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
+      viewportResizeLease.release()
+      lowPowerLease.release()
+      if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
+      if (recoverRailSearchFocus !== undefined) {
+        document.removeEventListener('click', recoverRailSearchFocus)
+      }
+      observer?.disconnect()
+      themeColorObserver?.disconnect()
+      if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
+        titlebarOverlay.removeEventListener('geometrychange', syncTitlebarHeight)
+      }
+      resizeObserver?.disconnect()
+      for (const [property, value] of previous) {
+        body.style.setProperty(property, value)
+      }
+      ownedNodes.forEach(element => element.remove())
+      decoratedElements.forEach((element) => {
+        delete element.dataset.maidSidebarFooter
+        delete element.dataset.maidWorkspaceGroup
+        delete element.dataset.maidWorkspaceRow
+        delete element.dataset.maidWorkspaceActive
+        delete element.dataset.maidSessionRow
+        delete element.dataset.maidSessionFlat
+        delete element.dataset.maidSessionFirst
+        delete element.dataset.maidSessionLast
+      })
+      if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) {
+        themeColorMeta.content = previousThemeColor ?? ''
+      }
+      if (document.title === SKIN_TITLE) document.title = originalTitle
     }
-    if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
-    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
-    if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
-    viewportResizeLease.release()
-    lowPowerLease.release()
-    if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
-    if (recoverRailSearchFocus !== undefined) {
-      document.removeEventListener('click', recoverRailSearchFocus)
+    return () => {
+      activation.owners -= 1
+      if (activation.owners === 0) {
+        skinActivations.delete(body)
+        activation.teardown()
+      }
     }
-    observer?.disconnect()
-    themeColorObserver?.disconnect()
-    if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
-      titlebarOverlay.removeEventListener('geometrychange', syncTitlebarHeight)
-    }
-    resizeObserver?.disconnect()
-    for (const [property, value] of previous) {
-      body.style.setProperty(property, value)
-    }
-    ownedNodes.forEach(element => element.remove())
-    decoratedElements.forEach((element) => {
-      delete element.dataset.maidSidebarFooter
-      delete element.dataset.maidWorkspaceGroup
-      delete element.dataset.maidWorkspaceRow
-      delete element.dataset.maidWorkspaceActive
-      delete element.dataset.maidSessionRow
-      delete element.dataset.maidSessionFlat
-      delete element.dataset.maidSessionFirst
-      delete element.dataset.maidSessionLast
-    })
-    if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) {
-      themeColorMeta.content = previousThemeColor ?? ''
-    }
-    if (document.title === SKIN_TITLE) document.title = originalTitle
   }, 'ui-skin-maid-atelier: layered background and ornament')
 
   handleViewportResize = (): void => {
@@ -542,7 +581,7 @@ export function apply(ctx: Context): void {
     )
     set(
       PROJECTED_STATE_ATTRIBUTES.settingsOpen,
-      document.querySelector(`${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`) !== null,
+      document.querySelector(SETTINGS_DIALOG_SELECTOR) !== null,
     )
   }
 
@@ -620,12 +659,12 @@ export function apply(ctx: Context): void {
 
   /* The settings mask is mounted inside a promoted sidebar descendant. Chrome
      can omit sibling composited layers from that backdrop sample, so seat a
-     copy of the existing frame immediately before the mask while it is open. */
+     copy of the existing frame immediately before the mask while it is open.
+     Anchor on the live dialog, not the trigger's aria-expanded: the panel's
+     DOM shape has shifted between product builds. */
   const syncSettingsBackdropFrame = (): void => {
-    const expanded = document.querySelector(
-      `${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`,
-    )
-    const mask = expanded === null
+    const dialog = document.querySelector(SETTINGS_DIALOG_SELECTOR)
+    const mask = dialog === null
       ? null
       : document.querySelector<HTMLElement>(SETTINGS_MASK_SELECTOR)
     const overlay = mask?.parentElement
@@ -659,6 +698,11 @@ export function apply(ctx: Context): void {
   body.prepend(characterStage)
 
   const syncSidebarDecorations = (): void => {
+    // Rows from replaced sidebar trees would otherwise linger in the tracking
+    // set until dispose; drop the detached ones at each structural checkpoint.
+    decoratedElements.forEach((element) => {
+      if (!element.isConnected) decoratedElements.delete(element)
+    })
     syncTitlebarHeight?.()
     decorateTitlebarBrand(ownedNodes)
     decorateSidebar(ownedNodes, decoratedElements)
@@ -730,8 +774,13 @@ export function apply(ctx: Context): void {
         || (target !== undefined && target.closest(composerSelector) !== null))) {
         composerChanged = true
       }
-      if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
+      if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR)
+        || nodeTouches(node, SETTINGS_DIALOG_SELECTOR))) {
+        // A settings mask or dialog mount/unmount is also the signal that the
+        // dialog-presence projection (data-maid-settings-open) must re-run;
+        // the trigger's aria-expanded is not guaranteed to move with it.
         settingsStateChanged = true
+        projectedStateChanged = true
       }
       if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))
         || target?.matches("header, [data-slot='sidebar.settings']") === true)) {
@@ -745,7 +794,7 @@ export function apply(ctx: Context): void {
     if (composerChanged) {
       syncComposerMotion()
     }
-    if (settingsStateChanged) syncSettingsBackdropFrame()
+    if (settingsStateChanged || projectedStateChanged) syncSettingsBackdropFrame()
   })
   observer.observe(body, {
     attributes: true,
@@ -794,4 +843,79 @@ export function apply(ctx: Context): void {
   document.head.append(favicon)
 
   document.title = SKIN_TITLE
+
+  return disposeActivation
+}
+
+/**
+ * Preset gate: the skin decorates only while the current session was composed
+ * from the `whale-minimal` preset. The sessions list store drives re-syncs, so
+ * switching sessions — or the host clarifying a session's preset — retracts or
+ * re-applies every skin write without a page reload. Without a sessions
+ * service the gate degrades to inactive, which keeps the skin inert instead of
+ * unconditional.
+ */
+const SKIN_PRESET = 'whale-minimal'
+
+interface SkinGateSessions {
+  list?: {
+    getSnapshot?: () => {
+      current?: string
+      byId?: Record<string, { agentPreset?: string }>
+    } | undefined
+    subscribe?: (listener: () => void) => () => void
+  }
+}
+
+function presetOfCurrentSession(ctx: Context): string | undefined {
+  const sessions = ctx.get('sessions') as SkinGateSessions | undefined
+  const state = sessions?.list?.getSnapshot?.()
+  const current = state?.current
+  if (current === undefined) return undefined
+  return state?.byId?.[current]?.agentPreset
+}
+
+export function apply(ctx: Context): void {
+  let active = false
+  let disposeActivation: (() => Promise<void>) | undefined
+  let disposeRetry: (() => void) | undefined
+
+  const sync = (): void => {
+    const want = presetOfCurrentSession(ctx) === SKIN_PRESET
+    if (want && !active) {
+      active = true
+      disposeActivation = activate(ctx)
+    } else if (!want && active) {
+      active = false
+      disposeActivation?.()
+      disposeActivation = undefined
+    }
+  }
+
+  ctx.effect(() => {
+    const sessions = ctx.get('sessions') as SkinGateSessions | undefined
+    const unsubscribe = sessions?.list?.subscribe?.(sync)
+    sync()
+    if (unsubscribe === undefined) {
+      // Startup race: the sessions provider normally precedes this row, but
+      // re-probe once shortly after boot before giving up (inert skin).
+      const timer = setTimeout(() => {
+        disposeRetry = undefined
+        const late = ctx.get('sessions') as SkinGateSessions | undefined
+        if (late?.list?.subscribe === undefined) return
+        disposeRetry = late.list.subscribe(sync)
+        sync()
+      }, 300)
+      disposeRetry = () => clearTimeout(timer)
+    }
+    return () => {
+      unsubscribe?.()
+      disposeRetry?.()
+      if (active) {
+        active = false
+        disposeActivation?.()
+        disposeActivation = undefined
+      }
+    }
+  }, 'ui-skin-maid-atelier: whale-minimal preset gate')
 }
