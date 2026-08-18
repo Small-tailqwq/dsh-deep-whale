@@ -45,6 +45,7 @@ const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
 const WORKSPACE_SELECTOR = "header [role='tablist']"
 const BETTER_SIDEBAR_SELECTOR = '[data-dsh-better-sidebar]'
 const CORDIS_PANEL_SELECTOR = '[data-cordis-panel]'
+const CONVERSATION_PANE_SELECTOR = ":is([data-pane='conversation'], [class*='centerCol'])"
 const TERMINAL_SELECTOR = `${BETTER_SIDEBAR_SELECTOR} .xterm`
 
 interface AttributeLeaseState {
@@ -121,11 +122,6 @@ const PROJECTED_STATE_SELECTOR = [
 ].join(', ')
 
 const BACKDROP_PROPERTIES = [
-  'background-image',
-  'background-position',
-  'background-size',
-  'background-attachment',
-  'background-repeat',
   '--maid-sidebar-width',
   '--maid-top-trim-art',
   '--maid-bottom-trim-art',
@@ -157,6 +153,17 @@ function createCharacterStage(): HTMLDivElement {
   right.src = MAID_ATELIER_MAID_RIGHT
 
   stage.append(left, right)
+  return stage
+}
+
+function createPalaceStage(): HTMLDivElement {
+  const stage = document.createElement('div')
+  stage.dataset.skinChrome = 'palace-stage'
+  stage.dataset.skinOwner = SKIN_OWNER
+  stage.setAttribute('aria-hidden', 'true')
+  stage.style.backgroundPosition = 'center top'
+  stage.style.backgroundSize = 'cover'
+  stage.style.backgroundRepeat = 'no-repeat'
   return stage
 }
 
@@ -335,6 +342,8 @@ export function apply(ctx: Context): void {
   let themeColorObserver: MutationObserver | undefined
   let observedSidebar: HTMLElement | undefined
   let resizeObserver: ResizeObserver | undefined
+  let conversationResizeObserver: ResizeObserver | undefined
+  let observedConversation: HTMLElement | undefined
   let composerPhase: 'hero' | 'active' | undefined
   let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
   let viewportResizeTimer: ReturnType<typeof setTimeout> | undefined
@@ -370,6 +379,7 @@ export function apply(ctx: Context): void {
       titlebarOverlay.removeEventListener('geometrychange', syncTitlebarHeight)
     }
     resizeObserver?.disconnect()
+    conversationResizeObserver?.disconnect()
     for (const [property, value] of previous) {
       body.style.setProperty(property, value)
     }
@@ -431,17 +441,17 @@ export function apply(ctx: Context): void {
   body.style.setProperty('--maid-workspace-crest-art', `url(${MAID_ATELIER_WORKSPACE_SHIELD})`)
   body.style.setProperty('--maid-workspace-ribbon-art', `url(${MAID_ATELIER_WORKSPACE_RIBBON})`)
 
+  const palaceStage = createPalaceStage()
+  ownedNodes.add(palaceStage)
+  body.prepend(palaceStage)
+
   const syncBackdrop = (): void => {
     const source = body.hasAttribute('data-ds-dark-theme')
       ? MAID_ATELIER_PALACE_DARK
       : MAID_ATELIER_PALACE_LIGHT
-    body.style.setProperty('background-image', `url(${source})`)
+    palaceStage.style.backgroundImage = `url(${source})`
   }
   syncBackdrop()
-  body.style.setProperty('background-position', 'center top')
-  body.style.setProperty('background-size', 'cover')
-  body.style.setProperty('background-attachment', 'scroll')
-  body.style.setProperty('background-repeat', 'no-repeat')
 
   // 宽度联动写入独立的 <style> 规则而非 body style：CSSOM 修改不产生
   // attribute mutation，Chrome autofill 的 MutationObserver 不会逐帧触发，
@@ -451,7 +461,7 @@ export function apply(ctx: Context): void {
   widthSheet.dataset.skinOwner = SKIN_OWNER
   ownedNodes.add(widthSheet)
   document.head.append(widthSheet)
-  widthSheet.sheet!.insertRule('body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; --maid-titlebar-height: 0px; }')
+  widthSheet.sheet!.insertRule('body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; --maid-titlebar-height: 0px; --maid-conversation-right-gap: 0px; --maid-conversation-bottom-gap: 0px; }')
   // The official frame rules reference env(titlebar-area-height), but the
   // CSS-modules pipeline rewrites the env() identifier there too, so the
   // title-bar row silently falls back to an auto row: expanding the sidebar
@@ -513,6 +523,29 @@ export function apply(ctx: Context): void {
     widthRule.style.setProperty('--maid-sidebar-mascot-width', '0px')
     body.dataset.maidSidebarSize = 'rail'
     body.dataset.maidSidebarCompact = ''
+  }
+
+  const applyConversationRect = (): void => {
+    const pane = document.querySelector<HTMLElement>(CONVERSATION_PANE_SELECTOR)
+    if (pane === null) {
+      widthRule.style.setProperty('--maid-conversation-right-gap', '0px')
+      widthRule.style.setProperty('--maid-conversation-bottom-gap', '0px')
+      return
+    }
+    const rect = pane.getBoundingClientRect()
+    const rightGap = Math.max(0, window.innerWidth - rect.right)
+    const bottomGap = Math.max(0, window.innerHeight - rect.bottom)
+    widthRule.style.setProperty('--maid-conversation-right-gap', `${Math.round(rightGap * 100) / 100}px`)
+    widthRule.style.setProperty('--maid-conversation-bottom-gap', `${Math.round(bottomGap * 100) / 100}px`)
+  }
+
+  const ensureConversationObserved = (): void => {
+    const pane = document.querySelector<HTMLElement>(CONVERSATION_PANE_SELECTOR)
+    if (!conversationResizeObserver) return
+    if (pane === observedConversation) return
+    if (observedConversation) conversationResizeObserver.unobserve(observedConversation)
+    observedConversation = pane ?? undefined
+    if (observedConversation) conversationResizeObserver.observe(observedConversation)
   }
 
   const syncProjectedState = (): void => {
@@ -601,6 +634,11 @@ export function apply(ctx: Context): void {
       applySidebarWidth(entry.contentRect.width)
     })
   }
+  if (typeof ResizeObserver !== 'undefined') {
+    conversationResizeObserver = new ResizeObserver(() => {
+      applyConversationRect()
+    })
+  }
 
   const syncComposerMotion = (): void => {
     const phaseRoot = document.querySelector<HTMLElement>("[data-phase='hero'], [data-phase='active']")
@@ -648,6 +686,8 @@ export function apply(ctx: Context): void {
   decorateSidebar(ownedNodes, decoratedElements)
   decorateWorkspaceTree(decoratedElements)
   ensureSidebarObserved()
+  ensureConversationObserved()
+  applyConversationRect()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
   syncComposerMotion()
@@ -664,6 +704,8 @@ export function apply(ctx: Context): void {
     decorateSidebar(ownedNodes, decoratedElements)
     decorateWorkspaceTree(decoratedElements)
     ensureSidebarObserved()
+    ensureConversationObserved()
+    applyConversationRect()
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar === null) clearSidebarWidth()
     else if (resizeObserver === undefined) applySidebarWidth(sidebar.getBoundingClientRect().width)

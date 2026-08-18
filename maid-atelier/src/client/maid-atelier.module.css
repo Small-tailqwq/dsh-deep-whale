@@ -90,11 +90,30 @@ body[data-dsh-maid-atelier] [id='root'] {
   background: transparent;
 }
 
+/* The palace paints only the native conversation area. Because third-party
+   workspaces (better-sidebar, native details) resize the center column instead
+   of the viewport, the geometry is measured live and exposed as two custom
+   properties; the palace and character stage consume them here. */
+body[data-dsh-maid-atelier] [data-skin-chrome='palace-stage'] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: var(--maid-conversation-right-gap, 0px);
+  bottom: var(--maid-conversation-bottom-gap, 0px);
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
 /* High-resolution characters remain independent from the palace so viewport
    and conversation changes never resample the architecture behind them. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: var(--maid-conversation-right-gap, 0px);
+  bottom: var(--maid-conversation-bottom-gap, 0px);
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
@@ -121,14 +140,14 @@ body[data-dsh-maid-atelier] [data-maid-character='left'] {
   bottom: clamp(-34px, -2.4vh, -12px);
   left: 0;
   translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
-  height: clamp(560px, 96vh, 1180px);
+  height: min(clamp(560px, 96vh, 1180px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
 }
 
 body[data-dsh-maid-atelier] [data-maid-character='right'] {
   right: 0;
   translate: clamp(-8px, -0.2vw, 0px) 0;
   bottom: clamp(-26px, -1.8vh, -8px);
-  height: clamp(540px, 92vh, 1120px);
+  height: min(clamp(540px, 92vh, 1120px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
@@ -144,7 +163,7 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='left'] {
   translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
   bottom: clamp(-24px, -1.5vh, -8px);
-  height: clamp(420px, 64vh, 760px);
+  height: min(clamp(420px, 64vh, 760px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
   opacity: 0.9;
 }
 
@@ -152,7 +171,7 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='right'] {
   translate: clamp(-8px, -0.5vw, 0px) 0;
   bottom: clamp(-24px, -1.5vh, -8px);
-  height: clamp(420px, 62vh, 730px);
+  height: min(clamp(420px, 62vh, 730px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
   opacity: 0.9;
 }
 
@@ -176,29 +195,37 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='left'] {
     translate: var(--maid-sidebar-width) 0;
-    height: clamp(300px, 46vh, 410px);
+    height: min(clamp(300px, 46vh, 410px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
   }
 
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='right'] {
     translate: 0;
-    height: clamp(300px, 44vh, 390px);
+    height: min(clamp(300px, 44vh, 390px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
   }
 }
 
-/* dsh-better-sidebar ports a right workbench onto document.body. While its
-   right panel is open, pull the right maid left of the panel so the artwork
-   is not hidden behind the fixed workbench. The skin projects that state
-   without a root :has(), so terminal row writes stay locally invalidated. */
+/* The character stage is already right-edge constrained by the measured
+   conversation geometry, so opening any right workbench needs no panel-width
+   offset of its own. Keep the same optical gap the left maid has on the left,
+   and shrink both maids together while the open workbench is in chat. The
+   skin projects that state without a root :has(), so terminal row writes stay
+   locally invalidated. */
 body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
   [data-maid-character='right'] {
-  translate: clamp(-460px, -24vw, -320px) 0;
+  translate: clamp(-24px, -1.3vw, -8px) 0;
+}
+
+body[data-dsh-maid-atelier][data-maid-better-sidebar-open][data-maid-chat-active]
+  [data-maid-character='left'] {
+  opacity: 0.86;
+  height: min(clamp(360px, 56vh, 680px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
 }
 
 body[data-dsh-maid-atelier][data-maid-better-sidebar-open][data-maid-chat-active]
   [data-maid-character='right'] {
-  translate: clamp(-460px, -24vw, -320px) 0;
-  height: clamp(360px, 56vh, 680px);
+  translate: clamp(-24px, -1.3vw, -8px) 0;
+  height: min(clamp(360px, 56vh, 680px), calc(100vh - var(--maid-conversation-bottom-gap, 0px)));
   opacity: 0.86;
 }
 
@@ -234,6 +261,7 @@ body[data-dsh-maid-atelier][data-maid-low-power]
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
   position: fixed;
   inset: 0 0 auto 0;
+  right: var(--maid-conversation-right-gap, 0px);
   translate: var(--maid-sidebar-width) 0;
   z-index: 20;
   height: 76px;
@@ -299,6 +327,8 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
 body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   position: fixed;
   inset: auto 0 0 0;
+  right: var(--maid-conversation-right-gap, 0px);
+  bottom: var(--maid-conversation-bottom-gap, 0px);
   translate: var(--maid-sidebar-width) 0;
   transform: translateY(0);
   z-index: 19;

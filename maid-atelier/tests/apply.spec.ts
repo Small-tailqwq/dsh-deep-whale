@@ -353,22 +353,25 @@ describe('Maid Atelier skin apply', () => {
     expect(document.title).toBe('original')
   })
 
-  it('installs an inlined background and restores prior body styles', async () => {
+  it('installs an owned palace stage and restores prior body styles', async () => {
     document.body.style.setProperty('background-position', 'left bottom')
     fiber = await mount()
-    expect(document.body.style.backgroundImage).toContain('data:image/webp;base64,')
-    expect(document.body.style.backgroundImage).not.toContain('linear-gradient')
-    expect(document.body.style.backgroundPosition).toBe('center top')
-    expect(document.body.style.backgroundSize).toBe('cover')
-    expect(document.body.style.backgroundAttachment).toBe('scroll')
-    await fiber.dispose()
+    const palace = document.querySelector<HTMLElement>("[data-skin-chrome='palace-stage']")
+    expect(palace).not.toBeNull()
+    expect(palace?.style.backgroundImage ?? '').toContain('data:image/webp;base64,')
+    expect(palace?.style.backgroundImage ?? '').not.toContain('linear-gradient')
+    expect(palace?.style.backgroundPosition).toBe('center top')
+    expect(palace?.style.backgroundSize).toBe('cover')
     expect(document.body.style.backgroundImage).toBe('')
+    await fiber.dispose()
+    expect(document.querySelector("[data-skin-chrome='palace-stage']")).toBeNull()
     expect(document.body.style.backgroundPosition).toBe('left bottom')
   })
 
   it('keeps both original-resolution characters independent from the palace backdrop', async () => {
     fiber = await mount()
     const stage = document.querySelector("[data-skin-chrome='character-stage']")
+    expect(document.querySelector("[data-skin-chrome='palace-stage']")).not.toBeNull()
     const characters = stage?.querySelectorAll<HTMLImageElement>('[data-maid-character]')
     expect(characters).toHaveLength(2)
     expect(characters?.[0]?.dataset.maidCharacter).toBe('left')
@@ -376,6 +379,7 @@ describe('Maid Atelier skin apply', () => {
     expect([...characters ?? []].every(character => character.src.startsWith('data:image/webp;base64,'))).toBe(true)
     await fiber.dispose()
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='palace-stage']")).toBeNull()
   }, 10_000)
 
   it('follows live viewport resizing without transition lag and restores the marker', async () => {
@@ -892,7 +896,7 @@ describe('Maid Atelier skin apply', () => {
     expect(baseRightRule).toContain('right: 0')
     expect(baseRightRule).toContain('translate: clamp(-8px, -0.2vw, 0px) 0')
     expect(chatLeftRule).toContain('translate: calc(var(--maid-sidebar-width) + clamp(')
-    expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
+    expect(chatLeftRule).toContain('clamp(420px, 64vh, 760px)')
     expect(chatRightRule).toContain('translate: clamp(-8px, -0.5vw, 0px) 0')
     expect(CSS).not.toMatch(/\[data-maid-character='(?:left|right)'\]\s*\{[^}]*(?:left|right):\s*-/s)
     expect(CSS).not.toMatch(/\[data-maid-conversation-active\]\s*\[data-maid-character/s)
@@ -958,8 +962,18 @@ describe('Maid Atelier skin apply', () => {
       /\[data-ds-dark-theme\] \[data-dsh-better-sidebar\]\s*\{[^}]*--dsw-specific-sidebar-fill: rgba\(10, 22, 54, 0\.96\)/s,
     )
     expect(CSS).toMatch(
-      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: clamp\(-460px, -24vw, -320px\) 0/s,
+      /\[data-skin-chrome='character-stage'\]\s*\{[^}]*right: var\(--maid-conversation-right-gap, 0px\)/s,
     )
+    expect(CSS).toMatch(
+      /\[data-skin-chrome='palace-stage'\]\s*\{[^}]*right: var\(--maid-conversation-right-gap, 0px\)/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: clamp\(-24px, -1\.3vw, -8px\) 0/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='left'\]\s*\{[^}]*opacity: 0\.86/s,
+    )
+    expect(CSS).not.toContain('--dsh-sidebar-width')
   })
 
   it('keeps root-level relational selectors out of the skin scope', () => {
@@ -1548,15 +1562,16 @@ describe('Maid Atelier skin apply', () => {
 
   it('switches between matched day and night backgrounds with the base theme', async () => {
     fiber = await mount()
-    const light = document.body.style.backgroundImage
+    const palace = document.querySelector<HTMLElement>("[data-skin-chrome='palace-stage']")
+    const light = palace?.style.backgroundImage ?? ''
     document.body.dataset.dsDarkTheme = ''
     await flushMutations()
-    const dark = document.body.style.backgroundImage
+    const dark = palace?.style.backgroundImage ?? ''
     expect(dark).not.toBe(light)
     expect(dark).toContain('data:image/webp;base64,')
     expect(dark).not.toContain('linear-gradient')
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
-    expect(document.body.style.backgroundImage).toBe(light)
+    expect(palace?.style.backgroundImage ?? '').toBe(light)
   })
 })
