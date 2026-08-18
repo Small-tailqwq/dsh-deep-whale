@@ -1,6 +1,6 @@
 ---
 name: dsh-skin-install
-description: 从 dsh-deep-whale 仓库安装或切换 DSH Web 皮肤：定位并同步仓库、扫描仓库全部皮肤清单、询问用户激活哪一套、介绍版权署名链与 CC BY-NC-SA 4.0 许可边界、按热重载或插件注册路径生效。当用户要求安装/切换本仓库皮肤（如 maid-atelier 深海女仆工坊、鲸鱼娘皮肤）或"安装皮肤"时使用。
+description: 从 dsh-deep-whale 仓库安装或切换 DSH Web 皮肤：定位并同步仓库、扫描仓库全部皮肤清单、询问用户激活哪一套、介绍版权署名链与 CC BY-NC-SA 4.0 许可边界、按热重载或插件注册路径生效。当用户要求安装/切换本仓库皮肤（如 maid-atelier 深海女仆工坊、orca-link 虎鲸链路、鲸鱼娘皮肤）或"安装皮肤"时使用。
 ---
 
 # dsh-deep-whale 皮肤安装
@@ -15,7 +15,7 @@ description: 从 dsh-deep-whale 仓库安装或切换 DSH Web 皮肤：定位并
 
 - 用户可能忘记仓库在哪。优先在当前工作目录找 `skin.json` 子目录特征（仓库根或子目录）；找不到就问用户，或 `git clone https://github.com/Small-tailqwq/dsh-deep-whale` 到临时目录。
 - 确认最新：`git fetch origin` + `git status -sb`（无 behind 即最新；落后时 `git pull --ff-only`）。
-- 皮肤目录形态：每个皮肤 = 一个含 `skin.json` 的子目录（如 `maid-atelier/`），`lib/` 内是预构建的 client bundle（随仓库分发，无需用户自行构建）。
+- 皮肤目录形态：每个皮肤 = 一个含 `skin.json` 的子目录（如 `maid-atelier/`、`orca-link/`），`lib/` 内是预构建的 client bundle（随仓库分发，无需用户自行构建）。
 
 ### 2. 扫描皮肤清单（实时，勿硬编码）
 

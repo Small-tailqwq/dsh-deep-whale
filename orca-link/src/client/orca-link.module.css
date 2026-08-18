@@ -1,0 +1,2647 @@
+body[data-dsh-orca-link] {
+  --orca-sidebar-width: clamp(258px, 20.2vw, 326px);
+  /* Sidebar art stage height, measured from the pane top; the browsing
+     region's frosted panel starts exactly at this seam (120px of controls). */
+  --orca-stage: clamp(240px, 34vh, 320px);
+  --orca-blue: #4b483f;
+  --orca-cyan: #20c7e8;
+  --orca-ink: #11151b;
+  --orca-graphite: #343b47;
+  --orca-muted: #778399;
+  --orca-question-focus: #4a473f;
+  --orca-question-focus-wash: rgba(75, 72, 63, 0.11);
+  --orca-line: rgba(43, 55, 72, 0.14);
+  --orca-surface: rgba(253, 250, 244, 0.78);
+  --orca-surface-strong: rgba(255, 252, 246, 0.92);
+  --orca-shadow: 0 18px 55px rgba(27, 39, 58, 0.12), 0 2px 5px rgba(27, 39, 58, 0.1);
+  --orca-settings-overlay-z: 2147483000;
+  isolation: isolate;
+  color: var(--orca-ink);
+  background-color: #f6f1e7;
+  background-image: none;
+  --dsw-static-blue-50: #ebe7de;
+  --dsw-static-blue-100: #ddd8cc;
+  --dsw-static-blue-300: #a89f8e;
+  --dsw-static-blue-400: #6a655a;
+  --dsw-static-blue-500: #4b483f;
+  --dsw-static-blue-600: #3a372f;
+  --dsw-static-blue-800: #2e2c26;
+  --dsw-static-blue-950: #1f1d18;
+  --dsw-static-deepseek-50: #ebe7de;
+  --dsw-static-deepseek-100: #ddd8cc;
+  --dsw-static-deepseek-300: #a89f8e;
+  --dsw-static-deepseek-400: #6a655a;
+  --dsw-static-deepseek-500: #4b483f;
+  --dsw-static-deepseek-600: #3a372f;
+  --dsw-static-deepseek-800: #2e2c26;
+  --dsw-static-deepseek-900: #26241f;
+  --dsw-alias-bg-base: rgba(250, 247, 241, 0.24);
+  --dsw-alias-bg-layer-1: rgba(255, 252, 246, 0.62);
+  --dsw-alias-bg-layer-2: rgba(247, 244, 238, 0.74);
+  --dsw-alias-bg-layer-3: rgba(240, 236, 229, 0.82);
+  --dsw-alias-bg-module-platform: rgba(247, 244, 238, 0.78);
+  --dsw-alias-bg-overlay: rgba(253, 250, 244, 0.96);
+  --dsw-alias-border-l1: rgba(43, 55, 72, 0.1);
+  --dsw-alias-border-l2: rgba(43, 55, 72, 0.16);
+  --dsw-alias-border-l3: rgba(43, 55, 72, 0.25);
+  --dsw-alias-border-l4: rgba(43, 55, 72, 0.36);
+  --dsw-alias-brand-primary: #4b483f;
+  --dsw-alias-brand-primary-invert: #ffffff;
+  --dsw-alias-brand-text: #3a372f;
+  --dsw-alias-button-primary-fill: #4b483f;
+  --dsw-alias-button-primary-hover: #3a372f;
+  --dsw-alias-button-floating-fill: rgba(255, 252, 246, 0.92);
+  --dsw-alias-button-floating-hover: #e8e4da;
+  --dsw-alias-button-tool-bar-fill: rgba(255, 252, 246, 0.64);
+  --dsw-alias-button-tool-bar-hover: rgba(216, 210, 198, 0.9);
+  --dsw-alias-interactive-bg-active: color-mix(in srgb, var(--orca-blue) 14%, transparent);
+  --dsw-alias-interactive-bg-hover: color-mix(in srgb, var(--orca-blue) 7%, transparent);
+  --dsw-alias-interactive-bg-hover-solid: #e8e4da;
+  --dsw-alias-label-primary: #11151b;
+  --dsw-alias-label-secondary: #343b47;
+  --dsw-alias-label-tertiary: #778399;
+  --dsw-alias-label-caption: #8d98aa;
+  --dsw-alias-state-business-primary: #4b483f;
+  --dsw-alias-state-business-tertiary: #ddd8cc;
+  --dsw-specific-bubble: rgba(232, 228, 218, 0.84);
+  --dsw-specific-bubble-highlight: rgba(216, 210, 198, 0.94);
+  --dsw-specific-input-major: rgba(253, 250, 244, 0.72);
+  --dsw-specific-menu: rgba(253, 250, 244, 0.96);
+  --dsw-specific-selector: rgba(246, 243, 236, 0.9);
+  --dsw-specific-sidebar-fill: rgba(250, 247, 241, 0.58);
+  --dsw-specific-sidebar-nav-item-active: rgba(216, 210, 198, 0.82);
+  --dsw-specific-sidebar-nav-item-active-accent: #a89f8e;
+  --dsw-specific-sidebar-nav-item-hover: rgba(232, 228, 218, 0.86);
+  --dsw-input-solid: #fbf7ef;
+}
+
+/* ORCA shape contract: keep interactive surfaces and skin chrome rectilinear
+   without matching every generated DOM node. The former universal descendant
+   and pseudo-element rules made xterm's high-churn row renderer repeatedly
+   resolve ORCA styles for thousands of terminal spans. */
+body[data-dsh-orca-link],
+body[data-dsh-orca-link] :where(
+  button,
+  input,
+  textarea,
+  select,
+  [role='button'],
+  [role='checkbox'],
+  [role='combobox'],
+  [role='dialog'],
+  [role='listbox'],
+  [role='menu'],
+  [role='menuitem'],
+  [role='menuitemradio'],
+  [role='option'],
+  [role='radio'],
+  [role='switch'],
+  [role='tab'],
+  [role='tooltip'],
+  [role='treeitem'],
+  [data-composer-card],
+  [data-skin-chrome]
+),
+body[data-dsh-orca-link] :where(
+  button,
+  [role='button'],
+  [role='dialog'],
+  [role='menu'],
+  [role='menuitem'],
+  [role='menuitemradio'],
+  [role='tooltip'],
+  [data-composer-card],
+  [data-skin-chrome]
+)::before,
+body[data-dsh-orca-link] :where(
+  button,
+  [role='button'],
+  [role='dialog'],
+  [role='menu'],
+  [role='menuitem'],
+  [role='menuitemradio'],
+  [role='tooltip'],
+  [data-composer-card],
+  [data-skin-chrome]
+)::after {
+  border-radius: 0 !important;
+}
+
+/* Keep chat bubbles rectilinear in every theme, matching the ORCA shape
+   contract even when the host ships rounded user-message bubbles. */
+body[data-dsh-orca-link] [data-chat-flow] *,
+body[data-dsh-orca-link] [data-chat-flow] *::before,
+body[data-dsh-orca-link] [data-chat-flow] *::after {
+  border-radius: 0 !important;
+}
+
+/* Keep the plugin terminal's forced measurements and intermediate redraws
+   inside the terminal boundary. Paint containment prevents a resize frame
+   from spilling underneath the adjacent Explorer panel. */
+body[data-dsh-orca-link] [data-dsh-better-sidebar] :global(.xterm) {
+  contain: layout paint style;
+}
+
+body[data-dsh-orca-link] [data-dsh-better-sidebar] [class*='_bottomPanel'],
+body[data-dsh-orca-link] [data-dsh-better-sidebar] [class*='_terminalWrap'],
+body[data-dsh-orca-link] [data-dsh-better-sidebar] [class$='_terminal'] {
+  overflow: clip;
+}
+
+body[data-dsh-orca-link] [data-orca-terminal-width-locked] {
+  box-sizing: border-box;
+  width: var(--orca-terminal-locked-width) !important;
+  min-width: var(--orca-terminal-locked-width) !important;
+  max-width: var(--orca-terminal-locked-width) !important;
+  align-self: flex-start;
+  overflow: clip;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] {
+  --orca-blue: #4d91ff;
+  --orca-cyan: #45d9f4;
+  --orca-ink: #eef4ff;
+  --orca-graphite: #c8d2e2;
+  --orca-muted: #8998af;
+  --orca-question-focus: #78a8ef;
+  --orca-question-focus-wash: rgba(120, 168, 239, 0.14);
+  --orca-line: rgba(180, 199, 226, 0.16);
+  --orca-surface: rgba(12, 17, 26, 0.82);
+  --orca-surface-strong: rgba(15, 21, 31, 0.94);
+  --orca-shadow: 0 18px 55px rgba(0, 0, 0, 0.42), 0 2px 5px rgba(0, 0, 0, 0.32);
+  color: var(--orca-ink);
+  background-color: #090d14;
+  background-image: none;
+  --dsw-alias-bg-base: rgba(8, 12, 19, 0.22);
+  --dsw-alias-bg-layer-1: rgba(14, 20, 30, 0.84);
+  --dsw-alias-bg-layer-2: rgba(19, 27, 40, 0.88);
+  --dsw-alias-bg-layer-3: rgba(26, 35, 50, 0.92);
+  --dsw-alias-bg-module-platform: rgba(19, 27, 40, 0.88);
+  --dsw-alias-bg-overlay: rgba(15, 21, 31, 0.97);
+  --dsw-alias-border-l1: rgba(180, 199, 226, 0.1);
+  --dsw-alias-border-l2: rgba(180, 199, 226, 0.16);
+  --dsw-alias-border-l3: rgba(180, 199, 226, 0.24);
+  --dsw-alias-border-l4: rgba(180, 199, 226, 0.34);
+  --dsw-alias-brand-primary: #4d91ff;
+  --dsw-alias-brand-primary-invert: #07101f;
+  --dsw-alias-brand-text: #a9c9ff;
+  --dsw-alias-button-primary-fill: var(--orca-blue);
+  --dsw-alias-button-primary-hover: #2e81ff;
+  --dsw-alias-button-info-fill: #4d91ff;
+  --dsw-alias-button-info-hover: #2e81ff;
+  --dsw-static-deepseek-500: #4d91ff;
+  --dsw-static-deepseek-200: #a9c9ff;
+  --dsw-alias-button-floating-fill: rgba(19, 27, 40, 0.95);
+  --dsw-alias-button-floating-hover: #202c40;
+  --dsw-alias-button-tool-bar-fill: rgba(24, 34, 50, 0.88);
+  --dsw-alias-button-tool-bar-hover: rgba(33, 49, 74, 0.95);
+  --dsw-alias-interactive-bg-active: rgba(77, 145, 255, 0.2);
+  --dsw-alias-interactive-bg-hover: rgba(77, 145, 255, 0.11);
+  --dsw-alias-interactive-bg-hover-solid: #1d2a3f;
+  --dsw-alias-label-primary: #eef4ff;
+  --dsw-alias-label-secondary: #c8d2e2;
+  --dsw-alias-label-tertiary: #8998af;
+  --dsw-alias-label-caption: #718198;
+  --dsw-alias-state-business-primary: #4d91ff;
+  --dsw-alias-state-business-tertiary: #183459;
+  --dsw-specific-bubble: rgba(24, 42, 66, 0.9);
+  --dsw-specific-bubble-highlight: rgba(30, 56, 88, 0.94);
+  --dsw-specific-input-major: rgba(14, 20, 30, 0.86);
+  --dsw-specific-menu: rgba(15, 21, 31, 0.97);
+  --dsw-specific-selector: rgba(20, 29, 43, 0.94);
+  --dsw-specific-sidebar-fill: rgba(8, 12, 19, 0.8);
+  --dsw-specific-sidebar-nav-item-active: rgba(29, 54, 88, 0.88);
+  --dsw-specific-sidebar-nav-item-active-accent: #4d91ff;
+  --dsw-specific-sidebar-nav-item-hover: rgba(25, 38, 58, 0.9);
+  --dsw-input-solid: #0e141e;
+}
+
+body[data-dsh-orca-link] [id='root'] {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+/* Light mode mirrors the dark narrative with one continuous observation
+   studio: the relaxed wink welcomes a new session, then the same character,
+   chair and console crossfade into the working pose when the task begins. */
+body[data-dsh-orca-link] .lightScene {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  background: #f6f1e7;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] .lightScene {
+  display: none;
+}
+
+body[data-dsh-orca-link] .lightScene::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(248, 250, 253, 0.34) 0%, rgba(248, 250, 253, 0.18) 46%, rgba(248, 250, 253, 0.02) 72%),
+    linear-gradient(180deg, rgba(248, 250, 253, 0.03), transparent 68%, rgba(239, 243, 248, 0.16));
+}
+
+body[data-dsh-orca-link] .lightSceneLayer {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.008);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  filter: saturate(0.9) contrast(0.98) blur(0);
+  will-change: opacity, transform, filter;
+  transition:
+    opacity 640ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 640ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body[data-dsh-orca-link] .lightSceneHero {
+  opacity: 0.94;
+  transform: scale(1) translateY(0);
+  filter: saturate(0.9) contrast(0.98) blur(0);
+  background-image: var(--orca-link-light-hero-art);
+}
+
+body[data-dsh-orca-link] .lightSceneActive {
+  opacity: 0;
+  transform: scale(1.015) translateY(6px);
+  filter: saturate(0.9) contrast(0.98) blur(2px);
+  background-image: var(--orca-link-light-active-art);
+}
+
+body[data-dsh-orca-link]:not([data-ds-dark-theme])[data-orca-scene='active'] .lightSceneHero {
+  opacity: 0;
+  transform: scale(1.02) translateY(-8px);
+  filter: saturate(0.9) contrast(0.98) blur(2px);
+}
+
+body[data-dsh-orca-link]:not([data-ds-dark-theme])[data-orca-scene='active'] .lightSceneActive {
+  opacity: 0.94;
+  transform: scale(1) translateY(0);
+  filter: saturate(0.9) contrast(0.98) blur(0);
+}
+
+/* Dark mode is a two-state narrative rather than a decorative wallpaper:
+   the mug scene welcomes the user in hero/empty states, while the reading
+   scene takes over once a task begins. Both use the same crop, grade and
+   veil so the crossfade feels like one room changing posture. */
+body[data-dsh-orca-link] .darkScene {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+  background: #090d14;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] .darkScene {
+  display: block;
+}
+
+body[data-dsh-orca-link] .darkScene::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(6, 10, 16, 0.58) 0%, rgba(6, 10, 16, 0.38) 38%, rgba(6, 10, 16, 0.12) 68%, rgba(6, 10, 16, 0.18) 100%),
+    linear-gradient(180deg, rgba(5, 9, 15, 0.08), rgba(7, 11, 18, 0.12) 58%, rgba(5, 9, 15, 0.34));
+}
+
+body[data-dsh-orca-link] .darkSceneLayer {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.01);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  filter: brightness(0.88) saturate(0.74) contrast(1.05) blur(0);
+  will-change: opacity, transform, filter;
+  transition:
+    opacity 640ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 640ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body[data-dsh-orca-link] .darkSceneHero {
+  opacity: 0.94;
+  transform: scale(1) translateY(0);
+  filter: brightness(0.88) saturate(0.74) contrast(1.05) blur(0);
+  background-image: var(--orca-link-dark-hero-art);
+}
+
+body[data-dsh-orca-link] .darkSceneActive {
+  opacity: 0;
+  transform: scale(1.015) translateY(6px);
+  filter: brightness(0.88) saturate(0.74) contrast(1.05) blur(2px);
+  background-image: var(--orca-link-dark-active-art);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-scene='active'] .darkSceneHero {
+  opacity: 0;
+  transform: scale(1.02) translateY(-8px);
+  filter: brightness(0.88) saturate(0.74) contrast(1.05) blur(2px);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-scene='active'] .darkSceneActive {
+  opacity: 0.94;
+  transform: scale(1) translateY(0);
+  filter: brightness(0.88) saturate(0.74) contrast(1.05) blur(0);
+}
+
+/* Settings and menu surfaces must be fully opaque: the left nav and the row
+   menus are the settings interface's secondary level, and a translucent card
+   lets the conversation show through and reads as click-through. The sidebar
+   root is a stacking context (isolation), which would otherwise trap the
+   fixed settings overlay below the conversation column and body-level skin
+   chrome; while the dialog is open, lift that whole context above them so
+   every button inside the panel stays on top and receives pointer events. */
+body[data-dsh-orca-link][data-orca-settings-open] [id='root'] {
+  z-index: var(--orca-settings-overlay-z);
+}
+
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+  z-index: var(--orca-settings-overlay-z);
+}
+
+/* The settings trigger and overlay live below the host's sidebar column,
+   while the window toggles are fixed inside the adjacent center column.
+   Promote the real column ancestor as well; otherwise descendants with an
+   arbitrarily large z-index still cannot outrank the sibling column. */
+body[data-dsh-orca-link][data-orca-settings-open]
+  [class*='sidebarCol']:has([data-slot='sidebar.settings'] [role='dialog']) {
+  position: relative;
+  z-index: var(--orca-settings-overlay-z);
+  overflow: visible;
+}
+
+/* Full-screen settings owns the complete viewport. Host window toggles and
+   ORCA's body-level telemetry are unrelated chrome, so remove them from both
+   painting and hit testing until the dialog closes. */
+body[data-dsh-orca-link][data-orca-settings-open] [class*='toggleCluster'],
+body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .standby, .statusCharacter, .pricingLight) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The fixed settings overlay is mounted inside the sidebar footer. Its own
+   z-index cannot escape that direct child's stacking level, while the wide
+   new-session control sits at level 2. Raise only the dialog-bearing child
+   so responsive overlap never routes clicks to the sidebar underneath.
+   The official sidebar also fades every direct child during its 1024px
+   auto-collapse, then runs a delayed rail-in animation on this footer. Keep
+   the dialog carrier opaque and animation-free while it owns the viewport,
+   otherwise resizing across that breakpoint briefly fades the whole panel. */
+body[data-dsh-orca-link][data-orca-settings-open]
+  [data-slot='sidebar'] > :first-child > :has([role='dialog']) {
+  position: relative;
+  z-index: var(--orca-settings-overlay-z);
+  opacity: 1 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+body[data-dsh-orca-link] [role='dialog'] {
+  --orca-dialog-bg: #fbf7ef;
+  background: var(--orca-dialog-bg);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog'] {
+  --orca-dialog-bg: #0f151f;
+}
+
+/* Responsive settings shell. The official overlay, focus handling and
+   settings slots remain intact; ORCA only changes its spatial behavior.
+   Large screens dock beside the settings trigger; every constrained viewport
+   becomes a full workspace instead of squeezing an intermediate modal. */
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+  position: fixed;
+  z-index: var(--orca-settings-overlay-z);
+  isolation: isolate;
+  box-sizing: border-box;
+  inset: 0;
+  padding: 24px;
+  pointer-events: auto;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > :first-child {
+  z-index: 0;
+  animation: orcaSettingsMaskIn 170ms ease-out both;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+  width: min(800px, calc(100vw - 48px));
+  max-width: none;
+  height: min(760px, calc(100vh - 48px));
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--orca-line);
+  box-shadow: var(--orca-shadow);
+  transform-origin: left bottom;
+  animation: orcaSettingsPanelIn 200ms ease-out both;
+}
+
+/* Settings-owned popup menus are portalled outside the dialog subtree. Keep
+   them one layer above the modal while all unrelated plugin chrome remains
+   below its backdrop. */
+body[data-dsh-orca-link][data-orca-settings-open]
+  :is([role='menu'], [role='listbox']) {
+  z-index: 2147483001 !important;
+}
+
+@keyframes orcaSettingsMaskIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes orcaSettingsPanelIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+    box-shadow: none;
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    box-shadow: var(--orca-shadow);
+  }
+}
+
+/* Large desktop: the panel opens immediately beside the sidebar trigger and
+   grows from its lower-left corner. Navigation stays near the pointer. */
+@media (min-width: 1100px) and (min-height: 681px) {
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+    justify-content: flex-start;
+    align-items: flex-end;
+    padding: 18px 18px 18px 72px;
+  }
+
+  body[data-dsh-orca-link][data-orca-sidebar-wide]
+    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+    padding-left: calc(var(--orca-sidebar-width) + 16px);
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+    width: min(760px, calc(100vw - 108px));
+    height: min(680px, calc(100vh - 36px));
+  }
+
+  body[data-dsh-orca-link][data-orca-sidebar-wide]
+    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+    width: min(760px, calc(100vw - var(--orca-sidebar-width) - 34px));
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav {
+    justify-content: flex-end;
+    padding-bottom: 24px;
+    border-right: 1px solid var(--orca-line);
+  }
+
+  /* Keep the status character visible when the docked settings panel leaves
+     the upper-left stage free on large screens. The full-screen settings
+     modal on smaller viewports still hides it so it cannot cover content. */
+  body[data-dsh-orca-link][data-orca-settings-open] .statusCharacter {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: none;
+  }
+}
+
+/* Settings nav: active section uses a slightly deeper brown emphasis, and
+   adjacent section cells are separated by a same-color hairline. */
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav button[aria-current='true'] {
+  background: color-mix(in srgb, var(--orca-blue) 18%, transparent);
+  color: var(--orca-ink);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav button + button {
+  border-top: 2px solid color-mix(in srgb, var(--orca-blue) 28%, transparent);
+  border-radius: 0;
+}
+
+/* Any viewport below the desktop dock threshold becomes a full workspace: no
+   centering tax, crushed columns or clipped lower controls. */
+@media (max-width: 1099px), (max-height: 680px) {
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+    padding: 0;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+/* Phones and narrow panes move the category rail above the content. */
+@media (max-width: 640px) {
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+    flex-direction: column;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav {
+    box-sizing: border-box;
+    width: 100%;
+    gap: 8px;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid var(--orca-line);
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav > :last-child {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav > :first-child {
+    padding: 0 4px;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav button {
+    min-width: 0;
+    height: 36px;
+    padding: 7px 8px;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div {
+    min-height: 0;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :first-child {
+    min-height: 46px;
+    height: auto;
+    padding: 8px 10px;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child {
+    padding: 0 14px 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav > :last-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Official setting rows are desktop two-column flex layouts. On phone-sized
+   content panes, stack copy above its control and release the 48px text gutter
+   so descriptions remain normal sentences instead of vertical fragments. */
+@media (max-width: 520px) {
+  body[data-dsh-orca-link]
+    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [class$='_row']:has(> [class$='_rowText']) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body[data-dsh-orca-link]
+    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [class$='_rowText'] {
+    width: 100%;
+    padding-right: 0;
+  }
+
+  body[data-dsh-orca-link]
+    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [class$='_row']:has(> [class$='_rowText']) > :last-child,
+  body[data-dsh-orca-link]
+    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [class$='_row']:has(> [class$='_rowText']) [class$='_selector'] {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+  }
+
+  body[data-dsh-orca-link]
+    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [class$='_selector'] {
+    justify-content: space-between;
+  }
+}
+
+body[data-dsh-orca-link] [role='menu'] {
+  background: #fbf7ef;
+  pointer-events: auto;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [role='menu'] {
+  background: #0f151f;
+}
+
+/* Permission modes use three independent equipment glyphs and risk colors.
+   The selector keys off ORCA's semantic icon marker, not localized labels or
+   generated CSS-module class names, so the hero and active composer agree. */
+body[data-dsh-orca-link] {
+  --orca-permission-read: #168aa6;
+  --orca-permission-write: #b8780c;
+  --orca-permission-full: #c74440;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] {
+  --orca-permission-read: #45c7df;
+  --orca-permission-write: #e5ad45;
+  --orca-permission-full: #ff7771;
+}
+
+body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem']):has(svg[data-orca-link-icon='permission-read']) {
+  color: var(--orca-permission-read);
+}
+
+body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem']):has(svg[data-orca-link-icon='permission-write']) {
+  color: var(--orca-permission-write);
+}
+
+body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem']):has(svg[data-orca-link-icon='permission-full']) {
+  color: var(--orca-permission-full);
+}
+
+body[data-dsh-orca-link] [data-composer-seat] button:not([role='menuitem']):has(svg[data-orca-link-icon^='permission-']) {
+  border-left: 1px solid color-mix(in srgb, currentColor 34%, transparent);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+body[data-dsh-orca-link] [role='menuitem']:has(svg[data-orca-link-icon^='permission-']) {
+  border-left: 2px solid transparent;
+}
+
+body[data-dsh-orca-link] [role='menuitem']:has(svg[data-orca-link-icon^='permission-']):hover,
+body[data-dsh-orca-link] [role='menuitem']:has(svg[data-orca-link-icon^='permission-']):has(> svg[data-orca-link-icon='check']) {
+  border-left-color: color-mix(in srgb, currentColor 64%, transparent);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+/* Appearance choices use the same compact equipment-marker language as the
+   provider picker. Keep the glyph and label on one centered axis so missing
+   or narrow icon artwork cannot leave the copy sitting low in the tile. */
+body[data-dsh-orca-link]
+  [data-slot='sidebar.settings'] [role='dialog']
+  [class$='_cubeRow'] > button[class*='_themeCube'] {
+  position: relative;
+  min-height: 64px;
+  padding-block: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 22px;
+}
+
+body[data-dsh-orca-link]
+  [data-slot='sidebar.settings'] [role='dialog']
+  [class$='_cubeRow'] > button[class*='_themeCube'] > svg {
+  flex: none;
+}
+
+body[data-dsh-orca-link]
+  [data-slot='sidebar.settings'] [role='dialog']
+  [class$='_cubeRow'] > button[class*='_themeCube'][aria-pressed='true']::after {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  content: '';
+  border: 1px solid var(--orca-blue);
+  background: var(--orca-blue);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 58% 100%, 58% 42%, 0 42%);
+}
+
+/* Chromium's customizable-select contract lets the provider catalog keep its
+   native keyboard, focus and form behavior while replacing the operating
+   system's saturated blue popup. The fallback remains the host's normal
+   select on engines without base-select support. */
+@supports (appearance: base-select) {
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select {
+    appearance: base-select;
+    min-height: 34px;
+    border: 1px solid var(--orca-line);
+    background: color-mix(in srgb, var(--orca-surface-strong) 94%, transparent);
+    box-shadow: inset 3px 0 0 color-mix(in srgb, var(--orca-blue) 24%, transparent);
+  }
+
+  body[data-dsh-orca-link]
+    [data-slot='sidebar.settings'] [role='dialog']
+    select[class$='_selectInput'] {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: 34px;
+    padding-block: 0;
+    padding-inline: 10px;
+    line-height: 22px;
+    text-align: left;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select:hover {
+    border-color: color-mix(in srgb, var(--orca-blue) 42%, var(--orca-line));
+    box-shadow: inset 3px 0 0 color-mix(in srgb, var(--orca-blue) 58%, transparent);
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select::picker-icon {
+    width: 8px;
+    height: 6px;
+    margin-left: 10px;
+    content: '';
+    background: currentColor;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transition: transform 140ms ease;
+  }
+
+  body[data-dsh-orca-link]
+    [data-slot='sidebar.settings'] [role='dialog']
+    select[class$='_selectInput']::picker-icon {
+    flex: none;
+    margin-left: auto;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select:open::picker-icon {
+    transform: rotate(180deg);
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select::picker(select) {
+    appearance: base-select;
+    max-height: min(420px, 62vh);
+    margin-block: 4px;
+    padding: 4px;
+    border: 1px solid color-mix(in srgb, var(--orca-graphite) 34%, transparent);
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 7%, transparent), transparent 42%),
+      color-mix(in srgb, var(--orca-surface-strong) 98%, transparent);
+    box-shadow: 8px 10px 0 rgba(27, 39, 58, 0.08), 0 18px 42px rgba(27, 39, 58, 0.16);
+    color: var(--orca-ink);
+    scrollbar-color: color-mix(in srgb, var(--orca-graphite) 42%, transparent) transparent;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option {
+    align-items: center;
+    min-height: 30px;
+    padding: 7px 30px 7px 10px;
+    border-left: 2px solid transparent;
+    background: transparent;
+    color: var(--orca-graphite);
+    font: 500 12px/1.3 ui-monospace, "SFMono-Regular", Consolas, monospace;
+    letter-spacing: 0.01em;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option:hover,
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option:focus-visible {
+    border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
+    background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
+    color: var(--orca-ink);
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option:checked {
+    border-left-color: var(--orca-blue);
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 16%, transparent), transparent 74%);
+    color: var(--orca-blue);
+    font-weight: 700;
+  }
+
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option::checkmark {
+    content: '';
+    width: 7px;
+    height: 7px;
+    margin-left: auto;
+    border: 1px solid currentColor;
+    background: currentColor;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 58% 100%, 58% 42%, 0 42%);
+  }
+}
+
+/* Promote the provider picker's equipment-list language to the composer's
+   model and effort picker. The official menu keeps ownership of focus,
+   keyboard navigation and selection; ORCA only redraws its existing states. */
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([class$='_cell'], [class$='_groupTitle'], [role='menuitemradio'] [class$='_modelName']) {
+  width: min(276px, calc(100vw - 32px));
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--orca-graphite) 34%, transparent);
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 7%, transparent), transparent 42%),
+    #fbf7ef;
+  box-shadow: 8px 10px 0 rgba(27, 39, 58, 0.08), 0 18px 42px rgba(27, 39, 58, 0.16);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme]
+  [role='menu'][class$='_menu']:has([class$='_cell'], [class$='_groupTitle'], [role='menuitemradio'] [class$='_modelName']) {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 10%, transparent), transparent 42%),
+    #0f151f;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle'] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px 5px;
+  border-bottom: 1px solid color-mix(in srgb, var(--orca-graphite) 16%, transparent);
+  background: #fbf7ef;
+  color: var(--orca-graphite-soft);
+  font: 600 10px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.08em;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme]
+  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle'] {
+  background: #0f151f;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle']::before {
+  width: 4px;
+  height: 4px;
+  content: '';
+  border: 1px solid currentColor;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName']) [role='menuitemradio'] {
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menuitemradio']:is(:hover, :focus-visible) {
+  border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
+  background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menuitemradio'][aria-checked='true'] {
+  border-left-color: var(--orca-blue);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 16%, transparent), transparent 74%);
+  color: var(--orca-blue);
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menuitemradio'] [class$='_modelName'] {
+  font: 600 12px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.01em;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menuitemradio'] [class$='_description'] {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menuitemradio'][aria-checked='true'] [class$='_check'] > svg {
+  display: none;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menuitemradio'][aria-checked='true'] [class$='_check']::before {
+  width: 7px;
+  height: 7px;
+  content: '';
+  border: 1px solid currentColor;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 58% 100%, 58% 42%, 0 42%);
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([class$='_cell']) [role='menuitem'] {
+  border-radius: 0;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([class$='_cell']) [class$='_cell'] {
+  min-height: 40px;
+  border-left: 2px solid transparent;
+}
+
+body[data-dsh-orca-link]
+  [role='menu'][class$='_menu']:has([class$='_cell']) [class$='_cell']:hover {
+  border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
+  background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
+}
+
+/* Replace the production shell wordmark while preserving its new-session button. */
+body[data-dsh-orca-link] [data-orca-link-brand] > svg {
+  display: none;
+}
+body[data-dsh-orca-link] [data-orca-link-brand] {
+  align-self: center;
+  height: 30px;
+}
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child {
+  position: relative;
+}
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  top: 15px;
+  left: 4px;
+  width: 2px;
+  height: 30px;
+  border-radius: 0;
+  background: linear-gradient(180deg, transparent, rgba(0, 126, 255, 0.9) 24%, #c9f5ff 52%, rgba(0, 126, 255, 0.82) 76%, transparent);
+  box-shadow: 0 0 5px rgba(0, 126, 255, 0.55), 0 0 12px rgba(0, 126, 255, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(0) scaleY(0.72);
+  will-change: transform, opacity;
+}
+body[data-dsh-orca-link] .dshWordmark {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  top: 15px;
+  left: 4px;
+  width: 118px;
+  height: 30px;
+  color: #11151b;
+  opacity: 0.82;
+  pointer-events: none;
+  /* Collapse through one compositor transform. Resizing the SVG box while
+     its origin sat at center made the mark dip before returning to the rail. */
+  transform: scale(0.28);
+  transform-origin: left top;
+  filter: blur(0.18px);
+  transition:
+    opacity 130ms ease-in,
+    transform 160ms cubic-bezier(0.4, 0, 1, 1),
+    filter 130ms ease-in;
+  will-change: transform, opacity, filter;
+}
+body[data-dsh-orca-link][data-orca-sidebar-wide] .dshWordmark {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0) drop-shadow(0 0 5px rgba(0, 108, 255, 0.16));
+  transition-duration: 180ms, 220ms, 180ms;
+  transition-timing-function: ease-out, cubic-bezier(0.16, 1, 0.3, 1), ease-out;
+}
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > :first-child::after {
+  animation: orcaWordmarkScan 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type > svg {
+  opacity: 0;
+}
+body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
+
+@keyframes orcaWordmarkScan {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scaleY(0.72);
+  }
+  18% { opacity: 0.92; }
+  72% { opacity: 0.58; }
+  100% {
+    opacity: 0;
+    transform: translateX(116px) scaleY(1);
+  }
+}
+
+/* The operator stage belongs to the sidebar only; its state actor is mounted as
+   live chrome while this pseudo-element keeps the scrim and seam ruler. */
+body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: rgba(250, 247, 241, 0.64);
+}
+
+body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 0;
+  width: var(--orca-sidebar-art-width, 280px);
+  content: '';
+  pointer-events: none;
+  /* The actor owns a dedicated stage at the top of the column, hard-stopped at
+     the seam by an opaque surface, with a ruler tick band just above it. */
+  background-image:
+    linear-gradient(180deg, rgba(250, 247, 241, 0.55) 0%, rgba(250, 247, 241, 0) 76px),
+    linear-gradient(180deg,
+      rgba(250, 247, 241, 0) 0,
+      rgba(250, 247, 241, 0) calc(var(--orca-stage, 300px) - 1px),
+      rgba(250, 247, 241, 0.9) var(--orca-stage, 300px),
+      rgba(250, 247, 241, 0.94) 100%),
+    repeating-linear-gradient(90deg, rgba(43, 55, 72, 0.22) 0 1px, transparent 1px 7px);
+  background-position:
+    0 0,
+    0 0,
+    0 calc(var(--orca-stage, 300px) - 10px);
+  background-repeat: no-repeat;
+  background-size: 100% 100%, 100% 100%, 100% 8px;
+  opacity: 0;
+  transition: opacity 150ms var(--ds-ease-in-out, ease-in-out);
+  will-change: opacity;
+}
+
+body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) > :not([role='tooltip']) {
+  position: relative;
+  z-index: 1;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+  opacity: 1;
+  transition-duration: 200ms;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter {
+  --orca-character-signal: var(--orca-cyan);
+  position: absolute;
+  z-index: 1;
+  top: 58px;
+  left: 22px;
+  /* Keep one stable stage width while the sidebar track contracts. The
+     sidebar's own overflow edge then wipes the artwork away without ever
+     changing the sprite cell's aspect ratio. */
+  width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
+  height: calc(var(--orca-stage, 300px) - 66px);
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  clip-path: inset(0 100% 0 0);
+  transform: translateX(-8px);
+  transition:
+    opacity 100ms ease-in,
+    clip-path 180ms cubic-bezier(0.4, 0, 1, 1),
+    transform 180ms cubic-bezier(0.4, 0, 1, 1);
+  will-change: clip-path, transform, opacity;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > .statusCharacter {
+  opacity: 1;
+  clip-path: inset(0);
+  transform: translateX(0);
+  transition-timing-function: ease-out, cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body[data-dsh-orca-link] .statusCharacterFrame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: calc(var(--orca-stage, 300px) - 66px);
+  height: 100%;
+  margin-inline: auto;
+  overflow: hidden;
+  animation: orcaGateWeave 1.06s steps(8, end) infinite;
+  will-change: transform;
+}
+
+body[data-dsh-orca-link] .statusCharacterSprite {
+  position: absolute;
+  inset: 0;
+  background-image: var(--orca-link-status-atlas);
+  background-position: var(--orca-status-x, 0%) var(--orca-status-y, 0%);
+  background-repeat: no-repeat;
+  background-size: 800% 1000%;
+  image-rendering: auto;
+  filter:
+    sepia(0.124)
+    saturate(0.945)
+    contrast(1.112)
+    brightness(0.988)
+    drop-shadow(0.45px 0.65px 0 rgba(76, 47, 22, 0.22));
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] .statusCharacterSprite {
+  filter:
+    sepia(0.08)
+    saturate(0.78)
+    contrast(0.96)
+    brightness(0.78)
+    drop-shadow(0.45px 0.65px 0 rgba(0, 0, 0, 0.35));
+}
+
+body[data-dsh-orca-link] .statusCharacterBubble {
+  position: absolute;
+  z-index: 2;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  box-sizing: border-box;
+  width: 44px;
+  height: 35px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--orca-character-signal) 66%, transparent);
+  background: color-mix(in srgb, var(--orca-character-signal) 8%, rgba(255, 252, 246, 0.96));
+  box-shadow: 0 8px 18px rgba(26, 38, 55, 0.12);
+  color: var(--orca-character-signal);
+  font: 700 16px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  opacity: 0;
+  transform: translateY(4px) scale(0.94);
+  transform-origin: 30% 100%;
+  transition: opacity 120ms ease, transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body[data-dsh-orca-link] .statusCharacterBubble::after {
+  position: absolute;
+  right: auto;
+  left: 8px;
+  bottom: -6px;
+  width: 9px;
+  height: 9px;
+  content: '';
+  border-left: 1px solid color-mix(in srgb, var(--orca-character-signal) 66%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--orca-character-signal) 66%, transparent);
+  background: inherit;
+  transform: skewY(-45deg);
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='input'],
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='review'] {
+  --orca-character-signal: #8859d6;
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='approval'] {
+  --orca-character-signal: var(--orca-permission-write);
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] {
+  --orca-character-signal: #d14343;
+}
+
+body[data-dsh-orca-link] .statusCharacter:is(
+  [data-orca-link-status='approval'],
+  [data-orca-link-status='input'],
+  [data-orca-link-status='review'],
+  [data-orca-link-status='fault']
+) .statusCharacterBubble {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='input'] [data-orca-link-character-bubble-glyph]::before {
+  content: '...';
+  letter-spacing: 0.08em;
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] [data-orca-link-character-bubble-glyph]::before {
+  content: '?';
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='approval'] [data-orca-link-character-bubble-glyph] {
+  position: relative;
+  display: block;
+  width: 15px;
+  height: 17px;
+  border: 2px solid currentColor;
+  clip-path: polygon(50% 0, 100% 18%, 86% 76%, 50% 100%, 14% 76%, 0 18%);
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='approval'] [data-orca-link-character-bubble-glyph]::before {
+  position: absolute;
+  top: 7px;
+  left: 6px;
+  width: 3px;
+  height: 6px;
+  content: '';
+  background: currentColor;
+}
+
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='review'] [data-orca-link-character-bubble-glyph] {
+  box-sizing: border-box;
+  width: 15px;
+  height: 18px;
+  border: 2px solid currentColor;
+  background: linear-gradient(currentColor, currentColor) 3px 5px / 7px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) 3px 9px / 7px 1px no-repeat;
+}
+
+/* The stock wide New Session control keeps its layout slot and official
+   click handler, but its hit plane expands over the portrait stage. The rail
+   restores the visible control when collapsed. */
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-orca-link-brand] {
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button {
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: transparent;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button > * {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button::before {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  left: -14px;
+  height: calc(var(--orca-stage, 300px) - 60px);
+  content: '';
+  cursor: pointer;
+  opacity: 0;
+  background:
+    linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 18px 1px no-repeat,
+    linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 1px 18px no-repeat,
+    linear-gradient(var(--orca-blue), var(--orca-blue)) right top / 18px 1px no-repeat,
+    linear-gradient(var(--orca-blue), var(--orca-blue)) right top / 1px 18px no-repeat,
+    linear-gradient(var(--orca-blue), var(--orca-blue)) left bottom / 18px 1px no-repeat,
+    linear-gradient(var(--orca-blue), var(--orca-blue)) left bottom / 1px 18px no-repeat,
+    linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 18px 1px no-repeat,
+    linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 1px 18px no-repeat;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--orca-blue) 12%, transparent);
+  transition: opacity 160ms ease;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button::after {
+  position: absolute;
+  top: calc(var(--orca-stage, 300px) - 86px);
+  right: -10px;
+  width: 9px;
+  height: 9px;
+  content: '';
+  background: var(--orca-blue);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  opacity: 0.36;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:hover::before,
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:focus-visible::before {
+  opacity: 0.62;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:hover::after,
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:focus-visible::after {
+  opacity: 0.92;
+  transform: translate(-2px, -2px);
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:focus-visible {
+  outline: none;
+}
+
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button {
+  position: relative;
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
+}
+
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button > svg {
+  opacity: 0;
+}
+
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Painted with background layers, not border: CSS borders snap to whole
+     device pixels while the SVG icon strokes render subpixel-antialiased —
+     the same paint model here keeps the weight identical to the icon set.
+     Geometry is the 16-unit design grid at the rail's 0.875 scale: 13-unit
+     outer square, 1.5-unit (1.3px) stroke, 7-unit cross arms. */
+  box-sizing: border-box;
+  width: 11.4px;
+  height: 11.4px;
+  content: '';
+  background:
+    linear-gradient(currentColor, currentColor) left top / 11.4px 1.3px no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 11.4px 1.3px no-repeat,
+    linear-gradient(currentColor, currentColor) left top / 1.3px 11.4px no-repeat,
+    linear-gradient(currentColor, currentColor) right top / 1.3px 11.4px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 6.15px 1.3px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 1.3px 6.15px no-repeat;
+  transform: translate(-50%, -50%);
+}
+
+/* Official rail tooltips are rendered beside their anchors instead of through
+   a portal. Release only their collapsed-rail ancestor chain so fixed bubbles
+   can leave the 36px action cell and the 55px sidebar shell. */
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child,
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [class*='regionArea'],
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [class*='sectionHeader'],
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [class*='headerActions'] {
+  overflow: visible;
+}
+
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [role='tooltip'] {
+  z-index: 1200;
+}
+
+/* Alt+Tab may restore both the pointer hit and the previously focused
+   workspace control. Keep stale sidebar tooltips hidden until the user makes
+   a fresh pointer or keyboard gesture; keyboard focus behavior then resumes. */
+body[data-dsh-orca-link][data-orca-window-resuming] [data-slot='sidebar'] [role='tooltip'] {
+  display: none;
+}
+
+/* Vertical identity label riding the stage's left edge (White Route language). */
+body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+  content: 'ORCA LINK';
+  position: absolute;
+  z-index: 1;
+  top: calc(76px + (var(--orca-stage, 300px) - 76px) / 2);
+  left: 9px;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl;
+  font: 600 8px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.42em;
+  color: var(--orca-muted);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+}
+
+/* The browsing region becomes a frosted glass panel pushed below the stage:
+   the art never fights the session list for readability. The production
+   shell measures 120px from the pane top to the region's normal position. */
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea'] {
+  isolation: isolate;
+  margin-top: calc(var(--orca-stage, 300px) - 120px);
+  border-top: 1px solid var(--orca-line);
+  background: transparent;
+  backdrop-filter: none;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background: rgba(253, 250, 244, 0.9);
+  backdrop-filter: blur(10px) saturate(1.03);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+  background-color: rgba(8, 12, 19, 0.88);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+  background-image:
+    linear-gradient(180deg, rgba(8, 12, 19, 0.68) 0%, rgba(8, 12, 19, 0.08) 76px),
+    linear-gradient(180deg,
+      rgba(8, 12, 19, 0.28) 0,
+      rgba(8, 12, 19, 0.34) calc(var(--orca-stage, 300px) - 1px),
+      rgba(8, 12, 19, 0.92) var(--orca-stage, 300px),
+      rgba(8, 12, 19, 0.95) 100%),
+    repeating-linear-gradient(90deg, rgba(180, 199, 226, 0.2) 0 1px, transparent 1px 7px);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] .statusCharacterBubble {
+  background: color-mix(in srgb, var(--orca-character-signal) 12%, rgba(12, 18, 27, 0.96));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before {
+  background: rgba(10, 15, 23, 0.88);
+}
+
+/* Settings is a thin-edged instrument row, not a rounded hover pill. */
+body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog'] {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  content: '';
+  border-top: 1px solid var(--orca-blue);
+  border-right: 1px solid var(--orca-blue);
+  opacity: 0;
+  transform: translate(-3px, 3px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']:hover {
+  border-color: color-mix(in srgb, var(--orca-blue) 28%, transparent);
+  background: color-mix(in srgb, var(--orca-blue) 5.5%, transparent);
+  box-shadow: inset 2px 0 0 var(--orca-blue);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']:hover::after,
+body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']:focus-visible::after {
+  opacity: 0.72;
+  transform: translate(0, 0);
+}
+
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] button[aria-haspopup='dialog']::after {
+  top: auto;
+  right: 3px;
+  bottom: 3px;
+  width: 6px;
+  height: 6px;
+  border: none;
+  background: var(--orca-blue);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* Workspace/session browser: workspaces are quiet chapter rows and sessions
+   are compact entries on one structural guide. The hierarchy comes from
+   spacing, type, and one selected rail rather than a stack of rounded cards. */
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] {
+  --orca-tree-guide: rgba(43, 55, 72, 0.16);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree'] {
+  --orca-tree-guide: rgba(180, 199, 226, 0.18);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-expanded]) {
+  position: relative;
+  padding: 3px 0 5px;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-expanded])
+  + div:has([role='treeitem'][aria-expanded]) {
+  margin-top: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--orca-tree-guide) 72%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-selected])::before {
+  position: absolute;
+  z-index: 0;
+  top: 41px;
+  bottom: 7px;
+  left: 11px;
+  width: 1px;
+  content: '';
+  background: var(--orca-tree-guide);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'] {
+  text-shadow: none;
+}
+
+/* Workspace chapter row: collapse the stock two-line 54px cell into a quiet
+   single-line index row while retaining its folder, count, menus, and toggle. */
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded] {
+  position: relative;
+  box-sizing: border-box;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 8px;
+  align-items: center;
+  border-radius: 0;
+  background: transparent;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]::before {
+  position: absolute;
+  left: 0;
+  content: '';
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='true'] {
+  border-left: 2px solid color-mix(in srgb, var(--orca-graphite) 34%, transparent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--orca-graphite) 6%, transparent), transparent 68%);
+  color: var(--orca-ink);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--orca-graphite) 10%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='true']::before {
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: color-mix(in srgb, var(--orca-graphite) 48%, transparent);
+  box-shadow: 3px 0 0 color-mix(in srgb, var(--orca-graphite) 12%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='false'] {
+  border-left: 1px solid color-mix(in srgb, var(--orca-graphite) 18%, transparent);
+  color: color-mix(in srgb, var(--orca-graphite) 76%, var(--orca-muted));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--orca-graphite) 3%, transparent), transparent 58%);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='false']::before {
+  top: 16px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid color-mix(in srgb, var(--orca-muted) 58%, transparent);
+  background: var(--orca-surface-strong);
+  transform: translateX(-3px);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='true']
+  svg[data-orca-link-icon='folder-open'] {
+  color: color-mix(in srgb, var(--orca-graphite) 82%, var(--orca-muted));
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='false']
+  svg[data-orca-link-icon='folder-closed'] {
+  color: var(--orca-muted);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]
+  > span:nth-child(3) {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]
+  > span:nth-child(3) > span:first-child {
+  font-weight: 600;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='true']
+  > span:nth-child(3) > span:first-child {
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='false']
+  > span:nth-child(3) > span:first-child {
+  font-weight: 500;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]
+  > span:nth-child(3) > span:nth-child(2) {
+  flex: none;
+  margin-left: auto;
+  letter-spacing: 0.04em;
+  font: 500 10px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  color: var(--orca-muted);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:hover {
+  background: color-mix(in srgb, var(--orca-blue) 5.5%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
+  > div:has([role='treeitem'][aria-selected='true'])
+  [role='treeitem'][aria-expanded] {
+  border-left-color: var(--orca-blue);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 15%, transparent), color-mix(in srgb, var(--orca-blue) 3.5%, transparent) 72%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--orca-blue) 20%, transparent);
+}
+
+/* Folder geometry communicates open/closed; blue communicates the current
+   workspace. The small square is deliberately independent from the open
+   folder glyph, so an expanded inactive workspace cannot read as selected. */
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
+  > div:has([role='treeitem'][aria-selected='true'])
+  [role='treeitem'][aria-expanded]::before {
+  background: var(--orca-blue);
+  box-shadow: 3px 0 0 color-mix(in srgb, var(--orca-blue) 20%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
+  > div:has([role='treeitem'][aria-selected='true'])
+  [role='treeitem'][aria-expanded]::after {
+  position: absolute;
+  top: 16px;
+  left: -1px;
+  width: 5px;
+  height: 5px;
+  content: '';
+  background: var(--orca-blue);
+  box-shadow: 3px 0 0 color-mix(in srgb, var(--orca-blue) 22%, transparent);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
+  > div:has([role='treeitem'][aria-selected='true'])
+  [role='treeitem'][aria-expanded]
+  svg[data-orca-link-icon^='folder-'] {
+  color: var(--orca-blue);
+}
+
+/* Session entry: keep the stock status slot and hover actions, but indent the
+   row from the workspace guide and reserve a stable right-aligned time cell. */
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected] {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: calc(100% - 18px);
+  height: 34px;
+  margin-left: 18px;
+  padding: 0 7px 0 9px;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected]::before {
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 7px;
+  height: 1px;
+  content: '';
+  background: var(--orca-tree-guide);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected] > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected]
+  > span:nth-child(3):not(:has(button)) {
+  flex: 0 0 44px;
+  margin-left: auto;
+  text-align: right;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected]:hover {
+  background: color-mix(in srgb, var(--orca-blue) 5.5%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected='true'] {
+  background: color-mix(in srgb, var(--orca-blue) 10%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected='true']::after {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: 2px;
+  content: '';
+  background: var(--orca-blue);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:hover {
+  background: rgba(77, 145, 255, 0.09);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree']
+  > div:has([role='treeitem'][aria-selected='true'])
+  [role='treeitem'][aria-expanded] {
+  background: linear-gradient(90deg, rgba(77, 145, 255, 0.2), rgba(77, 145, 255, 0.06) 72%, transparent);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] div[role='treeitem'][aria-selected]:hover {
+  background: rgba(77, 145, 255, 0.09);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] div[role='treeitem'][aria-selected='true'] {
+  background: rgba(77, 145, 255, 0.16);
+}
+
+body[data-dsh-orca-link] button,
+body[data-dsh-orca-link] input,
+body[data-dsh-orca-link] textarea,
+body[data-dsh-orca-link] select,
+body[data-dsh-orca-link] [role='dialog'],
+body[data-dsh-orca-link] [role='menu'] { border-color: var(--orca-line); }
+
+body[data-dsh-orca-link] input,
+body[data-dsh-orca-link] textarea,
+body[data-dsh-orca-link] select {
+  background-color: var(--dsw-specific-input-major);
+  color: var(--orca-ink);
+  caret-color: var(--orca-blue);
+}
+
+body[data-dsh-orca-link] [data-composer-card] input,
+body[data-dsh-orca-link] [data-composer-card] textarea {
+  background-color: transparent;
+}
+
+body[data-dsh-orca-link] input::placeholder,
+body[data-dsh-orca-link] textarea::placeholder {
+  color: color-mix(in srgb, var(--orca-muted) 62%, var(--orca-surface-strong));
+  opacity: 1;
+}
+
+body[data-dsh-orca-link] input:focus,
+body[data-dsh-orca-link] textarea:focus,
+body[data-dsh-orca-link] select:focus,
+body[data-dsh-orca-link] [data-composer-card]:focus-within {
+  background-color: var(--dsw-input-solid);
+}
+
+body[data-dsh-orca-link] button,
+body[data-dsh-orca-link] [role='button'] {
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+body[data-dsh-orca-link] button:hover:not(:disabled),
+body[data-dsh-orca-link] [role='button']:hover { border-color: color-mix(in srgb, var(--orca-blue) 34%, transparent); }
+
+body[data-dsh-orca-link] :focus-visible { outline: 2px solid var(--orca-blue); outline-offset: 2px; }
+
+/* The official question composer owns focus at the answer-row level. ORCA's
+   generic accessibility outline would otherwise override its outline:none
+   input and draw the saturated blue rectangle inside that row. Keep the
+   keyboard cue, but move it to the rectilinear row with a calmer signal. */
+body[data-dsh-orca-link] [data-question-key] :is(input, textarea):focus-visible {
+  outline: none;
+}
+
+body[data-dsh-orca-link] [data-question-key] :has(> input:focus) {
+  border-color: var(--orca-question-focus);
+  box-shadow:
+    inset 3px 0 0 var(--orca-question-focus),
+    inset 0 0 0 1px var(--orca-question-focus-wash);
+}
+
+body[data-dsh-orca-link] [data-question-key] textarea:focus {
+  border-color: var(--orca-question-focus);
+  box-shadow:
+    inset 3px 0 0 var(--orca-question-focus),
+    inset 0 0 0 1px var(--orca-question-focus-wash);
+  caret-color: var(--orca-question-focus);
+}
+
+body[data-dsh-orca-link] ::selection { color: #fff; background: var(--orca-blue); }
+body[data-dsh-orca-link] ::-webkit-scrollbar { width: 9px; height: 9px; }
+body[data-dsh-orca-link] ::-webkit-scrollbar-track { background: transparent; }
+body[data-dsh-orca-link] ::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 0;
+  background: rgba(87, 101, 121, 0.35);
+  background-clip: padding-box;
+}
+body[data-dsh-orca-link] ::-webkit-scrollbar-thumb:hover { background-color: var(--orca-blue); }
+
+/* Signal chip riding the sidebar logo row, right of the replacement wordmark. */
+body[data-dsh-orca-link] .signalChip {
+  --orca-signal-color: var(--orca-cyan);
+  --orca-signal-wash: color-mix(in srgb, var(--orca-signal-color) 8%, transparent);
+  position: absolute; z-index: 1; top: 50%; left: 136px;
+  transform: translateY(-50%);
+  display: flex; align-items: center; gap: 7px;
+  box-sizing: border-box;
+  min-height: 18px;
+  padding: 4px 7px 4px 6px;
+  border-left: 1px solid color-mix(in srgb, var(--orca-signal-color) 52%, transparent);
+  background: linear-gradient(90deg, var(--orca-signal-wash), transparent 90%);
+  color: color-mix(in srgb, var(--orca-signal-color) 70%, var(--orca-graphite));
+  white-space: nowrap; pointer-events: none;
+  font: 600 8px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.2em;
+  opacity: 0;
+  transition: opacity 220ms ease 90ms, color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+body[data-dsh-orca-link][data-orca-sidebar-wide] .signalChip { opacity: 1; }
+body[data-dsh-orca-link] .signalDot {
+  width: 6px; height: 6px; border-radius: 0;
+  flex: 0 0 6px;
+  background: var(--orca-signal-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--orca-signal-color) 70%, transparent);
+  animation: orcaSignalPulse 2.6s ease-in-out infinite;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='syncing'],
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='working'] {
+  --orca-signal-color: var(--orca-blue);
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='approval'] {
+  --orca-signal-color: var(--orca-permission-write);
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='input'],
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='review'] {
+  --orca-signal-color: #8859d6;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='complete'] {
+  --orca-signal-color: #238a58;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='fault'] {
+  --orca-signal-color: #d14343;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='offline'] {
+  --orca-signal-color: #798394;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='ready'] {
+  --orca-signal-color: #5483a8;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='working'] .signalDot {
+  animation: orcaSignalWork 920ms steps(2, end) infinite;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='approval'] .signalDot,
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='input'] .signalDot,
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='review'] .signalDot {
+  animation-duration: 740ms;
+}
+
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='complete'] .signalDot,
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='fault'] .signalDot,
+body[data-dsh-orca-link] .signalChip[data-orca-link-status='offline'] .signalDot {
+  animation: none;
+}
+
+@keyframes orcaSignalWork {
+  0%, 100% { opacity: 1; transform: scaleX(1); }
+  50% { opacity: 0.38; transform: scaleX(0.5); }
+}
+@keyframes orcaSignalPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(32, 199, 232, 0.7); }
+  50% { opacity: 0.45; box-shadow: 0 0 3px rgba(32, 199, 232, 0.35); }
+}
+
+/* Pricing traffic light under the DSH wordmark: three lamps mirror the
+   DeepSeek peak/valley schedule (Beijing time). Red = peak, amber = the
+   10 minutes after valley switches to peak, green = valley (half price). JS
+   only flips one data attribute per band; the active lamp, glow and label
+   color all ride --orca-price-signal. The unit stays visible on both the
+   collapsed rail and the expanded sidebar. On the collapsed rail the wordmark
+   itself rides the expand button, so the light parks in the seam directly
+   below that button, centered on the rail (still under the DSH mark, but
+   clear of every button's hit plane); hover stays disabled there so the rail
+   keeps its quiet glance-only behavior. The expanded sidebar parks it in the
+   strip right under the full wordmark, above the operator stage and the
+   session region, and restores the hover detail card. */
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight {
+  --orca-price-signal: #238a58;
+  --orca-price-glow: rgba(35, 138, 88, 0.72);
+  position: absolute;
+  z-index: 2;
+  top: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+  box-sizing: border-box;
+  width: auto;
+  padding: 1px 4px;
+  border: 1px solid color-mix(in srgb, var(--orca-price-signal) 42%, var(--orca-line));
+  background: color-mix(in srgb, var(--orca-price-signal) 7%, var(--orca-surface-strong));
+  box-shadow: 0 5px 12px rgba(27, 39, 58, 0.14);
+  color: var(--orca-price-signal);
+  font: 700 6px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.04em;
+  text-align: center;
+  cursor: default;
+  transition:
+    top 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+  will-change: transform, opacity;
+}
+
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > .pricingLight {
+  top: 46px;
+  left: 4px;
+  transform: none;
+  gap: 4px;
+  padding: 1px 5px;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  cursor: help;
+}
+
+body[data-dsh-orca-link] .pricingLight[data-orca-link-price='high'] {
+  --orca-price-signal: #d14343;
+  --orca-price-glow: rgba(209, 67, 67, 0.72);
+}
+body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] {
+  --orca-price-signal: #dfa02b;
+  --orca-price-glow: rgba(223, 160, 43, 0.8);
+}
+body[data-dsh-orca-link] .pricingLight[data-orca-link-price='low'] {
+  --orca-price-signal: #238a58;
+  --orca-price-glow: rgba(35, 138, 88, 0.72);
+}
+
+body[data-dsh-orca-link] .pricingHousing {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+body[data-dsh-orca-link] .pricingLamp {
+  box-sizing: border-box;
+  width: 4px;
+  height: 4px;
+  border: 1px solid var(--orca-line);
+  border-radius: 0;
+  background: transparent;
+  opacity: 0.3;
+  transition: opacity 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+body[data-dsh-orca-link][data-orca-sidebar-wide] .pricingLamp {
+  width: 5px;
+  height: 5px;
+}
+body[data-dsh-orca-link] .pricingLampRed { --orca-lamp-color: #d14343; }
+body[data-dsh-orca-link] .pricingLampAmber { --orca-lamp-color: #dfa02b; }
+body[data-dsh-orca-link] .pricingLampGreen { --orca-lamp-color: #238a58; }
+body[data-dsh-orca-link] .pricingLight[data-orca-link-price='high'] .pricingLampRed,
+body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber,
+body[data-dsh-orca-link] .pricingLight[data-orca-link-price='low'] .pricingLampGreen {
+  border-color: var(--orca-lamp-color);
+  background: var(--orca-lamp-color);
+  box-shadow: 0 0 8px var(--orca-price-glow);
+  opacity: 1;
+}
+/* The amber lamp blinks like a real traffic light while the transition
+   window is open, then hands the glow to the red lamp at 09:10 / 14:10. */
+body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber {
+  animation: orcaPricePulse 1.3s ease-in-out infinite;
+}
+@keyframes orcaPricePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+body[data-dsh-orca-link] .pricingLabel {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Hover detail card. The card is a descendant of the light, so :hover on the
+   light stays true while the pointer reads the card; the top padding doubles
+   as the visual gap so the pointer never crosses a dead zone. */
+body[data-dsh-orca-link] .pricingTooltip {
+  position: absolute;
+  z-index: 4;
+  top: 100%;
+  left: 0;
+  display: grid;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 226px;
+  padding: 9px 9px 9px;
+  border: 1px solid var(--orca-line);
+  border-radius: 0;
+  background: var(--orca-surface-strong);
+  box-shadow: var(--orca-shadow);
+  color: var(--orca-graphite);
+  font: 600 9px/1.55 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.02em;
+  text-align: left;
+  white-space: normal;
+  cursor: default;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 0s linear 140ms;
+}
+/* The detail card opens on hover only in the expanded sidebar; the collapsed
+   rail keeps the light glance-only (no hover surface, default cursor). */
+body[data-dsh-orca-link][data-orca-sidebar-wide] .pricingLight:hover .pricingTooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity 140ms ease 70ms, transform 140ms ease 70ms, visibility 0s linear 0s;
+}
+body[data-dsh-orca-link] .pricingTooltipTitle {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--orca-line);
+  color: var(--orca-muted);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+body[data-dsh-orca-link] .pricingTooltipRow {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 8px;
+}
+body[data-dsh-orca-link] .pricingTooltipKey {
+  color: var(--orca-muted);
+  font-weight: 600;
+}
+body[data-dsh-orca-link] .pricingTooltipValue {
+  color: var(--orca-ink);
+  font-weight: 700;
+}
+
+/* Sidebar seam ruler: a tick strip centered on the column boundary replaces
+   the old metal bar — mechanism through precision, not mass. */
+body[data-dsh-orca-link] .spine {
+  position: fixed; top: 0; bottom: 0; left: var(--orca-sidebar-width);
+  z-index: 850; width: 9px; transform: translateX(-4px);
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, var(--orca-line) 0 1px, transparent 1px 56px);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+}
+
+/* ---- Hero橱窗：空态是皮肤的展示窗口 -------------------------------------- */
+
+body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText'] {
+  display: inline-block;
+  min-width: 8.2em;
+  color: var(--orca-ink);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  white-space: nowrap;
+}
+body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText']::after {
+  content: '';
+  display: inline-block;
+  width: 9px; height: 9px; margin-left: 10px;
+  background: var(--orca-blue);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--orca-blue) 50%, transparent);
+  animation: orca-terminal-caret 1.05s steps(1, end) infinite;
+}
+
+@keyframes orca-terminal-caret {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
+}
+body[data-dsh-orca-link] [data-phase='hero'] [class*='previewBadge'] {
+  border: 1px solid var(--orca-line); border-radius: 0;
+  padding: 3px 8px 2px;
+  color: var(--orca-muted); background: var(--orca-surface);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 9px; letter-spacing: 0.22em;
+}
+body[data-dsh-orca-link] [data-phase='hero'] [class*='heroGlow'] ellipse {
+  fill: var(--orca-blue);
+  fill-opacity: 0.06;
+}
+
+/* Hero and active phases share one signature terminal: squared corners, a
+   stronger frame, and mechanical side arms bracketing the card. */
+body[data-dsh-orca-link] [data-composer-card] {
+  position: relative;
+  container-name: orca-composer;
+  container-type: inline-size;
+  border-radius: 0;
+  border-style: solid;
+  border-color: var(--orca-line);
+  background-color: var(--dsw-specific-input-major);
+  box-shadow: var(--orca-shadow);
+}
+body[data-dsh-orca-link] [data-composer-card][class*='cardWorkspaceTrigger']::after {
+  content: none;
+  -webkit-mask: none;
+  mask: none;
+}
+body[data-dsh-orca-link] :is([role='menu'], [role='listbox']) {
+  overscroll-behavior: contain;
+}
+body[data-dsh-orca-link] [data-composer-card]:focus-within {
+  border-color: color-mix(in srgb, var(--orca-blue) 45%, transparent);
+  box-shadow: var(--orca-shadow), 0 0 0 3px color-mix(in srgb, var(--orca-blue) 10%, transparent);
+}
+body[data-dsh-orca-link] [data-composer-card]:not([class*='cardWorkspaceTrigger'])::before,
+body[data-dsh-orca-link] [data-composer-card]:not([class*='cardWorkspaceTrigger'])::after {
+  position: absolute;
+  z-index: 5;
+  top: 22%;
+  bottom: 22%;
+  width: 7px;
+  content: '';
+  border: 1px solid color-mix(in srgb, var(--orca-graphite) 46%, transparent);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] [data-composer-card]:not([class*='cardWorkspaceTrigger'])::before {
+  left: -10px;
+  border-right: 0;
+}
+
+body[data-dsh-orca-link] [data-composer-card]:not([class*='cardWorkspaceTrigger'])::after {
+  right: -10px;
+  border-left: 0;
+}
+
+/* The stock bracket artwork remains untouched. These transparent controls
+   only turn its existing left and right hit planes into drag surfaces. */
+body[data-dsh-orca-link] [data-orca-composer-handle] {
+  position: absolute;
+  z-index: 6;
+  top: 50%;
+  width: 20px;
+  height: 64px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: transparent;
+  cursor: ew-resize;
+  touch-action: none;
+  transform: translateY(-50%);
+}
+
+body[data-dsh-orca-link] [data-orca-composer-handle='left'] { left: -16px; }
+body[data-dsh-orca-link] [data-orca-composer-handle='right'] { right: -16px; }
+
+body[data-dsh-orca-link][data-ds-dark-theme]
+  [data-composer-card]:not([class*='cardWorkspaceTrigger'])::before,
+body[data-dsh-orca-link][data-ds-dark-theme]
+  [data-composer-card]:not([class*='cardWorkspaceTrigger'])::after {
+  border-color: color-mix(in srgb, var(--orca-graphite) 34%, transparent);
+}
+
+body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat] {
+  transition:
+    opacity 300ms ease,
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+body[data-dsh-orca-link][data-orca-composer-handle-dragging] {
+  cursor: ew-resize;
+  user-select: none;
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-dragging] {
+  transition: none !important;
+}
+
+body[data-dsh-orca-link]
+  [data-composer-seat][data-orca-composer-collapse-dragging]
+  [data-composer-card] {
+  width: var(--orca-composer-drag-width);
+  margin-inline: auto;
+  overflow: hidden;
+  transition: none !important;
+  will-change: width;
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-rebounding] {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 220ms ease-out,
+    transform 280ms cubic-bezier(0.2, 1.28, 0.36, 1);
+}
+
+body[data-dsh-orca-link]
+  [data-composer-seat][data-orca-composer-collapse-rebounding]
+  [data-composer-card],
+body[data-dsh-orca-link]
+  [data-composer-seat][data-orca-composer-restoring]
+  [data-composer-card] {
+  width: 100%;
+  margin-inline: auto;
+  transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden],
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing] {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link]
+  [data-composer-seat]:is([data-orca-composer-manual-hidden], [data-orca-composer-collapsing])
+  [data-composer-card] {
+  width: var(--orca-composer-drag-width, 96px);
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing] {
+  transition:
+    opacity 190ms ease-out,
+    transform 280ms cubic-bezier(0.2, 0.82, 0.2, 1);
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring] {
+  animation: orcaComposerManualRestore 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* The host permission control starts hiding its label at a fairly generous
+   width. Keep all wording intact until the controls genuinely run out of
+   room, then let the card's real inline size drive the compact states. */
+body[data-dsh-orca-link] [data-composer-card] :is([class*='triggerLabel'], [class*='triggerEffort']) {
+  display: block !important;
+}
+
+@container orca-composer (max-width: 260px) {
+  body[data-dsh-orca-link] [data-composer-card] :is([class*='triggerLabel'], [class*='triggerEffort']) {
+    display: none !important;
+  }
+
+  body[data-dsh-orca-link]
+    [data-composer-card]
+    :is([class*='_row'], [class*='_tools'], [class*='_modes'], [class*='_trailing']) {
+    gap: 2px;
+  }
+}
+
+@container orca-composer (max-width: 200px) {
+  body[data-dsh-orca-link] [data-composer-card] [class*='_row'] {
+    justify-content: center;
+    padding-inline: 4px;
+  }
+
+  body[data-dsh-orca-link]
+    [data-composer-card]
+    :is(button[aria-haspopup='listbox'], button[aria-label*='上下文'], button[aria-label*='Context']) {
+    display: none;
+  }
+}
+
+body[data-dsh-orca-link] [data-orca-composer-restore] {
+  position: fixed;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--orca-graphite) 46%, transparent);
+  background: color-mix(in srgb, var(--orca-surface-strong) 96%, transparent);
+  box-shadow: 5px 7px 0 rgba(27, 39, 58, 0.08), 0 10px 28px rgba(27, 39, 58, 0.14);
+  color: var(--orca-graphite);
+  cursor: pointer;
+  animation: orcaComposerRestoreControlIn 280ms cubic-bezier(0.16, 1, 0.3, 1) 45ms both;
+}
+
+body[data-dsh-orca-link] [data-orca-composer-restore][hidden] { display: none; }
+
+body[data-dsh-orca-link] [data-orca-composer-restore]::before,
+body[data-dsh-orca-link] [data-orca-composer-restore]::after {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  content: '';
+  border: 1px solid currentColor;
+}
+
+body[data-dsh-orca-link] [data-orca-composer-restore]::before {
+  left: -6px;
+  border-right: 0;
+}
+
+body[data-dsh-orca-link] [data-orca-composer-restore]::after {
+  right: -6px;
+  border-left: 0;
+}
+
+body[data-dsh-orca-link] [data-orca-composer-restore-core] {
+  width: 10px;
+  height: 10px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--orca-blue) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--orca-blue);
+}
+
+body[data-dsh-orca-link] [data-orca-composer-restore]:is(:hover, :focus-visible) {
+  border-color: var(--orca-blue);
+  color: var(--orca-blue);
+  outline: 1px solid color-mix(in srgb, var(--orca-blue) 40%, transparent);
+  outline-offset: 2px;
+  transform: translateY(-1px);
+}
+
+body[data-dsh-orca-link] [data-orca-composer-restore][data-orca-composer-restore-exiting] {
+  pointer-events: none;
+  animation: orcaComposerRestoreControlOut 160ms ease-out both;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-orca-composer-restore] {
+  border-color: color-mix(in srgb, var(--orca-graphite) 34%, transparent);
+  background: #111925;
+  box-shadow: 5px 7px 0 rgba(0, 0, 0, 0.2), 0 12px 30px rgba(0, 0, 0, 0.34);
+}
+
+@keyframes orcaComposerRestoreControlIn {
+  from {
+    opacity: 0;
+    transform:
+      translate(var(--orca-composer-restore-from-x, 0), var(--orca-composer-restore-from-y, 18px))
+      scale(0.16);
+  }
+  58% { opacity: 0.82; }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes orcaComposerRestoreControlOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(7px) scale(0.5); }
+}
+
+@keyframes orcaComposerManualRestore {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat][data-orca-composer-interactive] {
+  opacity: 1;
+  transform: translateY(0);
+  transition: none;
+}
+
+body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat][data-orca-composer-interactive] [data-composer-card] {
+  background-color: var(--dsw-specific-input-major);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] [data-composer-seat][data-orca-composer-interactive] [data-composer-card] {
+  background-color: var(--dsw-specific-input-major);
+}
+
+body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat][data-orca-composer-interactive] [data-composer-card]:focus-within,
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] [data-composer-seat][data-orca-composer-interactive] [data-composer-card]:focus-within {
+  background-color: var(--dsw-input-solid);
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-hidden] {
+  opacity: 0;
+  transform: translateY(28px);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-outside-chat] {
+  display: none !important;
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-exiting] {
+  opacity: 0;
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] {
+  animation: orcaComposerDockIn 420ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+}
+
+body[data-dsh-orca-link] [data-orca-composer-ghost] {
+  position: fixed;
+  z-index: 1200;
+  box-sizing: border-box;
+  margin: 0;
+  pointer-events: none;
+  animation: orcaComposerGhostOut 180ms ease-out both;
+}
+
+@keyframes orcaComposerGhostOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(5px); }
+}
+
+@keyframes orcaComposerDockIn {
+  from { opacity: 0; transform: translateY(42px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Standby telemetry lives only under the hero橱窗 — an instrument reading,
+   not floating chrome. */
+body[data-dsh-orca-link] .standby {
+  position: fixed; bottom: 18px; left: calc(50% + 9vw); z-index: 900;
+  display: none; align-items: center; gap: 14px; width: min(420px, 38vw);
+  transform: translateX(-50%); color: var(--orca-muted);
+  font: 500 8px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.2em; pointer-events: none;
+}
+body[data-dsh-orca-link][data-orca-scene='hero'] .standby { display: flex; }
+body[data-dsh-orca-link] .standbyLine {
+  flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--orca-line));
+}
+body[data-dsh-orca-link] .standbyLine:last-child {
+  background: linear-gradient(90deg, var(--orca-line), transparent);
+}
+
+body[data-dsh-orca-link] [data-aionui-explorer-col],
+body[data-dsh-orca-link] [data-aionui-preview-col],
+body[data-dsh-orca-link] [data-gitgraph-dialog] {
+  border-color: var(--orca-line); background: var(--orca-surface); box-shadow: var(--orca-shadow);
+}
+
+/* Icon redraw: matched host glyphs keep their element, sizing and React
+   ownership, but the original drawing is retired while the ORCA art group
+   (see icons.ts) carries the visible rectilinear geometry instead. */
+body[data-dsh-orca-link] [data-orca-link-icon] > :not([data-orca-link-icon-art]) {
+  display: none;
+}
+
+/* Busy spinner: the square outline's four edges light up clockwise in hard
+   steps, replacing the host's orbiting-dot loader. */
+body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq] {
+  animation: orcaSquareTrace 0.96s infinite;
+}
+body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq='1'] { animation-delay: -0.72s; }
+body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq='2'] { animation-delay: -0.48s; }
+body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq='3'] { animation-delay: -0.24s; }
+
+@keyframes orcaSquareTrace {
+  0%, 24.999% { opacity: 1; }
+  25%, 100% { opacity: 0.18; }
+}
+
+/* Todo progress borrows the context-usage pixel field: the frame stays still
+   while cells fill bottom-up, then clear for the next cycle. This explicitly
+   retires the host's rotating-ring animation from the retained SVG element. */
+body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] {
+  animation: none !important;
+}
+
+body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell] {
+  opacity: 0.12;
+  animation-duration: 2.4s;
+  animation-timing-function: steps(1, end);
+  animation-iteration-count: infinite;
+}
+
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='0'] { animation-name: orcaTodoFill0; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='1'] { animation-name: orcaTodoFill1; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='2'] { animation-name: orcaTodoFill2; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='3'] { animation-name: orcaTodoFill3; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='4'] { animation-name: orcaTodoFill4; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='5'] { animation-name: orcaTodoFill5; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='6'] { animation-name: orcaTodoFill6; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='7'] { animation-name: orcaTodoFill7; }
+body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='8'] { animation-name: orcaTodoFill8; }
+
+@keyframes orcaTodoFill0 { 0%, 7.999% { opacity: 0.12; } 8%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill1 { 0%, 15.999% { opacity: 0.12; } 16%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill2 { 0%, 23.999% { opacity: 0.12; } 24%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill3 { 0%, 31.999% { opacity: 0.12; } 32%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill4 { 0%, 39.999% { opacity: 0.12; } 40%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill5 { 0%, 47.999% { opacity: 0.12; } 48%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill6 { 0%, 55.999% { opacity: 0.12; } 56%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill7 { 0%, 63.999% { opacity: 0.12; } 64%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+@keyframes orcaTodoFill8 { 0%, 71.999% { opacity: 0.12; } 72%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
+
+body[data-dsh-orca-link] {
+  --aion-bg-base: var(--orca-surface-strong);
+  --aion-bg-1: var(--orca-surface);
+  --aion-bg-2: rgba(240, 236, 229, 0.72);
+  --aion-bg-hover: color-mix(in srgb, var(--orca-blue) 8%, transparent);
+  --aion-bg-active: color-mix(in srgb, var(--orca-blue) 14%, transparent);
+  --aion-text-primary: var(--orca-ink);
+  --aion-text-secondary: var(--orca-graphite);
+  --aion-text-tertiary: var(--orca-muted);
+  --aion-primary: var(--orca-blue);
+  --aion-brand: var(--orca-cyan);
+  --aion-border-base: var(--orca-line);
+  --aion-overlay-shadow: var(--orca-shadow);
+}
+
+@media (max-width: 900px) {
+  body[data-dsh-orca-link] .lightScene { display: none; }
+  body[data-dsh-orca-link][data-ds-dark-theme] .darkScene { display: none; }
+  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before,
+  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after { display: none; }
+  body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea'] {
+    margin-top: 0;
+    border-top: none;
+    background: transparent;
+    backdrop-filter: none;
+  }
+  body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before { display: none; }
+  body[data-dsh-orca-link] .spine,
+  body[data-dsh-orca-link] .signalChip,
+  body[data-dsh-orca-link] .statusCharacter,
+  body[data-dsh-orca-link] .pricingLight { display: none; }
+  body[data-dsh-orca-link][data-orca-scene='hero'] .standby { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-orca-link] button,
+  body[data-dsh-orca-link] [role='button'],
+  body[data-dsh-orca-link] .dshWordmark,
+  body[data-dsh-orca-link] .statusCharacter,
+  body[data-dsh-orca-link] .statusCharacterBubble,
+  body[data-dsh-orca-link] .pricingLight,
+  body[data-dsh-orca-link] .pricingLamp,
+  body[data-dsh-orca-link] .pricingTooltip,
+  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before { transition: none; }
+  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
+  body[data-dsh-orca-link] .signalDot,
+  body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq],
+  body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell],
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > :first-child,
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'],
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::before,
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::after,
+  body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText']::after,
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering],
+  body[data-dsh-orca-link] [data-orca-composer-ghost],
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring],
+  body[data-dsh-orca-link] [data-orca-composer-restore] { animation: none; }
+  body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat],
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-rebounding],
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing],
+  body[data-dsh-orca-link] [data-orca-composer-restore],
+  body[data-dsh-orca-link] .lightSceneLayer,
+  body[data-dsh-orca-link] .darkSceneLayer,
+  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > button::before,
+  body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
+  body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell] { opacity: 0.55; }
+  body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::before,
+  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::after { display: none; }
+  body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
+  body[data-dsh-orca-link] .statusCharacter::after { animation: none; }
+  body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
+}
+
+@keyframes orcaGateWeave {
+  0%   { transform: translate(-0.090px, 0.062px); }
+  14%  { transform: translate(0.090px, -0.062px); }
+  29%  { transform: translate(0.032px, 0.062px); }
+  43%  { transform: translate(-0.041px, -0.016px); }
+  58%  { transform: translate(0.059px, 0.011px); }
+  72%  { transform: translate(-0.018px, -0.062px); }
+  86%  { transform: translate(0.090px, 0.034px); }
+  100% { transform: translate(-0.090px, 0.062px); }
+}
+
+@keyframes orcaFilmGrainShift {
+  0%   { transform: translate(-7%, -8%) rotate(0.01deg); }
+  25%  { transform: translate(5%, -3%) rotate(-0.02deg); }
+  50%  { transform: translate(-3%, 7%) rotate(0.02deg); }
+  75%  { transform: translate(8%, 3%) rotate(-0.01deg); }
+  100% { transform: translate(-7%, -8%) rotate(0.01deg); }
+}
+
+/* Warm lamp glow for the status character in dark mode: the lamp is simply
+   ON whenever dark mode is active. Closing the settings panel replays the
+   flicker-twice-then-steady turn-on animation; leaving dark mode fades it out
+   through the base transition. */
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter::after {
+  content: '';
+  position: absolute;
+  inset: -10% -6% -12% -6%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 32%, rgba(255, 244, 214, 0.42), rgba(255, 214, 150, 0.12) 45%, transparent 68%);
+  mix-blend-mode: screen;
+  filter: blur(2px);
+  transition: opacity 300ms ease;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] > :first-child > .statusCharacter::after {
+  opacity: 0.34;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-lamp='flicker'] [data-slot='sidebar'] > :first-child > .statusCharacter::after {
+  animation: orcaLampFlicker 1000ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes orcaLampFlicker {
+  0%   { opacity: 0; }
+  16%  { opacity: 0.85; }
+  30%  { opacity: 0.12; }
+  46%  { opacity: 0.72; }
+  60%  { opacity: 0.18; }
+  78%  { opacity: 0.42; }
+  100% { opacity: 0.34; }
+}
+
+
+
