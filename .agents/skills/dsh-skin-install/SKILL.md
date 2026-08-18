@@ -38,21 +38,22 @@ description: 从 dsh-deep-whale 仓库安装或切换 DSH Web 皮肤：定位并
 
 ### 5. 安装/切换
 
-先查当前 dsh 环境状态：`dsh plugin --profile web list`（或实际 profile 名）看目标皮肤是否已安装：
+先查当前 dsh 环境状态：`dsh plugin --profile <name> list`（实际 profile 名，如 web；`plugin` 命令把参数转交 pnpm，输出 profile 依赖树，本地路径安装显示为 `link:`）。按 skin.json 的 `package` 名核对目标皮肤是否已安装：
 
 - **已安装（常见：link: 依赖）→ 开关热重载，无需重启**：
   - 修改**两个** patch 层（都改，home 层覆盖 profile 层）：
     - `~/.dsh/profiles/<profile>/cordis.patch.yml`
     - `~/.dsh/cordis.patch.yml`
-  - 目标皮肤 `disabled: false`，其余皮肤 `disabled: true`。
+  - 目标皮肤 `disabled: false`，其余皮肤各补一行 `disabled: true`。注意：patch 里没有行的皮肤默认**启用**，所以"只保留一套"必须显式停用其余每一套。
   - 保存即热重载生效（配置 HMR），**无需重启**，用户刷新页面即可看到新皮肤；会话不受影响。
 - **未安装 → 插件注册，必须重启**：
-  - `dsh plugin --profile web add <仓库路径>/<皮肤目录>`（仓库 README 的官方安装方式），然后**重启 dsh web** 才生效。
+  - `dsh plugin --profile <name> add <仓库路径>/<皮肤目录>`（仓库 README 的官方安装方式；本地路径自动按 `link:` 注册），然后**重启 dsh web** 才生效。
+  - 安装并重启后，同样写入两个 patch 层的 `disabled` 行（见上一条），保持同一时间只启用一套皮肤。
 
 ### 6. 验证生效
 
-- `dsh --profile web --dump-config` 核对皮肤行 `disabled` 状态与 patch 来源（确认两个 patch 层都生效）。
-- 有 `dsh-plugin-verify` 技能时走其三层验证（组合层/产物层/执行层）；没有时至少做到：主实例页面 `window.__DSH_BOOT__` 的 entries 含目标皮肤 id，且进程未重启（PID 不变，证明走的是热重载）。
+- `dsh --profile <name> --dump-config` 核对皮肤行 `disabled` 状态与 patch 来源：每行会标注 `patched by <文件路径>`，确认两个 patch 层都生效（home 层覆盖 profile 层）。
+- 有 `dsh-plugin-verify` 技能时走其三层验证（组合层/产物层/执行层）；没有时至少做到：刷新页面后 `window.__DSH_BOOT__` 的 entries 含目标皮肤的 **package 名**（boot 图以包名为 key，如 `@deepseek-ai/dsh-client-ui-skin-orca-link`，不是 `wiring.id`），且进程未重启（PID 不变，证明走的是热重载）。被 `disabled` 的皮肤不会出现在 entries 里。
 - 告知用户刷新页面查看效果；皮肤异常（控制台报错、布局问题）时收集现象再排查。
 
 ## 已知要点（判断用，非写死事实）
