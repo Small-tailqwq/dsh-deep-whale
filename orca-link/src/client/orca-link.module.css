@@ -1795,6 +1795,48 @@ body[data-dsh-orca-link] [data-question-key] textarea:focus {
   caret-color: var(--orca-question-focus);
 }
 
+/* The official question/plan-review/approval cards and the todo panel live
+   outside [data-chat-flow], so their section cards and span chips miss the
+   ORCA shape contract. Square the cards, option index chips, custom rows,
+   checkbox glyphs, status dots and the recommendation badge. */
+body[data-dsh-orca-link] [data-question-key] [class*='_card'],
+body[data-dsh-orca-link] [data-plan-review-key] [class*='_card'],
+body[data-dsh-orca-link] [data-approval-key] [class*='_card'],
+body[data-dsh-orca-link] [data-testid='todo-panel'] {
+  border-radius: 0 !important;
+}
+
+body[data-dsh-orca-link] [data-question-key] [class*='_number'],
+body[data-dsh-orca-link] [data-question-key] [class*='_customRow'],
+body[data-dsh-orca-link] [data-question-key] [class*='_badge'],
+body[data-dsh-orca-link] [data-plan-review-key] [class*='_dot'],
+body[data-dsh-orca-link] [data-approval-key] [class*='_dot'],
+body[data-dsh-orca-link] [data-queue-dock] [class*='_panel'],
+body[data-dsh-orca-link] [data-queue-dock] [class*='_row'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_notice'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_chip'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_hlSegment'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_pending'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_panel'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_bar'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_segment'],
+body[data-dsh-orca-link] [data-composer-card] [class*='_swatch'] {
+  border-radius: 0 !important;
+}
+
+body[data-dsh-orca-link] [data-question-key] [class*='_checkbox']::before {
+  border-radius: 0 !important;
+}
+
+/* Recommendation badge: the host dark palette would fill and ink the tag with
+   the same electric blue (#4d91ff on #4d91ff). Keep the accent fill and switch
+   the dark label to inverted brand ink; the light theme keeps its host pair,
+   which already separates beige fill from graphite ink. */
+body[data-dsh-orca-link][data-ds-dark-theme] [data-question-key] [class*='_badge'] {
+  background: var(--dsw-specific-sidebar-nav-item-active-accent);
+  color: var(--dsw-alias-brand-primary-invert);
+}
+
 body[data-dsh-orca-link] ::selection { color: #fff; background: var(--orca-blue); }
 body[data-dsh-orca-link] ::-webkit-scrollbar { width: 9px; height: 9px; }
 body[data-dsh-orca-link] ::-webkit-scrollbar-track { background: transparent; }
