@@ -12,6 +12,9 @@ import { resolve } from 'node:path'
 import { apply } from '../src/client/index.ts'
 
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
+const CLIENT_SOURCE = readFileSync(resolve(process.cwd(), 'src/client/index.ts'), 'utf8')
+const CLIENT_BUNDLE = readFileSync(resolve(process.cwd(), 'lib/client.js'), 'utf8')
+const PRIVATE_PRESET = ['whale', 'minimal'].join('-')
 
 /**
  * Declarations of the settings-open rule governing the sidebar content root's
@@ -60,6 +63,17 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
     await fiber.dispose()
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
+  })
+
+  it('activates unconditionally and carries no private preset gate', async () => {
+    document.body.dataset.agentPreset = 'standard'
+
+    expect(CLIENT_SOURCE).not.toContain(PRIVATE_PRESET)
+    expect(CLIENT_BUNDLE).not.toContain(PRIVATE_PRESET)
+
+    fiber = await mount()
+    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
+    expect(document.querySelector('[data-skin-chrome]')).not.toBeNull()
   })
 
   it('registers cleanup before a later CSSOM initialization failure', () => {
