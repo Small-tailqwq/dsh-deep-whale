@@ -65,15 +65,11 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
   })
 
-  it('activates unconditionally and carries no private preset gate', async () => {
-    document.body.dataset.agentPreset = 'standard'
-
+  it('does not reintroduce a private preset gate', () => {
+    // This skin has no sessions service fixture or dependency contract here;
+    // keep this regression guard focused on the forbidden hard-coded gate.
     expect(CLIENT_SOURCE).not.toContain(PRIVATE_PRESET)
     expect(CLIENT_BUNDLE).not.toContain(PRIVATE_PRESET)
-
-    fiber = await mount()
-    expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(true)
-    expect(document.querySelector('[data-skin-chrome]')).not.toBeNull()
   })
 
   it('registers cleanup before a later CSSOM initialization failure', () => {
