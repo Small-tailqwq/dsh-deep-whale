@@ -550,7 +550,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   position: absolute;
   left: 52%;
   bottom: calc(var(--maid-sidebar-swag-height) + 94px);
-  z-index: 1;
+  z-index: 0;
   width: var(--maid-sidebar-mascot-width);
   height: auto;
   max-height: 38%;
@@ -1921,17 +1921,20 @@ body[data-dsh-maid-atelier]
    modal layer (1000): under WebKit the fixed panel cannot paint out of it at
    all (#40), and under Blink it loses to the conversation header and trims
    (#37). Anchor on the live dialog instead of the trigger's aria-expanded
-   (#37: that attribute does not move with the DOM in every build), and
-   remove the context outright while the dialog is open: position: static +
-   z-index: auto lets the panel's own z-index compete at page level again,
-   exactly like a portaled dialog. Deliberately NOT promoting the sidebar
-   column — that lifted the decorative mascot out of its layer. The rule is
-   :has()-scoped to the open dialog and self-restores when it unmounts. */
+   (#37: that attribute does not move with the DOM in every build), and drop
+   the row's z-index back to auto while the dialog is open: position stays
+   relative, but relative + z-index auto creates no stacking context, so the
+   panel's own z-index competes at page level again, exactly like a portaled
+   dialog. Deliberately NOT using position: static (it re-homes the mask's
+   containing block and trips Chromium's compositor into painting the
+   mascot's filter layer over the mask's backdrop-filter layer), and NOT
+   promoting the sidebar column (that lifted the mascot out of its layer).
+   The rule is :has()-scoped to the open dialog and self-restores on
+   unmount. */
 body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
   > :has([role='dialog'][aria-modal='true']) {
-  position: static !important;
   z-index: auto !important;
 }
 
@@ -1953,15 +1956,6 @@ body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
   opacity: 0.75;
   pointer-events: none;
   animation: none;
-}
-
-/* While the settings dialog is open the sidebar row's stacking context is
-   released (so the dialog's native modal layer competes at page level), which
-   lets the page-level mascot (z-index 1) paint above the dimming mask. Pin
-   the mascot below the mask for the duration of the modal. */
-body[data-dsh-maid-atelier][data-maid-settings-open]
-  [data-skin-chrome='sidebar-mascot'] {
-  z-index: 0;
 }
 
 body[data-dsh-maid-atelier] [data-phase='hero']

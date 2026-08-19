@@ -1217,11 +1217,14 @@ describe('Maid Atelier skin apply', () => {
     // than under the Blink builds this skin was developed against: on Safari
     // 26.6 the panel laid out at its correct size and hit-tested as the
     // topmost element, yet never appeared. Raising the root's z-index keeps
-    // the context and does not help; removing the context does.
+    // the context and does not help; removing the context does — relative +
+    // z-index auto creates no stacking context, so position must stay
+    // relative (position: static re-homes the mask's containing block and
+    // trips Chromium's compositor into painting the mascot over the mask).
     expect(SETTINGS_ROOT_STACKING_RULE).not.toBe('')
-    expect(SETTINGS_ROOT_STACKING_RULE).toContain('position: static')
     expect(SETTINGS_ROOT_STACKING_RULE).toContain('z-index: auto')
     expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('z-index: 1000')
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('position: static')
   })
 
   it('lets the official settings mask blur every skin-owned layer', () => {
@@ -1256,12 +1259,12 @@ describe('Maid Atelier skin apply', () => {
     expect(topTrimRule).toContain('z-index: 0')
     expect(bottomTrimRule).toContain('z-index: 0')
     // Not a promotion any more: the sidebar row releases its stacking
-    // context (position: static + z-index: auto) so the settings dialog's
-    // native modal layer competes at page level again. Shared with the
-    // dedicated spec above so one rule is parsed in one place.
+    // context (z-index: auto, position stays relative) so the settings
+    // dialog's native modal layer competes at page level again. Shared with
+    // the dedicated spec above so one rule is parsed in one place.
     expect(releasedSettingsRowRule).not.toBe('')
-    expect(releasedSettingsRowRule).toContain('position: static')
     expect(releasedSettingsRowRule).toContain('z-index: auto')
+    expect(releasedSettingsRowRule).not.toContain('position: static')
     expect(releasedSettingsRowRule).not.toContain('z-index: 1000')
     expect(preservedSidebarFrameRule).toBe('')
     expect(obscuredComposerRule).toContain('z-index: 0')
@@ -1386,7 +1389,7 @@ describe('Maid Atelier skin apply', () => {
     expect(mascotRule).toContain('bottom: calc(var(--maid-sidebar-swag-height) + 94px)')
     expect(mascotRule).toContain('width: var(--maid-sidebar-mascot-width)')
     expect(mascotRule).toContain('max-height: 38%')
-    expect(mascotRule).toContain('z-index: 1')
+    expect(mascotRule).toContain('z-index: 0')
     expect(mascotRule).toContain('opacity: 0.92')
     expect(mascotRule).toContain('saturate(1)')
     expect(mascotRule).toContain('brightness(1.08)')
