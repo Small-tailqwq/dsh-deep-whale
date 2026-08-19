@@ -484,6 +484,19 @@ body[data-dsh-orca-link]:has([data-slot='sidebar.footer.action'] [data-cordis-pa
   z-index: auto;
 }
 
+/* The settings surface is an owned instrument panel. Its inner cards, tag
+   chips, badges, status dots and toggle knobs are divs/spans that miss the
+   shape contract (which only covers interactive elements), so the settings
+   dialog subtree gets the same universal rectilinear zeroing as the chat
+   flow. The dialog's own mask and decorations live outside this subtree, and
+   scrollbar pseudo-elements are not matched by `*` — the global square
+   scrollbar styling keeps governing them. */
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *,
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::before,
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after {
+  border-radius: 0 !important;
+}
+
 @keyframes orcaSettingsMaskIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -2006,15 +2019,19 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
   cursor: help;
 }
 
-body[data-dsh-orca-link] .pricingLight[data-orca-link-price='high'] {
+/* Band rules must repeat the base selector chain: the base rule declares the
+   signal vars on the light element itself, and its specificity (0,4,1) would
+   otherwise beat a bare .pricingLight[data-orca-link-price=...] rule (0,3,1),
+   freezing text/border/glow on the valley green while only the lamps moved. */
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight[data-orca-link-price='high'] {
   --orca-price-signal: #d14343;
   --orca-price-glow: rgba(209, 67, 67, 0.72);
 }
-body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] {
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight[data-orca-link-price='transition'] {
   --orca-price-signal: #dfa02b;
   --orca-price-glow: rgba(223, 160, 43, 0.8);
 }
-body[data-dsh-orca-link] .pricingLight[data-orca-link-price='low'] {
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight[data-orca-link-price='low'] {
   --orca-price-signal: #238a58;
   --orca-price-glow: rgba(35, 138, 88, 0.72);
 }
