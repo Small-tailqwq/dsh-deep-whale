@@ -171,7 +171,7 @@ describe('Maid Atelier skin apply', () => {
       <main data-phase="active"><div data-chat-flow></div></main>
       <div data-dsh-better-sidebar></div>
       <div data-cordis-panel></div>
-      <div data-slot="sidebar.settings"><button aria-expanded="true"></button></div>
+      <div data-slot="sidebar.settings"><div role="dialog" aria-modal="true"></div></div>
     `
     fiber = await mount()
 
@@ -185,7 +185,7 @@ describe('Maid Atelier skin apply', () => {
     document.querySelector('header')!.remove()
     document.querySelector('main')!.remove()
     document.querySelector('[data-cordis-panel]')!.remove()
-    document.querySelector('[aria-expanded]')!.setAttribute('aria-expanded', 'false')
+    document.querySelector('[data-slot="sidebar.settings"] [role="dialog"]')!.remove()
     document.body.setAttribute('data-dsh-sidebar-collapsed', '')
     await flushMutations()
 
@@ -245,14 +245,17 @@ describe('Maid Atelier skin apply', () => {
       </div>
     `
     fiber = await mount()
-    const trigger = document.querySelector<HTMLButtonElement>("[data-slot='sidebar.settings'] > button")!
+    const settingsSlot = document.querySelector<HTMLElement>("[data-slot='sidebar.settings']")!
     const overlay = document.createElement('div')
     overlay.setAttribute('role', 'presentation')
     const mask = document.createElement('div')
     mask.className = 'fixture_mask'
     overlay.append(mask)
     document.body.append(overlay)
-    trigger.setAttribute('aria-expanded', 'true')
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    settingsSlot.append(dialog)
     await flushMutations()
 
     const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
@@ -260,7 +263,7 @@ describe('Maid Atelier skin apply', () => {
     expect(copy?.nextElementSibling).toBe(mask)
     expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
 
-    trigger.setAttribute('aria-expanded', 'false')
+    dialog.remove()
     await flushMutations()
     expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
   })
@@ -1211,11 +1214,14 @@ describe('Maid Atelier skin apply', () => {
     const obscuredComposerRule = CSS.match(
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const promotedSettingsRootRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\)\s*\{([^}]*)\}/s,
+    const promotedSettingsColumnRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*:has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const releasedSettingsRowRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const preservedSidebarFrameRule = CSS.match(
-      /:has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
+      /:has\(\[role='dialog'\]\[aria-modal='true'\]\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(sidebarRule).toContain('z-index: auto')
     expect(sidebarInnerRule).toContain('isolation: auto')
@@ -1224,7 +1230,9 @@ describe('Maid Atelier skin apply', () => {
     expect(footerRule).toContain('z-index: auto')
     expect(topTrimRule).toContain('z-index: 20')
     expect(bottomTrimRule).toContain('z-index: 19')
-    expect(promotedSettingsRootRule).toContain('z-index: 1000')
+    expect(promotedSettingsColumnRule).toContain('z-index: 1000')
+    expect(releasedSettingsRowRule).toContain('z-index: auto')
+    expect(releasedSettingsRowRule).toContain('!important')
     expect(preservedSidebarFrameRule).toBe('')
     expect(obscuredComposerRule).toContain('z-index: 0')
     expect(obscuredComposerRule).toContain('opacity: 0.75')

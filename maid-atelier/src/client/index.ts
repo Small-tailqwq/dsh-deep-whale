@@ -40,6 +40,7 @@ const VIEWPORT_RESIZE_SETTLE_MS = 120
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
+const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']"
 const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
 const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
 const WORKSPACE_SELECTOR = "header [role='tablist']"
@@ -542,7 +543,7 @@ export function apply(ctx: Context): void {
     )
     set(
       PROJECTED_STATE_ATTRIBUTES.settingsOpen,
-      document.querySelector(`${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`) !== null,
+      document.querySelector(SETTINGS_DIALOG_SELECTOR) !== null,
     )
   }
 
@@ -622,10 +623,8 @@ export function apply(ctx: Context): void {
      can omit sibling composited layers from that backdrop sample, so seat a
      copy of the existing frame immediately before the mask while it is open. */
   const syncSettingsBackdropFrame = (): void => {
-    const expanded = document.querySelector(
-      `${SETTINGS_TRIGGER_SELECTOR}[aria-expanded='true']`,
-    )
-    const mask = expanded === null
+    const dialog = document.querySelector(SETTINGS_DIALOG_SELECTOR)
+    const mask = dialog === null
       ? null
       : document.querySelector<HTMLElement>(SETTINGS_MASK_SELECTOR)
     const overlay = mask?.parentElement
@@ -745,7 +744,7 @@ export function apply(ctx: Context): void {
     if (composerChanged) {
       syncComposerMotion()
     }
-    if (settingsStateChanged) syncSettingsBackdropFrame()
+    if (settingsStateChanged || projectedStateChanged) syncSettingsBackdropFrame()
   })
   observer.observe(body, {
     attributes: true,
