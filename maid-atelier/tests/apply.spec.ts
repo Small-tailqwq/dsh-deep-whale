@@ -13,6 +13,19 @@ import { apply } from '../src/client/index.ts'
 
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
 
+/**
+ * Declarations of the settings-open rule governing the sidebar content root's
+ * stacking context — the one seat two specs below both read.
+ *
+ * Matched with `\s*` between the selector parts rather than literal newlines:
+ * a Windows checkout carries CRLF, so a hard-coded `\n` finds nothing and the
+ * lookup degrades to an empty block, which passes every `not.toContain`
+ * silently. Specs assert this is non-empty for the same reason.
+ */
+const SETTINGS_ROOT_STACKING_RULE = CSS.match(
+  /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+)?.[1] ?? ''
+
 let fiber: Fiber | undefined
 
 async function mount(): Promise<Fiber> {
@@ -1196,6 +1209,21 @@ describe('Maid Atelier skin apply', () => {
     expect(settingsRule).toContain('border-image-width: 0 34px')
   })
 
+  it('retires the sidebar stacking context while the settings dialog is open', () => {
+    // SettingsPanel is a position:fixed layer mounted inside the sidebar
+    // content root, not in a document portal. The root carries
+    // `position: relative; z-index: 2`, which makes it a stacking context, and
+    // that ancestor context paints the fixed panel differently under WebKit
+    // than under the Blink builds this skin was developed against: on Safari
+    // 26.6 the panel laid out at its correct size and hit-tested as the
+    // topmost element, yet never appeared. Raising the root's z-index keeps
+    // the context and does not help; removing the context does.
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toBe('')
+    expect(SETTINGS_ROOT_STACKING_RULE).toContain('position: static')
+    expect(SETTINGS_ROOT_STACKING_RULE).toContain('z-index: auto')
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('z-index: 1000')
+  })
+
   it('lets the official settings mask blur every skin-owned layer', () => {
     const sidebarRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
@@ -1214,9 +1242,6 @@ describe('Maid Atelier skin apply', () => {
     const obscuredComposerRule = CSS.match(
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const promotedSettingsColumnRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*:has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
     const releasedSettingsRowRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -1230,9 +1255,14 @@ describe('Maid Atelier skin apply', () => {
     expect(footerRule).toContain('z-index: auto')
     expect(topTrimRule).toContain('z-index: 0')
     expect(bottomTrimRule).toContain('z-index: 0')
-    expect(promotedSettingsColumnRule).toContain('z-index: 1000')
+    // Not a promotion any more: the sidebar row releases its stacking
+    // context (position: static + z-index: auto) so the settings dialog's
+    // native modal layer competes at page level again. Shared with the
+    // dedicated spec above so one rule is parsed in one place.
+    expect(releasedSettingsRowRule).not.toBe('')
+    expect(releasedSettingsRowRule).toContain('position: static')
     expect(releasedSettingsRowRule).toContain('z-index: auto')
-    expect(releasedSettingsRowRule).toContain('!important')
+    expect(releasedSettingsRowRule).not.toContain('z-index: 1000')
     expect(preservedSidebarFrameRule).toBe('')
     expect(obscuredComposerRule).toContain('z-index: 0')
     expect(obscuredComposerRule).toContain('opacity: 0.75')
@@ -1259,6 +1289,9 @@ describe('Maid Atelier skin apply', () => {
     const shieldRule = CSS.match(
       /\[data-maid-workspace-row\] > \[class\*='folder'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const sessionRowRule = CSS.match(
+      /\[data-maid-session-row\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     const selectedSessionRule = CSS.match(
       /\[data-maid-session-row\]\[aria-selected='true'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -1284,6 +1317,9 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain('clip-path: inset(0 100% 0 0)')
     expect(CSS).toContain('clip-path: inset(0 12% 0 0)')
     expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonContentEnter')
+    expect(sessionRowRule).toContain('box-sizing: border-box')
+    expect(sessionRowRule).toContain('width: 100%')
+    expect(sessionRowRule).toContain('min-width: 0')
     expect(selectedSessionRule).toContain('background: transparent')
     expect(selectedSessionRule).toContain('color: #fff8e8')
     expect(selectedSessionPlaqueRule).toContain('inset: 0 0 0 18px')
