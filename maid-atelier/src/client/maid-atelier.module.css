@@ -235,7 +235,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
   position: fixed;
   inset: 0 0 auto 0;
   translate: var(--maid-sidebar-width) 0;
-  z-index: 20;
+  z-index: 0;
   height: 76px;
   overflow: hidden;
   pointer-events: none;
@@ -301,7 +301,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   inset: auto 0 0 0;
   translate: var(--maid-sidebar-width) 0;
   transform: translateY(0);
-  z-index: 19;
+  z-index: 0;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
