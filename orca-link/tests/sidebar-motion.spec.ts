@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 const css = readFileSync(
   new URL('../src/client/orca-link.module.css', import.meta.url),
   'utf8',
-)
+).replaceAll('\r\n', '\n')
 
 describe('ORCA LINK sidebar motion', () => {
   it('collapses the DSH wordmark with one top-anchored compositor transform', () => {

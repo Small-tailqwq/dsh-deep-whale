@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 const css = readFileSync(
   new URL('../src/client/orca-link.module.css', import.meta.url),
   'utf8',
-)
+).replaceAll('\r\n', '\n')
 
 function declarationBlock(selector: string): string {
   const selectorIndex = css.indexOf(selector)

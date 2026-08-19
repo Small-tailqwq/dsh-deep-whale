@@ -464,6 +464,26 @@ body[data-dsh-orca-link][data-orca-settings-open]
   z-index: 2147483001 !important;
 }
 
+/* The cordis plugin panel is a fixed popover mounted inside the sidebar
+   footer. The sidebar layering block below wraps every direct child of the
+   content root in a stacking context (`position: relative; z-index: 1`) and
+   isolates the content root itself, so the panel's overflow over the center
+   column paints and hit-tests below the column — clicks on that region fall
+   through to the blank conversation surface. Retire those contexts while the
+   panel is open, exactly like the settings block above does for its dialog;
+   the panel then stacks at page level again. */
+body[data-dsh-orca-link]:has([data-slot='sidebar.footer.action'] [data-cordis-panel])
+  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+  z-index: auto;
+  isolation: auto;
+}
+
+body[data-dsh-orca-link]:has([data-slot='sidebar.footer.action'] [data-cordis-panel])
+  [data-slot='sidebar'] > :first-child > :has([data-slot='sidebar.footer.action'] [data-cordis-panel]) {
+  position: relative;
+  z-index: auto;
+}
+
 @keyframes orcaSettingsMaskIn {
   from { opacity: 0; }
   to { opacity: 1; }
