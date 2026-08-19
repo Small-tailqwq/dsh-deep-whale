@@ -902,13 +902,20 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 }
 
 /* Cordis mounts its fixed panel inside the sidebar content root instead of a
-   document portal. Promote that owning root while the panel is open so it
-   follows the same overlay tier as portalled menus and dialogs. */
+   document portal. The owning row's blanket `position: relative; z-index: 2`
+   creates a stacking context that traps the fixed panel under WebKit (same
+   pattern as the settings dialog, #40): the panel can only paint inside the
+   sidebar. Release the row's z-index while the panel is open — relative +
+   z-index: auto creates no stacking context, so the panel's own z-index (30)
+   competes at page level, exactly like a portalled panel. Deliberately NOT
+   position: static (it re-homes the panel's containing block and trips
+   Chromium's compositor) and NOT a z-index promotion (raising the context
+   keeps the trap, #40). */
 body[data-dsh-maid-atelier][data-maid-cordis-panel-open]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
   > :has([data-cordis-panel]) {
-  z-index: 40;
+  z-index: auto;
 }
 
 body[data-dsh-maid-atelier]

@@ -952,8 +952,11 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(
       /\[data-maid-sidebar-size='rail'\][\s\S]*?\[data-maid-sidebar-footer\]:has\(\[data-cordis-badge\]\)\s*\{[^}]*flex-basis: 100px/s,
     )
+    // The owning row releases its stacking context (z-index: auto, position
+    // stays relative) so the fixed panel escapes the trap under WebKit — the
+    // old z-index: 40 promotion kept the context and did not help (#40).
     expect(CSS).toMatch(
-      /\[data-maid-cordis-panel-open\][\s\S]*?> :has\(\[data-cordis-panel\]\)\s*\{[^}]*z-index: 40/s,
+      /\[data-maid-cordis-panel-open\][\s\S]*?> :has\(\[data-cordis-panel\]\)\s*\{[^}]*z-index: auto/s,
     )
     expect(CSS).toMatch(/\[data-cordis-badge\]\s*\{[^}]*border: 1px solid[^}]*linear-gradient/s)
     expect(CSS).toMatch(
