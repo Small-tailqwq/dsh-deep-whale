@@ -365,27 +365,60 @@ body[data-dsh-orca-link][data-ds-dark-theme][data-orca-scene='active'] .darkScen
 
 /* Settings and menu surfaces must be fully opaque: the left nav and the row
    menus are the settings interface's secondary level, and a translucent card
-   lets the conversation show through and reads as click-through. The sidebar
-   root is a stacking context (isolation), which would otherwise trap the
-   fixed settings overlay below the conversation column and body-level skin
-   chrome; while the dialog is open, lift that whole context above them so
-   every button inside the panel stays on top and receives pointer events. */
+   lets the conversation show through and reads as click-through.
+
+   SettingsPanel is not a document-root portal: the host mounts it inside the
+   sidebar content root and it reaches the viewport with `position: fixed`.
+   Every stacking context this skin adds along that ancestor chain — the
+   content root's `isolation: isolate`, plus the promotions this block used to
+   apply to the sidebar column and the dialog carrier — is a context the
+   product itself never had, and a fixed panel that cannot paint out of an
+   ancestor context is the Safari/WebKit failure reported against maid-atelier
+   in #40 and against this skin in #53: the mask appears, the panel measures
+   and hit-tests correctly, and it never draws. So retire those contexts while
+   the dialog is open rather than promoting them. `z-index: auto` with the
+   element's `position` left alone creates no stacking context, so the
+   overlay's own z-index competes at page level again, exactly like a portaled
+   dialog would.
+
+   #root is deliberately NOT released, and that is the one promotion here that
+   is load bearing: index.ts appends the opaque scene layers to <body> AFTER
+   #root, so #root's positive z-index is the only thing keeping .lightScene /
+   .darkScene (both `position: fixed; z-index: 0`, both an opaque flat colour)
+   behind the application. Dropping it to `auto` makes those backdrops paint
+   over the entire app while settings is open — measured on both WebKit and
+   Blink — and it is also what holds other plugins' body-level panels below
+   the dialog. Everything the panel has to cover lives inside #root, so
+   keeping this one context costs the fix nothing. */
 body[data-dsh-orca-link][data-orca-settings-open] [id='root'] {
   z-index: var(--orca-settings-overlay-z);
 }
 
+/* The sidebar content root is a stacking context for the whole session: the
+   sidebar layering block below gives it `position: relative` and, decisively,
+   `isolation: isolate`, which forms a context on its own no matter what the
+   z-index says. Release the isolation together with the promotion while the
+   dialog is open; the `position: relative` from that block stays, and
+   relative + z-index auto is not a stacking context. */
 body[data-dsh-orca-link][data-orca-settings-open] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
-  z-index: var(--orca-settings-overlay-z);
+  z-index: auto;
+  isolation: auto;
 }
 
 /* The settings trigger and overlay live below the host's sidebar column,
-   while the window toggles are fixed inside the adjacent center column.
-   Promote the real column ancestor as well; otherwise descendants with an
-   arbitrarily large z-index still cannot outrank the sibling column. */
+   while the window toggles are fixed inside the adjacent center column. This
+   rule used to promote the column so descendants could outrank that sibling;
+   releasing the column's z-index reaches the same place without a context,
+   because the fixed overlay then stacks against the center column itself.
+   `position: relative` is kept deliberately — dropping to `static` re-homes
+   absolutely positioned descendants, and in maid-atelier it also tripped
+   Chromium into compositing a filtered layer over the mask's backdrop-filter
+   (4d3e346). `overflow: visible` still carries its own weight: the column
+   clips at its own box regardless of stacking. */
 body[data-dsh-orca-link][data-orca-settings-open]
   [class*='sidebarCol']:has([data-slot='sidebar.settings'] [role='dialog']) {
   position: relative;
-  z-index: var(--orca-settings-overlay-z);
+  z-index: auto;
   overflow: visible;
 }
 
@@ -399,10 +432,13 @@ body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .stan
   pointer-events: none;
 }
 
-/* The fixed settings overlay is mounted inside the sidebar footer. Its own
-   z-index cannot escape that direct child's stacking level, while the wide
-   new-session control sits at level 2. Raise only the dialog-bearing child
-   so responsive overlap never routes clicks to the sidebar underneath.
+/* The fixed settings overlay is mounted inside the sidebar footer, and the
+   sidebar layering block below already makes every direct child of the content
+   root `position: relative; z-index: 1` — i.e. a stacking context wrapped
+   around the fixed panel. Release this carrier's z-index while the dialog is
+   open so the overlay stacks at page level instead; `position: relative` is
+   restated rather than dropped, so the carrier's containing-block role never
+   changes with the dialog's presence.
    The official sidebar also fades every direct child during its 1024px
    auto-collapse, then runs a delayed rail-in animation on this footer. Keep
    the dialog carrier opaque and animation-free while it owns the viewport,
@@ -410,7 +446,7 @@ body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .stan
 body[data-dsh-orca-link][data-orca-settings-open]
   [data-slot='sidebar'] > :first-child > :has([role='dialog']) {
   position: relative;
-  z-index: var(--orca-settings-overlay-z);
+  z-index: auto;
   opacity: 1 !important;
   transition: none !important;
   animation: none !important;
