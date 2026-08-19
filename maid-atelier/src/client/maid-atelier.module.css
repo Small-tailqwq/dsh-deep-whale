@@ -90,6 +90,15 @@ body[data-dsh-maid-atelier] [id='root'] {
   background: transparent;
 }
 
+/* shell.overlay 浮层面板永远高于皮肤装饰层:视觉与点击都不被顶帘/装饰遮挡。
+   overlayLayer 自带 z-index 20,这里抬到 1000 是为彻底避开任何皮肤层
+   (装饰 chrome 0 / 应用 chrome 21 / 角色 -1..1) 与第三方插件对 #root 的
+   层叠上下文抬升,保证挂载在 shell.overlay 槽的浮动面板(如文件浏览器)
+   在视觉与点击层级上始终位于皮肤之上。 */
+body[data-dsh-maid-atelier] [data-shell-overlay] {
+  z-index: 1000;
+}
+
 /* High-resolution characters remain independent from the palace so viewport
    and conversation changes never resample the architecture behind them. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
