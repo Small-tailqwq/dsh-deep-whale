@@ -1,5 +1,8 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
-  - name: 皮肤安装 / 使用求助
+  - name: 🐛 反馈 Bug
     url: https://github.com/Small-tailqwq/dsh-deep-whale/issues/new?template=bug.yml
-    about: 安装或使用问题请用 Bug 报告模板填写（包含环境信息与截图）
+    about: 行为异常、显示问题、兼容性问题——请用 Bug 模板，环境信息与截图必填
+  - name: ✨ 功能建议 / 闲聊
+    url: https://github.com/Small-tailqwq/dsh-deep-whale/issues/new
+    about: 功能建议、改进想法或随便聊聊——直接发即可，不强制模板
