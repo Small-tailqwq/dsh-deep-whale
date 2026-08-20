@@ -23,6 +23,7 @@ body[data-dsh-orca-link] {
   --orca-z-tooltip: 950;
   --orca-z-restore: 955;
   --orca-z-ghost: 965;
+  --orca-z-cordis: 975;
   --orca-z-settings: 980;
   --orca-settings-overlay-z: 980;
   isolation: isolate;
@@ -520,6 +521,15 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open]
   [data-slot='sidebar'] > :first-child > [data-slot='sidebar.footer.action'] {
   position: relative;
   z-index: auto;
+}
+
+/* Once its ancestor contexts are released, give the host's fixed panel an
+   explicit page-level rung. The host default is z=30, below ORCA's body-owned
+   seam ruler at 850; 975 keeps the ruler and every other skin decoration
+   behind the panel while preserving the official Modal 1000 / portal 1100
+   ceiling. */
+body[data-dsh-orca-link][data-orca-cordis-panel-open] [data-cordis-panel] {
+  z-index: var(--orca-z-cordis);
 }
 
 /* The settings surface is an owned instrument panel. Its inner cards, tag

@@ -33,6 +33,9 @@ const CORDIS_SIDEBAR_RULE = block(
 const CORDIS_CARRIER_RULE = block(
   /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*\[data-slot='sidebar\.footer\.action'\]\s*\{([^}]*)\}/,
 )
+const CORDIS_PANEL_RULE = block(
+  /\[data-orca-cordis-panel-open\]\s*\[data-cordis-panel\]\s*\{([^}]*)\}/,
+)
 
 /** Always-on sidebar layering the release rules have to neutralise. */
 const SIDEBAR_BASE_RULE = block(
@@ -46,7 +49,7 @@ describe('ORCA LINK cordis panel stacking', () => {
   it('parses every rule this contract depends on', () => {
     for (const rule of [
       CORDIS_SIDEBAR_RULE, CORDIS_CARRIER_RULE,
-      SIDEBAR_BASE_RULE, SIDEBAR_CHILDREN_RULE,
+      CORDIS_PANEL_RULE, SIDEBAR_BASE_RULE, SIDEBAR_CHILDREN_RULE,
     ]) expect(rule).not.toBe('')
   })
 
@@ -67,6 +70,17 @@ describe('ORCA LINK cordis panel stacking', () => {
     expect(CORDIS_CARRIER_RULE).toContain('position: relative')
     expect(CORDIS_CARRIER_RULE).not.toContain('position: static')
     expect(CORDIS_SIDEBAR_RULE).not.toContain('position: static')
+  })
+
+  it('places the panel above skin chrome and below the official modal ceiling', () => {
+    const z = Object.fromEntries(
+      [...CSS.matchAll(/--orca-z-([\w-]+):\s*(\d+)/g)].map(match => [match[1], Number(match[2])]),
+    )
+    expect(CORDIS_PANEL_RULE).toContain('z-index: var(--orca-z-cordis)')
+    expect(z.cordis).toBeGreaterThan(z.ghost)
+    expect(z.cordis).toBeGreaterThan(z.seam)
+    expect(z.cordis).toBeLessThan(z.settings)
+    expect(z.cordis).toBeLessThan(1000)
   })
 
   it('keys the release on the host panel attribute under the footer slot', () => {
