@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   beijingMinutesOfDay,
@@ -202,5 +203,26 @@ describe('ORCA LINK pricing light chrome', () => {
     vi.advanceTimersByTime(15_000)
     expect(document.body.querySelector('[data-orca-link-price-light]')).toBe(original)
     dispose()
+  })
+})
+
+describe('ORCA LINK pricing light CSS cascade', () => {
+  const css = readFileSync('src/client/orca-link.module.css', 'utf8')
+
+  it('band rules repeat the base selector chain so signal vars beat the base defaults', () => {
+    // The base rule declares --orca-price-signal / --orca-price-glow on the
+    // light element itself at specificity (0,4,1). Every band rule must carry
+    // that full chain plus the data attribute ((0,5,1)) or the text color,
+    // border and lamp glow stay frozen on the valley green.
+    const base = "body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight {"
+    expect(css).toContain(base)
+    for (const band of ['high', 'transition', 'low']) {
+      const rule = `body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight[data-orca-link-price='${band}'] {`
+      expect(css).toContain(rule)
+    }
+    // The short standalone band rule loses to the base rule; it must not come back.
+    expect(css).not.toContain("body[data-dsh-orca-link] .pricingLight[data-orca-link-price='high'] {")
+    expect(css).not.toContain("body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] {")
+    expect(css).not.toContain("body[data-dsh-orca-link] .pricingLight[data-orca-link-price='low'] {")
   })
 })
