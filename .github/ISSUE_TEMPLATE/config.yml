@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 皮肤安装 / 使用求助
+    url: https://github.com/Small-tailqwq/dsh-deep-whale/issues/new?template=bug.yml
+    about: 安装或使用问题请用 Bug 报告模板填写（包含环境信息与截图）

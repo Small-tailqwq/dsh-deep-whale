@@ -1,0 +1,49 @@
+name: ✨ 功能 / 改进建议
+description: 新功能、视觉改进、体验建议
+title: "[建议] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        建议类 issue 请先说明动机与场景，便于判断优先级。
+  - type: dropdown
+    id: skin
+    attributes:
+      label: 适用皮肤
+      options:
+        - orca-link（虎鲸链路）
+        - maid-atelier（深海女仆工坊）
+        - 两套都要 / 脚手架层面
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 动机 / 使用场景
+      description: 在什么情况下你希望有这个功能
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 期望行为
+      description: 希望看到的效果，越具体越好
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: 参考 / 截图
+      description: 灵感来源、参考图、示例链接（可选）
+    validations:
+      required: false
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: 是否愿意参与实现
+      options:
+        - 愿意（我可以配合提供素材/测试）
+        - 仅提需求
+    validations:
+      required: false
