@@ -31,10 +31,13 @@ const CORDIS_SIDEBAR_RULE = block(
   /\[data-orca-cordis-panel-open\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
 )
 const CORDIS_CARRIER_RULE = block(
-  /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*\[data-slot='sidebar\.footer\.action'\]\s*\{([^}]*)\}/,
+  /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:has\(\[data-cordis-panel\]\)\s*\{([^}]*)\}/,
 )
 const CORDIS_PANEL_RULE = block(
   /\[data-orca-cordis-panel-open\]\s*\[data-cordis-panel\]\s*\{([^}]*)\}/,
+)
+const CORDIS_ROOT_RULE = block(
+  /\[data-orca-cordis-panel-open\]\s*\[id='root'\]\s*\{([^}]*)\}/,
 )
 
 /** Always-on sidebar layering the release rules have to neutralise. */
@@ -49,7 +52,7 @@ describe('ORCA LINK cordis panel stacking', () => {
   it('parses every rule this contract depends on', () => {
     for (const rule of [
       CORDIS_SIDEBAR_RULE, CORDIS_CARRIER_RULE,
-      CORDIS_PANEL_RULE, SIDEBAR_BASE_RULE, SIDEBAR_CHILDREN_RULE,
+      CORDIS_PANEL_RULE, CORDIS_ROOT_RULE, SIDEBAR_BASE_RULE, SIDEBAR_CHILDREN_RULE,
     ]) expect(rule).not.toBe('')
   })
 
@@ -64,6 +67,7 @@ describe('ORCA LINK cordis panel stacking', () => {
     expect(CORDIS_SIDEBAR_RULE).toContain('z-index: auto')
     expect(CORDIS_SIDEBAR_RULE).toContain('isolation: auto')
     expect(CORDIS_CARRIER_RULE).toContain('z-index: auto')
+    expect(CORDIS_CARRIER_RULE).toContain('position: relative')
   })
 
   it('never drops those ancestors to position: static', () => {
@@ -77,6 +81,7 @@ describe('ORCA LINK cordis panel stacking', () => {
       [...CSS.matchAll(/--orca-z-([\w-]+):\s*(\d+)/g)].map(match => [match[1], Number(match[2])]),
     )
     expect(CORDIS_PANEL_RULE).toContain('z-index: var(--orca-z-cordis)')
+    expect(CORDIS_ROOT_RULE).toContain('z-index: var(--orca-z-cordis) !important')
     expect(z.cordis).toBeGreaterThan(z.ghost)
     expect(z.cordis).toBeGreaterThan(z.seam)
     expect(z.cordis).toBeLessThan(z.settings)

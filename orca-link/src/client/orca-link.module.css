@@ -405,6 +405,13 @@ body[data-dsh-orca-link][data-orca-settings-open] [id='root'] {
   z-index: var(--orca-settings-overlay-z) !important;
 }
 
+/* Cordis is also mounted below #root while the seam ruler is body-owned.
+   Promote the app root to the Cordis rung so the escaped fixed panel can
+   outrank every skin decoration without crossing the official Modal ceiling. */
+body[data-dsh-orca-link][data-orca-cordis-panel-open] [id='root'] {
+  z-index: var(--orca-z-cordis) !important;
+}
+
 /* The sidebar content root is a stacking context for the whole session: the
    sidebar layering block below gives it `position: relative` and, decisively,
    `isolation: isolate`, which forms a context on its own no matter what the
@@ -509,8 +516,9 @@ body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings']
    isolates the content root itself, so the panel's overflow over the center
    column paints and hit-tests below the column — clicks on that region fall
    through to the blank conversation surface. Retire those contexts while the
-   panel is open, exactly like the settings block above does for its dialog;
-   the panel then stacks at page level again. */
+   panel is open, exactly like the settings block above does for its dialog.
+   The host's real z=1 carrier is the direct foot-area child containing the
+   panel, not the nested sidebar.footer.action slot. */
 body[data-dsh-orca-link][data-orca-cordis-panel-open]
   :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
   z-index: auto;
@@ -518,16 +526,13 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open]
 }
 
 body[data-dsh-orca-link][data-orca-cordis-panel-open]
-  [data-slot='sidebar'] > :first-child > [data-slot='sidebar.footer.action'] {
+  [data-slot='sidebar'] > :first-child > :has([data-cordis-panel]) {
   position: relative;
   z-index: auto;
 }
 
-/* Once its ancestor contexts are released, give the host's fixed panel an
-   explicit page-level rung. The host default is z=30, below ORCA's body-owned
-   seam ruler at 850; 975 keeps the ruler and every other skin decoration
-   behind the panel while preserving the official Modal 1000 / portal 1100
-   ceiling. */
+/* Once both ancestor contexts are released, give the host's fixed panel the
+   top rung inside the promoted root. */
 body[data-dsh-orca-link][data-orca-cordis-panel-open] [data-cordis-panel] {
   z-index: var(--orca-z-cordis);
 }
