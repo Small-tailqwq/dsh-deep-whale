@@ -24,7 +24,6 @@ body[data-dsh-orca-link] {
   --orca-z-restore: 955;
   --orca-z-ghost: 965;
   --orca-z-settings: 980;
-  --orca-z-settings-menu: 990;
   --orca-settings-overlay-z: 980;
   isolation: isolate;
   color: var(--orca-ink);
@@ -501,14 +500,6 @@ body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings']
   box-shadow: var(--orca-shadow);
   transform-origin: left bottom;
   animation: orcaSettingsPanelIn 200ms ease-out both;
-}
-
-/* Settings-owned popup menus are portalled outside the dialog subtree. Keep
-   them one layer above the modal while all unrelated plugin chrome remains
-   below its backdrop. */
-body[data-dsh-orca-link][data-orca-settings-open]
-  :is([role='menu'], [role='listbox']) {
-  z-index: var(--orca-z-settings-menu) !important;
 }
 
 /* The cordis plugin panel is a fixed popover mounted inside the sidebar
@@ -2706,11 +2697,11 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'],
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after,
-  body[data-dsh-orca-link][data-orca-settings-open] [data-phase='hero'] [class*='headlineText']::after,
-  body[data-dsh-orca-link][data-orca-settings-open] [data-composer-seat][data-orca-composer-entering],
-  body[data-dsh-orca-link][data-orca-settings-open] [data-orca-composer-ghost],
-  body[data-dsh-orca-link][data-orca-settings-open] [data-composer-seat][data-orca-composer-restoring],
-  body[data-dsh-orca-link][data-orca-settings-open] [data-orca-composer-restore] { animation: none; }
+  body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText']::after,
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering],
+  body[data-dsh-orca-link] [data-orca-composer-ghost],
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring],
+  body[data-dsh-orca-link] [data-orca-composer-restore] { animation: none; }
   body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat],
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-rebounding],
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing],

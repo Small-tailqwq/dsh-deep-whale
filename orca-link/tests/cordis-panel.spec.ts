@@ -19,18 +19,19 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const CSS = readFileSync(new URL('../src/client/orca-link.module.css', import.meta.url), 'utf8')
+const OVERLAY_SOURCE = readFileSync(new URL('../src/client/settings-overlay.ts', import.meta.url), 'utf8')
 
 /** The declaration block of the first rule whose selector matches. */
 function block(pattern: RegExp): string {
   return CSS.match(pattern)?.[1] ?? ''
 }
 
-/** The cordis-panel release rules, keyed on the host's stable panel attribute. */
+/** The cordis-panel release rules, keyed on the body state maintained by JS. */
 const CORDIS_SIDEBAR_RULE = block(
-  /:has\(\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]\)\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
+  /\[data-orca-cordis-panel-open\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
 )
 const CORDIS_CARRIER_RULE = block(
-  /:has\(\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]\)\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:has\(\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]\)\s*\{([^}]*)\}/,
+  /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*\[data-slot='sidebar\.footer\.action'\]\s*\{([^}]*)\}/,
 )
 
 /** Always-on sidebar layering the release rules have to neutralise. */
@@ -69,8 +70,10 @@ describe('ORCA LINK cordis panel stacking', () => {
   })
 
   it('keys the release on the host panel attribute under the footer slot', () => {
-    // If the host renames or re-parents the panel, the release rules silently
-    // stop matching and the click-through regression returns.
-    expect(CSS).toMatch(/\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]/)
+    // JS owns the expensive structural lookup and mirrors it to a cheap body
+    // attribute consumed by the CSS release rules.
+    expect(OVERLAY_SOURCE).toContain("[data-slot='sidebar.footer.action'] [data-cordis-panel]")
+    expect(OVERLAY_SOURCE).toContain('data-orca-cordis-panel-open')
+    expect(CSS).toContain('body[data-dsh-orca-link][data-orca-cordis-panel-open]')
   })
 })

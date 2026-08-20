@@ -20,7 +20,7 @@ describe('question composer focus styling', () => {
   })
 
   it('keeps question recommendation text readable in dark mode', () => {
-    expect(css).toContain('--dsw-alias-button-info-fill: #4d91ff;')
+    expect(css).toContain('--dsw-alias-button-info-fill: #4d91ff !important;')
   })
 
   it('anchors every status bubble tail on the left', () => {
