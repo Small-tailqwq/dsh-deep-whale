@@ -1,11 +1,11 @@
 ---
 name: dsh-skin-install
-description: 安装、切换或更新 DSH Web 皮肤（dsh-deep-whale 鲸鱼娘皮肤系列）。已安装/已 clone 的皮肤直接快速切换、不重新下载；仅当用户明确要求更新时才对比本地与远端提交；只有初次安装才做皮肤清单询问与署名链/许可介绍。当用户要求安装/切换/更新皮肤（如 maid-atelier 深海女仆工坊、orca-link 虎鲸链路、鲸鱼娘皮肤）或"安装皮肤"时使用。
+description: 安装、切换、更新或验证 DSH Web 本地皮肤（dsh-deep-whale 鲸鱼娘皮肤系列）。已安装/已 clone 的皮肤直接快速切换，不重复下载；仅在用户明确要求时同步远端或测试指定提交；重启前必须验证 profile 包身份与冷启动。当用户要求安装、切换、更新、加载本地改动或测试皮肤提交时使用。
 ---
 
 # dsh-deep-whale 皮肤安装与切换
 
-目标：让 DSH Web 皮肤快速生效。**切换走捷径，初次安装才走全流程，更新只在用户要求时发生。**
+目标：让 DSH Web 皮肤快速且可恢复地生效。**切换和已安装 link 的代码更新走热加载；初次新增包才重启；更新与指定提交测试只在用户要求时发生。**
 
 **本技能只给流程指导，具体事实以现场读取为准**：仓库会更新（新增皮肤、改署名链），不要依赖本文件或记忆中的清单，实时读取。
 
@@ -17,6 +17,19 @@ description: 安装、切换或更新 DSH Web 皮肤（dsh-deep-whale 鲸鱼娘�
 - **未安装但本地已有仓库 clone → 场景 B 初次安装（本地仓库）**：直接用现有 clone，绝不重新下载。
 - **未安装且本地无 clone → 场景 B 初次安装（需克隆）**：此时才 `git clone`。
 - **用户明确要求"更新/检查更新" → 场景 C 更新**：才对比远端提交。
+- **用户要求加载本地修改或测试指定提交 → 场景 D 验证开发版本**：保护当前工作区和正在运行的 DSH。
+
+## 重启安全闸门（任何场景都不能跳过）
+
+DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可能仍持有修改前的插件图。不要把“当前页面可用”当作冷启动证据，也不要在检查前建议用户重启。
+
+1. 读取目标皮肤的 `package.json.name` 与 `skin.json.package`，两者必须相同。
+2. 检查 `~/.dsh/profiles/<profile>/package.json`：依赖键、`dsh.profile.bundles` 条目和本地 link 目标的真实包名必须一致。发现别名或旧 scope 时，先用 `dsh plugin --profile <name> remove <错误键>` 移除，再用目标目录的绝对路径 `add`；不要手改 `node_modules`。
+3. 运行 `dsh plugin --profile <name> list` 和 `dsh --profile <name> --dump-config`。目标 entry 必须能组合、包名正确且启停状态符合预期。
+4. 只有确实需要重启时，先在保留现有进程的情况下运行冷启动探针：`dsh --profile <name> --no-open --port 0`。等待它打印临时 URL 后，只终止这个探针进程。探针失败则保留原进程，修复后重试；禁止让用户用生产端口重启来“试试看”。
+5. 冷启动探针成功后才替换原进程，并验证固定端口返回 HTTP 200、启动页 `window.__DSH_BOOT__` 含目标包名。终止进程时只操作刚刚记录的精确 PID/会话，不按进程名批量结束。
+
+诊断必须有界：热加载未发生时先查 link 目标、`lib/client.js` 哈希、boot entry 与 `--dump-config`；不要递归扫描整个 `~/.dsh`、全局 `node_modules`，也不要用长时间 SSE 请求碰运气。
 
 ## 场景 A：切换（已安装）—— 快速切换，不啰嗦
 
@@ -60,9 +73,9 @@ description: 安装、切换或更新 DSH Web 皮肤（dsh-deep-whale 鲸鱼娘�
 
 ### 5. 注册并启用
 
-- `dsh plugin --profile <name> add <仓库绝对路径>/<皮肤目录>`（本地路径自动按 `link:` 注册），然后**重启 dsh web** 才生效。
+- `dsh plugin --profile <name> add <仓库绝对路径>/<皮肤目录>`（本地路径自动按 `link:` 注册）。新增插件包需要重启，但必须先通过“重启安全闸门”的一致性检查与冷启动探针。
   **路径规范（安装失败高发区）**：绝对路径最稳（Windows 正斜杠/反斜杠均可，pnpm 会自动规范化）；相对路径按 **dsh 命令调用目录**解析——`./`、`../` 前缀可以，但**不要用裸目录名**（如 `add maid-atelier`，会被当作 npm 包名去 registry 拉取而 404 失败）。安装后先 `dsh plugin --profile <name> list` 确认包已注册，再继续。更新（场景 C）后 bundle 变化走热切换，无需重启；**初次安装是新增插件包，必须重启**。
-- 安装并重启后，同样写入两个 patch 层的 `disabled` 行（见场景 A），保持同一时间只启用一套皮肤。
+- 安装并安全重启后，同样写入两个 patch 层的 `disabled` 行（见场景 A），保持同一时间只启用一套皮肤。
 
 ### 6. 验证生效
 
@@ -78,6 +91,13 @@ description: 安装、切换或更新 DSH Web 皮肤（dsh-deep-whale 鲸鱼娘�
 2. 对比本地与远端：`git rev-list --count HEAD..origin/main`（落后提交数）
 3. 落后 > 0 → `git pull --ff-only`，并告知更新内容（`git log --oneline HEAD@{1}..HEAD`）；已是最新 → 直接告知，不做多余操作。
 4. 已安装皮肤若更新了 bundle，仍走场景 A 的 patch 热切换生效（无需重启，除非涉及新增/删除插件包）。
+
+## 场景 D：加载本地修改或测试指定提交
+
+- **当前 link 目录里的源码修改**：先按仓库脚本构建并确认提交型 `lib/` 同步，再通过 patch 禁用/启用目标 entry 触发热加载；记录并复核 PID，正常情况下不重启。
+- **测试指定提交**：禁止对用户正在使用的工作区执行 `git restore --source=<commit> --worktree -- <skin>`。创建临时 detached worktree，在其中构建并验证，然后用绝对路径把同名包重新 link 到该 worktree；记录原 link 路径，测试结束后才能按用户指示恢复。
+- 重新 link 后先核对依赖键仍等于目标 `package.json.name`。若包身份改变，按“移除旧键 → 绝对路径 add → dump-config → 冷启动探针”的顺序处理，不能依赖旧进程内存里的插件图。
+- 热加载失败时不要触碰未变化的 patch 文件伪造刷新，也不要立即建议重启；先走有界诊断。只有新增/删除插件包或启动图确实无法热更新时才使用安全重启流程。
 
 ## 已知要点（判断用，非写死事实）
 

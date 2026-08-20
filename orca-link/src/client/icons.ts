@@ -497,6 +497,15 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     usageObservers.set(circle, observer)
   }
 
+  const syncPermissionHost = (svg: SVGElement, name: string): void => {
+    // Host buttons carry no permission marker of their own; the CSS contract
+    // reads `data-orca-permission` so no `:has()` has to re-scan the composer
+    // subtree on every keystroke.
+    if (!name.startsWith('permission-')) return
+    const host = svg.closest('button, [role="menuitem"]')
+    if (host instanceof HTMLElement) host.dataset.orcaPermission = name.slice('permission-'.length)
+  }
+
   const applyToSvg = (svg: SVGElement): boolean => {
     const name = matchIcon(hostHtml(svg))
     if (!name) return false
@@ -504,6 +513,7 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     const art = buildArt(name, svg)
     if (name === 'usage') observeUsage(svg, art)
     svg.append(art)
+    syncPermissionHost(svg, name)
     return true
   }
 
@@ -521,6 +531,9 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     const currentName = svg.getAttribute(ICON_ATTRIBUTE)
     const nextName = matchIcon(hostHtml(svg))
     if (nextName !== null && nextName !== currentName) {
+      if (currentName?.startsWith('permission-') && !nextName.startsWith('permission-')) {
+        svg.closest('button, [role="menuitem"]')?.removeAttribute('data-orca-permission')
+      }
       art.remove()
       svg.removeAttribute(ICON_ATTRIBUTE)
       applyToSvg(svg)
@@ -583,5 +596,6 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     usageObservers.clear()
     body.querySelectorAll(`[${ICON_ART_ATTRIBUTE}]`).forEach((node) => node.remove())
     body.querySelectorAll(`[${ICON_ATTRIBUTE}]`).forEach((node) => node.removeAttribute(ICON_ATTRIBUTE))
+    body.querySelectorAll('[data-orca-permission]').forEach((node) => node.removeAttribute('data-orca-permission'))
   }
 }

@@ -19,18 +19,25 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const CSS = readFileSync(new URL('../src/client/orca-link.module.css', import.meta.url), 'utf8')
+const OVERLAY_SOURCE = readFileSync(new URL('../src/client/settings-overlay.ts', import.meta.url), 'utf8')
 
 /** The declaration block of the first rule whose selector matches. */
 function block(pattern: RegExp): string {
   return CSS.match(pattern)?.[1] ?? ''
 }
 
-/** The cordis-panel release rules, keyed on the host's stable panel attribute. */
+/** The cordis-panel release rules, keyed on the body state maintained by JS. */
 const CORDIS_SIDEBAR_RULE = block(
-  /:has\(\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]\)\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
+  /\[data-orca-cordis-panel-open\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
 )
 const CORDIS_CARRIER_RULE = block(
-  /:has\(\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]\)\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:has\(\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]\)\s*\{([^}]*)\}/,
+  /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:has\(\[data-cordis-panel\]\)\s*\{([^}]*)\}/,
+)
+const CORDIS_PANEL_RULE = block(
+  /\[data-orca-cordis-panel-open\]\s*\[data-cordis-panel\]\s*\{([^}]*)\}/,
+)
+const CORDIS_ROOT_RULE = block(
+  /\[data-orca-cordis-panel-open\]\s*\[id='root'\]\s*\{([^}]*)\}/,
 )
 
 /** Always-on sidebar layering the release rules have to neutralise. */
@@ -45,7 +52,7 @@ describe('ORCA LINK cordis panel stacking', () => {
   it('parses every rule this contract depends on', () => {
     for (const rule of [
       CORDIS_SIDEBAR_RULE, CORDIS_CARRIER_RULE,
-      SIDEBAR_BASE_RULE, SIDEBAR_CHILDREN_RULE,
+      CORDIS_PANEL_RULE, CORDIS_ROOT_RULE, SIDEBAR_BASE_RULE, SIDEBAR_CHILDREN_RULE,
     ]) expect(rule).not.toBe('')
   })
 
@@ -60,6 +67,7 @@ describe('ORCA LINK cordis panel stacking', () => {
     expect(CORDIS_SIDEBAR_RULE).toContain('z-index: auto')
     expect(CORDIS_SIDEBAR_RULE).toContain('isolation: auto')
     expect(CORDIS_CARRIER_RULE).toContain('z-index: auto')
+    expect(CORDIS_CARRIER_RULE).toContain('position: relative')
   })
 
   it('never drops those ancestors to position: static', () => {
@@ -68,9 +76,23 @@ describe('ORCA LINK cordis panel stacking', () => {
     expect(CORDIS_SIDEBAR_RULE).not.toContain('position: static')
   })
 
+  it('places the panel above skin chrome and below the official modal ceiling', () => {
+    const z = Object.fromEntries(
+      [...CSS.matchAll(/--orca-z-([\w-]+):\s*(\d+)/g)].map(match => [match[1], Number(match[2])]),
+    )
+    expect(CORDIS_PANEL_RULE).toContain('z-index: var(--orca-z-cordis)')
+    expect(CORDIS_ROOT_RULE).toContain('z-index: var(--orca-z-cordis) !important')
+    expect(z.cordis).toBeGreaterThan(z.ghost)
+    expect(z.cordis).toBeGreaterThan(z.seam)
+    expect(z.cordis).toBeLessThan(z.settings)
+    expect(z.cordis).toBeLessThan(1000)
+  })
+
   it('keys the release on the host panel attribute under the footer slot', () => {
-    // If the host renames or re-parents the panel, the release rules silently
-    // stop matching and the click-through regression returns.
-    expect(CSS).toMatch(/\[data-slot='sidebar\.footer\.action'\]\s*\[data-cordis-panel\]/)
+    // JS owns the expensive structural lookup and mirrors it to a cheap body
+    // attribute consumed by the CSS release rules.
+    expect(OVERLAY_SOURCE).toContain("[data-slot='sidebar.footer.action'] [data-cordis-panel]")
+    expect(OVERLAY_SOURCE).toContain('data-orca-cordis-panel-open')
+    expect(CSS).toContain('body[data-dsh-orca-link][data-orca-cordis-panel-open]')
   })
 })

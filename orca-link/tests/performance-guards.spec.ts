@@ -53,6 +53,42 @@ describe('ORCA LINK performance guards', () => {
     observer.disconnect()
   })
 
+  it('filters both backdrop contents and whole backdrop replacements', async () => {
+    const composer = document.createElement('div')
+    const backdrop = document.createElement('div')
+    backdrop.setAttribute('data-input-backdrop', '')
+    composer.append(backdrop)
+    document.body.append(composer)
+
+    const batches: MutationRecord[][] = []
+    const observer = new MutationObserver(records => { batches.push(records) })
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    backdrop.textContent = 'draft'
+    await Promise.resolve()
+    expect(hasMutationOutsideTerminal(batches.pop() ?? [])).toBe(false)
+
+    const replacement = document.createElement('div')
+    replacement.setAttribute('data-input-backdrop', '')
+    replacement.textContent = 'next draft'
+    backdrop.replaceWith(replacement)
+    await Promise.resolve()
+    expect(hasMutationOutsideTerminal(batches.pop() ?? [])).toBe(false)
+
+    composer.append(document.createElement('button'))
+    await Promise.resolve()
+    expect(hasMutationOutsideTerminal(batches.pop() ?? [])).toBe(true)
+
+    const hostText = document.createTextNode('host text')
+    composer.append(hostText)
+    await Promise.resolve()
+    batches.pop()
+    hostText.remove()
+    await Promise.resolve()
+    expect(hasMutationOutsideTerminal(batches.pop() ?? [])).toBe(true)
+    observer.disconnect()
+  })
+
   it('holds the terminal width until the AppFrame track transition ends', async () => {
     document.body.innerHTML = `
       <div id="root"><div data-slot="root"><div style="grid-template-columns: 280px 1fr 0px"></div></div></div>

@@ -14,65 +14,76 @@ body[data-dsh-orca-link] {
   --orca-surface: rgba(253, 250, 244, 0.78);
   --orca-surface-strong: rgba(255, 252, 246, 0.92);
   --orca-shadow: 0 18px 55px rgba(27, 39, 58, 0.12), 0 2px 5px rgba(27, 39, 58, 0.1);
-  --orca-settings-overlay-z: 2147483000;
+  /* ORCA z-index ladder. DSH's own layer contract is menu 100, Modal 1000,
+     portal menu 1100, so every ORCA chrome value stays below 1000: official
+     Modal/menu overlays always win, while the settings surface (the top ORCA
+     band) still clears ordinary body-level plugin chrome. */
+  --orca-z-seam: 850;
+  --orca-z-standby: 900;
+  --orca-z-tooltip: 950;
+  --orca-z-restore: 955;
+  --orca-z-ghost: 965;
+  --orca-z-cordis: 975;
+  --orca-z-settings: 980;
+  --orca-settings-overlay-z: 980;
   isolation: isolate;
   color: var(--orca-ink);
   background-color: #f6f1e7;
   background-image: none;
-  --dsw-static-blue-50: #ebe7de;
-  --dsw-static-blue-100: #ddd8cc;
-  --dsw-static-blue-300: #a89f8e;
-  --dsw-static-blue-400: #6a655a;
-  --dsw-static-blue-500: #4b483f;
-  --dsw-static-blue-600: #3a372f;
-  --dsw-static-blue-800: #2e2c26;
-  --dsw-static-blue-950: #1f1d18;
-  --dsw-static-deepseek-50: #ebe7de;
-  --dsw-static-deepseek-100: #ddd8cc;
-  --dsw-static-deepseek-300: #a89f8e;
-  --dsw-static-deepseek-400: #6a655a;
-  --dsw-static-deepseek-500: #4b483f;
-  --dsw-static-deepseek-600: #3a372f;
-  --dsw-static-deepseek-800: #2e2c26;
-  --dsw-static-deepseek-900: #26241f;
-  --dsw-alias-bg-base: rgba(250, 247, 241, 0.24);
-  --dsw-alias-bg-layer-1: rgba(255, 252, 246, 0.62);
-  --dsw-alias-bg-layer-2: rgba(247, 244, 238, 0.74);
-  --dsw-alias-bg-layer-3: rgba(240, 236, 229, 0.82);
-  --dsw-alias-bg-module-platform: rgba(247, 244, 238, 0.78);
-  --dsw-alias-bg-overlay: rgba(253, 250, 244, 0.96);
-  --dsw-alias-border-l1: rgba(43, 55, 72, 0.1);
-  --dsw-alias-border-l2: rgba(43, 55, 72, 0.16);
-  --dsw-alias-border-l3: rgba(43, 55, 72, 0.25);
-  --dsw-alias-border-l4: rgba(43, 55, 72, 0.36);
-  --dsw-alias-brand-primary: #4b483f;
-  --dsw-alias-brand-primary-invert: #ffffff;
-  --dsw-alias-brand-text: #3a372f;
-  --dsw-alias-button-primary-fill: #4b483f;
-  --dsw-alias-button-primary-hover: #3a372f;
-  --dsw-alias-button-floating-fill: rgba(255, 252, 246, 0.92);
-  --dsw-alias-button-floating-hover: #e8e4da;
-  --dsw-alias-button-tool-bar-fill: rgba(255, 252, 246, 0.64);
-  --dsw-alias-button-tool-bar-hover: rgba(216, 210, 198, 0.9);
-  --dsw-alias-interactive-bg-active: color-mix(in srgb, var(--orca-blue) 14%, transparent);
-  --dsw-alias-interactive-bg-hover: color-mix(in srgb, var(--orca-blue) 7%, transparent);
-  --dsw-alias-interactive-bg-hover-solid: #e8e4da;
-  --dsw-alias-label-primary: #11151b;
-  --dsw-alias-label-secondary: #343b47;
-  --dsw-alias-label-tertiary: #778399;
-  --dsw-alias-label-caption: #8d98aa;
-  --dsw-alias-state-business-primary: #4b483f;
-  --dsw-alias-state-business-tertiary: #ddd8cc;
-  --dsw-specific-bubble: rgba(232, 228, 218, 0.84);
-  --dsw-specific-bubble-highlight: rgba(216, 210, 198, 0.94);
-  --dsw-specific-input-major: rgba(253, 250, 244, 0.72);
-  --dsw-specific-menu: rgba(253, 250, 244, 0.96);
-  --dsw-specific-selector: rgba(246, 243, 236, 0.9);
-  --dsw-specific-sidebar-fill: rgba(250, 247, 241, 0.58);
-  --dsw-specific-sidebar-nav-item-active: rgba(216, 210, 198, 0.82);
-  --dsw-specific-sidebar-nav-item-active-accent: #a89f8e;
-  --dsw-specific-sidebar-nav-item-hover: rgba(232, 228, 218, 0.86);
-  --dsw-input-solid: #fbf7ef;
+  --dsw-static-blue-50: #ebe7de !important;
+  --dsw-static-blue-100: #ddd8cc !important;
+  --dsw-static-blue-300: #a89f8e !important;
+  --dsw-static-blue-400: #6a655a !important;
+  --dsw-static-blue-500: #4b483f !important;
+  --dsw-static-blue-600: #3a372f !important;
+  --dsw-static-blue-800: #2e2c26 !important;
+  --dsw-static-blue-950: #1f1d18 !important;
+  --dsw-static-deepseek-50: #ebe7de !important;
+  --dsw-static-deepseek-100: #ddd8cc !important;
+  --dsw-static-deepseek-300: #a89f8e !important;
+  --dsw-static-deepseek-400: #6a655a !important;
+  --dsw-static-deepseek-500: #4b483f !important;
+  --dsw-static-deepseek-600: #3a372f !important;
+  --dsw-static-deepseek-800: #2e2c26 !important;
+  --dsw-static-deepseek-900: #26241f !important;
+  --dsw-alias-bg-base: rgba(250, 247, 241, 0.24) !important;
+  --dsw-alias-bg-layer-1: rgba(255, 252, 246, 0.62) !important;
+  --dsw-alias-bg-layer-2: rgba(247, 244, 238, 0.74) !important;
+  --dsw-alias-bg-layer-3: rgba(240, 236, 229, 0.82) !important;
+  --dsw-alias-bg-module-platform: rgba(247, 244, 238, 0.78) !important;
+  --dsw-alias-bg-overlay: rgba(253, 250, 244, 0.96) !important;
+  --dsw-alias-border-l1: rgba(43, 55, 72, 0.1) !important;
+  --dsw-alias-border-l2: rgba(43, 55, 72, 0.16) !important;
+  --dsw-alias-border-l3: rgba(43, 55, 72, 0.25) !important;
+  --dsw-alias-border-l4: rgba(43, 55, 72, 0.36) !important;
+  --dsw-alias-brand-primary: #4b483f !important;
+  --dsw-alias-brand-primary-invert: #ffffff !important;
+  --dsw-alias-brand-text: #3a372f !important;
+  --dsw-alias-button-primary-fill: #4b483f !important;
+  --dsw-alias-button-primary-hover: #3a372f !important;
+  --dsw-alias-button-floating-fill: rgba(255, 252, 246, 0.92) !important;
+  --dsw-alias-button-floating-hover: #e8e4da !important;
+  --dsw-alias-button-tool-bar-fill: rgba(255, 252, 246, 0.64) !important;
+  --dsw-alias-button-tool-bar-hover: rgba(216, 210, 198, 0.9) !important;
+  --dsw-alias-interactive-bg-active: color-mix(in srgb, var(--orca-blue) 14%, transparent) !important;
+  --dsw-alias-interactive-bg-hover: color-mix(in srgb, var(--orca-blue) 7%, transparent) !important;
+  --dsw-alias-interactive-bg-hover-solid: #e8e4da !important;
+  --dsw-alias-label-primary: #11151b !important;
+  --dsw-alias-label-secondary: #343b47 !important;
+  --dsw-alias-label-tertiary: #778399 !important;
+  --dsw-alias-label-caption: #8d98aa !important;
+  --dsw-alias-state-business-primary: #4b483f !important;
+  --dsw-alias-state-business-tertiary: #ddd8cc !important;
+  --dsw-specific-bubble: rgba(232, 228, 218, 0.84) !important;
+  --dsw-specific-bubble-highlight: rgba(216, 210, 198, 0.94) !important;
+  --dsw-specific-input-major: rgba(253, 250, 244, 0.72) !important;
+  --dsw-specific-menu: rgba(253, 250, 244, 0.96) !important;
+  --dsw-specific-selector: rgba(246, 243, 236, 0.9) !important;
+  --dsw-specific-sidebar-fill: rgba(250, 247, 241, 0.58) !important;
+  --dsw-specific-sidebar-nav-item-active: rgba(216, 210, 198, 0.82) !important;
+  --dsw-specific-sidebar-nav-item-active-accent: #a89f8e !important;
+  --dsw-specific-sidebar-nav-item-hover: rgba(232, 228, 218, 0.86) !important;
+  --dsw-input-solid: #fbf7ef !important;
 }
 
 /* ORCA shape contract: keep interactive surfaces and skin chrome rectilinear
@@ -172,48 +183,48 @@ body[data-dsh-orca-link][data-ds-dark-theme] {
   color: var(--orca-ink);
   background-color: #090d14;
   background-image: none;
-  --dsw-alias-bg-base: rgba(8, 12, 19, 0.22);
-  --dsw-alias-bg-layer-1: rgba(14, 20, 30, 0.84);
-  --dsw-alias-bg-layer-2: rgba(19, 27, 40, 0.88);
-  --dsw-alias-bg-layer-3: rgba(26, 35, 50, 0.92);
-  --dsw-alias-bg-module-platform: rgba(19, 27, 40, 0.88);
-  --dsw-alias-bg-overlay: rgba(15, 21, 31, 0.97);
-  --dsw-alias-border-l1: rgba(180, 199, 226, 0.1);
-  --dsw-alias-border-l2: rgba(180, 199, 226, 0.16);
-  --dsw-alias-border-l3: rgba(180, 199, 226, 0.24);
-  --dsw-alias-border-l4: rgba(180, 199, 226, 0.34);
-  --dsw-alias-brand-primary: #4d91ff;
-  --dsw-alias-brand-primary-invert: #07101f;
-  --dsw-alias-brand-text: #a9c9ff;
-  --dsw-alias-button-primary-fill: var(--orca-blue);
-  --dsw-alias-button-primary-hover: #2e81ff;
-  --dsw-alias-button-info-fill: #4d91ff;
-  --dsw-alias-button-info-hover: #2e81ff;
-  --dsw-static-deepseek-500: #4d91ff;
-  --dsw-static-deepseek-200: #a9c9ff;
-  --dsw-alias-button-floating-fill: rgba(19, 27, 40, 0.95);
-  --dsw-alias-button-floating-hover: #202c40;
-  --dsw-alias-button-tool-bar-fill: rgba(24, 34, 50, 0.88);
-  --dsw-alias-button-tool-bar-hover: rgba(33, 49, 74, 0.95);
-  --dsw-alias-interactive-bg-active: rgba(77, 145, 255, 0.2);
-  --dsw-alias-interactive-bg-hover: rgba(77, 145, 255, 0.11);
-  --dsw-alias-interactive-bg-hover-solid: #1d2a3f;
-  --dsw-alias-label-primary: #eef4ff;
-  --dsw-alias-label-secondary: #c8d2e2;
-  --dsw-alias-label-tertiary: #8998af;
-  --dsw-alias-label-caption: #718198;
-  --dsw-alias-state-business-primary: #4d91ff;
-  --dsw-alias-state-business-tertiary: #183459;
-  --dsw-specific-bubble: rgba(24, 42, 66, 0.9);
-  --dsw-specific-bubble-highlight: rgba(30, 56, 88, 0.94);
-  --dsw-specific-input-major: rgba(14, 20, 30, 0.86);
-  --dsw-specific-menu: rgba(15, 21, 31, 0.97);
-  --dsw-specific-selector: rgba(20, 29, 43, 0.94);
-  --dsw-specific-sidebar-fill: rgba(8, 12, 19, 0.8);
-  --dsw-specific-sidebar-nav-item-active: rgba(29, 54, 88, 0.88);
-  --dsw-specific-sidebar-nav-item-active-accent: #4d91ff;
-  --dsw-specific-sidebar-nav-item-hover: rgba(25, 38, 58, 0.9);
-  --dsw-input-solid: #0e141e;
+  --dsw-alias-bg-base: rgba(8, 12, 19, 0.22) !important;
+  --dsw-alias-bg-layer-1: rgba(14, 20, 30, 0.84) !important;
+  --dsw-alias-bg-layer-2: rgba(19, 27, 40, 0.88) !important;
+  --dsw-alias-bg-layer-3: rgba(26, 35, 50, 0.92) !important;
+  --dsw-alias-bg-module-platform: rgba(19, 27, 40, 0.88) !important;
+  --dsw-alias-bg-overlay: rgba(15, 21, 31, 0.97) !important;
+  --dsw-alias-border-l1: rgba(180, 199, 226, 0.1) !important;
+  --dsw-alias-border-l2: rgba(180, 199, 226, 0.16) !important;
+  --dsw-alias-border-l3: rgba(180, 199, 226, 0.24) !important;
+  --dsw-alias-border-l4: rgba(180, 199, 226, 0.34) !important;
+  --dsw-alias-brand-primary: #4d91ff !important;
+  --dsw-alias-brand-primary-invert: #07101f !important;
+  --dsw-alias-brand-text: #a9c9ff !important;
+  --dsw-alias-button-primary-fill: var(--orca-blue) !important;
+  --dsw-alias-button-primary-hover: #2e81ff !important;
+  --dsw-alias-button-info-fill: #4d91ff !important;
+  --dsw-alias-button-info-hover: #2e81ff !important;
+  --dsw-static-deepseek-500: #4d91ff !important;
+  --dsw-static-deepseek-200: #a9c9ff !important;
+  --dsw-alias-button-floating-fill: rgba(19, 27, 40, 0.95) !important;
+  --dsw-alias-button-floating-hover: #202c40 !important;
+  --dsw-alias-button-tool-bar-fill: rgba(24, 34, 50, 0.88) !important;
+  --dsw-alias-button-tool-bar-hover: rgba(33, 49, 74, 0.95) !important;
+  --dsw-alias-interactive-bg-active: rgba(77, 145, 255, 0.2) !important;
+  --dsw-alias-interactive-bg-hover: rgba(77, 145, 255, 0.11) !important;
+  --dsw-alias-interactive-bg-hover-solid: #1d2a3f !important;
+  --dsw-alias-label-primary: #eef4ff !important;
+  --dsw-alias-label-secondary: #c8d2e2 !important;
+  --dsw-alias-label-tertiary: #8998af !important;
+  --dsw-alias-label-caption: #718198 !important;
+  --dsw-alias-state-business-primary: #4d91ff !important;
+  --dsw-alias-state-business-tertiary: #183459 !important;
+  --dsw-specific-bubble: rgba(24, 42, 66, 0.9) !important;
+  --dsw-specific-bubble-highlight: rgba(30, 56, 88, 0.94) !important;
+  --dsw-specific-input-major: rgba(14, 20, 30, 0.86) !important;
+  --dsw-specific-menu: rgba(15, 21, 31, 0.97) !important;
+  --dsw-specific-selector: rgba(20, 29, 43, 0.94) !important;
+  --dsw-specific-sidebar-fill: rgba(8, 12, 19, 0.8) !important;
+  --dsw-specific-sidebar-nav-item-active: rgba(29, 54, 88, 0.88) !important;
+  --dsw-specific-sidebar-nav-item-active-accent: #4d91ff !important;
+  --dsw-specific-sidebar-nav-item-hover: rgba(25, 38, 58, 0.9) !important;
+  --dsw-input-solid: #0e141e !important;
 }
 
 body[data-dsh-orca-link] [id='root'] {
@@ -365,27 +376,67 @@ body[data-dsh-orca-link][data-ds-dark-theme][data-orca-scene='active'] .darkScen
 
 /* Settings and menu surfaces must be fully opaque: the left nav and the row
    menus are the settings interface's secondary level, and a translucent card
-   lets the conversation show through and reads as click-through. The sidebar
-   root is a stacking context (isolation), which would otherwise trap the
-   fixed settings overlay below the conversation column and body-level skin
-   chrome; while the dialog is open, lift that whole context above them so
-   every button inside the panel stays on top and receives pointer events. */
+   lets the conversation show through and reads as click-through.
+
+   SettingsPanel is not a document-root portal: the host mounts it inside the
+   sidebar content root and it reaches the viewport with `position: fixed`.
+   Every stacking context this skin adds along that ancestor chain — the
+   content root's `isolation: isolate`, plus the promotions this block used to
+   apply to the sidebar column and the dialog carrier — is a context the
+   product itself never had, and a fixed panel that cannot paint out of an
+   ancestor context is the Safari/WebKit failure reported against maid-atelier
+   in #40 and against this skin in #53: the mask appears, the panel measures
+   and hit-tests correctly, and it never draws. So retire those contexts while
+   the dialog is open rather than promoting them. `z-index: auto` with the
+   element's `position` left alone creates no stacking context, so the
+   overlay's own z-index competes at page level again, exactly like a portaled
+   dialog would.
+
+   #root is deliberately NOT released, and that is the one promotion here that
+   is load bearing: index.ts appends the opaque scene layers to <body> AFTER
+   #root, so #root's positive z-index is the only thing keeping .lightScene /
+   .darkScene (both `position: fixed; z-index: 0`, both an opaque flat colour)
+   behind the application. Dropping it to `auto` makes those backdrops paint
+   over the entire app while settings is open — measured on both WebKit and
+   Blink — and it is also what holds other plugins' body-level panels below
+   the dialog. Everything the panel has to cover lives inside #root, so
+   keeping this one context costs the fix nothing. */
 body[data-dsh-orca-link][data-orca-settings-open] [id='root'] {
-  z-index: var(--orca-settings-overlay-z);
+  z-index: var(--orca-settings-overlay-z) !important;
 }
 
+/* Cordis is also mounted below #root while the seam ruler is body-owned.
+   Promote the app root to the Cordis rung so the escaped fixed panel can
+   outrank every skin decoration without crossing the official Modal ceiling. */
+body[data-dsh-orca-link][data-orca-cordis-panel-open] [id='root'] {
+  z-index: var(--orca-z-cordis) !important;
+}
+
+/* The sidebar content root is a stacking context for the whole session: the
+   sidebar layering block below gives it `position: relative` and, decisively,
+   `isolation: isolate`, which forms a context on its own no matter what the
+   z-index says. Release the isolation together with the promotion while the
+   dialog is open; the `position: relative` from that block stays, and
+   relative + z-index auto is not a stacking context. */
 body[data-dsh-orca-link][data-orca-settings-open] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
-  z-index: var(--orca-settings-overlay-z);
+  z-index: auto;
+  isolation: auto;
 }
 
 /* The settings trigger and overlay live below the host's sidebar column,
-   while the window toggles are fixed inside the adjacent center column.
-   Promote the real column ancestor as well; otherwise descendants with an
-   arbitrarily large z-index still cannot outrank the sibling column. */
+   while the window toggles are fixed inside the adjacent center column. This
+   rule used to promote the column so descendants could outrank that sibling;
+   releasing the column's z-index reaches the same place without a context,
+   because the fixed overlay then stacks against the center column itself.
+   `position: relative` is kept deliberately — dropping to `static` re-homes
+   absolutely positioned descendants, and in maid-atelier it also tripped
+   Chromium into compositing a filtered layer over the mask's backdrop-filter
+   (4d3e346). `overflow: visible` still carries its own weight: the column
+   clips at its own box regardless of stacking. */
 body[data-dsh-orca-link][data-orca-settings-open]
-  [class*='sidebarCol']:has([data-slot='sidebar.settings'] [role='dialog']) {
+  [class*='sidebarCol'] {
   position: relative;
-  z-index: var(--orca-settings-overlay-z);
+  z-index: auto;
   overflow: visible;
 }
 
@@ -399,10 +450,13 @@ body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .stan
   pointer-events: none;
 }
 
-/* The fixed settings overlay is mounted inside the sidebar footer. Its own
-   z-index cannot escape that direct child's stacking level, while the wide
-   new-session control sits at level 2. Raise only the dialog-bearing child
-   so responsive overlap never routes clicks to the sidebar underneath.
+/* The fixed settings overlay is mounted inside the sidebar footer, and the
+   sidebar layering block below already makes every direct child of the content
+   root `position: relative; z-index: 1` — i.e. a stacking context wrapped
+   around the fixed panel. Release this carrier's z-index while the dialog is
+   open so the overlay stacks at page level instead; `position: relative` is
+   restated rather than dropped, so the carrier's containing-block role never
+   changes with the dialog's presence.
    The official sidebar also fades every direct child during its 1024px
    auto-collapse, then runs a delayed rail-in animation on this footer. Keep
    the dialog carrier opaque and animation-free while it owns the viewport,
@@ -410,7 +464,7 @@ body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .stan
 body[data-dsh-orca-link][data-orca-settings-open]
   [data-slot='sidebar'] > :first-child > :has([role='dialog']) {
   position: relative;
-  z-index: var(--orca-settings-overlay-z);
+  z-index: auto;
   opacity: 1 !important;
   transition: none !important;
   animation: none !important;
@@ -429,7 +483,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog'] {
    settings slots remain intact; ORCA only changes its spatial behavior.
    Large screens dock beside the settings trigger; every constrained viewport
    becomes a full workspace instead of squeezing an intermediate modal. */
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] {
   position: fixed;
   z-index: var(--orca-settings-overlay-z);
   isolation: isolate;
@@ -439,12 +493,12 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:
   pointer-events: auto;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > :first-child {
+body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > :first-child {
   z-index: 0;
   animation: orcaSettingsMaskIn 170ms ease-out both;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
   width: min(800px, calc(100vw - 48px));
   max-width: none;
   height: min(760px, calc(100vh - 48px));
@@ -456,32 +510,31 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:
   animation: orcaSettingsPanelIn 200ms ease-out both;
 }
 
-/* Settings-owned popup menus are portalled outside the dialog subtree. Keep
-   them one layer above the modal while all unrelated plugin chrome remains
-   below its backdrop. */
-body[data-dsh-orca-link][data-orca-settings-open]
-  :is([role='menu'], [role='listbox']) {
-  z-index: 2147483001 !important;
-}
-
 /* The cordis plugin panel is a fixed popover mounted inside the sidebar
    footer. The sidebar layering block below wraps every direct child of the
    content root in a stacking context (`position: relative; z-index: 1`) and
    isolates the content root itself, so the panel's overflow over the center
    column paints and hit-tests below the column — clicks on that region fall
    through to the blank conversation surface. Retire those contexts while the
-   panel is open, exactly like the settings block above does for its dialog;
-   the panel then stacks at page level again. */
-body[data-dsh-orca-link]:has([data-slot='sidebar.footer.action'] [data-cordis-panel])
+   panel is open, exactly like the settings block above does for its dialog.
+   The host's real z=1 carrier is the direct foot-area child containing the
+   panel, not the nested sidebar.footer.action slot. */
+body[data-dsh-orca-link][data-orca-cordis-panel-open]
   :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
   z-index: auto;
   isolation: auto;
 }
 
-body[data-dsh-orca-link]:has([data-slot='sidebar.footer.action'] [data-cordis-panel])
-  [data-slot='sidebar'] > :first-child > :has([data-slot='sidebar.footer.action'] [data-cordis-panel]) {
+body[data-dsh-orca-link][data-orca-cordis-panel-open]
+  [data-slot='sidebar'] > :first-child > :has([data-cordis-panel]) {
   position: relative;
   z-index: auto;
+}
+
+/* Once both ancestor contexts are released, give the host's fixed panel the
+   top rung inside the promoted root. */
+body[data-dsh-orca-link][data-orca-cordis-panel-open] [data-cordis-panel] {
+  z-index: var(--orca-z-cordis);
 }
 
 /* The settings surface is an owned instrument panel. Its inner cards, tag
@@ -518,28 +571,28 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
 /* Large desktop: the panel opens immediately beside the sidebar trigger and
    grows from its lower-left corner. Navigation stays near the pointer. */
 @media (min-width: 1100px) and (min-height: 681px) {
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] {
     justify-content: flex-start;
     align-items: flex-end;
     padding: 18px 18px 18px 72px;
   }
 
   body[data-dsh-orca-link][data-orca-sidebar-wide]
-    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+    [data-slot='sidebar.settings'] > [role='presentation'] {
     padding-left: calc(var(--orca-sidebar-width) + 16px);
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
     width: min(760px, calc(100vw - 108px));
     height: min(680px, calc(100vh - 36px));
   }
 
   body[data-dsh-orca-link][data-orca-sidebar-wide]
-    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
     width: min(760px, calc(100vw - var(--orca-sidebar-width) - 34px));
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
     justify-content: flex-end;
     padding-bottom: 24px;
     border-right: 1px solid var(--orca-line);
@@ -570,11 +623,11 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
 /* Any viewport below the desktop dock threshold becomes a full workspace: no
    centering tax, crushed columns or clipped lower controls. */
 @media (max-width: 1099px), (max-height: 680px) {
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] {
     padding: 0;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
     width: 100vw;
     max-width: none;
     height: 100vh;
@@ -587,11 +640,11 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
 
 /* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
     flex-direction: column;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
     box-sizing: border-box;
     width: 100%;
     gap: 8px;
@@ -599,39 +652,39 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
     border-bottom: 1px solid var(--orca-line);
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav button {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav button {
     min-width: 0;
     height: 36px;
     padding: 7px 8px;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
     min-height: 0;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :first-child {
     min-height: 46px;
     height: auto;
     padding: 8px 10px;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child {
     padding: 0 14px 16px;
   }
 }
 
 @media (max-width: 420px) {
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -641,24 +694,24 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
    so descriptions remain normal sentences instead of vertical fragments. */
 @media (max-width: 520px) {
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) {
     align-items: stretch;
     flex-direction: column;
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
     [class$='_rowText'] {
     width: 100%;
     padding-right: 0;
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) > :last-child,
-  body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+  body[data-dsh-orca-link][data-orca-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) [class$='_selector'] {
     box-sizing: border-box;
     width: 100%;
@@ -666,7 +719,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'] > nav + div > :last-child
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     justify-content: space-between;
   }
@@ -696,29 +749,29 @@ body[data-dsh-orca-link][data-ds-dark-theme] {
   --orca-permission-full: #ff7771;
 }
 
-body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem']):has(svg[data-orca-link-icon='permission-read']) {
+body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem'])[data-orca-permission='read'] {
   color: var(--orca-permission-read);
 }
 
-body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem']):has(svg[data-orca-link-icon='permission-write']) {
+body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem'])[data-orca-permission='write'] {
   color: var(--orca-permission-write);
 }
 
-body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem']):has(svg[data-orca-link-icon='permission-full']) {
+body[data-dsh-orca-link] :is([data-composer-seat] button, [role='menuitem'])[data-orca-permission='full'] {
   color: var(--orca-permission-full);
 }
 
-body[data-dsh-orca-link] [data-composer-seat] button:not([role='menuitem']):has(svg[data-orca-link-icon^='permission-']) {
+body[data-dsh-orca-link] [data-composer-seat] button:not([role='menuitem'])[data-orca-permission] {
   border-left: 1px solid color-mix(in srgb, currentColor 34%, transparent);
   background: color-mix(in srgb, currentColor 5%, transparent);
 }
 
-body[data-dsh-orca-link] [role='menuitem']:has(svg[data-orca-link-icon^='permission-']) {
+body[data-dsh-orca-link] [role='menuitem'][data-orca-permission] {
   border-left: 2px solid transparent;
 }
 
-body[data-dsh-orca-link] [role='menuitem']:has(svg[data-orca-link-icon^='permission-']):hover,
-body[data-dsh-orca-link] [role='menuitem']:has(svg[data-orca-link-icon^='permission-']):has(> svg[data-orca-link-icon='check']) {
+body[data-dsh-orca-link] [role='menuitem'][data-orca-permission]:hover,
+body[data-dsh-orca-link] [role='menuitem'][data-orca-permission]:has(> svg[data-orca-link-icon='check']) {
   border-left-color: color-mix(in srgb, currentColor 64%, transparent);
   background: color-mix(in srgb, currentColor 7%, transparent);
 }
@@ -983,9 +1036,15 @@ body[data-dsh-orca-link]
   background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
 }
 
-/* Replace the production shell wordmark while preserving its new-session button. */
-body[data-dsh-orca-link] [data-orca-link-brand] > svg {
+/* Replace the production shell wordmark while preserving its new-session button.
+   rc8 nests the official mark and name inside slot divs below the brand button,
+   so the hide rules match both the flat rc7 shape and the nested rc8 shape. */
+body[data-dsh-orca-link] [data-orca-link-brand] > svg,
+body[data-dsh-orca-link] [data-orca-link-brand] [data-slot='sidebar.brand.mark'] svg {
   display: none;
+}
+body[data-dsh-orca-link] [data-orca-link-brand] [data-slot='sidebar.brand.name'] {
+  display: none !important;
 }
 body[data-dsh-orca-link] [data-orca-link-brand] {
   align-self: center;
@@ -1042,7 +1101,8 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] .dshWordmark {
 body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > :first-child::after {
   animation: orcaWordmarkScan 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type > svg {
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type > svg,
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type [data-slot='sidebar.brand.mark'] svg {
   opacity: 0;
 }
 body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
@@ -1387,7 +1447,7 @@ body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [cl
 }
 
 body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [role='tooltip'] {
-  z-index: 1200;
+  z-index: var(--orca-z-tooltip);
 }
 
 /* Alt+Tab may restore both the pointer hit and the previously focused
@@ -1774,6 +1834,11 @@ body[data-dsh-orca-link] textarea,
 body[data-dsh-orca-link] select {
   background-color: var(--dsw-specific-input-major);
   color: var(--orca-ink);
+  /* rc8 renders the composer draft on a transparent textarea (ghost text) and
+     paints the visible copy on [data-input-backdrop]. IME composition and
+     caret-adjacent input render on the textarea itself, so the webkit fill
+     must follow the ink color or typed text stays invisible. */
+  -webkit-text-fill-color: var(--orca-ink);
   caret-color: var(--orca-blue);
 }
 
@@ -1785,6 +1850,7 @@ body[data-dsh-orca-link] [data-composer-card] textarea {
 body[data-dsh-orca-link] input::placeholder,
 body[data-dsh-orca-link] textarea::placeholder {
   color: color-mix(in srgb, var(--orca-muted) 62%, var(--orca-surface-strong));
+  -webkit-text-fill-color: color-mix(in srgb, var(--orca-muted) 62%, var(--orca-surface-strong));
   opacity: 1;
 }
 
@@ -2369,7 +2435,7 @@ body[data-dsh-orca-link] [data-composer-card] :is([class*='triggerLabel'], [clas
 
 body[data-dsh-orca-link] [data-orca-composer-restore] {
   position: fixed;
-  z-index: 1100;
+  z-index: var(--orca-z-restore);
   display: grid;
   place-items: center;
   width: 28px;
@@ -2499,7 +2565,7 @@ body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] {
 
 body[data-dsh-orca-link] [data-orca-composer-ghost] {
   position: fixed;
-  z-index: 1200;
+  z-index: var(--orca-z-ghost);
   box-sizing: border-box;
   margin: 0;
   pointer-events: none;
@@ -2642,10 +2708,10 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .signalDot,
   body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq],
   body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell],
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > :first-child,
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog'],
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::before,
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::after,
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > :first-child,
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'],
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after,
   body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText']::after,
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering],
   body[data-dsh-orca-link] [data-orca-composer-ghost],
@@ -2661,8 +2727,8 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell] { opacity: 0.55; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::before,
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation']:has(> [role='dialog']) > [role='dialog']::after { display: none; }
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after { display: none; }
   body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
   body[data-dsh-orca-link] .statusCharacter::after { animation: none; }
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
@@ -2720,6 +2786,16 @@ body[data-dsh-orca-link][data-ds-dark-theme][data-orca-lamp='flicker'] [data-slo
   60%  { opacity: 0.18; }
   78%  { opacity: 0.42; }
   100% { opacity: 0.34; }
+}
+
+/* Agent preset id captions keep the official light caption colour, which the
+   ORCA backdrop turns illegible (light text on the cream surface). Pin them
+   to the ink ramp so the id stays readable in both themes. */
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] [class$='_cardId'] {
+  color: var(--orca-graphite);
+}
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar.settings'] [class$='_cardId'] {
+  color: var(--orca-muted);
 }
 
 
