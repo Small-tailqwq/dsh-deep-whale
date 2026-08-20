@@ -60,7 +60,8 @@ description: 安装、切换或更新 DSH Web 皮肤（dsh-deep-whale 鲸鱼娘�
 
 ### 5. 注册并启用
 
-- `dsh plugin --profile <name> add <仓库路径>/<皮肤目录>`（本地路径自动按 `link:` 注册），然后**重启 dsh web** 才生效。
+- `dsh plugin --profile <name> add <仓库绝对路径>/<皮肤目录>`（本地路径自动按 `link:` 注册），然后**重启 dsh web** 才生效。
+  **路径规范（安装失败高发区）**：绝对路径最稳（Windows 正斜杠/反斜杠均可，pnpm 会自动规范化）；相对路径按 **dsh 命令调用目录**解析——`./`、`../` 前缀可以，但**不要用裸目录名**（如 `add maid-atelier`，会被当作 npm 包名去 registry 拉取而 404 失败）。安装后先 `dsh plugin --profile <name> list` 确认包已注册，再继续。更新（场景 C）后 bundle 变化走热切换，无需重启；**初次安装是新增插件包，必须重启**。
 - 安装并重启后，同样写入两个 patch 层的 `disabled` 行（见场景 A），保持同一时间只启用一套皮肤。
 
 ### 6. 验证生效
@@ -82,5 +83,5 @@ description: 安装、切换或更新 DSH Web 皮肤（dsh-deep-whale 鲸鱼娘�
 
 - 本仓库皮肤是纯展示层 client 插件：不注入服务、不发 Cordis 事件、不触达模型请求；素材以数据 URI 内嵌于 bundle，激活不依赖远程资源。
 - 皮肤可热切换，`wiring.id` 即 patch 层控制的插件 id；皮肤中心/互斥切换机制兼容。
-- 仓库 README 安装示例为 `dsh plugin --profile web add ../dsh-deep-whale/<皮肤目录>`；懒人版是直接让 dsh 说"安装这个皮肤包"。
+- 仓库 README 安装示例推荐**绝对路径**（`dsh plugin --profile web add <clone 绝对路径>/<皮肤目录>`），并附相对路径规则与失败排查表；懒人版是直接让 dsh 说"安装这个皮肤包"。
 - 反馈问题走仓库 issue，不要联系画师本人；二创关注是另一回事。

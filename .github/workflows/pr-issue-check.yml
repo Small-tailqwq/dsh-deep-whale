@@ -1,0 +1,47 @@
+name: PR 必须关联 Issue
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 校验 PR 描述
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request
+            const body = pr.body ?? ''
+            const hasIssueRef = /(^|\s)#\d+|issues\/\d+/i.test(body)
+            const hasExplicitWaiver = /无需 issue|无关联 issue|不需要 issue/i.test(body)
+            const minBodyLength = 20
+            const tooShort = body.trim().length < minBodyLength
+
+            const comments = []
+            if (!hasIssueRef && !hasExplicitWaiver) {
+              comments.push(
+                '❌ 本 PR 未关联任何 issue。请先按 issue 模板创建 issue 并在描述中写明编号（`Closes #<编号>`），' +
+                '或如果这是确实无需 issue 的微小改动，请在正文显式说明理由（自动检查会识别「无需 issue」等表述）。'
+              )
+            }
+            if (tooShort) {
+              comments.push('❌ PR 描述过短，请按 PR 模板补全「改动内容」与「验证」部分。')
+            }
+            if (comments.length === 0) {
+              core.info('PR 描述通过检查')
+              return
+            }
+
+            const message = comments.join('\n\n')
+            core.setFailed(message)
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `## PR 自动检查未通过\n\n${message}\n\n> 请编辑 PR 描述后重新触发检查（重新 push 或关闭重开）。`,
+            })

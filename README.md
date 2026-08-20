@@ -35,13 +35,43 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 ```
 安装一下这个皮肤包：https://github.com/Small-tailqwq/dsh-deep-whale
 ```
+dsh 会按 `dsh-skin-install` 技能走完整流程：列出全部皮肤、交代署名链与许可、用绝对路径注册并激活你选的那一套。
+
+### 手动安装（推荐绝对路径）
 
 ```sh
-git clone https://github.com/Small-tailqwq/dsh-deep-whale
-cd <harness>
-dsh plugin --profile web add ../dsh-deep-whale/maid-atelier   # 深海女仆工坊
-# 或: dsh plugin --profile web add ../dsh-deep-whale/orca-link   # 虎鲸链路
+git clone https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置
+dsh plugin --profile web add <clone 的绝对路径>/maid-atelier   # 深海女仆工坊
+dsh plugin --profile web add <clone 的绝对路径>/orca-link      # 虎鲸链路
 ```
+
+Windows 示例（正斜杠与反斜杠均可，pnpm 会自动规范化）：
+```powershell
+dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
+```
+
+### 相对路径的规则（容易踩坑）
+
+- 相对路径（`./`、`../` 开头）按 **dsh 命令的调用目录**解析，不是皮肤仓库目录。
+- **不要直接写裸目录名**：`dsh plugin --profile web add maid-atelier` 会被当作 npm 包名去 registry 拉取而 404 失败。请用 `./maid-atelier`（已在皮肤仓库目录内）、`../dsh-deep-whale/maid-atelier`（与 dsh-deep-whale 同级）或绝对路径。
+- `cd <harness>` 后用 `../dsh-deep-whale/maid-atelier` 的前提是 **dsh-deep-whale 与你的 harness 目录同级**；clone 到别处时相对路径会 link 到错误位置（命令不报错、但皮肤不生效）。不确定就用绝对路径。
+
+### 安装后验证
+
+```sh
+dsh plugin --profile web list          # 应看到 @dsh-external/dsh-client-ui-skin-* 的 link: 依赖
+dsh --profile web --dump-config        # 皮肤行在组合配置中，disabled 状态正确
+```
+刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。
+
+### 安装失败排查
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| `ERR_PNPM_FETCH_404 ... <名字>` | 传了裸目录名（如 `add maid-atelier`），被当成 npm 包名 | 改为绝对路径或 `./`/`../` 前缀路径 |
+| 命令成功但 `dsh plugin list` 没有该包 | 相对路径解析到了错误位置（clone 位置与假设不符） | 用绝对路径重新 add |
+| `pnpm not found on PATH` | 环境缺少 pnpm | 安装 pnpm（`npm i -g pnpm`）后重试 |
+| 包在列表里但页面无效果 | 皮肤被 `disabled`（多皮肤互斥开关）或浏览器未刷新 | `--dump-config` 核对 disabled；刷新页面 |
 
 ### 懒人版 · 自带技能
 
