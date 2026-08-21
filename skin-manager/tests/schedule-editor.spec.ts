@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
 import { ScheduleEditor } from '../src/client/SkinManager.tsx'
 import type { SkinSetting } from '../src/protocol.ts'
+
+const css = readFileSync(new URL('../src/client/skin-manager.module.css', import.meta.url), 'utf8')
 
 const setting = {
   key: 'sfw',
@@ -61,5 +64,13 @@ describe('schedule editor', () => {
     // The switch itself stays a label so the control (plus its small padded
     // hit slack) is the only click target.
     expect(html).toMatch(/<label class="[^"]*_toggleSwitch_[^"]*"><input type="checkbox" role="switch"/)
+  })
+
+  it('shows the pointer hand over the whole switch and every select', () => {
+    // The checkbox keeps the UA default arrow cursor; the hit slack would
+    // show the hand while the control itself would not.
+    expect(css).toMatch(
+      /\.toggleSwitch input,\s*\.selectRow select,\s*\.rangeRow select\s*\{[^}]*cursor: pointer/s,
+    )
   })
 })

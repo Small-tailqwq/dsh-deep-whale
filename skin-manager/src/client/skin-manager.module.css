@@ -109,6 +109,16 @@
   border-radius: 999px;
 }
 
+/* The checkbox itself keeps the UA default arrow cursor; without this the
+   hit slack shows the pointer hand while the control inside still shows the
+   plain cursor. Same for the selects: the product's own inputs declare
+   cursor: pointer. */
+.toggleSwitch input,
+.selectRow select,
+.rangeRow select {
+  cursor: pointer;
+}
+
 .selectRow select,
 .rangeRow input,
 .rangeRow select {
