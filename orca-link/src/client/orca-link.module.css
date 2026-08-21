@@ -1119,6 +1119,14 @@ body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :
 body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type [data-slot='sidebar.brand.mark'] svg {
   opacity: 0;
 }
+/* The collapsed rail shrinks the logo row to ~35px while the wordmark's
+   scaled box is 33x8.4px. The wide-state anchor (left 4px / top 15px) then
+   lands the mark right of center and clips the H at the row's overflow
+   edge. Center the scaled box inside the live row instead. */
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) .dshWordmark {
+  left: calc((100% - 33px) / 2);
+  top: calc((100% - 8.4px) / 2);
+}
 body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
 
 @keyframes orcaWordmarkScan {
