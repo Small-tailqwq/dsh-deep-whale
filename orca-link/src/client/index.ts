@@ -8,6 +8,7 @@ import {
 } from './art.ts'
 import { installOrcaComposerCollapse } from './composer-collapse.ts'
 import { installOrcaComposerMotion } from './composer-motion.ts'
+import { installOrcaCustomization } from './customization.ts'
 import { installOrcaHeadlineTypewriter } from './headline-typewriter.ts'
 import { installOrcaIcons } from './icons.ts'
 import { installOrcaLinkStatus } from './link-status.ts'
@@ -100,6 +101,7 @@ function syncSidebarWidth(body: HTMLElement, pane: Element): number {
 
 export function apply(ctx: Context): void {
   const body = document.body
+  ctx.effect(() => installOrcaCustomization(), 'ui-skin-orca-link: customization declaration')
   const originalTitle = document.title
   const originalLightHeroArt = body.style.getPropertyValue(LIGHT_HERO_ART_PROPERTY)
   const originalLightActiveArt = body.style.getPropertyValue(LIGHT_ACTIVE_ART_PROPERTY)

@@ -821,10 +821,11 @@ window.__ModuleLoader__.load({
 					projector.release();
 					return;
 				}
-				projector.set("data-dsh-whale-orca-character", state.values.character === true ? "visible" : "hidden");
+				const scheduleVisible = state.visibility.sfwMode !== false;
 				projector.set("data-dsh-whale-orca-background", state.values.background === true ? "visible" : "hidden");
 				projector.set("data-dsh-whale-orca-pricing", state.values.pricingLight === true ? "visible" : "hidden");
-				projector.set("data-dsh-whale-orca-art", state.visibility.sfwMode !== false ? "visible" : "hidden");
+				projector.set("data-dsh-whale-orca-art", scheduleVisible ? "visible" : "hidden");
+				projector.set("data-dsh-whale-orca-character", state.values.character === true && scheduleVisible ? "visible" : "hidden");
 			};
 			return exposeSkinCustomization({
 				protocol: 1,
@@ -853,7 +854,7 @@ window.__ModuleLoader__.load({
 						key: "sfwMode",
 						type: "visibility-schedule",
 						label: "不那么二次元模式",
-						description: "按本机时间控制场景立绘的显示与隐藏。",
+						description: "按本机时间控制场景立绘与左上角小人的显示与隐藏。",
 						defaultValue: {
 							enabled: false,
 							outside: "visible",
