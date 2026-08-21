@@ -99,7 +99,7 @@ dsh --profile web --dump-config        # 皮肤行在组合配置中，disabled 
 - **@Vergemesh** — 原版/鲸鱼娘皮肤即时切换（#27）
 - **@joejojoking-cloud** — top-trim 装饰层级（#26）、字符舞台层级（#31）修复
 
-> 自动看板仅统计已合入的代码提交者；本节由人工维护，新增此类 PR 时请同步更新。
+> 本节由人工维护，新增此类 PR 时请同步更新。
 
 ## 许可
 
