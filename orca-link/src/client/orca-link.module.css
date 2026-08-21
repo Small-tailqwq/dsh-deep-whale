@@ -374,6 +374,30 @@ body[data-dsh-orca-link][data-ds-dark-theme][data-orca-scene='active'] .darkScen
   filter: brightness(0.88) saturate(0.74) contrast(1.05) blur(0);
 }
 
+/* Skin-manager preferences are document attributes, so this stylesheet owns
+   only presentation while the shared manager owns persistence and timers. */
+html[data-dsh-whale-orca-background='hidden']
+  body[data-dsh-orca-link]
+  :is(.lightScene, .darkScene) {
+  display: none !important;
+}
+
+html[data-dsh-whale-orca-art='hidden']
+  body[data-dsh-orca-link]
+  :is(.lightSceneLayer, .darkSceneLayer) {
+  opacity: 0 !important;
+  visibility: hidden;
+}
+
+html[data-dsh-whale-orca-character='hidden']
+  body[data-dsh-orca-link]
+  [data-skin-chrome='status-character'],
+html[data-dsh-whale-orca-pricing='hidden']
+  body[data-dsh-orca-link]
+  [data-skin-chrome='pricing-light'] {
+  display: none !important;
+}
+
 /* Settings and menu surfaces must be fully opaque: the left nav and the row
    menus are the settings interface's secondary level, and a translucent card
    lets the conversation show through and reads as click-through.
@@ -404,7 +428,6 @@ body[data-dsh-orca-link][data-ds-dark-theme][data-orca-scene='active'] .darkScen
 body[data-dsh-orca-link][data-orca-settings-open] [id='root'] {
   z-index: var(--orca-settings-overlay-z) !important;
 }
-
 /* Cordis is also mounted below #root while the seam ruler is body-owned.
    Promote the app root to the Cordis rung so the escaped fixed panel can
    outrank every skin decoration without crossing the official Modal ceiling. */
@@ -1204,10 +1227,9 @@ body[data-dsh-orca-link]
    center column, whose title bar sits inside the official frame's z-index: 1
    context. Release the root's isolation together with the promotion while a
    tooltip is present — the same mechanism the settings-open block uses — so
-   the bubble's z-index: 950 (rail) / 100 (wide) competes at the frame level
-   again. Everything else inside the root is absolutely positioned inside the
-   sidebar box and never crosses the pane, so releasing the context cannot
-   leak chrome.
+   the bubble's z-index: 100 competes at the frame level again. Everything
+   else inside the root is absolutely positioned inside the sidebar box and
+   never crosses the pane, so releasing the context cannot leak chrome.
    NOTE: the :has() must sit on the SAME element as the :is() match (no
    descendant space) — with a space it would release the root's child
    (already isolation: auto) and leave the root context intact. */

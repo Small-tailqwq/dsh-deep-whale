@@ -33,6 +33,28 @@ describe('ORCA modal style boundaries', () => {
     expect(css).not.toContain("body[data-dsh-orca-link] [role='dialog'] select")
   })
 
+  it('releases the tooltip carrier so fixed bubbles clear the conversation header', () => {
+    const carrierRule = css.match(
+      /\[data-slot='sidebar'\]\s*> :first-child\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    // The :has() must sit on the SAME element as the :is() match (no
+    // descendant space) — with a space it releases the root's child and
+    // leaves the root context intact.
+    const rootRule = css.match(
+      /:is\(\[data-pane='sidebar'\], \[data-slot='sidebar'\]\s*> :first-child\):has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(carrierRule).not.toBe('')
+    expect(carrierRule).toContain('z-index: auto')
+    expect(carrierRule).not.toContain('position: static')
+    expect(carrierRule).not.toContain('z-index: 1')
+    // The sidebar root is isolation: isolate (a stacking context on its own):
+    // without releasing it the carrier release alone cannot free the bubble.
+    expect(rootRule).not.toBe('')
+    expect(rootRule).toContain('z-index: auto')
+    expect(rootRule).toContain('isolation: auto')
+    expect(css).not.toMatch(/\]\s*> :first-child\)\s+:has\(\[role='tooltip'\]\)/)
+  })
+
   it('centers appearance choices and gives the active theme a provider-style marker', () => {
     expect(css).toContain("[class$='_cubeRow'] > button[class*='_themeCube']")
     expect(css).toContain("button[class*='_themeCube'][aria-pressed='true']::after")
@@ -63,27 +85,5 @@ describe('ORCA modal style boundaries', () => {
     expect(baseSelectRule).toContain('white-space: nowrap')
     expect(pickerIconRule).toContain('flex: none')
     expect(optionRule).toContain('white-space: nowrap')
-  })
-
-  it('releases the tooltip carrier so fixed bubbles clear the conversation header', () => {
-    const carrierRule = css.match(
-      /\[data-slot='sidebar'\]\s*> :first-child\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    // The :has() must sit on the SAME element as the :is() match (no
-    // descendant space) — with a space it releases the root's child and
-    // leaves the root context intact.
-    const rootRule = css.match(
-      /:is\(\[data-pane='sidebar'\], \[data-slot='sidebar'\]\s*> :first-child\):has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    expect(carrierRule).not.toBe('')
-    expect(carrierRule).toContain('z-index: auto')
-    expect(carrierRule).not.toContain('position: static')
-    expect(carrierRule).not.toContain('z-index: 1')
-    // The sidebar root is isolation: isolate (a stacking context on its own):
-    // without releasing it the carrier release alone cannot free the bubble.
-    expect(rootRule).not.toBe('')
-    expect(rootRule).toContain('z-index: auto')
-    expect(rootRule).toContain('isolation: auto')
-    expect(css).not.toMatch(/\]\s*> :first-child\)\s+:has\(\[role='tooltip'\]\)/)
   })
 })
