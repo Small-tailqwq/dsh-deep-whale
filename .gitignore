@@ -2,3 +2,8 @@ node_modules/
 *.tsbuildinfo
 *.js.map
 .DS_Store
+
+# 环境变量与本地密钥（兜底防护，防止误提交）
+.env
+.env.*
+!.env.example
