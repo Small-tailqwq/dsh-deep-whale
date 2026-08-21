@@ -1176,6 +1176,39 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
   z-index: 1;
 }
 
+/* Tooltip bubbles mount beside their anchors inside that anchor's carrier,
+   which the lift above just turned into a stacking context: the fixed bubble
+   cannot paint out of it and loses to the conversation header — the same
+   defect maid-atelier fixed for its shell. Release only the carrier while it
+   holds a tooltip: position stays relative (no re-homing), so the lifted
+   chrome below is unaffected and the bubble's own overlay tier competes at
+   page level again. */
+body[data-dsh-orca-link]
+  [data-slot='sidebar']
+  > :first-child
+  > :has([role='tooltip']) {
+  z-index: auto;
+}
+
+/* The sidebar root itself is `isolation: isolate` (a stacking context on its
+   own no matter what the z-index says), so the carrier release above is not
+   enough: the fixed bubble still cannot leave the root and loses to the
+   center column, whose title bar sits inside the official frame's z-index: 1
+   context. Release the root's isolation together with the promotion while a
+   tooltip is present — the same mechanism the settings-open block uses — so
+   the bubble's z-index: 950 (rail) / 100 (wide) competes at the frame level
+   again. Everything else inside the root is absolutely positioned inside the
+   sidebar box and never crosses the pane, so releasing the context cannot
+   leak chrome.
+   NOTE: the :has() must sit on the SAME element as the :is() match (no
+   descendant space) — with a space it would release the root's child
+   (already isolation: auto) and leave the root context intact. */
+body[data-dsh-orca-link]
+  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child):has([role='tooltip']) {
+  z-index: auto;
+  isolation: auto;
+}
+
 body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
   opacity: 1;
   transition-duration: 200ms;
