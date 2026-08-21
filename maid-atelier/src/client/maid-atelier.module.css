@@ -237,6 +237,30 @@ body[data-dsh-maid-atelier][data-maid-low-power]
   transition: opacity 180ms ease;
 }
 
+/* The family manager projects browser-local preferences onto html. Keeping
+   them outside the skin runtime means hot switching cannot leak listeners or
+   timers into a later activation. */
+html[data-dsh-whale-maid-art='hidden']
+  body[data-dsh-maid-atelier]
+  [data-maid-character] {
+  opacity: 0 !important;
+  visibility: hidden;
+}
+
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='pro']
+  body[data-dsh-maid-atelier]
+  [data-maid-character='right'] {
+  translate: 100vw 0;
+  opacity: 0;
+}
+
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
+  body[data-dsh-maid-atelier]
+  [data-maid-character='left'] {
+  translate: -100vw 0;
+  opacity: 0;
+}
+
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
    independently translated layers let the landing ornament leave upward
    while the lace-free workspace band drops in from above. */
@@ -492,6 +516,17 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > 
   ) {
   position: relative;
   z-index: 2;
+}
+
+/* Wide-sidebar tooltips can mount inside the content root above. Release only
+   that root's skin-created stacking context while a tooltip is present, so
+   the tooltip's native overlay layer can cross the frame without moving the
+   gold chrome below the sidebar surface. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :has([role='tooltip']) {
+  z-index: auto;
 }
 
 /* A fixed-size raster corner keeps the original curl detail intact while the
@@ -1938,6 +1973,38 @@ body[data-dsh-maid-atelier]
   z-index: auto !important;
 }
 
+/* The official sidebar toggles its 1024px auto-collapse with two class
+   phases on the SidebarRoot element (the slot's direct child):
+   collapsing adds `railIn`, which runs a `rail-fade-in` animation on the
+   root's .footArea (0% opacity: 0, backwards fill — the fixed settings
+   overlay is mounted inside .footArea, so the whole panel fades from
+   transparent); expanding adds `fading`, whose `.fading > *` rule fades
+   every root child — .footArea included — to 0. With the settings dialog
+   open, resizing across that breakpoint briefly vanishes the panel.
+   orca-link fixed the same defect for its shell; its selector
+   `[data-slot='sidebar'] > :first-child > :has([role='dialog'])` resolves
+   to .footArea because the slot anchor is `display: contents`. Maid must
+   step through the same two layers explicitly: the sidebar column's direct
+   `div` is the display:contents slot anchor, its direct child (minus the
+   skin's mascot/corners/tooltip chrome) is the SidebarRoot element, and the
+   dialog carrier is that root's direct child. Keep the carrier opaque and
+   animation-free while the dialog owns the viewport; the root's z-index
+   release above stays its own rule because the carrier never had a
+   stacking-context role to release. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :not(
+    [data-skin-chrome='sidebar-mascot'],
+    [data-skin-chrome='sidebar-corners'],
+    [role='tooltip']
+  )
+  > :has([role='dialog'][aria-modal='true']) {
+  opacity: 1 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
 /* This copy sits immediately before the official mask, so the mask samples
    and blurs it together with the rest of the sidebar instead of dropping the
    sibling frame's composited layer. */
@@ -3023,6 +3090,157 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82);
 }
 
+/* Responsive settings shell for constrained viewports only. The official
+   SettingsPanel keeps its default centered modal position and size on
+   desktop; once the viewport drops below the desktop threshold the panel
+   owns the full workspace instead of squeezing an intermediate modal, and
+   on phones the category rail moves above the content. The narrowest panes
+   stack setting rows so descriptions stay readable instead of collapsing
+   into vertical fragments. Mirrors orca-link's constrained-viewport rules
+   without adopting its docked opening position. The translucent glass
+   surface from the block above stays intact at every size;
+   `data-maid-settings-open` is projected by index.ts from the live dialog,
+   so every rule below self-restores on close. */
+/* Any viewport below the desktop threshold becomes a full workspace: no
+   centering tax, crushed columns or clipped lower controls. */
+@media (max-width: 1099px), (max-height: 680px) {
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* Phones and narrow panes move the category rail above the content. */
+@media (max-width: 640px) {
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    flex-direction: column;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+    box-sizing: border-box;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(197, 164, 104, 0.42);
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    flex: 1;
+    width: auto;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+    padding: 0 4px;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav button {
+    min-width: 0;
+    height: 36px;
+    padding: 7px 8px;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
+    min-height: 0;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :first-child {
+    min-height: 46px;
+    height: auto;
+    padding: 8px 10px;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child {
+    padding: 0 14px 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Official setting rows are desktop two-column flex layouts. On phone-sized
+   content panes, stack copy above its control and release the 48px text
+   gutter so descriptions remain normal sentences instead of vertical
+   fragments. The skin-manager customization card (this skin's own controls)
+   uses the same row contract and stacks with it. */
+@media (max-width: 520px) {
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_row']:has(> [class$='_rowText']) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_rowText'] {
+    width: 100%;
+    padding-right: 0;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_row']:has(> [class$='_rowText']) > :last-child,
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_selector'] {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_selector'] {
+    justify-content: space-between;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([class$='_toggleRow'], [class$='_selectRow']) {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([class$='_toggleRow'], [class$='_selectRow']) > span {
+    width: 100%;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_selectRow'] select {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+  }
+}
+
 /* The official settings selects (provider/API-protocol pickers, plus this
    skin's own customization card) keep the product's `_input` geometry on the
    closed state — the same height, radius, border and porcelain fill as the
@@ -3206,6 +3424,55 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
   width: auto;
   flex: none;
   filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.62));
+}
+
+/* Optional conversation typography from #22. Code keeps its existing
+   monospace contract. The textarea, visible backdrop, and hidden sizing
+   mirror must share exact font metrics or selection/caret geometry drifts. */
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  :is([data-chat-flow], [class*='userRow'] [class*='bubble']) {
+  --dsw-font-family: Georgia, 'Times New Roman', 'Songti SC',
+    'Noto Serif SC', 'Noto Serif CJK SC', STSong, SimSun, serif;
+  font-family: var(--dsw-font-family);
+}
+
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-chat-flow]
+  div[class*='markdown'],
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-chat-flow]
+  div[class*='markdown']
+  :is(h1, h2, h3, h4, h5, h6, p, li, blockquote, td, th),
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-composer-card]
+  :is(
+    textarea,
+    [data-input-backdrop],
+    [data-input-mirror],
+    button,
+    [class*='triggerLabel']
+  ) {
+  font-family: Georgia, 'Times New Roman', 'Songti SC',
+    'Noto Serif SC', 'Noto Serif CJK SC', STSong, SimSun, serif;
+}
+
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-chat-flow]
+  div[class*='markdown']
+  :is(code, pre, kbd, samp) {
+  font-family: var(
+    --ds-font-family-code,
+    ui-monospace,
+    'SF Mono',
+    Menlo,
+    Consolas,
+    monospace
+  );
 }
 /* The top curtain is position:fixed against the viewport, so it paints over
    the frame's own title-bar row in frameless surfaces (Web-app overlay /

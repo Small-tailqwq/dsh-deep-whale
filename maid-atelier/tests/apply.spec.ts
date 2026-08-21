@@ -26,6 +26,19 @@ const SETTINGS_ROOT_STACKING_RULE = CSS.match(
   /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
 )?.[1] ?? ''
 
+/**
+ * Declarations of the settings-dialog carrier fade/rail-in suppression: the
+ * official sidebar toggles `railIn`/`fading` classes on the SidebarRoot
+ * element, whose `.footArea` (the dialog's carrier) then animates opacity.
+ * The carrier sits one layer deeper than the root release above: the
+ * sidebar column's direct `div` is the display:contents slot anchor, its
+ * direct child is the SidebarRoot, and the carrier is that root's direct
+ * child containing the dialog.
+ */
+const SETTINGS_CARRIER_FADE_RULE = CSS.match(
+  /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :not\([\s\S]*?\)\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+)?.[1] ?? ''
+
 let fiber: Fiber | undefined
 
 async function mount(): Promise<Fiber> {
@@ -797,6 +810,19 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarLayerSelector).toContain("[role='tooltip']")
   })
 
+  it('releases a tooltip carrier without demoting the gold sidebar frame', () => {
+    const tooltipCarrierRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const frameRule = CSS.match(
+      /\[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(tooltipCarrierRule).not.toBe('')
+    expect(tooltipCarrierRule).toContain('z-index: auto')
+    expect(tooltipCarrierRule).not.toContain('position: static')
+    expect(frameRule).toContain('z-index: 4')
+  })
+
   it('paints the sidebar double rule without shrinking the collapsed rail', () => {
     const sidebarRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
@@ -1248,6 +1274,61 @@ describe('Maid Atelier skin apply', () => {
     expect(SETTINGS_ROOT_STACKING_RULE).toContain('z-index: auto')
     expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('z-index: 1000')
     expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('position: static')
+    // The root release is only about stacking; the fade suppression below
+    // lives on the dialog carrier one layer deeper.
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('opacity')
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('animation')
+  })
+
+  it('keeps the settings dialog carrier opaque across the sidebar auto-collapse', () => {
+    // The official sidebar toggles its 1024px auto-collapse with class phases
+    // on the SidebarRoot element: `railIn` runs a rail-fade-in animation on
+    // the root's .footArea (0% opacity: 0, backwards fill — the fixed
+    // settings overlay is mounted inside .footArea, so the whole panel fades
+    // from transparent), and `fading` fades every root child to 0. The same
+    // defect hit orca-link, which suppressed it on the .footArea carrier.
+    expect(SETTINGS_CARRIER_FADE_RULE).not.toBe('')
+    expect(SETTINGS_CARRIER_FADE_RULE).toContain('opacity: 1 !important')
+    expect(SETTINGS_CARRIER_FADE_RULE).toContain('transition: none !important')
+    expect(SETTINGS_CARRIER_FADE_RULE).toContain('animation: none !important')
+  })
+
+  it('targets the carrier suppression at the official footArea, not the SidebarRoot', () => {
+    // The slot anchor is a display:contents wrapper, so the column's direct
+    // div is NOT the SidebarRoot: the root (z-index release target) and the
+    // footArea (fade target) are different layers. Guard the selectors
+    // against regressing to the wrong element.
+    document.body.innerHTML = `
+      <div class="fixture_sidebarCol">
+        <div data-slot="sidebar" style="display: contents">
+          <div class="fixture_root">
+            <div class="fixture_logoRow"></div>
+            <div class="fixture_footArea">
+              <div class="fixture_footerActions"></div>
+              <div class="fixture_settingsArea">
+                <div data-slot="sidebar.settings">
+                  <button type="button">Settings</button>
+                  <div role="presentation">
+                    <div class="fixture_mask"></div>
+                    <div role="dialog" aria-modal="true"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const root = document.querySelector<HTMLElement>('.fixture_root')!
+    const footArea = document.querySelector<HTMLElement>('.fixture_footArea')!
+    const rootRelease = document.querySelector(
+      ":is([data-pane='sidebar'], [class*='sidebarCol']) > div > :has([role='dialog'][aria-modal='true'])",
+    )
+    const carrier = document.querySelector(
+      ":is([data-pane='sidebar'], [class*='sidebarCol']) > div > :not([data-skin-chrome='sidebar-mascot'], [data-skin-chrome='sidebar-corners'], [role='tooltip']) > :has([role='dialog'][aria-modal='true'])",
+    )
+    expect(rootRelease).toBe(root)
+    expect(carrier).toBe(footArea)
   })
 
   it('lets the official settings mask blur every skin-owned layer', () => {
@@ -1307,6 +1388,147 @@ describe('Maid Atelier skin apply', () => {
     expect(darkSettingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82)')
     expect(CSS).not.toMatch(
       /body\[data-dsh-maid-atelier\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]/s,
+    )
+  })
+
+  it('responds to constrained viewports without squeezing settings rows', () => {
+    // The settings overlay owns the viewport below the desktop threshold.
+    const fullScreenRule = CSS.match(
+      /@media \(max-width: 1099px\), \(max-height: 680px\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(fullScreenRule).toContain('width: 100vw')
+    expect(fullScreenRule).toContain('height: 100vh')
+    expect(fullScreenRule).toContain('height: 100dvh')
+    expect(fullScreenRule).toContain('border-radius: 0')
+
+    // Phones move the category rail above the content as a 3-across grid.
+    const phoneRule = CSS.match(
+      /@media \(max-width: 640px\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(phoneRule).toContain('flex-direction: column')
+    expect(phoneRule).toContain('flex-direction: row')
+    expect(phoneRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
+    expect(phoneRule).toContain('border-bottom: 1px solid rgba(197, 164, 104, 0.42)')
+    expect(phoneRule).toContain('min-height: 0')
+
+    // Narrow panes stack official rows and this skin's customization card.
+    const narrowRule = CSS.match(
+      /@media \(max-width: 520px\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(narrowRule).toContain("[class$='_row']:has(> [class$='_rowText'])")
+    expect(narrowRule).toContain('flex-direction: column')
+    expect(narrowRule).toContain("padding-right: 0")
+    expect(narrowRule).toContain("[class$='_selectRow'] select")
+    expect(narrowRule).toContain('max-width: none')
+
+    // The default centered opening position is kept: no docked large-screen
+    // layout, no baseline size/position overrides on the settings overlay.
+    expect(CSS).not.toMatch(/@media \(min-width: 1100px\) and \(min-height: 681px\)/)
+    expect(CSS).not.toMatch(
+      /data-maid-settings-open[\s\S]*?\[role='presentation'\]\s*\{[^}]*justify-content: flex-start/s,
+    )
+    const overlayBaselineRule = [...CSS.matchAll(
+      /body\[data-dsh-maid-atelier\]\[data-maid-settings-open\]\s+\[data-slot='sidebar\.settings'\]\s*> \[role='presentation'\]\s*\{([^}]*)\}/g,
+    )].map(match => match[1] ?? '').join('\n')
+    expect(overlayBaselineRule).toBe('')
+
+    // Every rule is scoped to the open settings dialog, never body-level :has.
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\](?:\[[^\]]+\]|:not\([^)]*\))*:has\(/,
+    )
+  })
+
+  it('dresses the settings select popup in the porcelain-and-gold language', () => {
+    const baseSelectRule = CSS.match(
+      /@supports \(appearance: base-select\)\s*\{[\s\S]*?body\[data-dsh-maid-atelier\] \[role='dialog'\] select\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const inputSelectRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select\[class\$='_selectInput'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const pickerIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const openIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select:open::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const pickerRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const optionRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const hoverRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:hover,\s*body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:focus-visible\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const checkedRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkPickerRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkOptionRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkCheckedRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+
+    // The closed control keeps the product's `_input` geometry (32px, 8px
+    // radius, porcelain fill) shared with the text inputs beside it; only the
+    // OS arrow is dropped so ::picker-icon can own it. Every select — the
+    // official `_selectInput` and the skin's own bare customization card
+    // selects — becomes a flex row so the icon is vertically centered, with
+    // single-line truncation for long labels.
+    expect(baseSelectRule).toContain('appearance: base-select')
+    expect(baseSelectRule).toContain('background-image: none')
+    expect(baseSelectRule).toContain('display: flex')
+    expect(baseSelectRule).toContain('align-items: center')
+    expect(baseSelectRule).toContain('white-space: nowrap')
+    expect(baseSelectRule).toContain('overflow: hidden')
+    expect(inputSelectRule).toContain('box-sizing: border-box')
+    expect(inputSelectRule).toContain('display: flex')
+    expect(inputSelectRule).toContain('height: 32px')
+    expect(inputSelectRule).toContain('padding-inline: 10px')
+
+    // Gold chevron flips while the popup is open.
+    expect(pickerIconRule).toContain('background: #c5a468')
+    expect(pickerIconRule).toContain('clip-path: polygon(0 0, 100% 0, 50% 100%)')
+    expect(pickerIconRule).toContain('transition: transform 140ms ease')
+    expect(pickerIconRule).toContain('flex: none')
+    expect(openIconRule).toContain('transform: rotate(180deg)')
+
+    // The popup reuses the settings surface's glass porcelain and gold rim.
+    expect(pickerRule).toContain('max-height: min(420px, 62vh)')
+    expect(pickerRule).toContain('min-width: min(200px, calc(100vw - 24px))')
+    expect(pickerRule).toContain('border: 1px solid rgba(197, 164, 104, 0.64)')
+    expect(pickerRule).toContain('border-radius: 10px')
+    expect(pickerRule).toContain('rgba(252, 250, 245, 0.98)')
+    expect(pickerRule).toContain('scrollbar-color')
+    expect(optionRule).toContain('min-height: 30px')
+    expect(optionRule).toContain('border-left: 2px solid transparent')
+    expect(optionRule).toContain('white-space: nowrap')
+    expect(hoverRule).toContain('rgba(197, 164, 104, 0.72)')
+    expect(checkedRule).toContain('border-left-color: #c5a468')
+    expect(checkedRule).toContain('font-weight: 600')
+
+    // Night palette swaps the panel to navy glass with the brighter gold.
+    expect(darkIconRule).toContain('background: #d3b477')
+    expect(darkPickerRule).toContain('border-color: rgba(211, 180, 119, 0.66)')
+    expect(darkPickerRule).toContain('rgba(19, 38, 82, 0.98)')
+    expect(darkPickerRule).toContain('color: #e7ecf7')
+    expect(darkOptionRule).toContain('color: #bdc9e3')
+    expect(darkCheckedRule).toContain('border-left-color: #d3b477')
+
+    // Every rule stays inside a dialog and behind the base-select gate: no
+    // body-level select styling, no body-level :has() selector.
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\](?:\[[^\]]+\])?\s+select\s*\{[^}]*appearance: base-select/s,
+    )
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\]\s+(?:\[[^\]]+\]\s+)*:has\([^)]*\)[^{}]*select\s*\{/s,
     )
   })
 
@@ -1628,99 +1850,5 @@ describe('Maid Atelier skin apply', () => {
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
     expect(document.body.style.backgroundImage).toBe(light)
-  })
-
-  it('dresses the settings select popup in the porcelain-and-gold language', () => {
-    const baseSelectRule = CSS.match(
-      /@supports \(appearance: base-select\)\s*\{[\s\S]*?body\[data-dsh-maid-atelier\] \[role='dialog'\] select\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const inputSelectRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select\[class\$='_selectInput'\]\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const pickerIconRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const openIconRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select:open::picker-icon\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const pickerRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const optionRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const hoverRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:hover,\s*body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:focus-visible\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const checkedRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const darkIconRule = CSS.match(
-      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const darkPickerRule = CSS.match(
-      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const darkOptionRule = CSS.match(
-      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const darkCheckedRule = CSS.match(
-      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-
-    // The closed control keeps the product's `_input` geometry (32px, 8px
-    // radius, porcelain fill) shared with the text inputs beside it; only the
-    // OS arrow is dropped so ::picker-icon can own it. Every select — the
-    // official `_selectInput` and the skin's own bare customization card
-    // selects — becomes a flex row so the icon is vertically centered, with
-    // single-line truncation for long labels.
-    expect(baseSelectRule).toContain('appearance: base-select')
-    expect(baseSelectRule).toContain('background-image: none')
-    expect(baseSelectRule).toContain('display: flex')
-    expect(baseSelectRule).toContain('align-items: center')
-    expect(baseSelectRule).toContain('white-space: nowrap')
-    expect(baseSelectRule).toContain('overflow: hidden')
-    expect(inputSelectRule).toContain('box-sizing: border-box')
-    expect(inputSelectRule).toContain('display: flex')
-    expect(inputSelectRule).toContain('height: 32px')
-    expect(inputSelectRule).toContain('padding-inline: 10px')
-
-    // Gold chevron flips while the popup is open.
-    expect(pickerIconRule).toContain('background: #c5a468')
-    expect(pickerIconRule).toContain('clip-path: polygon(0 0, 100% 0, 50% 100%)')
-    expect(pickerIconRule).toContain('transition: transform 140ms ease')
-    expect(pickerIconRule).toContain('flex: none')
-    expect(openIconRule).toContain('transform: rotate(180deg)')
-
-    // The popup reuses the settings surface's glass porcelain and gold rim.
-    expect(pickerRule).toContain('max-height: min(420px, 62vh)')
-    expect(pickerRule).toContain('min-width: min(200px, calc(100vw - 24px))')
-    expect(pickerRule).toContain('border: 1px solid rgba(197, 164, 104, 0.64)')
-    expect(pickerRule).toContain('border-radius: 10px')
-    expect(pickerRule).toContain('rgba(252, 250, 245, 0.98)')
-    expect(pickerRule).toContain('scrollbar-color')
-    expect(optionRule).toContain('min-height: 30px')
-    expect(optionRule).toContain('border-left: 2px solid transparent')
-    expect(optionRule).toContain('white-space: nowrap')
-    expect(hoverRule).toContain('rgba(197, 164, 104, 0.72)')
-    expect(checkedRule).toContain('border-left-color: #c5a468')
-    expect(checkedRule).toContain('font-weight: 600')
-
-    // Night palette swaps the panel to navy glass with the brighter gold.
-    expect(darkIconRule).toContain('background: #d3b477')
-    expect(darkPickerRule).toContain('border-color: rgba(211, 180, 119, 0.66)')
-    expect(darkPickerRule).toContain('rgba(19, 38, 82, 0.98)')
-    expect(darkPickerRule).toContain('color: #e7ecf7')
-    expect(darkOptionRule).toContain('color: #bdc9e3')
-    expect(darkCheckedRule).toContain('border-left-color: #d3b477')
-
-    // Every rule stays inside a dialog and behind the base-select gate: no
-    // body-level select styling, no body-level :has() selector.
-    expect(CSS).not.toMatch(
-      /body\[data-dsh-maid-atelier\](?:\[[^\]]+\])?\s+select\s*\{[^}]*appearance: base-select/s,
-    )
-    expect(CSS).not.toMatch(
-      /body\[data-dsh-maid-atelier\]\s+(?:\[[^\]]+\]\s+)*:has\([^)]*\)[^{}]*select\s*\{/s,
-    )
   })
 })

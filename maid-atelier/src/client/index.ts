@@ -32,6 +32,7 @@ import {
 } from './workspace-art.generated.ts'
 import './maid-atelier.module.css'
 import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
+import { installMaidCustomization } from './customization.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
@@ -120,6 +121,21 @@ const PROJECTED_STATE_SELECTOR = [
   CORDIS_PANEL_SELECTOR,
   "[data-slot='sidebar.settings']",
 ].join(', ')
+
+/** Workspace decoration flags, listed so diff application iterates a fixed order. */
+const WORKSPACE_FLAGS = [
+  'data-maid-workspace-group',
+  'data-maid-workspace-row',
+  'data-maid-workspace-active',
+  'data-maid-session-row',
+  'data-maid-session-flat',
+  'data-maid-session-first',
+  'data-maid-session-last',
+] as const
+
+const WORKSPACE_FLAG_SELECTOR = WORKSPACE_FLAGS.map(flag => `[${flag}]`).join(', ')
+
+const SIDEBAR_FOOTER_FLAG = 'data-maid-sidebar-footer'
 
 const BACKDROP_PROPERTIES = [
   'background-image',
@@ -213,20 +229,29 @@ function decorateSidebar(ownedNodes: Set<Element>, decoratedElements: Set<HTMLEl
   const sidebarRoot = sidebar?.querySelector<HTMLElement>(':scope > div')
   if (!sidebar || !sidebarRoot) return
 
-  sidebar.querySelectorAll<HTMLElement>('[data-maid-sidebar-footer]').forEach((element) => {
-    delete element.dataset.maidSidebarFooter
-  })
+  /* Write only the delta: every attribute write is a mutation record that the
+     page's other observers (and style invalidation) pay for, and a resize
+     storm re-runs this pass per structural change. */
   const settingsSlot = sidebar.querySelector<HTMLElement>("[data-slot='sidebar.settings']")
+  let footer: HTMLElement | undefined
   if (settingsSlot) {
-    let footer = settingsSlot.parentElement
-    while (footer && footer !== sidebar) {
-      if (footer.querySelector("[data-slot='sidebar.footer.action']")) {
-        footer.dataset.maidSidebarFooter = ''
-        decoratedElements.add(footer)
+    let candidate = settingsSlot.parentElement
+    while (candidate && candidate !== sidebar) {
+      if (candidate.querySelector("[data-slot='sidebar.footer.action']")) {
+        footer = candidate
         break
       }
-      footer = footer.parentElement
+      candidate = candidate.parentElement
     }
+  }
+  sidebar.querySelectorAll<HTMLElement>(`[${SIDEBAR_FOOTER_FLAG}]`).forEach((element) => {
+    if (element === footer) return
+    delete element.dataset.maidSidebarFooter
+    decoratedElements.delete(element)
+  })
+  if (footer && !footer.hasAttribute(SIDEBAR_FOOTER_FLAG)) {
+    footer.dataset.maidSidebarFooter = ''
+    decoratedElements.add(footer)
   }
 
   if (!sidebarRoot.querySelector("[data-skin-chrome='sidebar-corners']")) {
@@ -252,25 +277,31 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
   const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (!sidebar) return
 
-  sidebar.querySelectorAll<HTMLElement>(
-    '[data-maid-workspace-group], [data-maid-workspace-row], [data-maid-workspace-active], [data-maid-session-row], [data-maid-session-flat], [data-maid-session-first], [data-maid-session-last]',
-  ).forEach((element) => {
-    delete element.dataset.maidWorkspaceGroup
-    delete element.dataset.maidWorkspaceRow
-    delete element.dataset.maidWorkspaceActive
-    delete element.dataset.maidSessionRow
-    delete element.dataset.maidSessionFlat
-    delete element.dataset.maidSessionFirst
-    delete element.dataset.maidSessionLast
+  /* Compute the desired flags first, then write only the delta. During a
+     resize storm this pass re-runs per structural mutation; unconditional
+     delete+rewrite pairs would emit zero-net-change mutation records that
+     other page observers and style invalidation pay for every frame. */
+  const current = new Map<HTMLElement, Set<string>>()
+  sidebar.querySelectorAll<HTMLElement>(WORKSPACE_FLAG_SELECTOR).forEach((element) => {
+    const flags = new Set<string>()
+    for (const flag of WORKSPACE_FLAGS) {
+      if (element.hasAttribute(flag)) flags.add(flag)
+    }
+    current.set(element, flags)
   })
+  const desired = new Map<HTMLElement, Set<string>>()
+  const claim = (element: HTMLElement, flag: string): void => {
+    let flags = desired.get(element)
+    if (!flags) { flags = new Set(); desired.set(element, flags) }
+    flags.add(flag)
+  }
 
   sidebar.querySelectorAll<HTMLElement>("[role='tree']").forEach((tree) => {
     const rows = [...tree.querySelectorAll<HTMLElement>("[role='treeitem']")]
     if (tree.matches("[class*='flatList']") && !rows.some(row => row.hasAttribute('aria-expanded'))) {
       rows.filter(row => row.hasAttribute('aria-selected')).forEach((sessionRow) => {
-        sessionRow.dataset.maidSessionRow = ''
-        sessionRow.dataset.maidSessionFlat = ''
-        decoratedElements.add(sessionRow)
+        claim(sessionRow, 'data-maid-session-row')
+        claim(sessionRow, 'data-maid-session-flat')
       })
       return
     }
@@ -280,22 +311,19 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
     const decorateGroup = (): void => {
       if (!workspaceRow) return
 
-      workspaceRow.dataset.maidWorkspaceRow = ''
-      decoratedElements.add(workspaceRow)
+      claim(workspaceRow, 'data-maid-workspace-row')
       if (workspaceRow.parentElement) {
-        workspaceRow.parentElement.dataset.maidWorkspaceGroup = ''
-        decoratedElements.add(workspaceRow.parentElement)
+        claim(workspaceRow.parentElement, 'data-maid-workspace-group')
       }
       sessionRows.forEach((sessionRow) => {
-        sessionRow.dataset.maidSessionRow = ''
-        decoratedElements.add(sessionRow)
+        claim(sessionRow, 'data-maid-session-row')
       })
-      if (sessionRows[0]) sessionRows[0].dataset.maidSessionFirst = ''
-      if (sessionRows.at(-1)) sessionRows.at(-1)!.dataset.maidSessionLast = ''
+      if (sessionRows[0]) claim(sessionRows[0], 'data-maid-session-first')
+      if (sessionRows.at(-1)) claim(sessionRows.at(-1)!, 'data-maid-session-last')
 
       const containsCurrent = workspaceRow.getAttribute('aria-expanded') === 'true'
         && sessionRows.some(sessionRow => sessionRow.getAttribute('aria-selected') === 'true')
-      if (containsCurrent) workspaceRow.dataset.maidWorkspaceActive = ''
+      if (containsCurrent) claim(workspaceRow, 'data-maid-workspace-active')
     }
 
     rows.forEach((row) => {
@@ -309,6 +337,23 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
     })
     decorateGroup()
   })
+
+  const touched = new Set<HTMLElement>([...current.keys(), ...desired.keys()])
+  for (const element of touched) {
+    const before = current.get(element)
+    const after = desired.get(element)
+    if (before !== undefined) {
+      for (const flag of before) {
+        if (!after?.has(flag)) element.removeAttribute(flag)
+      }
+    }
+    if (after !== undefined) {
+      for (const flag of after) {
+        if (!before?.has(flag)) element.setAttribute(flag, '')
+      }
+      if (after.size > 0) decoratedElements.add(element)
+    }
+  }
 }
 
 /**
@@ -317,6 +362,7 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
  */
 export function apply(ctx: Context): void {
   const body = document.body
+  ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
   const originalTitle = document.title
   const viewportResizeLease = createBodyAttributeLease(body, 'data-maid-viewport-resizing')
   const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
@@ -482,7 +528,13 @@ export function apply(ctx: Context): void {
     if (columns !== null) {
       const top = columns.getBoundingClientRect().top
       if (top > 0) {
-        widthRule.style.setProperty('--maid-titlebar-height', `${top}px`)
+        // Same-value CSSOM writes still invalidate the custom properties every
+        // dependent (curtain translate, ::after centering, handles) reads back;
+        // during a resize storm this pass runs per structural mutation, so a
+        // redundant write forces one extra full layout for every other reader.
+        if (widthRule.style.getPropertyValue('--maid-titlebar-height') !== `${top}px`) {
+          widthRule.style.setProperty('--maid-titlebar-height', `${top}px`)
+        }
         return
       }
     }
@@ -500,11 +552,22 @@ export function apply(ctx: Context): void {
   const applySidebarWidth = (width: number): void => {
     if (width <= 0) return
     const roundPx = (value: number): string => `${Math.round(value * 100) / 100}px`
+    const nextSize = width <= 120 ? 'rail' : width <= 220 ? 'narrow' : 'wide'
+    // ResizeObserver fires for height-only changes too; a same-value write of
+    // --maid-sidebar-width re-invalidates every dependent (character translate,
+    // curtain translate, ::after centering) and forces a full style pass per
+    // frame. Write only when a derived state actually moved.
+    const compact = width <= 104
+    if (roundPx(width) === widthRule.style.getPropertyValue('--maid-sidebar-width')
+      && body.dataset.maidSidebarSize === nextSize
+      && body.hasAttribute('data-maid-sidebar-compact') === compact) {
+      return
+    }
     widthRule.style.setProperty('--maid-sidebar-width', roundPx(width))
     widthRule.style.setProperty('--maid-sidebar-swag-height', roundPx(Math.min(94, Math.max(54, width * 0.2575))))
     widthRule.style.setProperty('--maid-sidebar-mascot-width', roundPx(Math.min(320, width * 0.82)))
-    body.dataset.maidSidebarSize = width <= 120 ? 'rail' : width <= 220 ? 'narrow' : 'wide'
-    if (width <= 104) body.dataset.maidSidebarCompact = ''
+    body.dataset.maidSidebarSize = nextSize
+    if (compact) body.dataset.maidSidebarCompact = ''
     else delete body.dataset.maidSidebarCompact
   }
 
