@@ -17,6 +17,7 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 |---|---|---|---|
 | [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | CC BY-NC-SA 4.0 |
 | [orca-link](orca-link/) | `@dsh-external/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、黑曜虎鲸操作员与电蓝链路信号 | CC BY-NC-SA 4.0 |
+| [skin-manager](skin-manager/) | `@dsh-external/dsh-client-ui-skin-deep-whale-manager` | 通用皮肤发现、切换与皮肤自声明配置面板 | MIT |
 
 ## 版权所有人
 
@@ -41,14 +42,18 @@ dsh 会按 `dsh-skin-install` 技能走完整流程：列出全部皮肤、交�
 
 ```sh
 git clone https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置
+dsh plugin --profile web add <clone 的绝对路径>/skin-manager   # 常驻皮肤管理面板
 dsh plugin --profile web add <clone 的绝对路径>/maid-atelier   # 深海女仆工坊
 dsh plugin --profile web add <clone 的绝对路径>/orca-link      # 虎鲸链路
 ```
 
 Windows 示例（正斜杠与反斜杠均可，pnpm 会自动规范化）：
 ```powershell
+dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/skin-manager
 dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
 ```
+
+安装管理器和任意皮肤包并刷新后，打开 DSH 的“设置 → 皮肤管理”。面板会自动发现当前 Web profile 中所有带有效 `skin.json` 的皮肤；皮肤支持 v1 自定义协议时，还会显示它自行声明的配置项。“不那么二次元模式”可设置多个显示或隐藏时段，配置均保存在当前浏览器。
 
 ### 相对路径的规则（容易踩坑）
 
