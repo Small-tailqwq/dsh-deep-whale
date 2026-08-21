@@ -49,7 +49,7 @@
 
 ## Agent Notes
 
-- 皮肤开发/优化过程以 note 形式记录（参考 deepseek-harness 形式：Status + 背景/结论/细节/验证/关联）。
-- **权威副本在脚手架工作区** `Small-tailqwq/dsh-skin-template`（`.agents/notes/implemented/<分类>/`）；
-  发布皮肤改动时把对应 note 复制到本仓库 `.agents/notes/implemented/<分类>/` 一并提交推送。
+- 皮肤开发/优化过程以 note 形式记录，规范与格式见脚手架仓库 `.agents/notes/README.md`（Problem/Decision/Alternatives considered/Consequences/Related 结构、闭集分类、生命周期）。
+- **权威副本与唯一维护地在脚手架仓库** `Small-tailqwq/dsh-skin-template`（`.agents/notes/implemented/<分类>/`），由 `dsh-note-maintainer` 技能在会话收尾时增/改；本仓库**不提交笔记**。
+- **共享方式**：本仓库 `.agents/notes/` 是指向脚手架 `.agents/notes/` 的目录 junction（Windows），已加入 `.gitignore`——clone 皮肤的用户不会拿到笔记，开发会话里两边经验实时互通（皮肤修复与皮肤创建的经验共通）。
 - 分类：compatibility（rc 适配）/ performance / stacking / install / process / skin。

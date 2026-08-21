@@ -2,3 +2,6 @@ node_modules/
 *.tsbuildinfo
 *.js.map
 .DS_Store
+
+# 皮肤开发笔记:权威副本在 dsh-skin-template(本目录为 junction 共享,不入库)
+.agents/notes/
