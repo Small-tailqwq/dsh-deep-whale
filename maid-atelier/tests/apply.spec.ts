@@ -1629,4 +1629,98 @@ describe('Maid Atelier skin apply', () => {
     await flushMutations()
     expect(document.body.style.backgroundImage).toBe(light)
   })
+
+  it('dresses the settings select popup in the porcelain-and-gold language', () => {
+    const baseSelectRule = CSS.match(
+      /@supports \(appearance: base-select\)\s*\{[\s\S]*?body\[data-dsh-maid-atelier\] \[role='dialog'\] select\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const inputSelectRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select\[class\$='_selectInput'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const pickerIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const openIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select:open::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const pickerRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const optionRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const hoverRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:hover,\s*body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:focus-visible\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const checkedRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkPickerRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkOptionRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkCheckedRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+
+    // The closed control keeps the product's `_input` geometry (32px, 8px
+    // radius, porcelain fill) shared with the text inputs beside it; only the
+    // OS arrow is dropped so ::picker-icon can own it. Every select — the
+    // official `_selectInput` and the skin's own bare customization card
+    // selects — becomes a flex row so the icon is vertically centered, with
+    // single-line truncation for long labels.
+    expect(baseSelectRule).toContain('appearance: base-select')
+    expect(baseSelectRule).toContain('background-image: none')
+    expect(baseSelectRule).toContain('display: flex')
+    expect(baseSelectRule).toContain('align-items: center')
+    expect(baseSelectRule).toContain('white-space: nowrap')
+    expect(baseSelectRule).toContain('overflow: hidden')
+    expect(inputSelectRule).toContain('box-sizing: border-box')
+    expect(inputSelectRule).toContain('display: flex')
+    expect(inputSelectRule).toContain('height: 32px')
+    expect(inputSelectRule).toContain('padding-inline: 10px')
+
+    // Gold chevron flips while the popup is open.
+    expect(pickerIconRule).toContain('background: #c5a468')
+    expect(pickerIconRule).toContain('clip-path: polygon(0 0, 100% 0, 50% 100%)')
+    expect(pickerIconRule).toContain('transition: transform 140ms ease')
+    expect(pickerIconRule).toContain('flex: none')
+    expect(openIconRule).toContain('transform: rotate(180deg)')
+
+    // The popup reuses the settings surface's glass porcelain and gold rim.
+    expect(pickerRule).toContain('max-height: min(420px, 62vh)')
+    expect(pickerRule).toContain('min-width: min(200px, calc(100vw - 24px))')
+    expect(pickerRule).toContain('border: 1px solid rgba(197, 164, 104, 0.64)')
+    expect(pickerRule).toContain('border-radius: 10px')
+    expect(pickerRule).toContain('rgba(252, 250, 245, 0.98)')
+    expect(pickerRule).toContain('scrollbar-color')
+    expect(optionRule).toContain('min-height: 30px')
+    expect(optionRule).toContain('border-left: 2px solid transparent')
+    expect(optionRule).toContain('white-space: nowrap')
+    expect(hoverRule).toContain('rgba(197, 164, 104, 0.72)')
+    expect(checkedRule).toContain('border-left-color: #c5a468')
+    expect(checkedRule).toContain('font-weight: 600')
+
+    // Night palette swaps the panel to navy glass with the brighter gold.
+    expect(darkIconRule).toContain('background: #d3b477')
+    expect(darkPickerRule).toContain('border-color: rgba(211, 180, 119, 0.66)')
+    expect(darkPickerRule).toContain('rgba(19, 38, 82, 0.98)')
+    expect(darkPickerRule).toContain('color: #e7ecf7')
+    expect(darkOptionRule).toContain('color: #bdc9e3')
+    expect(darkCheckedRule).toContain('border-left-color: #d3b477')
+
+    // Every rule stays inside a dialog and behind the base-select gate: no
+    // body-level select styling, no body-level :has() selector.
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\](?:\[[^\]]+\])?\s+select\s*\{[^}]*appearance: base-select/s,
+    )
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\]\s+(?:\[[^\]]+\]\s+)*:has\([^)]*\)[^{}]*select\s*\{/s,
+    )
+  })
 })

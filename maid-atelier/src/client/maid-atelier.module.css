@@ -3023,6 +3023,156 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82);
 }
 
+/* The official settings selects (provider/API-protocol pickers, plus this
+   skin's own customization card) keep the product's `_input` geometry on the
+   closed state — the same height, radius, border and porcelain fill as the
+   text inputs beside them. Only the operating-system-drawn popup is replaced,
+   so the open list matches the atelier language instead of the native
+   saturated gray. Chromium's customizable-select contract keeps native
+   keyboard, focus and form behavior intact; engines without base-select
+   support keep the host's normal select (the official appearance: none plus
+   its inline SVG arrow). Scoped to dialogs because the settings surface and
+   its portaled modal editors are the only select-bearing surfaces the skin
+   owns, and dialogs already receive the skin's token reset above. */
+@supports (appearance: base-select) {
+  body[data-dsh-maid-atelier] [role='dialog'] select {
+    appearance: base-select;
+    /* Drop the official gray background arrow: ::picker-icon takes it over. */
+    background-image: none;
+    /* Every select becomes a flex row so ::picker-icon sits vertically
+       centered on its label — the official `_selectInput` rule below states
+       its own geometry, while bare selects (this skin's customization card)
+       inherit the product's 30px control box and need only the row layout.
+       Single-line truncation keeps long option labels from wrapping inside
+       the 240px control. */
+    display: flex;
+    align-items: center;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select[class$='_selectInput'] {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding-block: 0;
+    padding-inline: 10px;
+    line-height: 22px;
+    text-align: left;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select::picker-icon {
+    width: 8px;
+    height: 6px;
+    margin-left: 10px;
+    flex: none;
+    content: '';
+    background: #c5a468;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transition: transform 140ms ease;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select[class$='_selectInput']::picker-icon {
+    flex: none;
+    margin-left: auto;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select:open::picker-icon {
+    transform: rotate(180deg);
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select::picker(select) {
+    appearance: base-select;
+    max-height: min(420px, 62vh);
+    min-width: min(200px, calc(100vw - 24px));
+    margin-block: 4px;
+    padding: 4px;
+    border: 1px solid rgba(197, 164, 104, 0.64);
+    border-radius: 10px;
+    background:
+      linear-gradient(145deg, rgba(252, 250, 245, 0.98), rgba(222, 230, 246, 0.96));
+    box-shadow:
+      0 18px 44px rgba(13, 29, 68, 0.24),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+    color: #172347;
+    scrollbar-color: rgba(71, 91, 145, 0.3) transparent;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option {
+    align-items: center;
+    min-height: 30px;
+    padding: 7px 30px 7px 10px;
+    border-left: 2px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #4d5d7f;
+    /* The picker column is capped at the control's 240px; keep long labels
+       on one line (truncated by the picker's own clip) instead of wrapping. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option:hover,
+  body[data-dsh-maid-atelier] [role='dialog'] select option:focus-visible {
+    border-left-color: rgba(197, 164, 104, 0.72);
+    background: rgba(103, 126, 183, 0.12);
+    color: #172347;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option:checked {
+    border-left-color: #c5a468;
+    background: linear-gradient(90deg, rgba(197, 164, 104, 0.22), transparent 74%);
+    color: #10204d;
+    font-weight: 600;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option::checkmark {
+    content: '';
+    width: 7px;
+    height: 7px;
+    margin-left: auto;
+    border: 1px solid currentColor;
+    background: currentColor;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select::picker-icon {
+    background: #d3b477;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select::picker(select) {
+    border-color: rgba(211, 180, 119, 0.66);
+    background:
+      linear-gradient(145deg, rgba(19, 38, 82, 0.98), rgba(7, 19, 51, 0.97));
+    box-shadow:
+      0 20px 48px rgba(0, 0, 0, 0.42),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    color: #e7ecf7;
+    scrollbar-color: rgba(143, 163, 211, 0.34) transparent;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option {
+    color: #bdc9e3;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option:hover,
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option:focus-visible {
+    border-left-color: rgba(211, 180, 119, 0.78);
+    background: rgba(164, 183, 229, 0.14);
+    color: #e7ecf7;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option:checked {
+    border-left-color: #d3b477;
+    background: linear-gradient(90deg, rgba(211, 180, 119, 0.2), transparent 74%);
+    color: #f3e8cf;
+  }
+}
+
 /* The official title bar (Web-app window-controls-overlay and the desktop
    shell) leads with a menu button that only duplicates the sidebar's own
    expand/collapse control. Hide it so the skin's sidebar chrome starts at
