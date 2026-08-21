@@ -527,6 +527,29 @@ describe('Maid Atelier skin apply', () => {
     expect(backingRule).toContain('inset: 0 -0.52% -2%')
     expect(backingRule).toContain('background: inherit')
     expect(backingRule).toContain('pointer-events: none')
+    // The plate must stay behind in-flow children: the attachments slot is
+    // display: contents (no box to lift), so its rail only wins if the plate
+    // is a negative layer, not z-index: 0.
+    expect(backingRule).toContain('z-index: -1')
+    expect(backingRule).not.toContain('z-index: 0')
+  })
+
+  it('lifts the attachments slot content above the composer decorations', () => {
+    const slotRule = CSS.match(
+      /\[data-composer-card\]\s*> \[data-slot='conversation\.input\.attachments'\]\s*> :not\(\[class\*='mask'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const childLiftRule = CSS.match(
+      /\[data-composer-card\] > \*\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(childLiftRule).toContain('z-index: 2')
+    // The slot emits no box (display: contents), so its rail must be lifted
+    // explicitly to the same tier as the textarea/toolbar row.
+    expect(slotRule).toContain('position: relative')
+    expect(slotRule).toContain('z-index: 2')
+    // The drag overlay is position: fixed; the lift must not reach it.
+    expect(CSS).toMatch(
+      /\[data-composer-card\]\s*> \[data-slot='conversation\.input\.attachments'\]\s*> :not\(\[class\*='mask'\]\)\s*\{[^}]*z-index: 2/s,
+    )
   })
 
   it('masks transcript content without duplicating character art', () => {

@@ -2053,17 +2053,37 @@ body[data-dsh-maid-atelier][data-maid-composer-motion]
   }
 }
 
+/* The porcelain plate is a backing layer: keep it behind every content box.
+   It was promoted to z-index: 0, which sits ABOVE in-flow children — invisible
+   to the lifted direct children, but the attachments slot below is
+   display: contents (no box, cannot be lifted), so its rail would be painted
+   under the plate and the image preview vanished. z-index: -1 keeps the bleed
+   visible (still above the card's own background) while every child wins. */
 body[data-dsh-maid-atelier] [data-composer-card]::after {
   content: '';
   position: absolute;
   inset: 0 -0.52% -2%;
-  z-index: 0;
+  z-index: -1;
   border-radius: 38px;
   background: inherit;
   pointer-events: none;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card] > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* The official attachments slot is a display: contents container: it emits no
+   box, so the child-lift rule above cannot reach its rail and the preview
+   images fell back to in-flow paint order, under the porcelain plate. Lift
+   the slot's content boxes to the same tier as the textarea/toolbar row —
+   except the drag overlay, which is position: fixed and must keep its own
+   coordinate system (its mask class is the only fixed surface in the slot). */
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-slot='conversation.input.attachments']
+  > :not([class*='mask']) {
   position: relative;
   z-index: 2;
 }
