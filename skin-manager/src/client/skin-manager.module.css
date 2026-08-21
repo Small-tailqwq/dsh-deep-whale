@@ -1,0 +1,203 @@
+.section {
+  display: grid;
+  gap: 14px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.header h2,
+.card h3,
+.header p,
+.error {
+  margin: 0;
+}
+
+.header {
+  display: grid;
+  gap: 6px;
+}
+
+.header p {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.card h3 {
+  font-size: 14px;
+}
+
+.skinGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.skinButton,
+.activeSkin {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  min-height: 58px;
+  padding: 10px;
+  color: var(--dsw-alias-label-primary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  cursor: pointer;
+}
+
+.activeSkin {
+  border-color: var(--dsw-alias-brand-primary);
+  box-shadow: inset 3px 0 var(--dsw-alias-brand-primary);
+}
+
+.skinButton small,
+.activeSkin small {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.toggleRow,
+.selectRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.toggleRow > span,
+.selectRow > span {
+  display: grid;
+  gap: 2px;
+}
+
+.toggleRow small,
+.selectRow small,
+.hint {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.toggleRow input {
+  inline-size: 34px;
+  block-size: 18px;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+
+.selectRow select,
+.rangeRow input,
+.rangeRow select {
+  box-sizing: border-box;
+  min-height: 30px;
+  color: var(--dsw-alias-label-primary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-specific-input-major);
+}
+
+.selectRow select {
+  max-width: 240px;
+  padding-inline: 8px;
+}
+
+/* The time editor splits "HH:MM" into an hour and a minute select so the
+   popup is the themeable customizable-select surface instead of the operating
+   system's time picker. Both controls share the control-box styles above and
+   fill the row column; the colon stays beside them. */
+.timeSelect {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+
+.timeSelect select {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  padding-inline: 6px;
+  text-align: center;
+}
+
+.timeColon {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.schedule {
+  display: grid;
+  gap: 8px;
+}
+
+.scheduleDetails {
+  display: grid;
+  gap: 8px;
+  margin-left: 12px;
+  padding: 10px;
+  border-left: 2px solid var(--dsw-alias-border-l2);
+}
+
+.rangeList {
+  display: grid;
+  gap: 6px;
+}
+
+.rangeRow {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto minmax(100px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.rangeRow input {
+  width: 100%;
+  padding-inline: 7px;
+}
+
+.rangeRow button,
+.addRange {
+  min-height: 30px;
+  padding: 4px 9px;
+  color: var(--dsw-alias-label-secondary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  cursor: pointer;
+}
+
+.addRange {
+  justify-self: start;
+}
+
+.error {
+  color: var(--dsw-alias-state-danger, #c43d3d);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .skinGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rangeRow {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .rangeRow button {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
