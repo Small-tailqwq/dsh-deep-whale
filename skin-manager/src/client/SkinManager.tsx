@@ -23,13 +23,15 @@ function Toggle({ checked, label, description, onChange }: {
   onChange(value: boolean): void
 }) {
   return (
-    <label className={css.toggleRow}>
+    <div className={css.toggleRow}>
       <span>
         <span>{label}</span>
         {description && <small>{description}</small>}
       </span>
-      <input type="checkbox" role="switch" checked={checked} onChange={event => onChange(event.currentTarget.checked)} />
-    </label>
+      <label className={css.toggleSwitch}>
+        <input type="checkbox" role="switch" checked={checked} onChange={event => onChange(event.currentTarget.checked)} />
+      </label>
+    </div>
   )
 }
 

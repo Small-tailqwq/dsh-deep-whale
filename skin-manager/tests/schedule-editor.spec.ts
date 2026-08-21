@@ -48,4 +48,18 @@ describe('schedule editor', () => {
     expect(html).toContain('value="22" selected="">22</option>')
     expect(html).toContain('value="05" selected="">05</option>')
   })
+
+  it('scopes the switch hit area to the control instead of the whole row', () => {
+    const html = markup(() => renderToStaticMarkup(createElement(ScheduleEditor, {
+      setting,
+      value: { enabled: true, outside: 'visible', ranges: [] },
+      onChange: () => {},
+    })))
+    // The row is a plain div: clicking the label copy or row blank space must
+    // not flip the setting.
+    expect(html).not.toMatch(/<label class="[^"]*_toggleRow_[^"]*">/)
+    // The switch itself stays a label so the control (plus its small padded
+    // hit slack) is the only click target.
+    expect(html).toMatch(/<label class="[^"]*_toggleSwitch_[^"]*"><input type="checkbox" role="switch"/)
+  })
 })

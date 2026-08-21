@@ -94,6 +94,21 @@
   accent-color: var(--dsw-alias-brand-primary);
 }
 
+/* The switch is its own click target: only the control (plus a small hit
+   slack) toggles it, not the whole row — labels stay text-only so a stray
+   click on the row's blank space cannot flip the setting. The negative
+   margin offsets the padding so the visual position is unchanged. */
+.toggleSwitch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 4px;
+  margin: -4px;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
 .selectRow select,
 .rangeRow input,
 .rangeRow select {
