@@ -35,6 +35,13 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 用户点名目标皮肤（如"切到女仆皮肤"/"切到 orca-link"）后直接执行，**不提问、不介绍作者与许可**：
 
+**首选：皮肤管理器 UI/API 切换**（安装了 skin-manager 插件时）：
+1. 告知用户在设置 → 皮肤管理页点击目标皮肤的"切换"按钮（或脚本调用 `POST /api/dsh/skins { target }`，同源校验后服务端执行）；
+2. 服务端 `useSkin` 等价于手改两个 patch 层（目标 `disabled: false`、其余 `disabled: true`），**带 catalog 校验与原子回滚**，比手改更安全；
+3. 保存即热重载生效（配置 HMR），**无需重启**；告知用户刷新页面即可，会话不受影响；
+4. 快速验证：`dsh --profile <name> --dump-config` 确认目标皮肤行 `disabled: false`；设置 → 皮肤管理页当前激活标记正确（有 `dsh-plugin-verify` 技能时走其三层验证）。
+
+**备选（无 skin-manager 插件 / 脚本化批处理）：手改两个 patch 层**：
 1. 修改**两个** patch 层（都改，home 层覆盖 profile 层）：
    - `~/.dsh/profiles/<profile>/cordis.patch.yml`
    - `~/.dsh/cordis.patch.yml`
@@ -80,6 +87,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 ### 6. 验证生效
 
 - `dsh --profile <name> --dump-config` 核对皮肤行 `disabled` 状态与 patch 来源：每行标注 `patched by <文件路径>`，确认两个 patch 层都生效（home 层覆盖 profile 层）。
+- **安装了 skin-manager 插件时**：设置 → 皮肤管理页应列出该皮肤（`GET /api/dsh/skins` 从 profile 清单发现，无需重启即可显示），可在此激活；皮肤若声明了定制项（`exposeSkinCustomization`），页面显示"深海女仆工坊 / ORCA LINK"等定制卡片，逐项核对开关与说明生效。
 - 有 `dsh-plugin-verify` 技能时走其三层验证（组合层/产物层/执行层）；没有时至少做到：刷新页面后 `window.__DSH_BOOT__` 的 entries 含目标皮肤的 **package 名**（boot 图以包名为 key，不是 `wiring.id`），且进程未重启（PID 不变，证明走的是热重载）。
 - 告知用户刷新页面查看效果；皮肤异常（控制台报错、布局问题）时收集现象再排查。
 
@@ -103,5 +111,6 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 - 本仓库皮肤是纯展示层 client 插件：不注入服务、不发 Cordis 事件、不触达模型请求；素材以数据 URI 内嵌于 bundle，激活不依赖远程资源。
 - 皮肤可热切换，`wiring.id` 即 patch 层控制的插件 id；皮肤中心/互斥切换机制兼容。
+- **skin-manager 插件**（`@dsh-external/dsh-client-ui-skin-deep-whale-manager`，与本仓库皮肤同分发）在设置面板注册"皮肤管理"分类：发现已安装皮肤（`GET /api/dsh/skins`）、一键激活（`POST /api/dsh/skins { target }`，同源校验 + catalog 校验 + 两 patch 层原子写入回滚）、皮肤定制声明渲染（布尔/下拉/可见性时段）。安装皮肤后管理器自动发现,无需额外配置。
 - 仓库 README 安装示例推荐**绝对路径**（`dsh plugin --profile web add <clone 绝对路径>/<皮肤目录>`），并附相对路径规则与失败排查表；懒人版是直接让 dsh 说"安装这个皮肤包"。
 - 反馈问题走仓库 issue，不要联系画师本人；二创关注是另一回事。
