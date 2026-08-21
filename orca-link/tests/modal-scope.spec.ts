@@ -44,4 +44,24 @@ describe('ORCA modal style boundaries', () => {
     expect(css).toContain("select[class$='_selectInput']::picker-icon")
     expect(css).toContain('margin-left: auto')
   })
+
+  it('lifts every settings select into a flex row so bare picker icons center', () => {
+    const baseSelectRule = css.match(
+      /@supports \(appearance: base-select\)\s*\{[\s\S]*?\[data-slot='sidebar\.settings'\] \[role='dialog'\] select\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const pickerIconRule = css.match(
+      /\[data-slot='sidebar\.settings'\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const optionRule = css.match(
+      /\[data-slot='sidebar\.settings'\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    // Bare selects (customization card, hour/minute pickers) are display:
+    // contents-free flex rows; without it ::picker-icon aligns to the text
+    // baseline and floats below the label.
+    expect(baseSelectRule).toContain('display: flex')
+    expect(baseSelectRule).toContain('align-items: center')
+    expect(baseSelectRule).toContain('white-space: nowrap')
+    expect(pickerIconRule).toContain('flex: none')
+    expect(optionRule).toContain('white-space: nowrap')
+  })
 })
