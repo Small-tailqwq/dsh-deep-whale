@@ -82,6 +82,25 @@ dsh --profile web --dump-config        # 皮肤行在组合配置中，disabled 
 
 本仓库自带 `dsh-skin-install` 技能（`.agents/skills/`）。dsh 在仓库目录内运行时自动发现该技能；对你的 dsh 说"安装一下这个皮肤包"或"切换皮肤"，它会列出仓库全部皮肤、询问你要激活哪一套，并交代作者署名链与许可边界后再安装。无需自行克隆到 dsh 源码里，皮肤开关走配置热重载，无需重启。
 
+## 贡献者
+
+感谢以下开发者对 dsh-deep-whale 的贡献：
+
+<a href="https://github.com/Small-tailqwq/dsh-deep-whale/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Small-tailqwq/dsh-deep-whale" />
+</a>
+
+### 有价值但未合入的 PR
+
+以下 PR 因与现有上游实现冲突未能合入，但其功能需求已在仓库中落地，特此致谢：
+
+- **@yaoyiqun** — 按所选模型切换角色位置（#15）
+- **@Chartreuse310** — 对话区衬线字体（#22）
+- **@Vergemesh** — 原版/鲸鱼娘皮肤即时切换（#27）
+- **@joejojoking-cloud** — top-trim 装饰层级（#26）、字符舞台层级（#31）修复
+
+> 自动看板仅统计已合入的代码提交者；本节由人工维护，新增此类 PR 时请同步更新。
+
 ## 许可
 
 本仓库各皮肤为**衍生创作**,整体以 CC BY-NC-SA 4.0(署名-非商业性使用-相同方式共享)发布,禁止商业性使用。署名链见各皮肤 `NOTICE`。
