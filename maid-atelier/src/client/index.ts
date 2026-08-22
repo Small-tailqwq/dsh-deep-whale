@@ -32,6 +32,8 @@ import {
 } from './workspace-art.generated.ts'
 import './maid-atelier.module.css'
 import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
+import { installMaidComposerCapsule } from './composer-capsule.ts'
+import { installMaidComposerScroll } from './composer-scroll.ts'
 import { installMaidCustomization } from './customization.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
@@ -416,6 +418,8 @@ export function apply(ctx: Context): void {
       if (value === null) body.removeAttribute(attribute)
       else body.setAttribute(attribute, value)
     }
+    disposeMaidComposerCapsule()
+    disposeMaidComposerScroll()
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
@@ -480,6 +484,10 @@ export function apply(ctx: Context): void {
   })
   syncSystemChrome()
   body.dataset.dshMaidAtelier = ''
+  // Composer presentation modes (skin setting 「输入框显示方式」):
+  // capsule collapses the empty unfocused card, scroll fades it on scroll-up.
+  const disposeMaidComposerCapsule = installMaidComposerCapsule(body)
+  const disposeMaidComposerScroll = installMaidComposerScroll(body)
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
   body.style.setProperty('--maid-bottom-trim-art', `url(${MAID_ATELIER_BOTTOM_TRIM_TILE})`)
   body.style.setProperty('--maid-bottom-crest-art', `url(${MAID_ATELIER_BOTTOM_CREST})`)

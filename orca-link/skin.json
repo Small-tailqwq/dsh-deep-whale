@@ -14,6 +14,7 @@
   ],
   "accent": "#086cff",
   "bodyAttr": "data-dsh-orca-link",
+  "dshCompatibility": "0.1.1rc2",
   "package": "@dsh-external/dsh-client-ui-skin-orca-link",
   "wiring": {
     "id": "ui-skin-orca-link",

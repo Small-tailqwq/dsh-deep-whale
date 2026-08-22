@@ -1587,8 +1587,8 @@ window.__ModuleLoader__.load({
 		const DAY_MS = 24 * HOUR_MS;
 		/** DeepSeek peak windows in Beijing minutes-of-day. */
 		const PEAK_WINDOWS = [[540, 720], [840, 1080]];
-		/** Amber window right after each valley-to-peak switch. */
-		const TRANSITION_MINUTES = 10;
+		/** Amber early-warning window right before each valley-to-peak switch. */
+		const TRANSITION_MINUTES = 20;
 		/** Beijing wall-clock minutes of day for any instant, host-timezone independent. */
 		function beijingMinutesOfDay(date) {
 			const beijing = new Date(date.getTime() + BEIJING_OFFSET_MS);
@@ -1604,7 +1604,7 @@ window.__ModuleLoader__.load({
 		}
 		function priceBandAt(date) {
 			const minutes = beijingMinutesOfDay(date);
-			if (PEAK_WINDOWS.some(([start]) => minutes >= start && minutes < start + TRANSITION_MINUTES)) return "transition";
+			if (PEAK_WINDOWS.some(([start]) => minutes >= start - TRANSITION_MINUTES && minutes < start)) return "transition";
 			if (PEAK_WINDOWS.some(([start, end]) => minutes >= start && minutes < end)) return "high";
 			return "low";
 		}
@@ -1624,42 +1624,105 @@ window.__ModuleLoader__.load({
 			].find((instant) => instant > beijingEpoch) ?? dayStart + DAY_MS + 9 * HOUR_MS;
 			return /* @__PURE__ */ new Date(next - BEIJING_OFFSET_MS);
 		}
-		function priceScheduleAt(date) {
+		const BAND_COPY = {
+			low: {
+				zh: {
+					status: "空闲时段 OFF-PEAK",
+					price: "高峰价的 50% (半价)",
+					next: "-> 高峰 100%"
+				},
+				en: {
+					status: "OFF-PEAK",
+					price: "50% of peak price (half price)",
+					next: "-> Peak 100%"
+				}
+			},
+			transition: {
+				zh: {
+					status: "提前告警",
+					price: "高峰价的 50% (半价)",
+					next: "-> 高峰 100%"
+				},
+				en: {
+					status: "Early warning",
+					price: "50% of peak price (half price)",
+					next: "-> Peak 100%"
+				}
+			},
+			high: {
+				zh: {
+					status: "高峰时段 PEAK",
+					price: "标准价格 100%",
+					next: "-> 空闲 50%"
+				},
+				en: {
+					status: "PEAK HOURS",
+					price: "Standard price 100%",
+					next: "-> Off-peak 50%"
+				}
+			}
+		};
+		const VALLEY_WINDOWS_LINE = {
+			zh: "其余时段, 价格为高峰的一半",
+			en: "All other hours at half peak price"
+		};
+		const PEAK_WINDOWS_LINE = "09:00-12:00 / 14:00-18:00";
+		/** Match the host UI language, same heuristic as the composer collapse. */
+		function detectChinese() {
+			return (document.documentElement.lang || window.navigator.language || "en").toLowerCase().startsWith("zh");
+		}
+		/** Minutes until the next peak window start; meaningful during the amber
+		* warning, where one is always upcoming. */
+		function minutesUntilNextPeak(date) {
+			const minutes = beijingMinutesOfDay(date);
+			const upcoming = PEAK_WINDOWS.find(([start]) => minutes < start);
+			return upcoming === void 0 ? TRANSITION_MINUTES : upcoming[0] - minutes;
+		}
+		function priceScheduleAt(date, chinese = detectChinese()) {
 			const band = priceBandAt(date);
+			const copy = chinese ? BAND_COPY[band].zh : BAND_COPY[band].en;
 			const next = nextPriceChangeAt(date);
 			const tomorrow = beijingDayNumber(next) > beijingDayNumber(date);
-			const nextTime = `${formatBeijingTime(next)}${tomorrow ? " 明日" : ""}`;
-			if (band === "low") return {
-				band,
-				label: "LOW",
-				statusLine: "空闲时段 OFF-PEAK",
-				priceLine: "高峰价的 50% (半价)",
-				nextChangeLine: `${nextTime} -> 高峰 100%`
-			};
-			if (band === "transition") return {
-				band,
-				label: "HIGH",
-				statusLine: "切换窗口 (绿切红 10 分钟内)",
-				priceLine: "标准价格 100% (高峰已生效)",
-				nextChangeLine: `${nextTime} -> 空闲 50%`
-			};
+			const nextTime = `${formatBeijingTime(next)}${tomorrow ? chinese ? " 明日" : " tomorrow" : ""}`;
+			const statusLine = band === "transition" ? chinese ? `提前告警 · ${minutesUntilNextPeak(date)} 分钟后进入高峰` : `Early warning: peak in ${minutesUntilNextPeak(date)} min` : copy.status;
 			return {
 				band,
-				label: "HIGH",
-				statusLine: "高峰时段 PEAK",
-				priceLine: "标准价格 100%",
-				nextChangeLine: `${nextTime} -> 空闲 50%`
+				label: band === "low" ? "LOW" : "HIGH",
+				statusLine,
+				priceLine: copy.price,
+				nextChangeLine: `${nextTime} ${copy.next}`
 			};
 		}
 		const PRICE_LIGHT_SELECTOR = "[data-orca-link-price-light]";
 		const SIDEBAR_PANE_SELECTOR$1 = "[data-slot='sidebar'] > :first-child";
 		const POLL_INTERVAL_MS = 15e3;
+		/** Tooltip row keys: [Chinese key, English key, row slot]. */
 		const TOOLTIP_ROWS = [
-			["状态", "status"],
-			["当前", "price"],
-			["下次", "next"],
-			["高峰", "peak-windows"],
-			["空闲", "valley-windows"]
+			[
+				"状态",
+				"Status",
+				"status"
+			],
+			[
+				"当前",
+				"Price",
+				"price"
+			],
+			[
+				"下次",
+				"Next",
+				"next"
+			],
+			[
+				"高峰",
+				"Peak",
+				"peak-windows"
+			],
+			[
+				"空闲",
+				"Valley",
+				"valley-windows"
+			]
 		];
 		function text$1(tag, className, value) {
 			const element = document.createElement(tag);
@@ -1681,13 +1744,17 @@ window.__ModuleLoader__.load({
 			const tooltip = document.createElement("div");
 			tooltip.className = classes.tooltip;
 			tooltip.dataset.orcaLinkPriceTooltip = "";
-			tooltip.append(text$1("div", classes.tooltipTitle, "PRICING SIGNAL · 北京时区 UTC+8"));
-			for (const [key, slot] of TOOLTIP_ROWS) {
+			const title = text$1("div", classes.tooltipTitle, "");
+			title.dataset.orcaLinkPriceTooltipTitle = "";
+			tooltip.append(title);
+			for (const [keyZh, , slot] of TOOLTIP_ROWS) {
 				const row = text$1("div", classes.tooltipRow, "");
 				row.dataset.orcaLinkPriceRow = slot;
+				const key = text$1("span", classes.tooltipKey, keyZh);
+				key.dataset.orcaLinkPriceKey = slot;
 				const value = text$1("strong", classes.tooltipValue, "");
 				value.dataset.orcaLinkPriceValue = slot;
-				row.append(text$1("span", classes.tooltipKey, key), value);
+				row.append(key, value);
 				tooltip.append(row);
 			}
 			light.append(housing, label, tooltip);
@@ -1699,9 +1766,17 @@ window.__ModuleLoader__.load({
 		* current pricing band is always glanceable. Hovering it opens a detail card
 		* with the band, the effective price, the next switch, and the full schedule.
 		*
+		* The copy follows the host UI language on every render: when no `chinese`
+		* override is given the document/navigator heuristic is re-read, and a
+		* `lang` attribute observer on <html> re-renders immediately when the host
+		* switches locale, so the hover card relocalizes without a reload.
+		*
 		* @param now - clock provider, injectable for deterministic tests.
+		* @param chinese - explicit language override for tests; when omitted the
+		* language is detected live on every render.
 		*/
-		function installOrcaPricingLight(body, classes, now = () => /* @__PURE__ */ new Date()) {
+		function installOrcaPricingLight(body, classes, now = () => /* @__PURE__ */ new Date(), chinese) {
+			const chineseOverride = chinese;
 			let light = null;
 			let label = null;
 			let tooltip = null;
@@ -1724,17 +1799,29 @@ window.__ModuleLoader__.load({
 			const render = () => {
 				mount();
 				if (light === null) return;
-				const schedule = priceScheduleAt(now());
+				const zh = chineseOverride ?? detectChinese();
+				const schedule = priceScheduleAt(now(), zh);
 				if (light.dataset.orcaLinkPrice !== schedule.band) light.dataset.orcaLinkPrice = schedule.band;
 				if (label !== null && label.textContent !== schedule.label) label.textContent = schedule.label;
-				light.setAttribute("aria-label", `定价状态：${schedule.statusLine}`);
+				light.setAttribute("aria-label", zh ? `定价状态：${schedule.statusLine}` : `Pricing status: ${schedule.statusLine}`);
 				if (tooltip !== null) {
+					const titleElement = tooltip.querySelector("[data-orca-link-price-tooltip-title]");
+					if (titleElement !== null) {
+						const titleCopy = zh ? "定价信号 · 北京时区 UTC+8" : "PRICING SIGNAL · BEIJING TZ UTC+8";
+						if (titleElement.textContent !== titleCopy) titleElement.textContent = titleCopy;
+					}
+					for (const [keyZh, keyEn, slot] of TOOLTIP_ROWS) {
+						const keyElement = tooltip.querySelector(`[data-orca-link-price-key='${slot}']`);
+						if (keyElement === null) continue;
+						const keyCopy = zh ? keyZh : keyEn;
+						if (keyElement.textContent !== keyCopy) keyElement.textContent = keyCopy;
+					}
 					const lines = {
 						status: schedule.statusLine,
 						price: schedule.priceLine,
 						next: schedule.nextChangeLine,
-						"peak-windows": "09:00-12:00 / 14:00-18:00",
-						"valley-windows": "其余时段, 价格为高峰的一半"
+						"peak-windows": PEAK_WINDOWS_LINE,
+						"valley-windows": zh ? VALLEY_WINDOWS_LINE.zh : VALLEY_WINDOWS_LINE.en
 					};
 					for (const [slot, value] of Object.entries(lines)) {
 						const element = tooltip.querySelector(`[data-orca-link-price-value='${slot}']`);
@@ -1751,11 +1838,19 @@ window.__ModuleLoader__.load({
 				childList: true,
 				subtree: true
 			});
+			const langObserver = new MutationObserver(() => {
+				if (light !== null && light.isConnected) render();
+			});
+			langObserver.observe(body.ownerDocument.documentElement, {
+				attributes: true,
+				attributeFilter: ["lang"]
+			});
 			const interval = window.setInterval(render, POLL_INTERVAL_MS);
 			render();
 			return () => {
 				window.clearInterval(interval);
 				observer.disconnect();
+				langObserver.disconnect();
 				body.querySelectorAll(PRICE_LIGHT_SELECTOR).forEach((element) => element.remove());
 			};
 		}

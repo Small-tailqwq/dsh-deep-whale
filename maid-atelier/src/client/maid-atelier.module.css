@@ -1824,6 +1824,18 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='seat']:hover {
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] {
   --dsw-alias-bg-base: transparent;
   background: none;
+  /* 滚动意图显隐（设置「输入框显示方式」＝滚动显隐）：座内状态切换时整卡平滑淡出/淡入。 */
+  transition:
+    opacity 260ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    transform 260ms cubic-bezier(0.22, 0.78, 0.2, 1);
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-hidden] {
+  opacity: 0;
+  transform: translateY(26px);
+  pointer-events: none;
 }
 
 /* Composer card: live controls sit beneath one hollow raster plate that keeps
@@ -3537,5 +3549,134 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   body[data-dsh-maid-atelier] [data-input-mirror] {
     animation: none;
     transition: none;
+  }
+}
+
+/* 空态胶囊（设置「输入框显示方式」＝空态胶囊）：输入为空且未聚焦、无弹出
+   菜单打开时，整卡收成一条轻量胶囊；点击胶囊（composer-capsule 的 click
+   委托聚焦 textarea）或输入后恢复。状态由 composer-capsule.ts 维护，避免
+   body 级 :has() 在输入时反复重算。 */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card] {
+  max-width: 320px;
+  min-height: 34px;
+  gap: 0;
+  padding: 0;
+  border: 1px solid rgba(197, 164, 104, 0.5);
+  border-radius: 999px;
+  box-shadow:
+    0 4px 14px rgba(15, 30, 72, 0.14),
+    inset 0 1px rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  /* 只动画 compositor 友好属性；布局项瞬时切换。 */
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  animation: maidAtelierCapsuleIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card] {
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.42),
+    inset 0 1px rgba(255, 255, 255, 0.07);
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  :is([data-input-mirror], [data-input-backdrop], [data-composer-card] > [class*='row']) {
+  display: none !important;
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card] textarea {
+  min-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  opacity: 0;
+}
+
+/* 统计行（stats / Session log）随卡片一起收起 */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-slot='conversation.composer.dock'] {
+  display: none;
+}
+
+/* 金框装饰在胶囊态隐藏，胶囊内容由 ::after 呈现 */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]::before {
+  display: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]::after {
+  content: '✎ 给智能体发消息';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--dsw-alias-label-caption);
+  font-family: Georgia, 'Times New Roman', var(--dsw-font-family);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  cursor: text;
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]:hover {
+  border-color: rgba(225, 191, 124, 0.85);
+  box-shadow:
+    0 6px 18px rgba(15, 30, 72, 0.2),
+    inset 0 1px rgba(255, 255, 255, 0.7);
+  transform: translateY(-1px);
+}
+
+/* 展开衔接动画：布局宽度/高度瞬时恢复，仅 transform/opacity 走合成器，
+   避免折叠/展开反复触发长对话的整块重排（性能优化，替代 420ms 布局过渡）。 */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-expanding]
+  [data-composer-card] {
+  animation: maidAtelierCapsuleOut 260ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+@keyframes maidAtelierCapsuleIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes maidAtelierCapsuleOut {
+  from {
+    opacity: 0.35;
+    transform: translateY(8px) scale(0.965);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

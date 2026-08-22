@@ -9,6 +9,7 @@ const ATTR_ART = 'data-dsh-whale-maid-art'
 const ATTR_FONT = 'data-dsh-whale-maid-font'
 const ATTR_MODEL_EXIT = 'data-dsh-whale-maid-model-exit'
 const ATTR_MODEL = 'data-dsh-whale-model'
+const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
 
 export function modelFamily(name: string): 'pro' | 'flash' | null {
   const compact = name.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -87,6 +88,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     projector.set(ATTR_MODEL_EXIT, modelExit ? 'enabled' : 'disabled')
     if (modelExit) startModelObserver()
     else stopModelObserver()
+    projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
   }
 
   return exposeSkinCustomization({
@@ -117,6 +119,18 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'boolean',
         label: '根据所选模型显示立绘',
         defaultValue: false,
+      },
+      {
+        key: 'composerMode',
+        type: 'select',
+        label: '输入框显示方式',
+        description: '始终显示；空态胶囊在输入框为空且未聚焦时收起为简约胶囊；滚动显隐在上滚回顾时隐去、下滚渐现。',
+        defaultValue: 'persistent',
+        options: [
+          { value: 'persistent', label: '始终显示' },
+          { value: 'capsule', label: '空态胶囊（点击展开）' },
+          { value: 'scroll', label: '上滚隐去 · 下滚渐现' },
+        ],
       },
     ],
     apply,

@@ -4,6 +4,7 @@
 
 - 从当前 Web profile 的依赖中发现所有带有效 `skin.json` 的皮肤；
 - 在官方默认与任意已安装皮肤之间互斥切换；
+- 启动时兜底检测 profile→home 两层的有效启停状态；若两套及以上皮肤会同时启用，原子回退到官方默认；
 - 渲染活动皮肤通过 v1 协议主动暴露的配置项；
 - 通用的“不那么二次元模式”：按本机时间设置多个显示或隐藏时段。
 
@@ -15,7 +16,7 @@ dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/maid-atelier
 dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/orca-link
 ```
 
-切换会同步改写当前 Web profile 与优先级更高的 home patch 中的标准 `dsh-skin managed` 区段；区段外的用户 YAML 保持不变。自定义配置按 `skinId` 保存在浏览器 `localStorage`，不会修改模型请求或 DSH 服务。
+切换与启动兜底都会同步改写当前 Web profile 与优先级更高的 home patch 中的标准 `dsh-skin managed` 区段；区段外的用户 YAML 保持不变。已有零套或一套皮肤启用时，启动兜底不写文件。自定义配置按 `skinId` 保存在浏览器 `localStorage`，不会修改模型请求或 DSH 服务。
 
 ## 皮肤接入
 
