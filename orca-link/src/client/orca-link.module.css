@@ -2109,16 +2109,16 @@ body[data-dsh-orca-link] .signalChip[data-orca-link-status='offline'] .signalDot
 
 /* Pricing traffic light under the DSH wordmark: three lamps mirror the
    DeepSeek peak/valley schedule (Beijing time). Red = peak, amber = the
-   10 minutes after valley switches to peak, green = valley (half price). JS
-   only flips one data attribute per band; the active lamp, glow and label
-   color all ride --orca-price-signal. The unit stays visible on both the
-   collapsed rail and the expanded sidebar. On the collapsed rail the wordmark
-   itself rides the expand button, so the light parks in the seam directly
-   below that button, centered on the rail (still under the DSH mark, but
-   clear of every button's hit plane); hover stays disabled there so the rail
-   keeps its quiet glance-only behavior. The expanded sidebar parks it in the
-   strip right under the full wordmark, above the operator stage and the
-   session region, and restores the hover detail card. */
+   20 minutes before valley switches to peak (early warning), green = valley
+   (half price). JS only flips one data attribute per band; the active lamp,
+   glow and label color all ride --orca-price-signal. The unit stays visible
+   on both the collapsed rail and the expanded sidebar. On the collapsed rail
+   the wordmark itself rides the expand button, so the light parks in the
+   seam directly below that button, centered on the rail (still under the DSH
+   mark, but clear of every button's hit plane); hover stays disabled there
+   so the rail keeps its quiet glance-only behavior. The expanded sidebar
+   parks it in the strip right under the full wordmark, above the operator
+   stage and the session region, and restores the hover detail card. */
 body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight {
   --orca-price-signal: #238a58;
   --orca-price-glow: rgba(35, 138, 88, 0.72);
@@ -2210,8 +2210,8 @@ body[data-dsh-orca-link] .pricingLight[data-orca-link-price='low'] .pricingLampG
   box-shadow: 0 0 8px var(--orca-price-glow);
   opacity: 1;
 }
-/* The amber lamp blinks like a real traffic light while the transition
-   window is open, then hands the glow to the red lamp at 09:10 / 14:10. */
+/* The amber lamp blinks like a real traffic light during the 20-minute early
+   warning, then hands the glow to the red lamp exactly at 09:00 / 14:00. */
 body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber {
   animation: orcaPricePulse 1.3s ease-in-out infinite;
 }
