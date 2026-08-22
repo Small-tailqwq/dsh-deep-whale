@@ -165,6 +165,7 @@ function readSkinStates(source, catalog) {
 	for (const line of source.split(/\r?\n/)) {
 		const entry = line.match(/^(\s*)-\s+id:\s*(['"]?)([^'"#\s]+)\2\s*(?:#.*)?$/);
 		if (entry !== null) {
+			if (entry[1].length !== 0) continue;
 			currentId = known.has(entry[3]) ? entry[3] : void 0;
 			currentIndent = entry[1].length;
 			propertyIndent = void 0;

@@ -130,6 +130,20 @@ describe('generic skin switch patch', () => {
     expect(readSkinStates(source, catalog).get('ui-skin-maid')).toBe(true)
   })
 
+  it('ignores skin ids nested inside another plugin config', () => {
+    const source = [
+      '- id: ui-skin-maid',
+      '  disabled: false',
+      '- id: skin-hub',
+      '  config:',
+      '    skins:',
+      '      - id: ui-skin-deepcel',
+      '        disabled: true',
+    ].join('\n')
+    expect(readSkinStates(source, catalog).get('ui-skin-deepcel')).toBeUndefined()
+    expect(enabledSkins([source, ''], catalog).map(skin => skin.id)).toEqual(['maid-atelier', 'deepcel'])
+  })
+
   it('fails safe to official when two installed skins have no exclusion state', () => {
     const directory = mkdtempSync(join(tmpdir(), 'dsh-skin-startup-'))
     const profile = join(directory, 'profile.yml')

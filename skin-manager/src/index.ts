@@ -226,6 +226,9 @@ export function readSkinStates(source: string, catalog: SkinCatalogEntry[]): Map
   for (const line of source.split(/\r?\n/)) {
     const entry = line.match(/^(\s*)-\s+id:\s*(['"]?)([^'"#\s]+)\2\s*(?:#.*)?$/)
     if (entry !== null) {
+      /* Only top-level `- id:` rows are loader patch records: a nested `- id:`
+         inside another plugin's config is that plugin's data, not a skin state. */
+      if (entry[1]!.length !== 0) continue
       currentId = known.has(entry[3]!) ? entry[3] : undefined
       currentIndent = entry[1]!.length
       propertyIndent = undefined
