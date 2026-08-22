@@ -258,7 +258,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
   position: fixed;
   inset: 0 0 auto 0;
   translate: var(--maid-sidebar-width) 0;
-  z-index: 0;
+  z-index: 20;
   height: 76px;
   overflow: hidden;
   pointer-events: none;
@@ -324,7 +324,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   inset: auto 0 0 0;
   translate: var(--maid-sidebar-width) 0;
   transform: translateY(0);
-  z-index: 0;
+  z-index: 20;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
@@ -401,6 +401,8 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
 /* The trim backs the conversation header and its tablist with the navy band;
    dress the overlaid text in the porcelain/gold system for contrast. */
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] {
+  position: relative;
+  z-index: 21;
   color: #f8f3e8;
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
 }
@@ -1841,6 +1843,8 @@ body[data-dsh-maid-atelier]
 /* Composer card: live controls sit beneath one hollow raster plate that keeps
    the reference frame, porcelain rim, continuous lace, and bow aligned. */
 body[data-dsh-maid-atelier] [data-composer-card] {
+  position: relative;
+  z-index: 21;
   isolation: isolate;
   overflow: visible;
   /* Preserve the upstream mirror-driven auto-grow contract. Hero and active

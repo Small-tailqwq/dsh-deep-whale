@@ -1441,6 +1441,10 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const conversationHeaderRule = CSS.match(
+      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const composerRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const obscuredComposerRule = CSS.match(
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -1455,8 +1459,10 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarInnerRule).not.toContain('container-type')
     expect(sidebarContentRule).toBe('')
     expect(footerRule).toContain('z-index: auto')
-    expect(topTrimRule).toContain('z-index: 0')
-    expect(bottomTrimRule).toContain('z-index: 0')
+    expect(topTrimRule).toContain('z-index: 20')
+    expect(bottomTrimRule).toContain('z-index: 20')
+    expect(conversationHeaderRule).toContain('z-index: 21')
+    expect(composerRule).toContain('z-index: 21')
     // Not a promotion any more: the sidebar row releases its stacking
     // context (z-index: auto, position stays relative) so the settings
     // dialog's native modal layer competes at page level again. Shared with
