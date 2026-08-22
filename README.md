@@ -32,7 +32,7 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 ## 安装
 
-> **皮肤的安装手段只有一个正确姿势：让你的 dsh 读取本仓库的 [INSTALL.md](INSTALL.md)（标准安装入口），它会引导 dsh 使用自带的 `dsh-skin-install` 技能执行**——询问你选哪一套、交代署名链与许可、并写入互斥开关。不要自己照抄下面的命令——照抄会把 skin-manager 与**两套皮肤**全部装上，而两套皮肤默认**同时运行**（详见[皮肤互斥机制](#皮肤互斥机制必读)与 [issue #65](https://github.com/Small-tailqwq/dsh-deep-whale/issues/65)）。
+> **皮肤的安装手段只有一个正确姿势：让你的 dsh 读取本仓库的 [INSTALL.md](INSTALL.md)（标准安装入口），它会引导 dsh 使用自带的 `dsh-skin-install` 技能执行**——默认安装 skin-manager 与仓库内全部皮肤，但只激活你选中的一套。技能会在新增包**之前**预置互斥开关，避免两套皮肤曾经同时运行（详见[皮肤互斥机制](#皮肤互斥机制必读)与 [issue #65](https://github.com/Small-tailqwq/dsh-deep-whale/issues/65)）。
 
 ### 标准流程：让 dsh 按 INSTALL.md 安装（推荐，唯一保证互斥的路径）
 
@@ -44,7 +44,7 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 2. INSTALL.md 会把 dsh 引导到仓库自带的 `dsh-skin-install` 技能（若 dsh 无法读取远端文件：先 `git clone` 到本地，在 dsh 中把 clone 目录**打开为工作区**——技能会被自动发现——或让它读取本地 `INSTALL.md` 路径）。技能随后依次完成：
 
-   列出全部皮肤并**询问你要激活哪一套** → 交代署名链与许可（CC BY-NC-SA 4.0）→ 绝对路径注册所选皮肤（连同 skin-manager）→ **写入两个 patch 层的互斥 `disabled` 行** → 验证生效。之后切换皮肤也走同一入口（配置热重载，无需重启）。
+   列出全部皮肤并明确“**全部安装、只选择激活哪一套**” → 交代署名链与许可（CC BY-NC-SA 4.0）→ **先原子预置两个 patch 层的互斥 `disabled` 行** → 绝对路径注册 skin-manager 与全部皮肤 → 验证组合配置与冷启动。首次新增包需要用户重启一次；之后切换只走配置热重载，无需重启。
 
    已安装/已知目标时走快车道：直接说“切换到 maid-atelier”或“安装 orca-link”，技能跳过询问与扫描，预计 1–2 分钟完成。
 
@@ -54,18 +54,20 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 - 皮肤启停由 patch 层控制：profile 的 `~/.dsh/profiles/web/cordis.patch.yml` 与 home 层的 `~/.dsh/cordis.patch.yml` 里各自的 `- id: <wiring.id>` + `disabled: true/false` 行（**两层都要写**，home 层优先级更高）。
 - **patch 里没有某皮肤行的 `disabled` 行 → 该皮肤默认启用**。一次把多套皮肤（maid-atelier 与 orca-link）都装上、又从未切换时，它们会**同时运行**：装饰层互相叠加、侧栏/设置区被搅乱，典型症状是**设置按钮消失、侧栏宽度/布局异常、界面混乱**（原版正常）。
 - skin-manager（设置 → 皮肤管理）激活时会自动把互斥行写入两个 patch 层；手写时“只保留一套”必须**显式停用其余每一套**。
+- 第三方市场等渠道若绕过标准安装流程，skin-manager 会在启动时合并 profile→home 两层状态；检测到实际同时启用两套及以上皮肤时，自动原子回退到“官方默认”。已有零套或一套启用的合法选择不会被改写。
 - 安装了皮肤管理器后，皮肤定制项（如“不那么二次元模式”的可见时段）保存在当前浏览器，由管理器统一应用。
 
-### 手动安装（备用路径，装完必须立即补齐互斥写入）
+### 手动安装（备用路径，必须先预置互斥状态）
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置（浅克隆足够，跳过历史）
+node <clone 的绝对路径>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
 dsh plugin --profile web add <clone 的绝对路径>/skin-manager   # 常驻皮肤管理面板（推荐）
 dsh plugin --profile web add <clone 的绝对路径>/maid-atelier   # 深海女仆工坊
 dsh plugin --profile web add <clone 的绝对路径>/orca-link      # 虎鲸链路
 ```
 
-> ⚠️ 上面命令会安装**皮肤管理器 + 两套皮肤**；两套皮肤默认**同时启用**。安装后必须立即执行下面任一步骤，只保留一套皮肤生效，否则就会出现互斥机制一节描述的症状。
+> 第一条 `node` 命令必须在任何 `plugin add` 之前执行；它保留非皮肤 YAML，并把 maid-atelier 设为唯一启用项。要默认启用虎鲸则把 target 改成 `orca-link`，要保持原版则改成 `official`。不要整文件覆盖 patch。若跳过这一步，两套新安装皮肤会默认同时启用。
 
 **方式 A（推荐）：设置 → 皮肤管理 → 点击要用的那一套「切换」**。管理器自动把互斥 `disabled` 行写入两个 patch 层并热重载，刷新页面即可。
 
@@ -94,7 +96,7 @@ dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
 症状：设置按钮消失、侧栏被装饰层覆盖或宽度异常、界面混乱（停用皮肤后恢复）。
 
 1. 打开 设置 → 皮肤管理，点击「官方默认」或任一皮肤——管理器会自动写互斥行并热重载，刷新即可恢复；
-2. 管理器不可用时（或配置已被写坏）：按上方方式 B 手动重写两个 patch 层的互斥行；
+2. 管理器不可用时（或配置已被写坏）：运行上方 `stage-mutual-exclusion.mjs`，用 `--target official` 或目标皮肤恢复两个 patch 层；
 3. 也可以直接摘掉不用的包：`dsh plugin --profile web remove <包名>`，摘除后同样检查互斥行。
 
 ### 相对路径的规则（容易踩坑）

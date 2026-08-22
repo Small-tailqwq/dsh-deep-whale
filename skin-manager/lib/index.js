@@ -112,7 +112,9 @@ function renderManagedBlock(target, catalog) {
 /** Compose a new patch without touching content outside the managed block. */
 function switchPatch(source, target, catalog) {
 	const stripped = stripManagedBlock(source).replace(/\s+$/, "");
-	const unmanaged = stripped.trim() === "[]" ? "" : stripped;
+	const lines = stripped.split(/\r?\n/);
+	const yamlLines = lines.filter((line) => line.trim() !== "" && !line.trimStart().startsWith("#"));
+	const unmanaged = yamlLines.length === 1 && yamlLines[0].trim() === "[]" ? lines.filter((line) => line.trim() !== "[]").join("\n").replace(/\s+$/, "") : stripped;
 	return `${unmanaged === "" ? "" : `${unmanaged}\n\n`}${renderManagedBlock(target, catalog)}\n`;
 }
 /** Atomically replace a single profile patch, leaving the original intact on failure. */
@@ -152,6 +154,48 @@ function useSkin(target, patchPaths = resolvePatchTargets(), catalog = discoverI
 		else rmSync(original.path, { force: true });
 		throw error;
 	}
+}
+/** Read the last explicit disabled value for each installed skin in one patch layer. */
+function readSkinStates(source, catalog) {
+	const known = new Set(catalog.map((skin) => skin.wiringId));
+	const states = /* @__PURE__ */ new Map();
+	let currentId;
+	let currentIndent = -1;
+	let propertyIndent;
+	for (const line of source.split(/\r?\n/)) {
+		const entry = line.match(/^(\s*)-\s+id:\s*(['"]?)([^'"#\s]+)\2\s*(?:#.*)?$/);
+		if (entry !== null) {
+			currentId = known.has(entry[3]) ? entry[3] : void 0;
+			currentIndent = entry[1].length;
+			propertyIndent = void 0;
+			continue;
+		}
+		if (currentId === void 0) continue;
+		const trimmed = line.trim();
+		if (trimmed === "" || trimmed.startsWith("#")) continue;
+		const indent = line.length - line.trimStart().length;
+		if (indent <= currentIndent) {
+			currentId = void 0;
+			continue;
+		}
+		propertyIndent = propertyIndent === void 0 ? indent : Math.min(propertyIndent, indent);
+		const disabled = line.match(/^\s*disabled:\s*(true|false)\s*(?:#.*)?$/);
+		if (disabled !== null && indent === propertyIndent) states.set(currentId, disabled[1] === "true");
+	}
+	return states;
+}
+/** Return installed skins that are effectively enabled after profile then home overrides. */
+function enabledSkins(sources, catalog) {
+	const states = /* @__PURE__ */ new Map();
+	for (const source of sources) for (const [id, disabled] of readSkinStates(source, catalog)) states.set(id, disabled);
+	return catalog.filter((skin) => states.get(skin.wiringId) !== true);
+}
+/** Fail safe when a direct marketplace install would otherwise activate multiple skins. */
+function ensureSafeInitialState(patchPaths = resolvePatchTargets(), catalog = discoverInstalledSkins(patchPaths[0])) {
+	if (catalog.length < 2) return false;
+	if (enabledSkins(patchPaths.map((path) => existsSync(path) ? readFileSync(path, "utf8") : ""), catalog).length < 2) return false;
+	useSkin("official", patchPaths, catalog);
+	return true;
 }
 function json(res, status, body) {
 	res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
@@ -240,7 +284,14 @@ function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), 
 }
 /** Register the switching route with lifecycle-owned cleanup. */
 function apply(ctx) {
-	ctx.effect(() => ctx.webServer.register(makeSkinManagerRoute()), "ui-skin-manager: catalog and activation route");
+	ctx.effect(() => {
+		try {
+			ensureSafeInitialState();
+		} catch (error) {
+			console.error("[skin-manager] failed to enforce startup mutual exclusion", error);
+		}
+		return ctx.webServer.register(makeSkinManagerRoute());
+	}, "ui-skin-manager: startup guard and catalog/activation route");
 }
 //#endregion
-export { MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, apply, discoverInstalledSkins, exposeSkinCustomization, inject, makeSkinManagerRoute, name, renderManagedBlock, resolvePatchTargets, resolveProfilePatch, stripManagedBlock, switchPatch, useSkin };
+export { MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, apply, discoverInstalledSkins, enabledSkins, ensureSafeInitialState, exposeSkinCustomization, inject, makeSkinManagerRoute, name, readSkinStates, renderManagedBlock, resolvePatchTargets, resolveProfilePatch, stripManagedBlock, switchPatch, useSkin };

@@ -32,7 +32,7 @@ Click an image for the full size.
 
 ## Installation
 
-> **There is exactly one correct way to install a skin: have your dsh read this repository's [INSTALL.md](INSTALL.md) (the standard installation entry point), which leads dsh to the bundled `dsh-skin-install` skill** — it asks which skin you want, walks you through the attribution chain and license, and writes the mutual-exclusion switches. Do not copy the commands below on your own — doing so installs the skin manager plus **both skins**, and the two skins then run **simultaneously by default** (see [Skin mutual exclusion (must read)](#skin-mutual-exclusion-must-read) and [issue #65](https://github.com/Small-tailqwq/dsh-deep-whale/issues/65)).
+> **There is exactly one correct way to install a skin: have your dsh read this repository's [INSTALL.md](INSTALL.md) (the standard installation entry point), which leads dsh to the bundled `dsh-skin-install` skill**. By default it installs skin-manager and every skin in the repository while activating only the one you choose. It stages mutual exclusion **before** adding packages, so the skins are never allowed to run simultaneously (see [Skin mutual exclusion (must read)](#skin-mutual-exclusion-must-read) and [issue #65](https://github.com/Small-tailqwq/dsh-deep-whale/issues/65)).
 
 ### Standard flow: install through INSTALL.md (recommended, the only exclusion-safe path)
 
@@ -42,7 +42,7 @@ Click an image for the full size.
    Read https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md and install the skins following its guidance
    ```
 
-2. INSTALL.md leads dsh to the bundled `dsh-skin-install` skill (if dsh cannot read remote files: `git clone` locally, then open the clone directory in dsh as the **workspace** — the skill is auto-discovered — or have it read the local `INSTALL.md` path). The skill then completes, in order: lists every skin and **asks which one you want to activate** → explains the attribution chain and license (CC BY-NC-SA 4.0) → registers the chosen skin (together with skin-manager) using an absolute path → **writes the mutual-exclusion `disabled` rows into both patch layers** → verifies it is live. Switching skins later also goes through the same entry point (config hot reload, no restart).
+2. INSTALL.md leads dsh to the bundled `dsh-skin-install` skill (if dsh cannot read remote files: `git clone` locally, then open the clone directory in dsh as the **workspace** — the skill is auto-discovered — or have it read the local `INSTALL.md` path). The skill then completes, in order: lists every skin and says **all will be installed while you choose which one to activate** → explains the attribution chain and license (CC BY-NC-SA 4.0) → **atomically stages mutual exclusion in both patch layers** → registers skin-manager and all skins using absolute paths → verifies the composed config and a cold start. First-time package registration needs one user-performed restart; later switches hot-reload without a restart.
 
    Already installed, or you know the target? Take the fast path: say "switch to maid-atelier" or "install orca-link" — the skill skips the survey and finishes in about 1–2 minutes.
 
@@ -52,18 +52,20 @@ Click an image for the full size.
 - Skin enable/disable is controlled by patch layers: each of `~/.dsh/profiles/web/cordis.patch.yml` (profile layer) and `~/.dsh/cordis.patch.yml` (home layer) carries `- id: <wiring.id>` + `disabled: true/false` rows (**both layers must be written**; the home layer outranks the profile layer).
 - **A skin without a `disabled` row in the patch is enabled by default.** If you install several skins at once (e.g. maid-atelier and orca-link) and never switch, they all run **simultaneously**: their decoration layers stack on top of each other and the sidebar/settings area gets mangled. Typical symptoms are **the settings button disappearing, abnormal sidebar width/layout, and a chaotic UI** (the stock UI is fine).
 - skin-manager (Settings → Skin Management) writes the exclusion rows into both patch layers for you when activating; if you hand-edit the patch, keeping “only one skin enabled” requires **explicitly disabling every other skin**.
+- If a marketplace or another third-party channel bypasses the standard flow, skin-manager merges the profile then home-layer states at startup. When two or more skins would be effectively enabled, it atomically falls back to "Official default"; existing safe zero-or-one-skin selections are left untouched.
 - With skin-manager installed, skin customization items (e.g. the "less anime mode" visibility schedule) are stored in the current browser and applied by the manager.
 
-### Manual installation (fallback; you MUST finish the mutual-exclusion write-up right after)
+### Manual installation (fallback; stage mutual exclusion first)
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone anywhere (shallow is enough, skips history)
+node <abs path to clone>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
 dsh plugin --profile web add <abs path to clone>/skin-manager   # persistent skin manager panel (recommended)
 dsh plugin --profile web add <abs path to clone>/maid-atelier   # Abyssal Maid Atelier
 dsh plugin --profile web add <abs path to clone>/orca-link      # ORCA LINK
 ```
 
-> ⚠️ The commands above install **the skin manager + both skins**; the two skins are **enabled by default at the same time**. Right after installing, do exactly one of the following to keep only one skin active, otherwise you get the symptoms described in the mutual-exclusion section.
+> Run the `node` command before any `plugin add`. It preserves unrelated YAML and makes maid-atelier the only enabled skin. Use `--target orca-link` for ORCA LINK or `--target official` for the stock UI. Never overwrite the whole patch file. Skipping this staging step lets newly installed skins start enabled together.
 
 **Option A (recommended): Settings → Skin Management → click Switch on the skin you want.** The manager writes the mutual-exclusion `disabled` rows to both patch layers and hot reloads; just refresh the page.
 
@@ -92,7 +94,7 @@ dsh plugin --profile web add C:/Users/<you>/code/dsh-deep-whale/maid-atelier
 Symptoms: the settings button disappears, the sidebar is covered by decoration or has an abnormal width, the UI looks chaotic (recovers once skins are disabled).
 
 1. Open Settings → Skin Management and click "Official default" or any skin — the manager writes the exclusion rows and hot reloads; refresh to recover;
-2. If the manager is unavailable (or the config file was already corrupted): re-write the exclusion rows in both patch layers manually, per Option B above;
+2. If the manager is unavailable (or the config file was already corrupted), run `stage-mutual-exclusion.mjs` above with `--target official` or the desired skin to recover both patch layers;
 3. Or simply remove the packages you don't want: `dsh plugin --profile web remove <package>`, then re-check the exclusion rows.
 
 ### Relative path rules (common pitfall)

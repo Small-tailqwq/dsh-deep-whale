@@ -5,9 +5,12 @@ import { describe, expect, it } from 'vitest'
 import type { SkinCatalogEntry } from '../src/contract.ts'
 import {
   discoverInstalledSkins,
+  enabledSkins,
+  ensureSafeInitialState,
   MANAGED_END,
   MANAGED_START,
   renderManagedBlock,
+  readSkinStates,
   resolvePatchTargets,
   stripManagedBlock,
   switchPatch,
@@ -48,6 +51,14 @@ describe('generic skin switch patch', () => {
   it('replaces an empty YAML sequence with valid patch rows', () => {
     const next = switchPatch('[]\n', 'maid-atelier', catalog)
     expect(next).not.toMatch(/^\[\]/)
+    expect(next).toContain('- id: ui-skin-maid\n  disabled: false')
+  })
+
+  it('preserves default-template comments while replacing its empty sequence', () => {
+    const source = '# User patch entries go below.\n# Keep this comment.\n[]\n'
+    const next = switchPatch(source, 'maid-atelier', catalog)
+    expect(next).toContain('# Keep this comment.')
+    expect(next).not.toMatch(/^\s*\[\]\s*$/m)
     expect(next).toContain('- id: ui-skin-maid\n  disabled: false')
   })
 
@@ -94,6 +105,62 @@ describe('generic skin switch patch', () => {
       expect(readFileSync(home, 'utf8')).toContain('user-home')
       expect(readFileSync(profile, 'utf8')).toContain('ui-skin-maid\n  disabled: true')
       expect(readFileSync(home, 'utf8')).toContain('ui-skin-deepcel\n  disabled: true')
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('merges explicit states with the home layer taking precedence', () => {
+    const profile = '- id: ui-skin-maid\n  disabled: false\n- id: ui-skin-deepcel\n  disabled: true\n'
+    const home = '- id: ui-skin-maid\n  disabled: true\n- id: ui-skin-deepcel\n  disabled: false\n'
+    expect(readSkinStates(profile, catalog)).toEqual(new Map([
+      ['ui-skin-maid', false],
+      ['ui-skin-deepcel', true],
+    ]))
+    expect(enabledSkins([profile, home], catalog).map(skin => skin.id)).toEqual(['deepcel'])
+  })
+
+  it('only treats a direct disabled property as the skin state', () => {
+    const source = [
+      '- id: ui-skin-maid',
+      '  config:',
+      '    disabled: false',
+      '  disabled: true',
+    ].join('\n')
+    expect(readSkinStates(source, catalog).get('ui-skin-maid')).toBe(true)
+  })
+
+  it('fails safe to official when two installed skins have no exclusion state', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-skin-startup-'))
+    const profile = join(directory, 'profile.yml')
+    const home = join(directory, 'home.yml')
+    try {
+      writeFileSync(profile, '# default profile patch\n[]\n')
+      writeFileSync(home, '- id: user-home\n  disabled: false\n')
+      expect(ensureSafeInitialState([profile, home], catalog)).toBe(true)
+      for (const path of [profile, home]) {
+        const source = readFileSync(path, 'utf8')
+        expect(source).toContain('ui-skin-maid\n  disabled: true')
+        expect(source).toContain('ui-skin-deepcel\n  disabled: true')
+      }
+      expect(readFileSync(profile, 'utf8')).toContain('# default profile patch')
+      expect(readFileSync(home, 'utf8')).toContain('user-home')
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('leaves an existing single-skin selection untouched', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-skin-startup-safe-'))
+    const profile = join(directory, 'profile.yml')
+    const home = join(directory, 'home.yml')
+    const safe = '- id: ui-skin-maid\n  disabled: false\n- id: ui-skin-deepcel\n  disabled: true\n'
+    try {
+      writeFileSync(profile, safe)
+      writeFileSync(home, safe)
+      expect(ensureSafeInitialState([profile, home], catalog)).toBe(false)
+      expect(readFileSync(profile, 'utf8')).toBe(safe)
+      expect(readFileSync(home, 'utf8')).toBe(safe)
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
