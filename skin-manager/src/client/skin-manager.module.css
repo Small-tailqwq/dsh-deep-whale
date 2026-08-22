@@ -35,10 +35,99 @@
   font-size: 14px;
 }
 
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.checkButton {
+  min-height: 28px;
+  padding: 4px 12px;
+  color: var(--dsw-alias-label-secondary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.checkButton:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.checkButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.skinTile {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  align-self: start;
+}
+
+/* The activation grid holds skins only; the official default is its own
+   full-width row above it. align-items keeps rows at content height so a
+   long version note can never stretch a neighbor's button. */
 .skinGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  align-items: start;
   gap: 8px;
+}
+
+.skinButton {
+  width: 100%;
+}
+
+/* Official default: one compact full-width row instead of a stretched tile. */
+.defaultButton,
+.defaultActive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--dsw-alias-label-primary);
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  cursor: pointer;
+}
+
+.defaultButton > span,
+.defaultActive > span {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.defaultButton small,
+.defaultActive small {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.defaultButton:disabled,
+.defaultActive:disabled {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.defaultActive {
+  border-style: solid;
+  border-color: var(--dsw-alias-brand-primary);
+  box-shadow: inset 3px 0 var(--dsw-alias-brand-primary);
+}
+
+.defaultState {
+  flex: none;
+  color: var(--dsw-alias-label-secondary) !important;
 }
 
 .skinButton,
@@ -63,6 +152,53 @@
 .skinButton small,
 .activeSkin small {
   color: var(--dsw-alias-label-tertiary);
+}
+
+/* Version row: read-only local commit identity plus the GitHub comparison. */
+.versionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 8px;
+  padding-inline: 2px;
+  font-size: 11px;
+  line-height: 1.5;
+  min-height: 16px;
+}
+
+.compatibility {
+  color: var(--dsw-alias-label-tertiary);
+  padding-inline: 2px;
+  font-size: 11px;
+}
+
+.versionHash {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--dsw-alias-label-secondary);
+  font-family: var(--ds-font-family-code, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.versionHash:hover {
+  color: var(--dsw-alias-brand-primary);
+}
+
+.versionMuted {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.versionOk {
+  color: var(--dsw-alias-state-success-primary, #12a150);
+}
+
+.versionUpdate {
+  color: var(--dsw-alias-state-warn-primary, #e08700);
 }
 
 .toggleRow,

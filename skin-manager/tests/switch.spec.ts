@@ -83,10 +83,13 @@ describe('generic skin switch patch', () => {
       writeFileSync(join(directory, 'package.json'), JSON.stringify({ dependencies: { '@test/deepcel': 'link:test' } }))
       writeFileSync(skinJson, JSON.stringify({
         id: 'deepcel', name: 'Deepcel', package: '@test/deepcel', bodyAttr: 'data-deepcel',
-        wiring: { id: 'ui-skin-deepcel' }, order: 7,
+        wiring: { id: 'ui-skin-deepcel' }, dshCompatibility: '0.1.1rc2', order: 7,
       }))
       expect(discoverInstalledSkins(patch)).toEqual([
-        { id: 'deepcel', name: 'Deepcel', package: '@test/deepcel', wiringId: 'ui-skin-deepcel', bodyAttr: 'data-deepcel', order: 7 },
+        {
+          id: 'deepcel', name: 'Deepcel', package: '@test/deepcel', wiringId: 'ui-skin-deepcel',
+          bodyAttr: 'data-deepcel', dshCompatibility: '0.1.1rc2', order: 7,
+        },
       ])
     } finally {
       rmSync(directory, { recursive: true, force: true })
