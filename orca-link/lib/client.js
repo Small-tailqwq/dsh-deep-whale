@@ -1602,27 +1602,55 @@ window.__ModuleLoader__.load({
 		function beijingDayNumber(date) {
 			return Math.floor((date.getTime() + BEIJING_OFFSET_MS) / DAY_MS);
 		}
+		/** Beijing weekday (0 = Sunday ... 6 = Saturday), host-timezone independent. */
+		function beijingWeekday(date) {
+			return new Date(date.getTime() + BEIJING_OFFSET_MS).getUTCDay();
+		}
+		/** Weekends run at the flat valley rate all day, no peak windows at all. */
+		function isBeijingWeekend(date) {
+			const weekday = beijingWeekday(date);
+			return weekday === 0 || weekday === 6;
+		}
 		function priceBandAt(date) {
+			if (isBeijingWeekend(date)) return "low";
 			const minutes = beijingMinutesOfDay(date);
 			if (PEAK_WINDOWS.some(([start]) => minutes >= start - TRANSITION_MINUTES && minutes < start)) return "transition";
 			if (PEAK_WINDOWS.some(([start, end]) => minutes >= start && minutes < end)) return "high";
 			return "low";
 		}
+		/** Beijing weekday of a day-start epoch (still unit-aligned to DAY_MS). */
+		function beijingWeekdayOfDayStart(dayStart) {
+			return (Math.round(dayStart / DAY_MS) + 4) % 7;
+		}
 		/**
-		* Next pricing switch instant. Pricing only changes at the four Beijing
-		* boundaries 09:00 / 12:00 / 14:00 / 18:00, so the scan is exact.
+		* Next pricing switch instant. Weekdays change at the four Beijing boundaries
+		* 09:00 / 12:00 / 14:00 / 18:00; weekends stay flat at valley price all day,
+		* so the next switch after Friday 18:00 or during any weekend instant is
+		* Monday 09:00. The per-day scan is exact because every candidate boundary is
+		* visited in order and weekends emit none.
 		*/
 		function nextPriceChangeAt(date) {
 			const beijingEpoch = date.getTime() + BEIJING_OFFSET_MS;
-			const dayStart = Math.floor(beijingEpoch / DAY_MS) * DAY_MS;
-			const next = [
-				dayStart + 9 * HOUR_MS,
-				dayStart + 12 * HOUR_MS,
-				dayStart + 14 * HOUR_MS,
-				dayStart + 18 * HOUR_MS,
-				dayStart + DAY_MS + 9 * HOUR_MS
-			].find((instant) => instant > beijingEpoch) ?? dayStart + DAY_MS + 9 * HOUR_MS;
-			return /* @__PURE__ */ new Date(next - BEIJING_OFFSET_MS);
+			let dayStart = Math.floor(beijingEpoch / DAY_MS) * DAY_MS;
+			for (let day = 0; day <= 7; day += 1) {
+				const weekday = beijingWeekdayOfDayStart(dayStart);
+				if (weekday === 0 || weekday === 6) {
+					dayStart += DAY_MS;
+					continue;
+				}
+				const nextHour = [
+					9,
+					12,
+					14,
+					18
+				].find((hour) => dayStart + hour * HOUR_MS > beijingEpoch);
+				if (nextHour === void 0) {
+					dayStart += DAY_MS;
+					continue;
+				}
+				return /* @__PURE__ */ new Date(dayStart + nextHour * HOUR_MS - BEIJING_OFFSET_MS);
+			}
+			return /* @__PURE__ */ new Date(dayStart + 9 * HOUR_MS - BEIJING_OFFSET_MS);
 		}
 		const BAND_COPY = {
 			low: {
@@ -1663,10 +1691,34 @@ window.__ModuleLoader__.load({
 			}
 		};
 		const VALLEY_WINDOWS_LINE = {
-			zh: "其余时段, 价格为高峰的一半",
-			en: "All other hours at half peak price"
+			zh: "周末全天及非高峰时段, 价格为高峰的一半",
+			en: "Weekends and weekday off-peak hours at half peak price"
 		};
-		const PEAK_WINDOWS_LINE = "09:00-12:00 / 14:00-18:00";
+		const PEAK_WINDOWS_LINE = {
+			zh: "工作日 09:00-12:00 / 14:00-18:00",
+			en: "Weekdays 09:00-12:00 / 14:00-18:00"
+		};
+		/** Beijing weekday labels for the "next change" line, indexed by 0 = Sunday. */
+		const WEEKDAY_LABELS = {
+			zh: [
+				"周日",
+				"周一",
+				"周二",
+				"周三",
+				"周四",
+				"周五",
+				"周六"
+			],
+			en: [
+				"Sun",
+				"Mon",
+				"Tue",
+				"Wed",
+				"Thu",
+				"Fri",
+				"Sat"
+			]
+		};
 		/** Match the host UI language, same heuristic as the composer collapse. */
 		function detectChinese() {
 			return (document.documentElement.lang || window.navigator.language || "en").toLowerCase().startsWith("zh");
@@ -1682,9 +1734,11 @@ window.__ModuleLoader__.load({
 			const band = priceBandAt(date);
 			const copy = chinese ? BAND_COPY[band].zh : BAND_COPY[band].en;
 			const next = nextPriceChangeAt(date);
-			const tomorrow = beijingDayNumber(next) > beijingDayNumber(date);
-			const nextTime = `${formatBeijingTime(next)}${tomorrow ? chinese ? " 明日" : " tomorrow" : ""}`;
-			const statusLine = band === "transition" ? chinese ? `提前告警 · ${minutesUntilNextPeak(date)} 分钟后进入高峰` : `Early warning: peak in ${minutesUntilNextPeak(date)} min` : copy.status;
+			let nextTime = formatBeijingTime(next);
+			const dayGap = beijingDayNumber(next) - beijingDayNumber(date);
+			if (dayGap === 1) nextTime = chinese ? `${nextTime} 明日` : `${nextTime} tomorrow`;
+			else if (dayGap > 1) nextTime = `${chinese ? WEEKDAY_LABELS.zh[beijingWeekday(next)] : WEEKDAY_LABELS.en[beijingWeekday(next)]} ${nextTime}`;
+			const statusLine = isBeijingWeekend(date) ? chinese ? "周末全天半价" : "Weekend half price all day" : band === "transition" ? chinese ? `提前告警 · ${minutesUntilNextPeak(date)} 分钟后进入高峰` : `Early warning: peak in ${minutesUntilNextPeak(date)} min` : copy.status;
 			return {
 				band,
 				label: band === "low" ? "LOW" : "HIGH",
@@ -1820,7 +1874,7 @@ window.__ModuleLoader__.load({
 						status: schedule.statusLine,
 						price: schedule.priceLine,
 						next: schedule.nextChangeLine,
-						"peak-windows": PEAK_WINDOWS_LINE,
+						"peak-windows": zh ? PEAK_WINDOWS_LINE.zh : PEAK_WINDOWS_LINE.en,
 						"valley-windows": zh ? VALLEY_WINDOWS_LINE.zh : VALLEY_WINDOWS_LINE.en
 					};
 					for (const [slot, value] of Object.entries(lines)) {

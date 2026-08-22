@@ -95,6 +95,50 @@ describe('ORCA LINK pricing light schedule (Beijing time)', () => {
     expect(nextPriceChangeAt(beijing(5, 9, 0)).getTime()).toBe(beijing(5, 12, 0).getTime())
   })
 
+  // 2026-01-05 is Monday, 01-09 Friday, 01-10 Saturday, 01-11 Sunday, 01-12 Monday.
+  it('keeps every band green all weekend regardless of the clock time', () => {
+    expect(priceBandAt(beijing(10, 0, 0))).toBe('low') // Saturday 00:00
+    expect(priceBandAt(beijing(10, 8, 50))).toBe('low') // Saturday 08:50, would-be amber
+    expect(priceBandAt(beijing(10, 9, 0))).toBe('low') // Saturday 09:00, would-be peak start
+    expect(priceBandAt(beijing(10, 14, 0))).toBe('low') // Saturday 14:00
+    expect(priceBandAt(beijing(10, 23, 59))).toBe('low') // Saturday late night
+    expect(priceBandAt(beijing(11, 0, 0))).toBe('low') // Sunday 00:00
+    expect(priceBandAt(beijing(11, 9, 0))).toBe('low') // Sunday 09:00
+    expect(priceBandAt(beijing(11, 18, 0))).toBe('low') // Sunday 18:00
+    expect(priceBandAt(beijing(11, 23, 59))).toBe('low') // Sunday late night
+    expect(priceBandAt(beijing(9, 23, 59))).toBe('low') // Friday night stays valley
+    // Weekday behavior is untouched: amber 20 min before, red exactly at the start.
+    expect(priceBandAt(beijing(12, 8, 50))).toBe('transition')
+    expect(priceBandAt(beijing(12, 9, 0))).toBe('high')
+  })
+
+  it('hops the next switch over the weekend to Monday 09:00', () => {
+    expect(nextPriceChangeAt(beijing(9, 8, 30)).getTime()).toBe(beijing(9, 9, 0).getTime())
+    expect(nextPriceChangeAt(beijing(9, 18, 30)).getTime()).toBe(beijing(12, 9, 0).getTime())
+    expect(nextPriceChangeAt(beijing(9, 23, 0)).getTime()).toBe(beijing(12, 9, 0).getTime())
+    expect(nextPriceChangeAt(beijing(10, 0, 0)).getTime()).toBe(beijing(12, 9, 0).getTime())
+    expect(nextPriceChangeAt(beijing(10, 10, 0)).getTime()).toBe(beijing(12, 9, 0).getTime())
+    expect(nextPriceChangeAt(beijing(11, 23, 59)).getTime()).toBe(beijing(12, 9, 0).getTime())
+    expect(nextPriceChangeAt(beijing(12, 9, 0)).getTime()).toBe(beijing(12, 12, 0).getTime())
+  })
+
+  it('shows weekend flat-rate copy and names Monday in the next-change line', () => {
+    const zh = priceScheduleAt(beijing(10, 10, 0), true)
+    expect(zh).toMatchObject({
+      band: 'low',
+      label: 'LOW',
+      statusLine: '周末全天半价',
+      priceLine: '高峰价的 50% (半价)',
+      nextChangeLine: '周一 09:00 -> 高峰 100%',
+    })
+    // Sunday's would-be amber window never fires: no warning, still flat rate.
+    expect(priceScheduleAt(beijing(11, 8, 50), true).statusLine).toBe('周末全天半价')
+    expect(priceScheduleAt(beijing(9, 19, 0), true).nextChangeLine).toBe('周一 09:00 -> 高峰 100%')
+    const en = priceScheduleAt(beijing(10, 10, 0), false)
+    expect(en.statusLine).toBe('Weekend half price all day')
+    expect(en.nextChangeLine).toBe('Mon 09:00 -> Peak 100%')
+  })
+
   it('labels only HIGH and LOW, with half price during the valley', () => {
     expect(priceScheduleAt(beijing(5, 10, 0), true)).toMatchObject({
       band: 'high',
@@ -193,8 +237,8 @@ describe('ORCA LINK pricing light chrome', () => {
     expect(value('status')).toBe('空闲时段 OFF-PEAK')
     expect(value('price')).toBe('高峰价的 50% (半价)')
     expect(value('next')).toContain('14:00')
-    expect(value('peak-windows')).toBe('09:00-12:00 / 14:00-18:00')
-    expect(value('valley-windows')).toContain('一半')
+    expect(value('peak-windows')).toBe('工作日 09:00-12:00 / 14:00-18:00')
+    expect(value('valley-windows')).toContain('周末')
     dispose()
   })
 
@@ -216,7 +260,7 @@ describe('ORCA LINK pricing light chrome', () => {
     expect(value('status')).toBe('Early warning: peak in 10 min')
     expect(value('price')).toBe('50% of peak price (half price)')
     expect(value('next')).toBe('09:00 -> Peak 100%')
-    expect(value('valley-windows')).toBe('All other hours at half peak price')
+    expect(value('valley-windows')).toBe('Weekends and weekday off-peak hours at half peak price')
     const keys = [...light.querySelectorAll<HTMLElement>('[data-orca-link-price-row]')]
       .map((row) => row.firstElementChild?.textContent ?? '')
     expect(keys).toEqual(['Status', 'Price', 'Next', 'Peak', 'Valley'])
