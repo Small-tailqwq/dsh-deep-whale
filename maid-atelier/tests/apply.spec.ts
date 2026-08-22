@@ -400,6 +400,37 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
   })
 
+  it('retries seating the character stage when the conversation column mounts later', async () => {
+    fiber = await mount()
+    expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+
+    document.body.insertAdjacentHTML('beforeend', '<div class="fixture_centerCol"></div>')
+    await flushMutations()
+
+    const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+    expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+  })
+
+  it('keeps each overlapping activation in ownership of its own character stage', async () => {
+    const originalBodyStyle = document.body.getAttribute('style')
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
+    const first = await mount()
+    const second = await mount()
+    try {
+      expect(document.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(2)
+
+      await first.dispose()
+      const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+      expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+      expect(document.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(1)
+    } finally {
+      await first.dispose()
+      await second.dispose()
+      if (originalBodyStyle === null) document.body.removeAttribute('style')
+      else document.body.setAttribute('style', originalBodyStyle)
+    }
+  })
+
   it('keeps both original-resolution characters independent from the palace backdrop', async () => {
     document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()

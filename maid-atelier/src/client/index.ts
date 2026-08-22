@@ -179,17 +179,12 @@ function createCharacterStage(): HTMLDivElement {
  * page-level tier). The column is the chat-owning box, so any layout push
  * (right/bottom workbenches) moves the artwork with the chat instead of
  * leaving it fixed to the viewport. When the column has not mounted yet the
- * stage waiter returns false; the structure-change retry re-homes it on the
- * next pass.
+ * stage waiter returns false; the conversation-column mutation path retries
+ * once the chat area appears or is replaced.
  */
-function ensureChatAreaStage(ownedNodes: Set<Element>): boolean {
+function ensureChatAreaStage(stage: HTMLElement): boolean {
   const chat = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
   if (!chat) return false
-  let stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
-  if (stage === null) {
-    stage = createCharacterStage()
-    ownedNodes.add(stage)
-  }
   if (stage.parentElement !== chat) chat.prepend(stage)
   return true
 }
@@ -394,6 +389,8 @@ export function apply(ctx: Context): void {
 
   const ownedNodes = new Set<Element>()
   const decoratedElements = new Set<HTMLElement>()
+  const characterStage = createCharacterStage()
+  ownedNodes.add(characterStage)
   let themeColorMeta: HTMLMetaElement | null = null
   let previousThemeColor: string | undefined
   let themeColorObserver: MutationObserver | undefined
@@ -732,7 +729,7 @@ export function apply(ctx: Context): void {
   decorateTitlebarBrand(ownedNodes)
   decorateSidebar(ownedNodes, decoratedElements)
   decorateWorkspaceTree(decoratedElements)
-  ensureChatAreaStage(ownedNodes)
+  ensureChatAreaStage(characterStage)
   ensureResizeObserved()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
@@ -745,7 +742,7 @@ export function apply(ctx: Context): void {
     decorateTitlebarBrand(ownedNodes)
     decorateSidebar(ownedNodes, decoratedElements)
     decorateWorkspaceTree(decoratedElements)
-    ensureChatAreaStage(ownedNodes)
+    ensureChatAreaStage(characterStage)
     ensureResizeObserved()
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar === null) clearSidebarWidth()
@@ -772,6 +769,7 @@ export function apply(ctx: Context): void {
     let workspaceStateChanged = false
     let backdropChanged = false
     let composerChanged = false
+    let chatStructureChanged = false
     let settingsStateChanged = false
     let projectedStateChanged = false
     for (const record of records) {
@@ -811,6 +809,10 @@ export function apply(ctx: Context): void {
         || (target !== undefined && target.closest(composerSelector) !== null))) {
         composerChanged = true
       }
+      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR))
+        || (target !== undefined && target.closest(CONVERSATION_COLUMN_SELECTOR) !== null))) {
+        chatStructureChanged = true
+      }
       if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
         settingsStateChanged = true
       }
@@ -822,6 +824,10 @@ export function apply(ctx: Context): void {
     if (projectedStateChanged) syncProjectedState()
     if (sidebarStructureChanged) syncSidebarDecorations()
     else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
+    if (!sidebarStructureChanged && chatStructureChanged) {
+      ensureChatAreaStage(characterStage)
+      ensureResizeObserved()
+    }
     if (backdropChanged) syncBackdrop()
     if (composerChanged) {
       syncComposerMotion()

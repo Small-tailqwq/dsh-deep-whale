@@ -371,17 +371,12 @@ window.__ModuleLoader__.load({
 		* page-level tier). The column is the chat-owning box, so any layout push
 		* (right/bottom workbenches) moves the artwork with the chat instead of
 		* leaving it fixed to the viewport. When the column has not mounted yet the
-		* stage waiter returns false; the structure-change retry re-homes it on the
-		* next pass.
+		* stage waiter returns false; the conversation-column mutation path retries
+		* once the chat area appears or is replaced.
 		*/
-		function ensureChatAreaStage(ownedNodes) {
+		function ensureChatAreaStage(stage) {
 			const chat = document.querySelector(CONVERSATION_COLUMN_SELECTOR);
 			if (!chat) return false;
-			let stage = document.querySelector("[data-skin-chrome='character-stage']");
-			if (stage === null) {
-				stage = createCharacterStage();
-				ownedNodes.add(stage);
-			}
 			if (stage.parentElement !== chat) chat.prepend(stage);
 			return true;
 		}
@@ -550,6 +545,8 @@ window.__ModuleLoader__.load({
 			for (const attribute of Object.values(PROJECTED_STATE_ATTRIBUTES)) previousProjectedStates.set(attribute, body.getAttribute(attribute));
 			const ownedNodes = /* @__PURE__ */ new Set();
 			const decoratedElements = /* @__PURE__ */ new Set();
+			const characterStage = createCharacterStage();
+			ownedNodes.add(characterStage);
 			let themeColorMeta = null;
 			let previousThemeColor;
 			let themeColorObserver;
@@ -773,7 +770,7 @@ window.__ModuleLoader__.load({
 			decorateTitlebarBrand(ownedNodes);
 			decorateSidebar(ownedNodes, decoratedElements);
 			decorateWorkspaceTree(decoratedElements);
-			ensureChatAreaStage(ownedNodes);
+			ensureChatAreaStage(characterStage);
 			ensureResizeObserved();
 			const initialSidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
 			if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width);
@@ -785,7 +782,7 @@ window.__ModuleLoader__.load({
 				decorateTitlebarBrand(ownedNodes);
 				decorateSidebar(ownedNodes, decoratedElements);
 				decorateWorkspaceTree(decoratedElements);
-				ensureChatAreaStage(ownedNodes);
+				ensureChatAreaStage(characterStage);
 				ensureResizeObserved();
 				const sidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
 				if (sidebar === null) clearSidebarWidth();
@@ -800,6 +797,7 @@ window.__ModuleLoader__.load({
 				let workspaceStateChanged = false;
 				let backdropChanged = false;
 				let composerChanged = false;
+				let chatStructureChanged = false;
 				let settingsStateChanged = false;
 				let projectedStateChanged = false;
 				for (const record of records) {
@@ -818,12 +816,17 @@ window.__ModuleLoader__.load({
 					const appNodes = [...record.addedNodes, ...record.removedNodes].filter((node) => node instanceof Element && !isSkinChrome(node));
 					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, sidebarChromeSelector)) || target !== void 0 && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null)) sidebarStructureChanged = true;
 					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, composerSelector)) || target !== void 0 && target.closest(composerSelector) !== null)) composerChanged = true;
+					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR)) || target !== void 0 && target.closest(CONVERSATION_COLUMN_SELECTOR) !== null)) chatStructureChanged = true;
 					if (appNodes.some((node) => nodeTouches(node, SETTINGS_MASK_SELECTOR))) settingsStateChanged = true;
 					if (appNodes.length > 0 && (appNodes.some((node) => nodeTouches(node, PROJECTED_STATE_SELECTOR)) || target?.matches("header, [data-slot='sidebar.settings']") === true)) projectedStateChanged = true;
 				}
 				if (projectedStateChanged) syncProjectedState();
 				if (sidebarStructureChanged) syncSidebarDecorations();
 				else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements);
+				if (!sidebarStructureChanged && chatStructureChanged) {
+					ensureChatAreaStage(characterStage);
+					ensureResizeObserved();
+				}
 				if (backdropChanged) syncBackdrop();
 				if (composerChanged) syncComposerMotion();
 				if (settingsStateChanged || projectedStateChanged) syncSettingsBackdropFrame();
