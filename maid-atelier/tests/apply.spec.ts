@@ -455,63 +455,22 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
   }, 10_000)
 
-  it('follows live viewport resizing without transition lag and restores the marker', async () => {
-    fiber = await mount()
-    const resizeRule = CSS.match(
-      /\[data-maid-layout-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    expect(resizeRule).toContain('transition: none')
-    expect(resizeRule).toContain('filter: none')
-
-    vi.useFakeTimers()
-    try {
-      window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
-      vi.advanceTimersByTime(120)
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
-
-      window.dispatchEvent(new Event('resize'))
-      await fiber.dispose()
-      fiber = undefined
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
-      window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('tracks conversation-column resizes (panel push) through the layout lease', async () => {
-    let resize: ResizeObserverCallback | undefined
+  it('observes only sidebar geometry and leaves conversation resizes to native layout', async () => {
     const observed = new Set<Element>()
     vi.stubGlobal('ResizeObserver', class {
-      constructor(callback: ResizeObserverCallback) {
-        resize = callback
-      }
+      constructor(_callback: ResizeObserverCallback) {}
 
       observe(target: Element): void { observed.add(target) }
       unobserve(target: Element): void { observed.delete(target) }
       disconnect(): void { observed.clear() }
     })
-    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
-
-    vi.useFakeTimers()
-    try {
-      fiber = await mount()
-      const chat = document.querySelector<HTMLElement>('.fixture_centerCol')!
-      expect(observed.has(chat)).toBe(true)
-      // The layout lease must also fire when only the chat area moves —
-      // workbench panels push it without a window resize.
-      resize?.([
-        { target: chat, contentRect: { width: 800, height: 600 } } as ResizeObserverEntry,
-      ], {} as ResizeObserver)
-      await Promise.resolve()
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
-      vi.advanceTimersByTime(120)
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
-    } finally {
-      vi.useRealTimers()
-    }
+    document.body.innerHTML = '<div data-pane="sidebar"></div><div class="fixture_centerCol"></div>'
+    fiber = await mount()
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    const chat = document.querySelector<HTMLElement>('.fixture_centerCol')!
+    expect(observed.has(sidebar)).toBe(true)
+    expect(observed.has(chat)).toBe(false)
+    expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
   })
 
   it('uses a CPU-safe character path without accelerated WebGL and restores overrides', async () => {
@@ -535,22 +494,15 @@ describe('Maid Atelier skin apply', () => {
     document.body.removeAttribute('data-maid-low-power')
   })
 
-  it('keeps resize and low-power markers owned across overlapping activations', async () => {
+  it('keeps low-power markers owned across overlapping activations', async () => {
     const originalBodyStyle = document.body.getAttribute('style')
     const first = await mount()
     const second = await mount()
     vi.useFakeTimers()
     try {
-      window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       await first.dispose()
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
-      expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
-
-      vi.advanceTimersByTime(120)
-      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       await second.dispose()
@@ -1825,7 +1777,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-skin-trim-layer='landing'\]::after\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(landingBowRule).toContain("content: ''")
-    expect(landingBowRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(landingBowRule).toContain('left: calc((100% - 8px) / 2)')
     expect(landingBowRule).toContain('background: var(--maid-bow-art) center / contain no-repeat')
     expect(CSS).not.toMatch(/\[data-skin-trim-layer='workspace'\]::after/)
   })
@@ -1926,6 +1878,67 @@ describe('Maid Atelier skin apply', () => {
     expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 54px')
     expect(document.body.dataset.maidSidebarSize).toBe('rail')
     expect(document.body.getAttribute('style')).toBe(bodyStyle)
+  })
+
+  it('defers ornament geometry until continuous sidebar resizing settles', async () => {
+    let resize: ResizeObserverCallback | undefined
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        resize = callback
+      }
+
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    })
+    document.body.innerHTML = '<div data-pane="sidebar"></div>'
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    sidebar.getBoundingClientRect = () => ({
+      x: 0,
+      y: 0,
+      width: 280,
+      height: 900,
+      top: 0,
+      right: 280,
+      bottom: 900,
+      left: 0,
+      toJSON: () => ({}),
+    })
+
+    vi.useFakeTimers()
+    try {
+      fiber = await mount()
+      const widthRule = document.head
+        .querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")!
+      expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 72.1px')
+
+      const bodyAttributeChanges: string[] = []
+      const bodyObserver = new MutationObserver(records => {
+        bodyAttributeChanges.push(...records.flatMap(record => record.attributeName ?? []))
+      })
+      bodyObserver.observe(document.body, { attributes: true })
+
+      resize?.([
+        { target: sidebar, contentRect: { width: 312 } as DOMRectReadOnly } as ResizeObserverEntry,
+      ], {} as ResizeObserver)
+      resize?.([
+        { target: sidebar, contentRect: { width: 320 } as DOMRectReadOnly } as ResizeObserverEntry,
+      ], {} as ResizeObserver)
+      await Promise.resolve()
+      expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-width: 320px')
+      expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 72.1px')
+      expect(bodyAttributeChanges).not.toContain('data-maid-sidebar-size')
+      expect(bodyAttributeChanges).not.toContain('data-maid-sidebar-compact')
+      bodyObserver.disconnect()
+
+      vi.advanceTimersByTime(179)
+      expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 72.1px')
+      vi.advanceTimersByTime(1)
+      expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 82.4px')
+      expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-mascot-width: 262.4px')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('marks narrow and missing sidebars so Chat can reclaim the left gutter', async () => {

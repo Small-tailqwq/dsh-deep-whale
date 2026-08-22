@@ -209,16 +209,6 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
   }
 }
 
-/* A continuously changing layout — a viewport resize or a right/bottom
-   workbench pushing the conversation column — gives transitions a new
-   destination every frame. Follow the resize directly, then restore
-   state-change motion. */
-body[data-dsh-maid-atelier][data-maid-layout-resizing]
-  [data-maid-character] {
-  transition: none;
-  filter: none;
-}
-
 /* Chromium rejects failIfMajorPerformanceCaveat when it would fall back to a
    software renderer. Keep large transparent character layers cheap there. */
 body[data-dsh-maid-atelier][data-maid-low-power]
@@ -306,7 +296,7 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
   position: absolute;
   /* ConversationRoot reserves DSH's stable 8px scrollbar gutter. Center the
      ornaments on that content box, the same axis as the title and composer. */
-  left: calc((100% - var(--maid-sidebar-width) - 8px) / 2);
+  left: calc((100% - 8px) / 2);
   top: -1px;
   width: 80px;
   height: 42px;
