@@ -41,15 +41,15 @@ const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const VIEWPORT_RESIZE_SETTLE_MS = 120
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
+const CONVERSATION_COLUMN_SELECTOR = ":is([data-pane='conversation'], [class*='centerCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
 const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']"
 const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
 const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
 const WORKSPACE_SELECTOR = "header [role='tablist']"
-const BETTER_SIDEBAR_SELECTOR = '[data-dsh-better-sidebar]'
 const CORDIS_PANEL_SELECTOR = '[data-cordis-panel]'
-const TERMINAL_SELECTOR = `${BETTER_SIDEBAR_SELECTOR} .xterm`
+const TERMINAL_SELECTOR = '.xterm'
 
 interface AttributeLeaseState {
   originalValue: string | null
@@ -109,7 +109,6 @@ function createBodyAttributeLease(body: HTMLElement, attribute: string, value = 
 const PROJECTED_STATE_ATTRIBUTES = {
   activeChat: 'data-maid-chat-active',
   activeConversation: 'data-maid-conversation-active',
-  betterSidebarOpen: 'data-maid-better-sidebar-open',
   cordisPanelOpen: 'data-maid-cordis-panel-open',
   settingsOpen: 'data-maid-settings-open',
   workspace: 'data-maid-workspace',
@@ -119,7 +118,6 @@ const PROJECTED_STATE_SELECTOR = [
   ACTIVE_CONVERSATION_SELECTOR,
   '[data-chat-flow]',
   WORKSPACE_SELECTOR,
-  BETTER_SIDEBAR_SELECTOR,
   CORDIS_PANEL_SELECTOR,
   "[data-slot='sidebar.settings']",
 ].join(', ')
@@ -140,11 +138,7 @@ const WORKSPACE_FLAG_SELECTOR = WORKSPACE_FLAGS.map(flag => `[${flag}]`).join(',
 const SIDEBAR_FOOTER_FLAG = 'data-maid-sidebar-footer'
 
 const BACKDROP_PROPERTIES = [
-  'background-image',
-  'background-position',
-  'background-size',
-  'background-attachment',
-  'background-repeat',
+  '--maid-palace-art',
   '--maid-sidebar-width',
   '--maid-top-trim-art',
   '--maid-bottom-trim-art',
@@ -177,6 +171,33 @@ function createCharacterStage(): HTMLDivElement {
 
   stage.append(left, right)
   return stage
+}
+
+/**
+ * Seat the character stage (palace + both maids) inside the conversation
+ * column. The stage is a first child at z-index 0; the ConversationRoot
+ * paints above it by DOM order once the skin gives it `position: relative`
+ * without a z-index (no new stacking context, so fixed popups keep their
+ * page-level tier). The column is the chat-owning box, so any layout push
+ * (right/bottom workbenches) moves the artwork with the chat instead of
+ * leaving it fixed to the viewport. When the column has not mounted yet the
+ * stage waiter returns false; the conversation-column mutation path retries
+ * once the chat area appears or is replaced.
+ */
+function ensureChatAreaStage(stage: HTMLElement): boolean {
+  const chat = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
+  if (!chat) return false
+  if (stage.parentElement !== chat) chat.prepend(stage)
+  return true
+}
+
+function ensureChatAreaChrome(...chrome: HTMLElement[]): boolean {
+  const chat = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
+  if (!chat) return false
+  for (const element of chrome) {
+    if (element.parentElement !== chat) chat.append(element)
+  }
+  return true
 }
 
 function hasAcceleratedWebGL(): boolean {
@@ -366,7 +387,7 @@ export function apply(ctx: Context): void {
   const body = document.body
   ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
   const originalTitle = document.title
-  const viewportResizeLease = createBodyAttributeLease(body, 'data-maid-viewport-resizing')
+  const layoutResizeLease = createBodyAttributeLease(body, 'data-maid-layout-resizing')
   const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
   const previous = new Map<string, string>()
   for (const property of BACKDROP_PROPERTIES) {
@@ -379,6 +400,8 @@ export function apply(ctx: Context): void {
 
   const ownedNodes = new Set<Element>()
   const decoratedElements = new Set<HTMLElement>()
+  const characterStage = createCharacterStage()
+  ownedNodes.add(characterStage)
   let themeColorMeta: HTMLMetaElement | null = null
   let previousThemeColor: string | undefined
   let themeColorObserver: MutationObserver | undefined
@@ -409,7 +432,7 @@ export function apply(ctx: Context): void {
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
-    viewportResizeLease.release()
+    layoutResizeLease.release()
     lowPowerLease.release()
     if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
     if (recoverRailSearchFocus !== undefined) {
@@ -442,10 +465,10 @@ export function apply(ctx: Context): void {
   }, 'ui-skin-maid-atelier: layered background and ornament')
 
   handleViewportResize = (): void => {
-    viewportResizeLease.acquire()
+    layoutResizeLease.acquire()
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     viewportResizeTimer = setTimeout(() => {
-      viewportResizeLease.release()
+      layoutResizeLease.release()
       viewportResizeTimer = undefined
     }, VIEWPORT_RESIZE_SETTLE_MS)
   }
@@ -490,13 +513,15 @@ export function apply(ctx: Context): void {
     const source = body.hasAttribute('data-ds-dark-theme')
       ? MAID_ATELIER_PALACE_DARK
       : MAID_ATELIER_PALACE_LIGHT
-    body.style.setProperty('background-image', `url(${source})`)
+    const next = `url(${source})`
+    // The palace rides a custom property so the stage inside the conversation
+    // column owns the backdrop — the column's box (not the viewport) defines
+    // where the art lives and how it re-fits when the chat area is pushed.
+    if (body.style.getPropertyValue('--maid-palace-art') !== next) {
+      body.style.setProperty('--maid-palace-art', next)
+    }
   }
   syncBackdrop()
-  body.style.setProperty('background-position', 'center top')
-  body.style.setProperty('background-size', 'cover')
-  body.style.setProperty('background-attachment', 'scroll')
-  body.style.setProperty('background-repeat', 'no-repeat')
 
   // 宽度联动写入独立的 <style> 规则而非 body style：CSSOM 修改不产生
   // attribute mutation，Chrome autofill 的 MutationObserver 不会逐帧触发，
@@ -604,11 +629,6 @@ export function apply(ctx: Context): void {
       document.querySelector(WORKSPACE_SELECTOR) !== null,
     )
     set(
-      PROJECTED_STATE_ATTRIBUTES.betterSidebarOpen,
-      document.querySelector(BETTER_SIDEBAR_SELECTOR) !== null
-        && !body.hasAttribute('data-dsh-sidebar-collapsed'),
-    )
-    set(
       PROJECTED_STATE_ATTRIBUTES.cordisPanelOpen,
       document.querySelector(CORDIS_PANEL_SELECTOR) !== null,
     )
@@ -618,17 +638,22 @@ export function apply(ctx: Context): void {
     )
   }
 
-  const ensureSidebarObserved = (): void => {
+  let observedChatArea: HTMLElement | undefined
+
+  const ensureResizeObserved = (): void => {
+    if (!resizeObserver) return
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
-    if (!resizeObserver || sidebar === observedSidebar) return
-    if (!sidebar) {
+    if (sidebar !== observedSidebar) {
       if (observedSidebar) resizeObserver.unobserve(observedSidebar)
-      observedSidebar = undefined
-      return
+      observedSidebar = sidebar ?? undefined
+      if (sidebar) resizeObserver.observe(sidebar)
     }
-    if (observedSidebar) resizeObserver.unobserve(observedSidebar)
-    observedSidebar = sidebar
-    resizeObserver.observe(sidebar)
+    const chat = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
+    if (chat !== observedChatArea) {
+      if (observedChatArea) resizeObserver.unobserve(observedChatArea)
+      observedChatArea = chat ?? undefined
+      if (chat) resizeObserver.observe(chat)
+    }
   }
 
   /* rc.6 can mount its wide search and its outside-click listener during the
@@ -668,9 +693,13 @@ export function apply(ctx: Context): void {
 
   if (typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries.at(-1)
-      if (!entry) return
-      applySidebarWidth(entry.contentRect.width)
+      // Sidebar entries drive the ornament width; conversation-area entries
+      // drive the layout lease so maid tracking re-tracks during any push
+      // (right/bottom workbench panels) without transition lag.
+      for (const entry of entries) {
+        if (entry.target === observedSidebar) applySidebarWidth(entry.contentRect.width)
+        else if (entry.target === observedChatArea) handleViewportResize?.()
+      }
     })
   }
 
@@ -714,26 +743,43 @@ export function apply(ctx: Context): void {
     }
   }
 
+  const topTrim = document.createElement('div')
+  topTrim.dataset.skinChrome = 'top-trim'
+  topTrim.dataset.skinOwner = SKIN_OWNER
+  topTrim.setAttribute('aria-hidden', 'true')
+  const landingTrimLayer = document.createElement('div')
+  landingTrimLayer.dataset.skinTrimLayer = 'landing'
+  const workspaceTrimLayer = document.createElement('div')
+  workspaceTrimLayer.dataset.skinTrimLayer = 'workspace'
+  topTrim.append(landingTrimLayer, workspaceTrimLayer)
+  ownedNodes.add(topTrim)
+
+  const bottomTrim = document.createElement('div')
+  bottomTrim.dataset.skinChrome = 'bottom-trim'
+  bottomTrim.dataset.skinOwner = SKIN_OWNER
+  bottomTrim.setAttribute('aria-hidden', 'true')
+  ownedNodes.add(bottomTrim)
+
   decorateTitlebarBrand(ownedNodes)
   decorateSidebar(ownedNodes, decoratedElements)
   decorateWorkspaceTree(decoratedElements)
-  ensureSidebarObserved()
+  ensureChatAreaStage(characterStage)
+  ensureChatAreaChrome(topTrim, bottomTrim)
+  ensureResizeObserved()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
   syncComposerMotion()
   syncSettingsBackdropFrame()
   syncProjectedState()
 
-  const characterStage = createCharacterStage()
-  ownedNodes.add(characterStage)
-  body.prepend(characterStage)
-
   const syncSidebarDecorations = (): void => {
     syncTitlebarHeight?.()
     decorateTitlebarBrand(ownedNodes)
     decorateSidebar(ownedNodes, decoratedElements)
     decorateWorkspaceTree(decoratedElements)
-    ensureSidebarObserved()
+    ensureChatAreaStage(characterStage)
+    ensureChatAreaChrome(topTrim, bottomTrim)
+    ensureResizeObserved()
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar === null) clearSidebarWidth()
     else if (resizeObserver === undefined) applySidebarWidth(sidebar.getBoundingClientRect().width)
@@ -759,6 +805,7 @@ export function apply(ctx: Context): void {
     let workspaceStateChanged = false
     let backdropChanged = false
     let composerChanged = false
+    let chatStructureChanged = false
     let settingsStateChanged = false
     let projectedStateChanged = false
     for (const record of records) {
@@ -781,8 +828,6 @@ export function apply(ctx: Context): void {
         }
         if (record.attributeName === 'data-phase'
           || record.attributeName === 'data-chat-flow'
-          || record.attributeName === 'data-dsh-better-sidebar'
-          || record.attributeName === 'data-dsh-sidebar-collapsed'
           || record.attributeName === 'data-cordis-panel'
           || record.attributeName === 'data-slot'
           || record.attributeName === 'role') {
@@ -800,6 +845,10 @@ export function apply(ctx: Context): void {
         || (target !== undefined && target.closest(composerSelector) !== null))) {
         composerChanged = true
       }
+      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR))
+        || (target !== undefined && target.closest(CONVERSATION_COLUMN_SELECTOR) !== null))) {
+        chatStructureChanged = true
+      }
       if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
         settingsStateChanged = true
       }
@@ -811,6 +860,11 @@ export function apply(ctx: Context): void {
     if (projectedStateChanged) syncProjectedState()
     if (sidebarStructureChanged) syncSidebarDecorations()
     else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
+    if (!sidebarStructureChanged && chatStructureChanged) {
+      ensureChatAreaStage(characterStage)
+      ensureChatAreaChrome(topTrim, bottomTrim)
+      ensureResizeObserved()
+    }
     if (backdropChanged) syncBackdrop()
     if (composerChanged) {
       syncComposerMotion()
@@ -825,8 +879,6 @@ export function apply(ctx: Context): void {
       'data-chat-flow',
       'data-cordis-panel',
       'data-ds-dark-theme',
-      'data-dsh-better-sidebar',
-      'data-dsh-sidebar-collapsed',
       'data-phase',
       'data-slot',
       'role',
@@ -834,25 +886,6 @@ export function apply(ctx: Context): void {
     childList: true,
     subtree: true,
   })
-
-  const topTrim = document.createElement('div')
-  topTrim.dataset.skinChrome = 'top-trim'
-  topTrim.dataset.skinOwner = SKIN_OWNER
-  topTrim.setAttribute('aria-hidden', 'true')
-  const landingTrimLayer = document.createElement('div')
-  landingTrimLayer.dataset.skinTrimLayer = 'landing'
-  const workspaceTrimLayer = document.createElement('div')
-  workspaceTrimLayer.dataset.skinTrimLayer = 'workspace'
-  topTrim.append(landingTrimLayer, workspaceTrimLayer)
-  ownedNodes.add(topTrim)
-  body.append(topTrim)
-
-  const bottomTrim = document.createElement('div')
-  bottomTrim.dataset.skinChrome = 'bottom-trim'
-  bottomTrim.dataset.skinOwner = SKIN_OWNER
-  bottomTrim.setAttribute('aria-hidden', 'true')
-  ownedNodes.add(bottomTrim)
-  body.append(bottomTrim)
 
   const favicon = document.createElement('link')
   favicon.rel = 'icon'

@@ -116,6 +116,7 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('injects chrome and retracts every element on dispose', async () => {
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()
     expect(document.body.querySelectorAll('[data-skin-chrome]').length).toBeGreaterThan(0)
     expect(document.body.querySelectorAll('[data-skin-trim-layer]')).toHaveLength(2)
@@ -195,7 +196,6 @@ describe('Maid Atelier skin apply', () => {
     document.body.innerHTML = `
       <header><div role="tablist"></div></header>
       <main data-phase="active"><div data-chat-flow></div></main>
-      <div data-dsh-better-sidebar></div>
       <div data-cordis-panel></div>
       <div data-slot="sidebar.settings"><div role="dialog" aria-modal="true"></div></div>
     `
@@ -204,7 +204,6 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-maid-chat-active')).toBe(true)
     expect(document.body.hasAttribute('data-maid-conversation-active')).toBe(true)
     expect(document.body.hasAttribute('data-maid-workspace')).toBe(true)
-    expect(document.body.hasAttribute('data-maid-better-sidebar-open')).toBe(true)
     expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(true)
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
 
@@ -212,18 +211,15 @@ describe('Maid Atelier skin apply', () => {
     document.querySelector('main')!.remove()
     document.querySelector('[data-cordis-panel]')!.remove()
     document.querySelector('[data-slot="sidebar.settings"] [role="dialog"]')!.remove()
-    document.body.setAttribute('data-dsh-sidebar-collapsed', '')
     await flushMutations()
 
     expect(document.body.hasAttribute('data-maid-chat-active')).toBe(false)
     expect(document.body.hasAttribute('data-maid-conversation-active')).toBe(false)
     expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
-    expect(document.body.hasAttribute('data-maid-better-sidebar-open')).toBe(false)
     expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(false)
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
 
     await fiber.dispose()
-    document.body.removeAttribute('data-dsh-sidebar-collapsed')
   })
 
   it('restores pre-existing projected state attributes on dispose', async () => {
@@ -382,20 +378,72 @@ describe('Maid Atelier skin apply', () => {
     expect(document.title).toBe('original')
   })
 
-  it('installs an inlined background and restores prior body styles', async () => {
-    document.body.style.setProperty('background-position', 'left bottom')
+  it('installs the palace through a skin-owned variable and restores prior body styles', async () => {
+    document.body.style.setProperty('--maid-palace-art', 'legacy')
     fiber = await mount()
-    expect(document.body.style.backgroundImage).toContain('data:image/webp;base64,')
-    expect(document.body.style.backgroundImage).not.toContain('linear-gradient')
-    expect(document.body.style.backgroundPosition).toBe('center top')
-    expect(document.body.style.backgroundSize).toBe('cover')
-    expect(document.body.style.backgroundAttachment).toBe('scroll')
-    await fiber.dispose()
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).not.toContain('linear-gradient')
+    // The palace is no longer painted on body: the conversation-column stage
+    // owns it (see the character-stage rule), so body carries only the custom
+    // property consumed by that stage.
     expect(document.body.style.backgroundImage).toBe('')
-    expect(document.body.style.backgroundPosition).toBe('left bottom')
+    await fiber.dispose()
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe('legacy')
+  })
+
+  it('seats the character stage inside the conversation column', async () => {
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
+    fiber = await mount()
+    const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+    const topTrim = document.querySelector<HTMLElement>("[data-skin-chrome='top-trim']")
+    const bottomTrim = document.querySelector<HTMLElement>("[data-skin-chrome='bottom-trim']")
+    expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+    expect(topTrim?.parentElement?.className).toBe('fixture_centerCol')
+    expect(bottomTrim?.parentElement?.className).toBe('fixture_centerCol')
+    // Palace + maids are one owned layer retracted on dispose.
+    await fiber.dispose()
+    expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='top-trim']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='bottom-trim']")).toBeNull()
+  })
+
+  it('retries seating the character stage when the conversation column mounts later', async () => {
+    fiber = await mount()
+    expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+
+    document.body.insertAdjacentHTML('beforeend', '<div class="fixture_centerCol"></div>')
+    await flushMutations()
+
+    const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+    const topTrim = document.querySelector<HTMLElement>("[data-skin-chrome='top-trim']")
+    const bottomTrim = document.querySelector<HTMLElement>("[data-skin-chrome='bottom-trim']")
+    expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+    expect(topTrim?.parentElement?.className).toBe('fixture_centerCol')
+    expect(bottomTrim?.parentElement?.className).toBe('fixture_centerCol')
+  })
+
+  it('keeps each overlapping activation in ownership of its own character stage', async () => {
+    const originalBodyStyle = document.body.getAttribute('style')
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
+    const first = await mount()
+    const second = await mount()
+    try {
+      expect(document.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(2)
+
+      await first.dispose()
+      const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+      expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+      expect(document.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(1)
+    } finally {
+      await first.dispose()
+      await second.dispose()
+      if (originalBodyStyle === null) document.body.removeAttribute('style')
+      else document.body.setAttribute('style', originalBodyStyle)
+    }
   })
 
   it('keeps both original-resolution characters independent from the palace backdrop', async () => {
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()
     const stage = document.querySelector("[data-skin-chrome='character-stage']")
     const characters = stage?.querySelectorAll<HTMLImageElement>('[data-maid-character]')
@@ -410,7 +458,7 @@ describe('Maid Atelier skin apply', () => {
   it('follows live viewport resizing without transition lag and restores the marker', async () => {
     fiber = await mount()
     const resizeRule = CSS.match(
-      /\[data-maid-viewport-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
+      /\[data-maid-layout-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(resizeRule).toContain('transition: none')
     expect(resizeRule).toContain('filter: none')
@@ -418,16 +466,49 @@ describe('Maid Atelier skin apply', () => {
     vi.useFakeTimers()
     try {
       window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
       vi.advanceTimersByTime(120)
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
 
       window.dispatchEvent(new Event('resize'))
       await fiber.dispose()
       fiber = undefined
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
       window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('tracks conversation-column resizes (panel push) through the layout lease', async () => {
+    let resize: ResizeObserverCallback | undefined
+    const observed = new Set<Element>()
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        resize = callback
+      }
+
+      observe(target: Element): void { observed.add(target) }
+      unobserve(target: Element): void { observed.delete(target) }
+      disconnect(): void { observed.clear() }
+    })
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
+
+    vi.useFakeTimers()
+    try {
+      fiber = await mount()
+      const chat = document.querySelector<HTMLElement>('.fixture_centerCol')!
+      expect(observed.has(chat)).toBe(true)
+      // The layout lease must also fire when only the chat area moves —
+      // workbench panels push it without a window resize.
+      resize?.([
+        { target: chat, contentRect: { width: 800, height: 600 } } as ResizeObserverEntry,
+      ], {} as ResizeObserver)
+      await Promise.resolve()
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
+      vi.advanceTimersByTime(120)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
     } finally {
       vi.useRealTimers()
     }
@@ -461,15 +542,15 @@ describe('Maid Atelier skin apply', () => {
     vi.useFakeTimers()
     try {
       window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       await first.dispose()
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       vi.advanceTimersByTime(120)
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       await second.dispose()
@@ -573,8 +654,6 @@ describe('Maid Atelier skin apply', () => {
     expect(seatRule).toContain('background: none')
     expect(CSS).not.toContain("[data-skin-chrome='character-stage']::before")
     expect(CSS).toMatch(/\[data-maid-character\]\s*\{[^}]*z-index: 1/s)
-    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='left'\]\s*\{[^}]*translate: var\(--maid-sidebar-width\) 0/s)
-    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: 0/s)
     expect(CSS).not.toContain('left: -82px')
     expect(CSS).not.toContain('right: -82px')
     expect(CSS).not.toContain('--maid-character-left-art')
@@ -927,7 +1006,7 @@ describe('Maid Atelier skin apply', () => {
     expect(badgeRule).toContain('rgba(7, 18, 52, 0.58)')
   })
 
-  it('moves character art only for active Chat and preserves inspection-page composition', () => {
+  it('keeps the character stage scoped to the conversation column with maids at its bottom corners', () => {
     const stageRule = CSS.match(
       /\[data-skin-chrome='character-stage'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -946,21 +1025,51 @@ describe('Maid Atelier skin apply', () => {
     const baseRightRule = CSS.match(
       /\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(stageRule).toContain('position: fixed')
+    // The stage is inside the chat area (positioned by the conversation
+    // column's box), not fixed to the viewport.
+    expect(stageRule).toContain('position: absolute')
+    expect(stageRule).toContain('inset: 0')
+    expect(stageRule).toContain('z-index: 0')
     expect(stageRule).toContain('contain: strict')
+    // cover + center: wide chat crops the vertical overflow centered (top and
+    // bottom together); a chat narrower than the art keeps it full-height and
+    // crops horizontally centered — never shrink-to-width.
+    expect(stageRule).toContain('background: var(--maid-palace-art) center / cover no-repeat')
     expect(sharedRule).toContain('translate 620ms')
     expect(sharedRule).not.toContain('left 620ms')
     expect(sharedRule).not.toContain('right 620ms')
     expect(sharedRule).not.toContain('filter 420ms')
-    expect(baseLeftRule).toContain('left: 0')
-    expect(baseLeftRule).toContain('translate: calc(var(--maid-sidebar-width) + clamp(')
-    expect(baseRightRule).toContain('right: 0')
-    expect(baseRightRule).toContain('translate: clamp(-8px, -0.2vw, 0px) 0')
-    expect(chatLeftRule).toContain('translate: calc(var(--maid-sidebar-width) + clamp(')
-    expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
-    expect(chatRightRule).toContain('translate: clamp(-8px, -0.5vw, 0px) 0')
+    // The ConversationRoot paints above the stage via position: relative
+    // (no z-index — no new stacking context).
+    const conversationRootRule = CSS.match(
+      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\)\s*:is\(\[data-phase='hero'\], \[data-phase='active'\], \[data-phase='settling'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(conversationRootRule).toContain('position: relative')
+    expect(conversationRootRule).not.toContain('z-index')
+    // Left maid at chat-area bottom-left, right maid at chat-area bottom-right,
+    // both sized against the chat area's height (percentages of the stage).
+    expect(baseLeftRule).toContain('left: clamp(8px, 1.5%, 24px)')
+    expect(baseLeftRule).toContain('bottom: 0')
+    expect(baseLeftRule).toContain('height: 96%')
+    expect(baseRightRule).toContain('right: clamp(8px, 1.5%, 24px)')
+    expect(baseRightRule).toContain('bottom: 0')
+    expect(baseRightRule).toContain('height: 92%')
+    // Left and right maids share the same corner layout: no asymmetric
+    // sidebar-offset translate, no viewport units in the edge offsets.
+    expect(baseLeftRule).not.toContain('var(--maid-sidebar-width)')
+    expect(baseLeftRule).not.toContain('vw')
+    expect(baseRightRule).not.toContain('var(--maid-sidebar-width)')
+    expect(baseRightRule).not.toContain('vw')
+    expect(chatLeftRule).toContain('height: 64%')
+    expect(chatRightRule).toContain('height: 62%')
+    expect(chatLeftRule).not.toContain('translate:')
+    expect(chatRightRule).not.toContain('translate:')
     expect(CSS).not.toMatch(/\[data-maid-character='(?:left|right)'\]\s*\{[^}]*(?:left|right):\s*-/s)
     expect(CSS).not.toMatch(/\[data-maid-conversation-active\]\s*\[data-maid-character/s)
+    // The better-sidebar fixed-indent adaptation is gone: the artwork follows
+    // the chat area, so no panel-state projection survives in the character rules.
+    expect(CSS).not.toMatch(/\[data-maid-character='right'\][^{]*\{[^}]*clamp\(-460px/s)
+    expect(CSS).not.toContain('data-maid-better-sidebar-open')
   })
 
   it('recovers the rc.6 rail search after its stale click collapses the wide field', async () => {
@@ -1021,9 +1130,6 @@ describe('Maid Atelier skin apply', () => {
     )
     expect(CSS).toMatch(
       /\[data-ds-dark-theme\] \[data-dsh-better-sidebar\]\s*\{[^}]*--dsw-specific-sidebar-fill: rgba\(10, 22, 54, 0\.96\)/s,
-    )
-    expect(CSS).toMatch(
-      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: clamp\(-460px, -24vw, -320px\) 0/s,
     )
   })
 
@@ -1346,6 +1452,10 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const conversationHeaderRule = CSS.match(
+      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const composerRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const obscuredComposerRule = CSS.match(
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -1360,8 +1470,14 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarInnerRule).not.toContain('container-type')
     expect(sidebarContentRule).toBe('')
     expect(footerRule).toContain('z-index: auto')
-    expect(topTrimRule).toContain('z-index: 0')
-    expect(bottomTrimRule).toContain('z-index: 0')
+    expect(topTrimRule).toContain('z-index: 20')
+    expect(bottomTrimRule).toContain('z-index: 20')
+    expect(conversationHeaderRule).toContain('z-index: 21')
+    expect(CSS).not.toContain("button[class*='tab']")
+    expect(CSS).not.toContain("[class*='tabActive']")
+    expect(CSS).toMatch(/button\[role='tab'\]\s*\{[^}]*color: #d7def0/s)
+    expect(CSS).toMatch(/button\[role='tab'\]\[aria-selected='true'\]\s*\{[^}]*color: #fff7e6/s)
+    expect(composerRule).toContain('z-index: 21')
     // Not a promotion any more: the sidebar row releases its stacking
     // context (z-index: auto, position stays relative) so the settings
     // dialog's native modal layer competes at page level again. Shared with
@@ -1651,19 +1767,21 @@ describe('Maid Atelier skin apply', () => {
     expect(workspaceTrimRule).toContain('height: 76px')
     expect(workspaceTrimRule).toContain('background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x')
     expect(CSS).not.toMatch(/var\(--maid-top-trim-art\)[^;]*100% 100%/)
+    expect(topTrimRule).toContain('position: absolute')
     expect(topTrimRule).toContain('inset: 0 0 auto 0')
-    expect(topTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(topTrimRule).not.toContain('--maid-sidebar-width')
     expect(topTrimRule).not.toContain('box-shadow')
   })
 
   it('tiles the bottom border while keeping its center crest independently sized', () => {
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const crestRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]::after\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(bottomTrimRule).toContain('position: absolute')
     expect(bottomTrimRule).toContain('inset: auto 0 0 0')
-    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).not.toContain('--maid-sidebar-width')
     expect(bottomTrimRule).toContain('background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x')
     expect(bottomTrimRule).not.toContain('100% 100%')
-    expect(crestRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(crestRule).toContain('left: calc((100% - 8px) / 2)')
     expect(crestRule).toContain('transform: translateX(-50%)')
     expect(crestRule).toContain('background: var(--maid-bottom-crest-art) center / contain no-repeat')
   })
@@ -1676,7 +1794,7 @@ describe('Maid Atelier skin apply', () => {
     const movingTrimRule = CSS.match(
       /body\[data-dsh-maid-atelier\]\[data-maid-composer-motion\]\s*\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).not.toContain('--maid-sidebar-width')
     expect(bottomTrimRule).toContain('transform: translateY(0)')
     expect(bottomTrimRule).toContain('transition: transform 520ms')
     expect(bottomTrimRule).not.toContain('transition: translate 520ms')
@@ -1707,7 +1825,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-skin-trim-layer='landing'\]::after\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(landingBowRule).toContain("content: ''")
-    expect(landingBowRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(landingBowRule).toContain('left: calc((100% - 8px) / 2)')
     expect(landingBowRule).toContain('background: var(--maid-bow-art) center / contain no-repeat')
     expect(CSS).not.toMatch(/\[data-skin-trim-layer='workspace'\]::after/)
   })
@@ -1794,11 +1912,12 @@ describe('Maid Atelier skin apply', () => {
       disconnect(): void {}
     })
     document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
 
     fiber = await mount()
     const bodyStyle = document.body.getAttribute('style')
     resize?.([
-      { contentRect: { width: 96 } as DOMRectReadOnly } as ResizeObserverEntry,
+      { target: sidebar, contentRect: { width: 96 } as DOMRectReadOnly } as ResizeObserverEntry,
     ], {} as ResizeObserver)
 
     const widthRule = document.head
@@ -1838,17 +1957,17 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-maid-sidebar-size')).toBe(false)
   })
 
-  it('switches between matched day and night backgrounds with the base theme', async () => {
+  it('switches between matched day and night palaces with the base theme', async () => {
     fiber = await mount()
-    const light = document.body.style.backgroundImage
+    const light = document.body.style.getPropertyValue('--maid-palace-art')
     document.body.dataset.dsDarkTheme = ''
     await flushMutations()
-    const dark = document.body.style.backgroundImage
+    const dark = document.body.style.getPropertyValue('--maid-palace-art')
     expect(dark).not.toBe(light)
     expect(dark).toContain('data:image/webp;base64,')
     expect(dark).not.toContain('linear-gradient')
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
-    expect(document.body.style.backgroundImage).toBe(light)
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe(light)
   })
 })
