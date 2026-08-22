@@ -21,7 +21,7 @@
     }
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node ../scripts/write-skin-build.mjs . Small-tailqwq/dsh-deep-whale",
     "test": "vitest run"
   },
   "license": "CC-BY-NC-SA-4.0",
@@ -40,6 +40,7 @@
     "lib/client.js",
     "cordis.patch.yml",
     "skin.json",
+    "skin.build.json",
     "preview",
     "src",
     "tests",

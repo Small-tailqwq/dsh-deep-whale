@@ -1,5 +1,5 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
-import { type SkinCatalogEntry, type SkinTarget, SKIN_MANAGER_ROUTE } from '../contract.ts'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { type SkinCatalogEntry, type SkinTarget, type SkinVersionInfo, SKIN_MANAGER_ROUTE } from '../contract.ts'
 import type {
   SkinCustomizationDefinition,
   SkinSetting,
@@ -14,6 +14,63 @@ export interface SkinManagerInjected {
   registry: SkinCustomizationRegistry
   active(catalog: SkinCatalogEntry[]): SkinTarget | 'unknown'
   switchSkin(target: SkinTarget): Promise<void>
+}
+
+const shortDate = (iso: string | null): string => iso === null ? '' : iso.slice(0, 10)
+const shortMessage = (message: string): string => message.length > 42 ? `${message.slice(0, 42)}…` : message
+
+function VersionRow({ info, onCopied }: { info: SkinVersionInfo, onCopied(): void }) {
+  const segment = (text: string, className?: string): ReactNode => (
+    <span className={className ?? css.versionMuted}>{text}</span>
+  )
+  if (info.source === 'none' || info.local === null) {
+    return <div className={css.versionRow}>{segment(info.note ?? '版本信息不可用')}</div>
+  }
+  const copy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard?.writeText(info.local!.hash)
+      onCopied(true)
+    } catch {
+      onCopied(false)
+    }
+  }
+  const remoteLatest = info.remote?.latest
+  return (
+    <div className={css.versionRow}>
+      <button
+        type="button"
+        className={css.versionHash}
+        title={info.source === 'git'
+          ? `完整提交 ${info.local.hash}\n日期 ${info.local.date ?? '未知'}`
+          : `完整构建指纹 ${info.local.hash}`}
+        onClick={() => void copy()}
+      >
+        {info.source === 'git' ? '本地提交' : '本地构建'} {info.local.short}
+      </button>
+      {info.remote === null && segment(info.note ?? '未对比')}
+      {info.remote !== null && info.remote.state === 'up-to-date' && remoteLatest !== null && (
+        segment(`与远端一致（${remoteLatest.short}）`, css.versionOk)
+      )}
+      {info.remote !== null && info.remote.state === 'update-available' && remoteLatest !== null && (
+        <>
+          <span className={css.versionUpdate}>
+            仓库有新构建：{remoteLatest.short} · {shortDate(remoteLatest.date)} · {shortMessage(remoteLatest.message ?? '')}
+          </span>
+        </>
+      )}
+      {info.remote !== null && info.remote.state === 'local-ahead' && remoteLatest !== null && (
+        segment(`本地领先（远端 ${remoteLatest.short}）`)
+      )}
+      {info.remote !== null && info.remote.state === 'diverged' && remoteLatest !== null && (
+        segment(`与远端分叉（远端 ${remoteLatest.short}）`)
+      )}
+      {info.remote !== null && info.remote.state === 'unknown' && (
+        segment('无法判断更新')
+      )}
+      {info.dirty && segment('本地有未提交修改')}
+      {info.note !== undefined && segment(info.note)}
+    </div>
+  )
 }
 
 function Toggle({ checked, label, description, onChange }: {
@@ -176,22 +233,40 @@ function CustomizationCard({ definition, registry }: {
 export function SkinManager({ registry, active, switchSkin }: SkinManagerInjected) {
   const { definitions } = useSyncExternalStore(registry.subscribe, registry.getSnapshot)
   const [catalog, setCatalog] = useState<SkinCatalogEntry[]>([])
+  const [versions, setVersions] = useState<Map<string, SkinVersionInfo>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [checking, setChecking] = useState(false)
   const [switching, setSwitching] = useState<SkinTarget | null>(null)
+  const [copied, setCopied] = useState<'ok' | 'fail' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const live = useRef(true)
+  const copyTimer = useRef<number | undefined>(undefined)
   const current = active(catalog)
   const currentDefinitions = definitions.filter(definition => definition.skinId === current)
 
   useEffect(() => {
-    let live = true
-    fetchSkinCatalog().then((skins) => {
-      if (live) setCatalog(skins)
+    live.current = true
+    setLoading(true)
+    // Catalog loading is the core path: optional local Git/fingerprint probes
+    // must neither delay it nor discard a successful catalog result.
+    void fetchSkinCatalog().then((skins) => {
+      if (!live.current) return
+      setCatalog(skins)
     }).catch((reason) => {
-      if (live) setError(reason instanceof Error ? reason.message : String(reason))
+      if (live.current) setError(reason instanceof Error ? reason.message : String(reason))
     }).finally(() => {
-      if (live) setLoading(false)
+      if (live.current) setLoading(false)
     })
-    return () => { live = false }
+    void fetchSkinLocalVersions().then((info) => {
+      if (live.current) setVersions(info)
+    }).catch(() => {
+      // Version rows retain their per-skin "尚未读取" fallback. This optional
+      // diagnostic must not turn catalog discovery into a failed operation.
+    })
+    return () => {
+      live.current = false
+      if (copyTimer.current !== undefined) window.clearTimeout(copyTimer.current)
+    }
   }, [])
 
   const choose = (target: SkinTarget): void => {
@@ -203,35 +278,87 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
     })
   }
 
-  const targets = [
-    { id: 'official', name: '官方默认', nameEn: undefined },
-    ...catalog,
-  ]
+  const checkVersions = (): void => {
+    setChecking(true)
+    setError(null)
+    void fetchSkinVersions().then((info) => {
+      if (live.current) setVersions(info)
+    }).catch((reason) => {
+      if (live.current) setError(reason instanceof Error ? reason.message : String(reason))
+    }).finally(() => {
+      if (live.current) setChecking(false)
+    })
+  }
+
+  const announceCopied = (ok: boolean): void => {
+    setCopied(ok ? 'ok' : 'fail')
+    if (copyTimer.current !== undefined) window.clearTimeout(copyTimer.current)
+    copyTimer.current = window.setTimeout(() => {
+      if (live.current) setCopied(null)
+    }, 1600)
+  }
 
   return (
     <div className={css.section} data-dsh-skin-manager>
       <header className={css.header}>
         <h2>皮肤管理</h2>
-        <p>这里会发现当前 Web profile 中已安装的皮肤。激活由管理器统一处理；详细配置由皮肤按通用协议自行声明并负责应用。</p>
+        <p>这里会发现当前 Web profile 中已安装的皮肤。激活由管理器统一处理；详细配置由皮肤按通用协议自行声明并负责应用。每个皮肤下方显示本地提交或构建指纹；「检查更新」只比较官方仓库的构建结果，不会改动你的本地文件。</p>
       </header>
 
       <section className={css.card}>
-        <h3>已安装皮肤</h3>
+        <div className={css.cardHeader}>
+          <h3>已安装皮肤</h3>
+          <button
+            type="button"
+            className={css.checkButton}
+            disabled={loading || checking}
+            onClick={checkVersions}
+          >
+            {checking ? '检查中…' : '检查更新'}
+          </button>
+        </div>
+        <button
+          type="button"
+          className={current === 'official' ? css.defaultActive : css.defaultButton}
+          disabled={loading || switching !== null || current === 'official'}
+          onClick={() => choose('official')}
+        >
+          <span>
+            <span>官方默认</span>
+            <small>不启用任何皮肤</small>
+          </span>
+          <small className={css.defaultState}>
+            {current === 'official' ? '当前' : switching === 'official' ? '切换中' : '切换'}
+          </small>
+        </button>
         <div className={css.skinGrid}>
-          {targets.map(target => (
-            <button
-              key={target.id}
-              type="button"
-              className={current === target.id ? css.activeSkin : css.skinButton}
-              disabled={loading || switching !== null || current === target.id}
-              onClick={() => choose(target.id)}
-            >
-              <span>{target.name}</span>
-              {'nameEn' in target && target.nameEn && <small>{target.nameEn}</small>}
-              <small>{current === target.id ? '当前' : switching === target.id ? '切换中' : '切换'}</small>
-            </button>
+          {catalog.map(skin => (
+            <div key={skin.id} className={css.skinTile}>
+              <button
+                type="button"
+                className={current === skin.id ? css.activeSkin : css.skinButton}
+                disabled={loading || switching !== null || current === skin.id}
+                onClick={() => choose(skin.id)}
+              >
+                <span>{skin.name}</span>
+                {skin.nameEn && <small>{skin.nameEn}</small>}
+                <small>{current === skin.id ? '当前' : switching === skin.id ? '切换中' : '切换'}</small>
+              </button>
+              {skin.dshCompatibility && (
+                <small className={css.compatibility}>已适配 DSH {skin.dshCompatibility}</small>
+              )}
+              <VersionRow
+                info={versions.get(skin.id) ?? { id: skin.id, source: 'none', local: null, remote: null, dirty: false, note: '尚未读取' }}
+                onCopied={announceCopied}
+              />
+            </div>
           ))}
         </div>
+        {catalog.length === 0 && !loading && (
+          <p className={css.hint}>当前 profile 未发现皮肤包；安装本仓库皮肤后可回到这里激活。</p>
+        )}
+        {copied === 'ok' && <p className={css.hint}>完整版本标识已复制到剪贴板。</p>}
+        {copied === 'fail' && <p className={css.error}>复制失败：浏览器拒绝了剪贴板访问。</p>}
         {loading && <p className={css.hint}>正在读取已安装皮肤…</p>}
         {error !== null && <p className={css.error}>操作失败：{error}</p>}
       </section>
@@ -249,6 +376,7 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   )
 }
 
+/** Installed skin catalog; never waits for optional version probes. */
 export async function fetchSkinCatalog(): Promise<SkinCatalogEntry[]> {
   const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: 'same-origin' })
   const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], error?: string }
@@ -256,6 +384,36 @@ export async function fetchSkinCatalog(): Promise<SkinCatalogEntry[]> {
     throw new Error(result.error ?? `HTTP ${response.status}`)
   }
   return result.skins
+}
+
+/** Local-only version rows (git probes / build metadata, no network). */
+export async function fetchSkinLocalVersions(): Promise<Map<string, SkinVersionInfo>> {
+  const response = await fetch(SKIN_MANAGER_ROUTE, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'local-versions' }),
+  })
+  const result = await response.json() as { ok?: boolean, versions?: SkinVersionInfo[], error?: string }
+  if (!response.ok || result.ok !== true || !Array.isArray(result.versions)) {
+    throw new Error(result.error ?? `HTTP ${response.status}`)
+  }
+  return new Map(result.versions.map(version => [version.id, version]))
+}
+
+/** Ask the host to compare every installed skin against its GitHub origin. */
+export async function fetchSkinVersions(): Promise<Map<string, SkinVersionInfo>> {
+  const response = await fetch(SKIN_MANAGER_ROUTE, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'versions' }),
+  })
+  const result = await response.json() as { ok?: boolean, versions?: SkinVersionInfo[], error?: string }
+  if (!response.ok || result.ok !== true || !Array.isArray(result.versions)) {
+    throw new Error(result.error ?? `HTTP ${response.status}`)
+  }
+  return new Map(result.versions.map(version => [version.id, version]))
 }
 
 /** Same-origin host switch with a bounded refresh handoff. */
