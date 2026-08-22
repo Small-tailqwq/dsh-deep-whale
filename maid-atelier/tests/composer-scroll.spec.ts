@@ -158,4 +158,20 @@ describe('maid composer scroll-intent', () => {
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
     expect(seat.hasAttribute('data-maid-composer-interactive')).toBe(false)
   })
+
+  it('older disposal cannot clear state owned by a repeated activation', () => {
+    const { scrollport, seat, dispose: disposeOlder } = mount()
+    scrollTo(scrollport, 400)
+    scrollTo(scrollport, 200)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    const disposeNewer = installMaidComposerScroll(document.body)
+    disposeOlder()
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    wheel(scrollport, 120)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+    disposeNewer()
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+  })
 })

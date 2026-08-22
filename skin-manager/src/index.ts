@@ -211,6 +211,7 @@ async function runGit(cwd: string, args: string[]): Promise<string | null> {
 interface SkinBuildMetaRaw {
   schema?: unknown
   fingerprint?: unknown
+  sourceCommit?: unknown
   repository?: unknown
   path?: unknown
 }
@@ -222,6 +223,8 @@ interface SkinBuildMetaRaw {
  */
 export interface SkinBuildMeta {
   fingerprint: string
+  /** Git HEAD before this build was produced; an ancestry anchor, not the containing commit. */
+  sourceCommit: string | null
   repository: string
   path: string
 }
@@ -230,6 +233,9 @@ function parseSkinBuildMeta(raw: unknown): SkinBuildMeta | null {
   if (typeof raw !== 'object' || raw === null) return null
   const meta = raw as SkinBuildMetaRaw
   const fingerprint = typeof meta.fingerprint === 'string' && /^[0-9a-f]{64}$/.test(meta.fingerprint) ? meta.fingerprint : null
+  const sourceCommit = typeof meta.sourceCommit === 'string' && /^[0-9a-f]{40}$/.test(meta.sourceCommit)
+    ? meta.sourceCommit
+    : null
   const repository = typeof meta.repository === 'string' && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(meta.repository)
     ? meta.repository
     : null
@@ -238,7 +244,7 @@ function parseSkinBuildMeta(raw: unknown): SkinBuildMeta | null {
       ? meta.path.replaceAll('\\', '/').replace(/^\.\//, '')
     : null
   if (meta.schema !== 1 || fingerprint === null || repository === null || path === null || path === '') return null
-  return { fingerprint, repository, path }
+  return { fingerprint, sourceCommit, repository, path }
 }
 
 export function readSkinBuildMeta(dir: string): SkinBuildMeta | null {
@@ -330,7 +336,7 @@ export async function inspectInstalledVersion(
       local: { hash: meta.fingerprint, short: meta.fingerprint.slice(0, 12), date: null },
       repository: meta.repository,
       relPath: meta.path,
-      baseRef: null,
+      baseRef: meta.sourceCommit,
       baseDate: null,
       fingerprint: actualFingerprint,
       buildDirty,
@@ -423,12 +429,14 @@ async function compareCommits(ownerRepo: string, base: string, head: string): Pr
 export function classifyUpdate(status: string | null, dirSame: boolean): SkinUpdateState {
   if (dirSame) return 'up-to-date'
   switch (status) {
-    case 'behind': return 'update-available'
-    case 'ahead': return 'local-ahead'
+    // GitHub describes HEAD relative to BASE. We compare
+    // installed(BASE)...remote(HEAD), so "ahead" means a remote update.
+    case 'ahead': return 'update-available'
+    case 'behind': return 'local-ahead'
     case 'diverged': return 'diverged'
-    // Identical refs are the same commit: contradictory directory hashes
-    // cannot happen, and "same state" is the safe answer when they do.
-    case 'identical': return 'up-to-date'
+    // Equal ancestry anchors with differing fingerprints can arise from local
+    // or otherwise unpublished builds; equality cannot establish direction.
+    case 'identical': return 'unknown'
     default: return 'unknown'
   }
 }
@@ -542,14 +550,19 @@ export async function inspectSkinVersion(
     note = '已安装运行文件与构建指纹不一致（本地有修改），不判定为远端更新'
   } else if (remoteMeta === null && installed.fingerprint !== null) {
     note = '远端缺少有效构建指纹，无法判断更新'
-  } else if (installed.source === 'build') {
-    state = buildSame ? 'up-to-date' : 'update-available'
+  } else if (buildSame) {
+    state = 'up-to-date'
+  } else if (installed.baseRef === null) {
+    note = '构建指纹不同，但已安装包缺少可比较的源码提交，无法判断先后'
   } else {
     try {
-      const status = await deps.compareCommit(repo, installed.baseRef!, branch)
-      state = classifyUpdate(status, buildSame)
+      const remoteRef = remoteMeta?.sourceCommit ?? branch
+      const status = await deps.compareCommit(repo, installed.baseRef, remoteRef)
+      state = classifyUpdate(status, false)
       if (state === 'unknown' && status !== 'identical') {
         note = '远端提交无法证明是已安装版本的后继（远端状态 unknown），不判定为更新'
+      } else if (state === 'unknown') {
+        note = '构建指纹不同，但源码提交相同，无法判断先后'
       }
     } catch (error) {
       const status = typeof error === 'object' && error !== null ? (error as { status?: unknown }).status : undefined

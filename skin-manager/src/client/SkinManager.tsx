@@ -247,16 +247,21 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   useEffect(() => {
     live.current = true
     setLoading(true)
-    // The catalog renders immediately; local version rows load in parallel
-    // and must never delay the list or the switching buttons.
-    void Promise.all([fetchSkinCatalog(), fetchSkinLocalVersions()]).then(([skins, info]) => {
+    // Catalog loading is the core path: optional local Git/fingerprint probes
+    // must neither delay it nor discard a successful catalog result.
+    void fetchSkinCatalog().then((skins) => {
       if (!live.current) return
       setCatalog(skins)
-      setVersions(info)
     }).catch((reason) => {
       if (live.current) setError(reason instanceof Error ? reason.message : String(reason))
     }).finally(() => {
       if (live.current) setLoading(false)
+    })
+    void fetchSkinLocalVersions().then((info) => {
+      if (live.current) setVersions(info)
+    }).catch(() => {
+      // Version rows retain their per-skin "尚未读取" fallback. This optional
+      // diagnostic must not turn catalog discovery into a failed operation.
     })
     return () => {
       live.current = false

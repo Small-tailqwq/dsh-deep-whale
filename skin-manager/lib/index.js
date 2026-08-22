@@ -156,11 +156,13 @@ function parseSkinBuildMeta(raw) {
 	if (typeof raw !== "object" || raw === null) return null;
 	const meta = raw;
 	const fingerprint = typeof meta.fingerprint === "string" && /^[0-9a-f]{64}$/.test(meta.fingerprint) ? meta.fingerprint : null;
+	const sourceCommit = typeof meta.sourceCommit === "string" && /^[0-9a-f]{40}$/.test(meta.sourceCommit) ? meta.sourceCommit : null;
 	const repository = typeof meta.repository === "string" && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(meta.repository) ? meta.repository : null;
 	const path = typeof meta.path === "string" && /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9._/-]+$/.test(meta.path) ? meta.path.replaceAll("\\", "/").replace(/^\.\//, "") : null;
 	if (meta.schema !== 1 || fingerprint === null || repository === null || path === null || path === "") return null;
 	return {
 		fingerprint,
+		sourceCommit,
 		repository,
 		path
 	};
@@ -263,7 +265,7 @@ async function inspectInstalledVersion(dir, git = runGit) {
 		},
 		repository: meta.repository,
 		relPath: meta.path,
-		baseRef: null,
+		baseRef: meta.sourceCommit,
 		baseDate: null,
 		fingerprint: actualFingerprint,
 		buildDirty,
@@ -364,10 +366,10 @@ async function compareCommits(ownerRepo, base, head) {
 function classifyUpdate(status, dirSame) {
 	if (dirSame) return "up-to-date";
 	switch (status) {
-		case "behind": return "update-available";
-		case "ahead": return "local-ahead";
+		case "ahead": return "update-available";
+		case "behind": return "local-ahead";
 		case "diverged": return "diverged";
-		case "identical": return "up-to-date";
+		case "identical": return "unknown";
 		default: return "unknown";
 	}
 }
@@ -452,11 +454,14 @@ async function inspectSkinVersion(id, dir, deps = defaultDeps) {
 	const buildSame = installed.fingerprint !== null && remoteMeta !== null ? installed.fingerprint === remoteMeta.fingerprint : installed.baseRef !== null && latest !== null && installed.baseRef === latest.hash;
 	if (installed.buildDirty) note = "已安装运行文件与构建指纹不一致（本地有修改），不判定为远端更新";
 	else if (remoteMeta === null && installed.fingerprint !== null) note = "远端缺少有效构建指纹，无法判断更新";
-	else if (installed.source === "build") state = buildSame ? "up-to-date" : "update-available";
+	else if (buildSame) state = "up-to-date";
+	else if (installed.baseRef === null) note = "构建指纹不同，但已安装包缺少可比较的源码提交，无法判断先后";
 	else try {
-		const status = await deps.compareCommit(repo, installed.baseRef, branch);
-		state = classifyUpdate(status, buildSame);
+		const remoteRef = remoteMeta?.sourceCommit ?? branch;
+		const status = await deps.compareCommit(repo, installed.baseRef, remoteRef);
+		state = classifyUpdate(status, false);
 		if (state === "unknown" && status !== "identical") note = "远端提交无法证明是已安装版本的后继（远端状态 unknown），不判定为更新";
+		else if (state === "unknown") note = "构建指纹不同，但源码提交相同，无法判断先后";
 	} catch (error) {
 		const status = typeof error === "object" && error !== null ? error.status : void 0;
 		if (status === 404 || status === 422) {

@@ -38,6 +38,7 @@ function writeBuildPackage(dir: string, path = 'orca-link'): string {
   writeFileSync(join(dir, 'skin.build.json'), JSON.stringify({
     schema: 1,
     fingerprint,
+    sourceCommit: LONG_HASH,
     repository: 'Small-tailqwq/dsh-deep-whale',
     path,
   }))
@@ -74,6 +75,7 @@ function fakeDeps(overrides: Partial<SkinVersionDeps> = {}): SkinVersionDeps {
     directoryCommit: async () => commit('b'.repeat(40), 'skin work'),
     buildMeta: async () => ({
       fingerprint: REMOTE_FINGERPRINT,
+      sourceCommit: 'b'.repeat(40),
       repository: 'Small-tailqwq/dsh-deep-whale',
       path: 'orca-link',
     }),
@@ -140,6 +142,7 @@ describe('readSkinBuildMeta', () => {
     try {
       expect(readSkinBuildMeta(dir)).toEqual({
         fingerprint: computeSkinFingerprint(dir),
+        sourceCommit: LONG_HASH,
         repository: 'Small-tailqwq/dsh-deep-whale',
         path: 'orca-link',
       })
@@ -186,6 +189,7 @@ describe('inspectInstalledVersion', () => {
       expect(result.local?.hash).toBe(fingerprint)
       expect(result.repository).toBe('Small-tailqwq/dsh-deep-whale')
       expect(result.relPath).toBe('orca-link')
+      expect(result.baseRef).toBe(LONG_HASH)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -236,10 +240,10 @@ describe('classifyUpdate', () => {
   })
 
   it('maps ancestry to the remote state when the directory moved', () => {
-    expect(classifyUpdate('behind', false)).toBe('update-available')
-    expect(classifyUpdate('ahead', false)).toBe('local-ahead')
+    expect(classifyUpdate('ahead', false)).toBe('update-available')
+    expect(classifyUpdate('behind', false)).toBe('local-ahead')
     expect(classifyUpdate('diverged', false)).toBe('diverged')
-    expect(classifyUpdate('identical', false)).toBe('up-to-date')
+    expect(classifyUpdate('identical', false)).toBe('unknown')
   })
 
   it('stays unknown when ancestry cannot be proven', () => {
@@ -265,9 +269,11 @@ describe('inspectSkinVersion', () => {
         git: fakeGit({ 'rev-parse': () => null }),
         buildMeta: async () => ({
           fingerprint: fingerprint === REMOTE_FINGERPRINT ? 'c'.repeat(64) : REMOTE_FINGERPRINT,
+          sourceCommit: 'b'.repeat(40),
           repository: 'Small-tailqwq/dsh-deep-whale',
           path: 'orca-link',
         }),
+        compareCommit: async () => 'ahead',
       }))
       expect(result.source).toBe('build')
       expect(result.remote?.state).toBe('update-available')
@@ -285,12 +291,33 @@ describe('inspectSkinVersion', () => {
         git: fakeGit({ 'rev-parse': () => null }),
         buildMeta: async () => ({
           fingerprint,
+          sourceCommit: 'b'.repeat(40),
           repository: 'Small-tailqwq/dsh-deep-whale',
           path: 'orca-link',
         }),
       }))
       expect(result.remote?.state).toBe('up-to-date')
       expect(result.dirty).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('does not infer direction for a differing package without a source commit', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'dsh-skin-installed-'))
+    try {
+      const fingerprint = writeBuildPackage(dir)
+      writeFileSync(join(dir, 'skin.build.json'), JSON.stringify({
+        schema: 1,
+        fingerprint,
+        repository: 'Small-tailqwq/dsh-deep-whale',
+        path: 'orca-link',
+      }))
+      const result = await inspectSkinVersion('orca-link', dir, fakeDeps({
+        git: fakeGit({ 'rev-parse': () => null }),
+      }))
+      expect(result.remote?.state).toBe('unknown')
+      expect(result.note).toContain('缺少可比较的源码提交')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -326,7 +353,7 @@ describe('inspectSkinVersion', () => {
       directoryCommit: async (_repo, ref) => (
         ref === 'main' ? commit('b'.repeat(40), 'skin work') : commit(LONG_HASH, 'installed')
       ),
-      compareCommit: async () => 'behind',
+      compareCommit: async () => 'ahead',
     }))
     expect(result.remote?.state).toBe('update-available')
     expect(result.remote?.latest?.message).toBe('skin work')
@@ -334,7 +361,7 @@ describe('inspectSkinVersion', () => {
 
   it('stays up-to-date when the remote moved elsewhere but not in the skin directory', async () => {
     const result = await inspectSkinVersion('orca-link', '/skin', fakeDeps({
-      compareCommit: async () => 'behind',
+      compareCommit: async () => 'ahead',
       // The directory head is identical on both sides (same hash for every
       // ref): infrastructure-only commits never count as a skin update.
       directoryCommit: async () => commit(LONG_HASH, 'same head'),
@@ -348,7 +375,7 @@ describe('inspectSkinVersion', () => {
       directoryCommit: async (_repo, ref) => (
         ref === 'main' ? commit(LONG_HASH, 'old') : commit('b'.repeat(40), 'local work')
       ),
-      compareCommit: async () => 'ahead',
+      compareCommit: async () => 'behind',
     }))
     expect(ahead.remote?.state).toBe('local-ahead')
     const diverged = await inspectSkinVersion('orca-link', '/skin', fakeDeps({

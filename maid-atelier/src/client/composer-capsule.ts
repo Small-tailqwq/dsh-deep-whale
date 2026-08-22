@@ -36,6 +36,18 @@ const EXPAND_LIFETIME_MS = 280
 // affect the composer state (same stance as the other skin controllers).
 const HIGH_CHURN_SELECTOR = '.xterm, [data-input-backdrop]'
 
+interface SeatSnapshot {
+  capsule: string | null
+  expanding: string | null
+}
+
+interface CapsuleOwnership {
+  token: symbol
+  originals: Map<HTMLElement, SeatSnapshot>
+}
+
+const ownershipByDocument = new WeakMap<Document, CapsuleOwnership>()
+
 function phaseRootOf(element: Element): HTMLElement | null {
   let candidate: Element | null = element
   while (candidate !== null) {
@@ -62,6 +74,38 @@ function belongsToHighChurnSubtree(node: Node): boolean {
  */
 export function installMaidComposerCapsule(body: HTMLElement): () => void {
   const doc = body.ownerDocument
+  const token = Symbol('maid-composer-capsule')
+  const ownership = ownershipByDocument.get(doc) ?? { token, originals: new Map() }
+  ownership.token = token
+  ownershipByDocument.set(doc, ownership)
+  const current = (): boolean => ownership.token === token
+  const remember = (seat: HTMLElement): void => {
+    if (ownership.originals.has(seat)) return
+    ownership.originals.set(seat, {
+      capsule: seat.getAttribute(CAPSULE_ATTRIBUTE),
+      expanding: seat.getAttribute(EXPANDING_ATTRIBUTE),
+    })
+  }
+  const write = (seat: HTMLElement, attribute: string, value: string | null): void => {
+    if (!current()) return
+    remember(seat)
+    if (value === null) seat.removeAttribute(attribute)
+    else seat.setAttribute(attribute, value)
+  }
+  const restoreAttribute = (seat: HTMLElement, attribute: string): void => {
+    if (!current()) return
+    const snapshot = ownership.originals.get(seat)
+    if (snapshot === undefined) return
+    const value = attribute === CAPSULE_ATTRIBUTE ? snapshot.capsule : snapshot.expanding
+    if (value === null) seat.removeAttribute(attribute)
+    else seat.setAttribute(attribute, value)
+  }
+  const restoreSeat = (seat: HTMLElement, snapshot: SeatSnapshot): void => {
+    if (snapshot.capsule === null) seat.removeAttribute(CAPSULE_ATTRIBUTE)
+    else seat.setAttribute(CAPSULE_ATTRIBUTE, snapshot.capsule)
+    if (snapshot.expanding === null) seat.removeAttribute(EXPANDING_ATTRIBUTE)
+    else seat.setAttribute(EXPANDING_ATTRIBUTE, snapshot.expanding)
+  }
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const wasCapsule = new WeakMap<HTMLElement, boolean>()
   // Once the user touches the composer card (focus, typing, clicking its
@@ -83,13 +127,15 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
   const capsuleMode = (): boolean => doc.documentElement.getAttribute(MODE_ATTRIBUTE) === 'capsule'
 
   const synchronize = (): void => {
+    if (!current()) return
     const active = capsuleMode()
     doc.querySelectorAll<HTMLElement>(SEAT_SELECTOR).forEach((seat) => {
       const root = phaseRootOf(seat)
       const scrollport = seat.closest<HTMLElement>(SCROLLPORT_SELECTOR)
       const pending: () => void = () => {
-        seat.removeAttribute(CAPSULE_ATTRIBUTE)
-        seat.removeAttribute(EXPANDING_ATTRIBUTE)
+        remember(seat)
+        restoreAttribute(seat, CAPSULE_ATTRIBUTE)
+        restoreAttribute(seat, EXPANDING_ATTRIBUTE)
       }
       if (
         !active
@@ -115,23 +161,24 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
       const previous = wasCapsule.get(seat) === true
       wasCapsule.set(seat, next)
       if (next) {
-        seat.setAttribute(CAPSULE_ATTRIBUTE, '')
-        seat.removeAttribute(EXPANDING_ATTRIBUTE)
+        write(seat, CAPSULE_ATTRIBUTE, '')
+        restoreAttribute(seat, EXPANDING_ATTRIBUTE)
         return
       }
-      seat.removeAttribute(CAPSULE_ATTRIBUTE)
+      restoreAttribute(seat, CAPSULE_ATTRIBUTE)
       if (previous) {
         // Fold -> expand: layout swaps instantly; the one-shot marker plays
         // a transform/opacity keyframe so the transition never reflows.
-        seat.setAttribute(EXPANDING_ATTRIBUTE, '')
-        schedule(() => { seat.removeAttribute(EXPANDING_ATTRIBUTE) }, EXPAND_LIFETIME_MS)
+        write(seat, EXPANDING_ATTRIBUTE, '')
+        schedule(() => { restoreAttribute(seat, EXPANDING_ATTRIBUTE) }, EXPAND_LIFETIME_MS)
       } else {
-        seat.removeAttribute(EXPANDING_ATTRIBUTE)
+        restoreAttribute(seat, EXPANDING_ATTRIBUTE)
       }
     })
   }
 
   const onPointerDown = (event: PointerEvent): void => {
+    if (!current()) return
     const target = event.target
     if (!(target instanceof Element)) return
     const card = target.closest<HTMLElement>(CARD_SELECTOR)
@@ -151,6 +198,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
   }
 
   const onFocusIn = (event: FocusEvent): void => {
+    if (!current()) return
     const target = event.target
     if (!(target instanceof Element)) return
     const seat = target.closest<HTMLElement>(SEAT_SELECTOR)
@@ -160,6 +208,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
   }
 
   const onFocusOut = (event: FocusEvent): void => {
+    if (!current()) return
     const target = event.target
     if (!(target instanceof Element) || target.closest(SEAT_SELECTOR) === null) return
     // The focus may move to a popover outside the seat; a microtask lets the
@@ -169,6 +218,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
   }
 
   const onInput = (event: Event): void => {
+    if (!current()) return
     const target = event.target
     if (!(target instanceof Element)) return
     const seat = target.closest<HTMLElement>(SEAT_SELECTOR)
@@ -178,6 +228,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
   }
 
   const onClick = (event: MouseEvent): void => {
+    if (!current()) return
     const target = event.target
     if (!(target instanceof Element)) return
     // Only clicks landing on the pill card itself steal focus. Content bound
@@ -251,9 +302,10 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
     doc.removeEventListener('click', onClick)
     timers.forEach(timer => { clearTimeout(timer) })
     timers.clear()
-    doc.querySelectorAll<HTMLElement>(SEAT_SELECTOR).forEach((seat) => {
-      seat.removeAttribute(CAPSULE_ATTRIBUTE)
-      seat.removeAttribute(EXPANDING_ATTRIBUTE)
-    })
+    if (current()) {
+      ownership.originals.forEach((snapshot, seat) => { restoreSeat(seat, snapshot) })
+      ownership.originals.clear()
+      ownershipByDocument.delete(doc)
+    }
   }
 }

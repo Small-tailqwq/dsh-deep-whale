@@ -29,6 +29,18 @@ const NESTED_SCROLL_SURFACE_SELECTOR = [
 const SCROLL_THRESHOLD = 10
 const BOTTOM_THRESHOLD = 24
 
+interface SeatSnapshot {
+  hidden: string | null
+  interactive: string | null
+}
+
+interface ScrollOwnership {
+  token: symbol
+  originals: Map<HTMLElement, SeatSnapshot>
+}
+
+const ownershipByDocument = new WeakMap<Document, ScrollOwnership>()
+
 function phaseRootOf(element: Element): HTMLElement | null {
   let candidate: Element | null = element
   while (candidate !== null) {
@@ -75,19 +87,40 @@ function wheelBelongsToNestedSurface(event: WheelEvent, scrollport: HTMLElement)
   return false
 }
 
-function clearSeatStates(doc: Document): void {
-  doc.querySelectorAll<HTMLElement>(COMPOSER_SEAT_SELECTOR).forEach((seat) => {
-    seat.removeAttribute(HIDDEN_ATTRIBUTE)
-    seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
-  })
-}
-
 /**
  * @param body - skin owning element (document.body) used to reach the
  * document; the switch attribute lives on documentElement.
  */
 export function installMaidComposerScroll(body: HTMLElement): () => void {
   const doc = body.ownerDocument
+  const token = Symbol('maid-composer-scroll')
+  const ownership = ownershipByDocument.get(doc) ?? { token, originals: new Map() }
+  ownership.token = token
+  ownershipByDocument.set(doc, ownership)
+  const current = (): boolean => ownership.token === token
+  const remember = (seat: HTMLElement): void => {
+    if (ownership.originals.has(seat)) return
+    ownership.originals.set(seat, {
+      hidden: seat.getAttribute(HIDDEN_ATTRIBUTE),
+      interactive: seat.getAttribute(INTERACTIVE_ATTRIBUTE),
+    })
+  }
+  const write = (seat: HTMLElement, attribute: string, value: string | null): void => {
+    if (!current()) return
+    remember(seat)
+    if (value === null) seat.removeAttribute(attribute)
+    else seat.setAttribute(attribute, value)
+  }
+  const restoreSeat = (seat: HTMLElement, snapshot: SeatSnapshot): void => {
+    if (snapshot.hidden === null) seat.removeAttribute(HIDDEN_ATTRIBUTE)
+    else seat.setAttribute(HIDDEN_ATTRIBUTE, snapshot.hidden)
+    if (snapshot.interactive === null) seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
+    else seat.setAttribute(INTERACTIVE_ATTRIBUTE, snapshot.interactive)
+  }
+  const clearSeatStates = (): void => {
+    if (!current()) return
+    ownership.originals.forEach((snapshot, seat) => { restoreSeat(seat, snapshot) })
+  }
   // Baseline per scrollport, established lazily so a freshly mounted
   // conversation never reacts to its first tear-down style pass.
   const lastTops = new WeakMap<HTMLElement, number>()
@@ -98,24 +131,24 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   }
 
   const hideSeat = (seat: HTMLElement): void => {
-    if (!scrollEnabled(doc)) return
-    seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
+    if (!current() || !scrollEnabled(doc)) return
+    write(seat, INTERACTIVE_ATTRIBUTE, null)
     blurSeat(seat)
-    seat.setAttribute(HIDDEN_ATTRIBUTE, '')
+    write(seat, HIDDEN_ATTRIBUTE, '')
   }
 
   const showSeat = (seat: HTMLElement): void => {
-    seat.removeAttribute(HIDDEN_ATTRIBUTE)
+    write(seat, HIDDEN_ATTRIBUTE, null)
   }
 
   const activateSeat = (seat: HTMLElement): void => {
     showSeat(seat)
-    seat.setAttribute(INTERACTIVE_ATTRIBUTE, '')
-    if (!scrollEnabled(doc)) seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
+    write(seat, INTERACTIVE_ATTRIBUTE, '')
+    if (!scrollEnabled(doc)) write(seat, INTERACTIVE_ATTRIBUTE, null)
   }
 
   const onScroll = (event: Event): void => {
-    if (!scrollEnabled(doc)) return
+    if (!current() || !scrollEnabled(doc)) return
     const scrollport = event.target
     if (!(scrollport instanceof HTMLElement) || !scrollport.matches(SCROLLPORT_SELECTOR)) return
     const seat = activeSeatOf(scrollport)
@@ -135,7 +168,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   }
 
   const onWheel = (event: WheelEvent): void => {
-    if (!scrollEnabled(doc)) return
+    if (!current() || !scrollEnabled(doc)) return
     if (Math.abs(event.deltaY) <= SCROLL_THRESHOLD) return
 
     for (const candidate of event.composedPath()) {
@@ -152,6 +185,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   }
 
   const onFocusIn = (event: FocusEvent): void => {
+    if (!current()) return
     const target = event.target
     if (!(target instanceof Element)) return
     const seat = target.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
@@ -164,15 +198,16 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     const seat = target.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
     if (seat === null) return
     queueMicrotask(() => {
-      if (!seat.contains(doc.activeElement)) seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
+      if (current() && !seat.contains(doc.activeElement)) write(seat, INTERACTIVE_ATTRIBUTE, null)
     })
   }
 
   // Toggling the setting off must immediately restore every seat instead of
   // waiting for the next scroll gesture.
   const stateObserver = new MutationObserver((records) => {
+    if (!current()) return
     if (!records.some(record => record.type === 'attributes' && record.attributeName === MODE_ATTRIBUTE)) return
-    if (!scrollEnabled(doc)) clearSeatStates(doc)
+    if (!scrollEnabled(doc)) clearSeatStates()
   })
   stateObserver.observe(doc.documentElement, {
     attributes: true,
@@ -192,6 +227,10 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     doc.removeEventListener('wheel', onWheel, true)
     doc.removeEventListener('focusin', onFocusIn, true)
     doc.removeEventListener('focusout', onFocusOut, true)
-    clearSeatStates(doc)
+    if (current()) {
+      clearSeatStates()
+      ownership.originals.clear()
+      ownershipByDocument.delete(doc)
+    }
   }
 }

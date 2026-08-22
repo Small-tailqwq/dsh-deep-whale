@@ -303,15 +303,17 @@ window.__ModuleLoader__.load({
 			(0, react.useEffect)(() => {
 				live.current = true;
 				setLoading(true);
-				Promise.all([fetchSkinCatalog(), fetchSkinLocalVersions()]).then(([skins, info]) => {
+				fetchSkinCatalog().then((skins) => {
 					if (!live.current) return;
 					setCatalog(skins);
-					setVersions(info);
 				}).catch((reason) => {
 					if (live.current) setError(reason instanceof Error ? reason.message : String(reason));
 				}).finally(() => {
 					if (live.current) setLoading(false);
 				});
+				fetchSkinLocalVersions().then((info) => {
+					if (live.current) setVersions(info);
+				}).catch(() => {});
 				return () => {
 					live.current = false;
 					if (copyTimer.current !== void 0) window.clearTimeout(copyTimer.current);

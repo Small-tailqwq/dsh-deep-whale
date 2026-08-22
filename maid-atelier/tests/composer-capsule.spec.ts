@@ -227,4 +227,16 @@ describe('maid composer empty-state capsule', () => {
     dispose()
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
   })
+
+  it('older disposal cannot clear capsule state owned by a repeated activation', () => {
+    const { seat, dispose: disposeOlder } = mount()
+    expect(seat.hasAttribute(CAPSULE)).toBe(true)
+
+    const disposeNewer = installMaidComposerCapsule(document.body)
+    disposeOlder()
+    expect(seat.hasAttribute(CAPSULE)).toBe(true)
+
+    disposeNewer()
+    expect(seat.hasAttribute(CAPSULE)).toBe(false)
+  })
 })

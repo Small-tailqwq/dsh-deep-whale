@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 
@@ -15,6 +16,19 @@ if (!skinRootArg || !repository || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(re
     throw new Error('skin.json.dshCompatibility must use x.y.zrcN form (for example 0.1.1rc2)')
   }
   const relPath = typeof manifest.id === 'string' && manifest.id !== '' ? manifest.id : basename(skinRoot)
+  let sourceCommit
+  try {
+    const candidate = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: skinRoot,
+      encoding: 'utf8',
+      timeout: 5000,
+    }).trim()
+    if (/^[0-9a-f]{40}$/.test(candidate)) sourceCommit = candidate
+  } catch {
+    // A source archive can still produce a valid fingerprint; without a Git
+    // ancestry anchor the manager conservatively reports differing builds as
+    // incomparable instead of guessing an update direction.
+  }
   const inputs = ['lib/client.js', 'lib/index.js', 'cordis.patch.yml', 'skin.json']
   const hash = createHash('sha256')
 
@@ -29,6 +43,7 @@ if (!skinRootArg || !repository || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(re
   const output = `${JSON.stringify({
     schema: 1,
     fingerprint: hash.digest('hex'),
+    ...(sourceCommit === undefined ? {} : { sourceCommit }),
     repository,
     path: relPath,
   }, null, 2)}\n`

@@ -107,6 +107,7 @@ window.__ModuleLoader__.load({
 		].join(",");
 		const EXPAND_LIFETIME_MS = 280;
 		const HIGH_CHURN_SELECTOR = ".xterm, [data-input-backdrop]";
+		const ownershipByDocument$1 = /* @__PURE__ */ new WeakMap();
 		function phaseRootOf$1(element) {
 			let candidate = element;
 			while (candidate !== null) {
@@ -125,6 +126,41 @@ window.__ModuleLoader__.load({
 		*/
 		function installMaidComposerCapsule(body) {
 			const doc = body.ownerDocument;
+			const token = Symbol("maid-composer-capsule");
+			const ownership = ownershipByDocument$1.get(doc) ?? {
+				token,
+				originals: /* @__PURE__ */ new Map()
+			};
+			ownership.token = token;
+			ownershipByDocument$1.set(doc, ownership);
+			const current = () => ownership.token === token;
+			const remember = (seat) => {
+				if (ownership.originals.has(seat)) return;
+				ownership.originals.set(seat, {
+					capsule: seat.getAttribute(CAPSULE_ATTRIBUTE),
+					expanding: seat.getAttribute(EXPANDING_ATTRIBUTE)
+				});
+			};
+			const write = (seat, attribute, value) => {
+				if (!current()) return;
+				remember(seat);
+				if (value === null) seat.removeAttribute(attribute);
+				else seat.setAttribute(attribute, value);
+			};
+			const restoreAttribute = (seat, attribute) => {
+				if (!current()) return;
+				const snapshot = ownership.originals.get(seat);
+				if (snapshot === void 0) return;
+				const value = attribute === CAPSULE_ATTRIBUTE ? snapshot.capsule : snapshot.expanding;
+				if (value === null) seat.removeAttribute(attribute);
+				else seat.setAttribute(attribute, value);
+			};
+			const restoreSeat = (seat, snapshot) => {
+				if (snapshot.capsule === null) seat.removeAttribute(CAPSULE_ATTRIBUTE);
+				else seat.setAttribute(CAPSULE_ATTRIBUTE, snapshot.capsule);
+				if (snapshot.expanding === null) seat.removeAttribute(EXPANDING_ATTRIBUTE);
+				else seat.setAttribute(EXPANDING_ATTRIBUTE, snapshot.expanding);
+			};
 			const timers = /* @__PURE__ */ new Set();
 			const wasCapsule = /* @__PURE__ */ new WeakMap();
 			const interacted = /* @__PURE__ */ new WeakMap();
@@ -137,13 +173,15 @@ window.__ModuleLoader__.load({
 			};
 			const capsuleMode = () => doc.documentElement.getAttribute(MODE_ATTRIBUTE$1) === "capsule";
 			const synchronize = () => {
+				if (!current()) return;
 				const active = capsuleMode();
 				doc.querySelectorAll(SEAT_SELECTOR).forEach((seat) => {
 					const root = phaseRootOf$1(seat);
 					const scrollport = seat.closest(SCROLLPORT_SELECTOR$1);
 					const pending = () => {
-						seat.removeAttribute(CAPSULE_ATTRIBUTE);
-						seat.removeAttribute(EXPANDING_ATTRIBUTE);
+						remember(seat);
+						restoreAttribute(seat, CAPSULE_ATTRIBUTE);
+						restoreAttribute(seat, EXPANDING_ATTRIBUTE);
 					};
 					if (!active || root?.dataset.phase !== "active" || scrollport === null || scrollport.querySelector(CHAT_FLOW_SELECTOR$1) === null) {
 						wasCapsule.set(seat, false);
@@ -164,20 +202,21 @@ window.__ModuleLoader__.load({
 					const previous = wasCapsule.get(seat) === true;
 					wasCapsule.set(seat, next);
 					if (next) {
-						seat.setAttribute(CAPSULE_ATTRIBUTE, "");
-						seat.removeAttribute(EXPANDING_ATTRIBUTE);
+						write(seat, CAPSULE_ATTRIBUTE, "");
+						restoreAttribute(seat, EXPANDING_ATTRIBUTE);
 						return;
 					}
-					seat.removeAttribute(CAPSULE_ATTRIBUTE);
+					restoreAttribute(seat, CAPSULE_ATTRIBUTE);
 					if (previous) {
-						seat.setAttribute(EXPANDING_ATTRIBUTE, "");
+						write(seat, EXPANDING_ATTRIBUTE, "");
 						schedule(() => {
-							seat.removeAttribute(EXPANDING_ATTRIBUTE);
+							restoreAttribute(seat, EXPANDING_ATTRIBUTE);
 						}, EXPAND_LIFETIME_MS);
-					} else seat.removeAttribute(EXPANDING_ATTRIBUTE);
+					} else restoreAttribute(seat, EXPANDING_ATTRIBUTE);
 				});
 			};
 			const onPointerDown = (event) => {
+				if (!current()) return;
 				const target = event.target;
 				if (!(target instanceof Element)) return;
 				const card = target.closest(CARD_SELECTOR);
@@ -193,6 +232,7 @@ window.__ModuleLoader__.load({
 				synchronize();
 			};
 			const onFocusIn = (event) => {
+				if (!current()) return;
 				const target = event.target;
 				if (!(target instanceof Element)) return;
 				const seat = target.closest(SEAT_SELECTOR);
@@ -201,11 +241,13 @@ window.__ModuleLoader__.load({
 				synchronize();
 			};
 			const onFocusOut = (event) => {
+				if (!current()) return;
 				const target = event.target;
 				if (!(target instanceof Element) || target.closest(SEAT_SELECTOR) === null) return;
 				queueMicrotask(synchronize);
 			};
 			const onInput = (event) => {
+				if (!current()) return;
 				const target = event.target;
 				if (!(target instanceof Element)) return;
 				const seat = target.closest(SEAT_SELECTOR);
@@ -214,6 +256,7 @@ window.__ModuleLoader__.load({
 				synchronize();
 			};
 			const onClick = (event) => {
+				if (!current()) return;
 				const target = event.target;
 				if (!(target instanceof Element)) return;
 				const card = target.closest(CARD_SELECTOR);
@@ -279,10 +322,13 @@ window.__ModuleLoader__.load({
 					clearTimeout(timer);
 				});
 				timers.clear();
-				doc.querySelectorAll(SEAT_SELECTOR).forEach((seat) => {
-					seat.removeAttribute(CAPSULE_ATTRIBUTE);
-					seat.removeAttribute(EXPANDING_ATTRIBUTE);
-				});
+				if (current()) {
+					ownership.originals.forEach((snapshot, seat) => {
+						restoreSeat(seat, snapshot);
+					});
+					ownership.originals.clear();
+					ownershipByDocument$1.delete(doc);
+				}
 			};
 		}
 		//#endregion
@@ -316,6 +362,7 @@ window.__ModuleLoader__.load({
 		].join(",");
 		const SCROLL_THRESHOLD = 10;
 		const BOTTOM_THRESHOLD = 24;
+		const ownershipByDocument = /* @__PURE__ */ new WeakMap();
 		function phaseRootOf(element) {
 			let candidate = element;
 			while (candidate !== null) {
@@ -349,39 +396,66 @@ window.__ModuleLoader__.load({
 			}
 			return false;
 		}
-		function clearSeatStates(doc) {
-			doc.querySelectorAll(COMPOSER_SEAT_SELECTOR).forEach((seat) => {
-				seat.removeAttribute(HIDDEN_ATTRIBUTE);
-				seat.removeAttribute(INTERACTIVE_ATTRIBUTE);
-			});
-		}
 		/**
 		* @param body - skin owning element (document.body) used to reach the
 		* document; the switch attribute lives on documentElement.
 		*/
 		function installMaidComposerScroll(body) {
 			const doc = body.ownerDocument;
+			const token = Symbol("maid-composer-scroll");
+			const ownership = ownershipByDocument.get(doc) ?? {
+				token,
+				originals: /* @__PURE__ */ new Map()
+			};
+			ownership.token = token;
+			ownershipByDocument.set(doc, ownership);
+			const current = () => ownership.token === token;
+			const remember = (seat) => {
+				if (ownership.originals.has(seat)) return;
+				ownership.originals.set(seat, {
+					hidden: seat.getAttribute(HIDDEN_ATTRIBUTE),
+					interactive: seat.getAttribute(INTERACTIVE_ATTRIBUTE)
+				});
+			};
+			const write = (seat, attribute, value) => {
+				if (!current()) return;
+				remember(seat);
+				if (value === null) seat.removeAttribute(attribute);
+				else seat.setAttribute(attribute, value);
+			};
+			const restoreSeat = (seat, snapshot) => {
+				if (snapshot.hidden === null) seat.removeAttribute(HIDDEN_ATTRIBUTE);
+				else seat.setAttribute(HIDDEN_ATTRIBUTE, snapshot.hidden);
+				if (snapshot.interactive === null) seat.removeAttribute(INTERACTIVE_ATTRIBUTE);
+				else seat.setAttribute(INTERACTIVE_ATTRIBUTE, snapshot.interactive);
+			};
+			const clearSeatStates = () => {
+				if (!current()) return;
+				ownership.originals.forEach((snapshot, seat) => {
+					restoreSeat(seat, snapshot);
+				});
+			};
 			const lastTops = /* @__PURE__ */ new WeakMap();
 			const blurSeat = (seat) => {
 				const active = doc.activeElement;
 				if (active instanceof HTMLElement && seat.contains(active)) active.blur();
 			};
 			const hideSeat = (seat) => {
-				if (!scrollEnabled(doc)) return;
-				seat.removeAttribute(INTERACTIVE_ATTRIBUTE);
+				if (!current() || !scrollEnabled(doc)) return;
+				write(seat, INTERACTIVE_ATTRIBUTE, null);
 				blurSeat(seat);
-				seat.setAttribute(HIDDEN_ATTRIBUTE, "");
+				write(seat, HIDDEN_ATTRIBUTE, "");
 			};
 			const showSeat = (seat) => {
-				seat.removeAttribute(HIDDEN_ATTRIBUTE);
+				write(seat, HIDDEN_ATTRIBUTE, null);
 			};
 			const activateSeat = (seat) => {
 				showSeat(seat);
-				seat.setAttribute(INTERACTIVE_ATTRIBUTE, "");
-				if (!scrollEnabled(doc)) seat.removeAttribute(INTERACTIVE_ATTRIBUTE);
+				write(seat, INTERACTIVE_ATTRIBUTE, "");
+				if (!scrollEnabled(doc)) write(seat, INTERACTIVE_ATTRIBUTE, null);
 			};
 			const onScroll = (event) => {
-				if (!scrollEnabled(doc)) return;
+				if (!current() || !scrollEnabled(doc)) return;
 				const scrollport = event.target;
 				if (!(scrollport instanceof HTMLElement) || !scrollport.matches(SCROLLPORT_SELECTOR)) return;
 				const seat = activeSeatOf(scrollport);
@@ -397,7 +471,7 @@ window.__ModuleLoader__.load({
 				else if (previousTop !== void 0 && top < previousTop - SCROLL_THRESHOLD) hideSeat(seat);
 			};
 			const onWheel = (event) => {
-				if (!scrollEnabled(doc)) return;
+				if (!current() || !scrollEnabled(doc)) return;
 				if (Math.abs(event.deltaY) <= SCROLL_THRESHOLD) return;
 				for (const candidate of event.composedPath()) {
 					if (!(candidate instanceof HTMLElement) || !candidate.matches(SCROLLPORT_SELECTOR)) continue;
@@ -412,6 +486,7 @@ window.__ModuleLoader__.load({
 				}
 			};
 			const onFocusIn = (event) => {
+				if (!current()) return;
 				const target = event.target;
 				if (!(target instanceof Element)) return;
 				const seat = target.closest(COMPOSER_SEAT_SELECTOR);
@@ -423,12 +498,13 @@ window.__ModuleLoader__.load({
 				const seat = target.closest(COMPOSER_SEAT_SELECTOR);
 				if (seat === null) return;
 				queueMicrotask(() => {
-					if (!seat.contains(doc.activeElement)) seat.removeAttribute(INTERACTIVE_ATTRIBUTE);
+					if (current() && !seat.contains(doc.activeElement)) write(seat, INTERACTIVE_ATTRIBUTE, null);
 				});
 			};
 			const stateObserver = new MutationObserver((records) => {
+				if (!current()) return;
 				if (!records.some((record) => record.type === "attributes" && record.attributeName === MODE_ATTRIBUTE)) return;
-				if (!scrollEnabled(doc)) clearSeatStates(doc);
+				if (!scrollEnabled(doc)) clearSeatStates();
 			});
 			stateObserver.observe(doc.documentElement, {
 				attributes: true,
@@ -444,7 +520,11 @@ window.__ModuleLoader__.load({
 				doc.removeEventListener("wheel", onWheel, true);
 				doc.removeEventListener("focusin", onFocusIn, true);
 				doc.removeEventListener("focusout", onFocusOut, true);
-				clearSeatStates(doc);
+				if (current()) {
+					clearSeatStates();
+					ownership.originals.clear();
+					ownershipByDocument.delete(doc);
+				}
 			};
 		}
 		//#endregion
