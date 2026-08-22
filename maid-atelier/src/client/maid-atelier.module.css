@@ -164,10 +164,16 @@ body[data-dsh-maid-atelier] [data-maid-character='left'] {
   height: 96%;
 }
 
-body[data-dsh-maid-atelier] [data-maid-character='right'] {
+body[data-dsh-maid-atelier]
+  :is([data-maid-character='right'], [data-maid-character='vision']) {
   right: clamp(8px, 1.5%, 24px);
   bottom: 0;
   height: 92%;
+}
+
+body[data-dsh-maid-atelier] [data-maid-character='vision'] {
+  opacity: 0;
+  visibility: hidden;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
@@ -186,7 +192,7 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
 }
 
 body[data-dsh-maid-atelier][data-maid-chat-active]
-  [data-maid-character='right'] {
+  :is([data-maid-character='right'], [data-maid-character='vision']) {
   height: 62%;
   opacity: 0.9;
 }
@@ -204,7 +210,7 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
   }
 
   body[data-dsh-maid-atelier][data-maid-chat-active]
-    [data-maid-character='right'] {
+    :is([data-maid-character='right'], [data-maid-character='vision']) {
     height: 44%;
   }
 }
@@ -239,7 +245,7 @@ html[data-dsh-whale-maid-art='hidden']
 
 html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='pro']
   body[data-dsh-maid-atelier]
-  [data-maid-character='right'] {
+  :is([data-maid-character='right'], [data-maid-character='vision']) {
   translate: 100vw 0;
   opacity: 0;
 }
@@ -249,6 +255,20 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
   [data-maid-character='left'] {
   translate: -100vw 0;
   opacity: 0;
+}
+
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+  body[data-dsh-maid-atelier]
+  :is([data-maid-character='left'], [data-maid-character='right']) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+  body[data-dsh-maid-atelier]
+  [data-maid-character='vision'] {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* The top curtain belongs to the main pane, not to the sidebar. Its two

@@ -4,12 +4,14 @@ import { describe, expect, it } from 'vitest'
 const css = readFileSync(new URL('../src/client/maid-atelier.module.css', import.meta.url), 'utf8')
 
 describe('skin-manager stylesheet contract', () => {
-  it('supports artwork visibility and both requested model exits', () => {
+  it('supports artwork visibility and all requested model exits', () => {
     expect(css).toContain("data-dsh-whale-maid-art='hidden'")
     expect(css).toContain("data-dsh-whale-model='pro'")
     expect(css).toContain("data-maid-character='right'")
     expect(css).toContain("data-dsh-whale-model='flash'")
     expect(css).toContain("data-maid-character='left'")
+    expect(css).toContain("data-dsh-whale-model='flash-vision'")
+    expect(css).toContain("data-maid-character='vision'")
   })
 
   it('keeps the #22 serif choice opt-in', () => {

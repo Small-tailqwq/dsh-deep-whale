@@ -1,5 +1,5 @@
 /**
- * Deep-sea maid atelier skin. The client entry keeps the bare two-character
+ * Deep-sea maid atelier skin. The client entry keeps the character variants
  * background, collapsible sidebar artwork, and ornamental chrome as
  * independent layers. The sidebar keeps the product's native vector
  * wordmark; every skin-owned write is restored by the Cordis effect disposer.
@@ -19,6 +19,7 @@ import {
   MAID_ATELIER_PALACE_DARK,
   MAID_ATELIER_PALACE_LIGHT,
 } from './background-art.generated.ts'
+import { MAID_ATELIER_MAID_RIGHT_VISION } from './vision-art.generated.ts'
 import {
   MAID_ATELIER_BOTTOM_CREST,
   MAID_ATELIER_BOTTOM_TRIM_TILE,
@@ -170,7 +171,12 @@ function createCharacterStage(): HTMLDivElement {
   right.alt = ''
   right.src = MAID_ATELIER_MAID_RIGHT
 
-  stage.append(left, right)
+  const vision = document.createElement('img')
+  vision.dataset.maidCharacter = 'vision'
+  vision.alt = ''
+  vision.src = MAID_ATELIER_MAID_RIGHT_VISION
+
+  stage.append(left, right, vision)
   return stage
 }
 

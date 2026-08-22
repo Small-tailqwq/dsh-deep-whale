@@ -51,6 +51,9 @@ describe('maid customization declaration', () => {
   it('matches only the requested V4 display-name families', () => {
     expect(modelFamily('DeepSeek-V4-Pro')).toBe('pro')
     expect(modelFamily('deepseek v4 flash')).toBe('flash')
+    expect(modelFamily('DeepSeek-V4-Flash-Vision-Exp')).toBe('flash-vision')
+    expect(modelFamily('DeepSeek V4F Vision Experimental')).toBe('flash-vision')
+    expect(modelFamily('DeepSeek Vision')).toBeNull()
     expect(modelFamily('DeepSeek V3')).toBeNull()
   })
 })

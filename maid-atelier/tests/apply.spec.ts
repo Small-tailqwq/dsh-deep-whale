@@ -442,14 +442,15 @@ describe('Maid Atelier skin apply', () => {
     }
   })
 
-  it('keeps both original-resolution characters independent from the palace backdrop', async () => {
+  it('keeps all original-resolution character variants independent from the palace backdrop', async () => {
     document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()
     const stage = document.querySelector("[data-skin-chrome='character-stage']")
     const characters = stage?.querySelectorAll<HTMLImageElement>('[data-maid-character]')
-    expect(characters).toHaveLength(2)
+    expect(characters).toHaveLength(3)
     expect(characters?.[0]?.dataset.maidCharacter).toBe('left')
     expect(characters?.[1]?.dataset.maidCharacter).toBe('right')
+    expect(characters?.[2]?.dataset.maidCharacter).toBe('vision')
     expect([...characters ?? []].every(character => character.src.startsWith('data:image/webp;base64,'))).toBe(true)
     await fiber.dispose()
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
@@ -1014,7 +1015,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-chat-active\]\s*\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const chatRightRule = CSS.match(
-      /\[data-maid-chat-active\]\s*\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
+      /\[data-maid-chat-active\]\s*:is\(\[data-maid-character='right'\], \[data-maid-character='vision'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const sharedRule = CSS.match(
       /\[data-maid-character\]\s*\{([^}]*)\}/s,
@@ -1023,7 +1024,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const baseRightRule = CSS.match(
-      /\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
+      /:is\(\[data-maid-character='right'\], \[data-maid-character='vision'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     // The stage is inside the chat area (positioned by the conversation
     // column's box), not fixed to the viewport.

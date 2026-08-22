@@ -11,10 +11,12 @@ const ATTR_MODEL_EXIT = 'data-dsh-whale-maid-model-exit'
 const ATTR_MODEL = 'data-dsh-whale-model'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
 
-export function modelFamily(name: string): 'pro' | 'flash' | null {
+export function modelFamily(name: string): 'pro' | 'flash' | 'flash-vision' | null {
   const compact = name.toLowerCase().replace(/[^a-z0-9]/g, '')
   if (compact.includes('v4pro')) return 'pro'
-  if (compact.includes('v4flash')) return 'flash'
+  const isV4Flash = compact.includes('v4flash') || compact.includes('v4f')
+  if (isV4Flash && compact.includes('vision')) return 'flash-vision'
+  if (isV4Flash) return 'flash'
   return null
 }
 
