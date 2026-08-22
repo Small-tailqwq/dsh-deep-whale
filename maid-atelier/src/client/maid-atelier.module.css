@@ -90,15 +90,53 @@ body[data-dsh-maid-atelier] [id='root'] {
   background: transparent;
 }
 
-/* High-resolution characters remain independent from the palace so viewport
-   and conversation changes never resample the architecture behind them. */
+/* shell.overlay 浮层面板永远高于皮肤装饰层:视觉与点击都不被顶帘/装饰遮挡。
+   overlayLayer 自带 z-index 20,这里抬到 1000 是为彻底避开任何皮肤层
+   (装饰 chrome 0 / 应用 chrome 21 / 角色 -1..1) 与第三方插件对 #root 的
+   层叠上下文抬升,保证挂载在 shell.overlay 槽的浮动面板(如文件浏览器)
+   在视觉与点击层级上始终位于皮肤之上。 */
+body[data-dsh-maid-atelier] [data-shell-overlay] {
+  z-index: 1000;
+}
+
+/* The palace and both maids live INSIDE the conversation column: the stage is
+   an absolutely positioned first child (z-index 0) whose box IS the chat area,
+   so any layout push — a right/bottom workbench squeezing the center column —
+   moves and re-fits the artwork with the chat instead of leaving it fixed to
+   the viewport. The palace rides the --maid-palace-art custom property from
+   the client entry; the maids seat at the stage's bottom corners and scale
+   with its height (% of the stage), never with the viewport. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
   contain: strict;
+  /* Palace scaling policy: `cover` keeps the art's aspect ratio and fills the
+     stage on both axes by scaling to the WIDER axis — a wide chat area shows
+     the art edge-to-edge horizontally and crops the vertical overflow, while
+     a chat area narrower than the art's ratio keeps the art full-height and
+     crops the horizontal overflow (no shrink-to-width in narrow windows).
+     Position `center` centers the overhanging axis on both sides (top+bottom
+     or left+right), instead of anchoring to the top edge. */
+  background: var(--maid-palace-art) center / cover no-repeat;
+}
+
+/* The conversation column is the stage's containing block. It stays
+   z-index auto (no new stacking context), so fixed popups keep their
+   page-level tier. */
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) {
+  position: relative;
+}
+
+/* The ConversationRoot is the column's in-flow content. `position: relative`
+   without a z-index lifts it into the positioned band AFTER the stage in DOM
+   order, so chat rows, the header and the composer paint above the artwork
+   while fixed popups inside it keep painting at page level. */
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol'])
+  :is([data-phase='hero'], [data-phase='active'], [data-phase='settling']) {
+  position: relative;
 }
 
 body[data-dsh-maid-atelier] [data-maid-character] {
@@ -117,18 +155,19 @@ body[data-dsh-maid-atelier] [data-maid-character] {
     opacity 420ms ease;
 }
 
+/* Both maids anchor at the bottom corners of the chat area and size against
+   its height. The edge offsets stay small so the artwork never collides with
+   the transcript column (max 748px, centered) in a wide chat. */
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
-  bottom: clamp(-34px, -2.4vh, -12px);
-  left: 0;
-  translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
-  height: clamp(560px, 96vh, 1180px);
+  bottom: 0;
+  left: clamp(8px, 1.5%, 24px);
+  height: 96%;
 }
 
 body[data-dsh-maid-atelier] [data-maid-character='right'] {
-  right: 0;
-  translate: clamp(-8px, -0.2vw, 0px) 0;
-  bottom: clamp(-26px, -1.8vh, -8px);
-  height: clamp(540px, 92vh, 1120px);
+  right: clamp(8px, 1.5%, 24px);
+  bottom: 0;
+  height: 92%;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
@@ -142,31 +181,17 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
    not expose data-chat-flow, so Trajectory and similar canvases stay put. */
 body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='left'] {
-  translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
-  bottom: clamp(-24px, -1.5vh, -8px);
-  height: clamp(420px, 64vh, 760px);
+  height: 64%;
   opacity: 0.9;
 }
 
 body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='right'] {
-  translate: clamp(-8px, -0.5vw, 0px) 0;
-  bottom: clamp(-24px, -1.5vh, -8px);
-  height: clamp(420px, 62vh, 730px);
+  height: 62%;
   opacity: 0.9;
 }
 
 @media (max-width: 1080px) {
-  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
-    [data-maid-character='left'] {
-    translate: var(--maid-sidebar-width) 0;
-  }
-
-  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
-    [data-maid-character='right'] {
-    translate: 0;
-  }
-
   body[data-dsh-maid-atelier] [data-maid-character] {
     opacity: 0.74;
   }
@@ -175,46 +200,20 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
 @media (max-width: 700px) {
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='left'] {
-    translate: var(--maid-sidebar-width) 0;
-    height: clamp(300px, 46vh, 410px);
+    height: 46%;
   }
 
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='right'] {
-    translate: 0;
-    height: clamp(300px, 44vh, 390px);
+    height: 44%;
   }
 }
 
-/* dsh-better-sidebar ports a right workbench onto document.body. While its
-   right panel is open, pull the right maid left of the panel so the artwork
-   is not hidden behind the fixed workbench. The skin projects that state
-   without a root :has(), so terminal row writes stay locally invalidated. */
-body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
-  [data-maid-character='right'] {
-  translate: clamp(-460px, -24vw, -320px) 0;
-}
-
-body[data-dsh-maid-atelier][data-maid-better-sidebar-open][data-maid-chat-active]
-  [data-maid-character='right'] {
-  translate: clamp(-460px, -24vw, -320px) 0;
-  height: clamp(360px, 56vh, 680px);
-  opacity: 0.86;
-}
-
-/* On narrow viewports better-sidebar becomes a full-width drawer; hide the
-   right maid instead of pushing it past the left edge. */
-@media (max-width: 700px) {
-  body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
-    [data-maid-character='right'] {
-    translate: 0;
-    opacity: 0;
-  }
-}
-
-/* A continuously changing viewport gives layout transitions a new destination
-   every frame. Follow the resize directly, then restore state-change motion. */
-body[data-dsh-maid-atelier][data-maid-viewport-resizing]
+/* A continuously changing layout — a viewport resize or a right/bottom
+   workbench pushing the conversation column — gives transitions a new
+   destination every frame. Follow the resize directly, then restore
+   state-change motion. */
+body[data-dsh-maid-atelier][data-maid-layout-resizing]
   [data-maid-character] {
   transition: none;
   filter: none;
@@ -228,13 +227,36 @@ body[data-dsh-maid-atelier][data-maid-low-power]
   transition: opacity 180ms ease;
 }
 
+/* The family manager projects browser-local preferences onto html. Keeping
+   them outside the skin runtime means hot switching cannot leak listeners or
+   timers into a later activation. */
+html[data-dsh-whale-maid-art='hidden']
+  body[data-dsh-maid-atelier]
+  [data-maid-character] {
+  opacity: 0 !important;
+  visibility: hidden;
+}
+
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='pro']
+  body[data-dsh-maid-atelier]
+  [data-maid-character='right'] {
+  translate: 100vw 0;
+  opacity: 0;
+}
+
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
+  body[data-dsh-maid-atelier]
+  [data-maid-character='left'] {
+  translate: -100vw 0;
+  opacity: 0;
+}
+
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
    independently translated layers let the landing ornament leave upward
    while the lace-free workspace band drops in from above. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
-  position: fixed;
+  position: absolute;
   inset: 0 0 auto 0;
-  translate: var(--maid-sidebar-width) 0;
   z-index: 20;
   height: 76px;
   overflow: hidden;
@@ -284,7 +306,7 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
   position: absolute;
   /* ConversationRoot reserves DSH's stable 8px scrollbar gutter. Center the
      ornaments on that content box, the same axis as the title and composer. */
-  left: calc((100% - var(--maid-sidebar-width) - 8px) / 2);
+  left: calc((100% - 8px) / 2);
   top: -1px;
   width: 80px;
   height: 42px;
@@ -294,14 +316,12 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
 }
 
 /* The bottom band repeats at its native height while the center crest remains
-   an independent fixed-size layer. Resizing the sidebar therefore changes the
-   main-pane span without scaling either raster ornament. */
+   an independent fixed-size layer inside the conversation column. */
 body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
-  position: fixed;
+  position: absolute;
   inset: auto 0 0 0;
-  translate: var(--maid-sidebar-width) 0;
   transform: translateY(0);
-  z-index: 19;
+  z-index: 20;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
@@ -322,7 +342,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
   content: '';
   position: absolute;
   bottom: 0;
-  left: calc((100% - var(--maid-sidebar-width) - 8px) / 2);
+  left: calc((100% - 8px) / 2);
   width: 94px;
   height: 54px;
   transform: translateX(-50%);
@@ -331,7 +351,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
 }
 
 /* pointer-events does not affect painting order. Keep the semantic workspace
-   header above the fixed decorative layer so its controls remain visible. */
+   header above the conversation-owned decorative layer. */
 body[data-dsh-maid-atelier] header:has([role='tablist']) {
   position: relative;
   z-index: 21;
@@ -375,9 +395,11 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
   }
 }
 
-/* The trim backs the conversation header and its tablist with the navy band;
-   dress the overlaid text in the porcelain/gold system for contrast. */
+/* The trim backs the conversation header with the navy band. Keep the native
+   controls above it and restate their foregrounds for the dark surface. */
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] {
+  position: relative;
+  z-index: 21;
   color: #f8f3e8;
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
 }
@@ -386,19 +408,36 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
   color: inherit;
 }
 
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button {
+  text-shadow: inherit;
+}
+
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'] {
+  color: #d7def0;
+}
+
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true'] {
+  color: #fff7e6;
+}
+
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true']::after {
+  background: var(--maid-gold);
+  box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
+}
+
 /* Secondary readouts (counters, captions, meta) step down in brightness. */
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is([class*='counter'], [class*='caption'], [class*='meta']) {
   color: #b5c1dd;
 }
 
 /* Header icon buttons and the reroll action keep the gold trim. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:hover {
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):hover {
   color: var(--maid-gold-soft);
 }
 
 body[data-dsh-maid-atelier]
   :is([data-pane='conversation'], [class*='centerCol'])
-  header[class*='header'] :is(button, [role='tab']):focus-visible {
+  header[class*='header'] button:not([role='tab']):focus-visible {
   border-radius: 4px;
   outline: 1px solid rgba(235, 204, 143, 0.86);
   outline-offset: 2px;
@@ -408,23 +447,6 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [class*='reroll'] {
   border-color: rgba(225, 191, 124, 0.55);
   background: rgba(255, 252, 243, 0.08);
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='tabs'] {
-  border-color: rgba(225, 207, 170, 0.4);
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) button[class*='tab'] {
-  color: #b5c1dd;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) button[class*='tab']:hover {
-  color: #f8f3e8;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) button[class*='tabActive'] {
-  color: #f8f3e8;
-  border-bottom-color: var(--maid-gold);
 }
 
 /* Pane surfaces. Class-substring fallbacks support the current product build;
@@ -485,6 +507,17 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > 
   z-index: 2;
 }
 
+/* Wide-sidebar tooltips can mount inside the content root above. Release only
+   that root's skin-created stacking context while a tooltip is present, so
+   the tooltip's native overlay layer can cross the frame without moving the
+   gold chrome below the sidebar surface. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :has([role='tooltip']) {
+  z-index: auto;
+}
+
 /* A fixed-size raster corner keeps the original curl detail intact while the
    straight frame segments remain free to grow with the resizable sidebar. */
 body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-corners'] {
@@ -541,7 +574,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   position: absolute;
   left: 52%;
   bottom: calc(var(--maid-sidebar-swag-height) + 94px);
-  z-index: 1;
+  z-index: 0;
   width: var(--maid-sidebar-mascot-width);
   height: auto;
   max-height: 38%;
@@ -1408,6 +1441,9 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] 
 
 body[data-dsh-maid-atelier] [data-maid-session-row] {
   position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   height: 32px;
   padding: 0 8px 0 24px;
   border: 0;
@@ -1787,11 +1823,25 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='seat']:hover {
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] {
   --dsw-alias-bg-base: transparent;
   background: none;
+  /* 滚动意图显隐（设置「输入框显示方式」＝滚动显隐）：座内状态切换时整卡平滑淡出/淡入。 */
+  transition:
+    opacity 260ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    transform 260ms cubic-bezier(0.22, 0.78, 0.2, 1);
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-hidden] {
+  opacity: 0;
+  transform: translateY(26px);
+  pointer-events: none;
 }
 
 /* Composer card: live controls sit beneath one hollow raster plate that keeps
    the reference frame, porcelain rim, continuous lace, and bow aligned. */
 body[data-dsh-maid-atelier] [data-composer-card] {
+  position: relative;
+  z-index: 21;
   isolation: isolate;
   overflow: visible;
   /* Preserve the upstream mirror-driven auto-grow contract. Hero and active
@@ -1903,18 +1953,59 @@ body[data-dsh-maid-atelier]
   z-index: auto;
 }
 
-/* The sidebar content root normally sits at layer 2 above the mascot. Since
-   SettingsPanel is mounted inside that root instead of a document portal,
-   promote the owning root while the dialog is open. Its fixed layer can then
-   cover sticky Markdown banners and the skin's conversation header. */
-body[data-dsh-maid-atelier][data-maid-settings-open]
+/* The sidebar content root normally sits at layer 2 above the mascot (the
+   `> div > :not(...)` rule above gives it position: relative + z-index: 2),
+   which makes it a stacking context that traps the SettingsPanel's native
+   modal layer (1000): under WebKit the fixed panel cannot paint out of it at
+   all (#40), and under Blink it loses to the conversation header and trims
+   (#37). Anchor on the live dialog instead of the trigger's aria-expanded
+   (#37: that attribute does not move with the DOM in every build), and drop
+   the row's z-index back to auto while the dialog is open: position stays
+   relative, but relative + z-index auto creates no stacking context, so the
+   panel's own z-index competes at page level again, exactly like a portaled
+   dialog. Deliberately NOT using position: static (it re-homes the mask's
+   containing block and trips Chromium's compositor into painting the
+   mascot's filter layer over the mask's backdrop-filter layer), and NOT
+   promoting the sidebar column (that lifted the mascot out of its layer).
+   The rule is :has()-scoped to the open dialog and self-restores on
+   unmount. */
+body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
-  > :has(
-    [data-slot='sidebar.settings']
-      > :is(button, [role='button'])[aria-expanded='true']
-  ) {
-  z-index: 1000;
+  > :has([role='dialog'][aria-modal='true']) {
+  z-index: auto !important;
+}
+
+/* The official sidebar toggles its 1024px auto-collapse with two class
+   phases on the SidebarRoot element (the slot's direct child):
+   collapsing adds `railIn`, which runs a `rail-fade-in` animation on the
+   root's .footArea (0% opacity: 0, backwards fill — the fixed settings
+   overlay is mounted inside .footArea, so the whole panel fades from
+   transparent); expanding adds `fading`, whose `.fading > *` rule fades
+   every root child — .footArea included — to 0. With the settings dialog
+   open, resizing across that breakpoint briefly vanishes the panel.
+   orca-link fixed the same defect for its shell; its selector
+   `[data-slot='sidebar'] > :first-child > :has([role='dialog'])` resolves
+   to .footArea because the slot anchor is `display: contents`. Maid must
+   step through the same two layers explicitly: the sidebar column's direct
+   `div` is the display:contents slot anchor, its direct child (minus the
+   skin's mascot/corners/tooltip chrome) is the SidebarRoot element, and the
+   dialog carrier is that root's direct child. Keep the carrier opaque and
+   animation-free while the dialog owns the viewport; the root's z-index
+   release above stays its own rule because the carrier never had a
+   stacking-context role to release. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :not(
+    [data-skin-chrome='sidebar-mascot'],
+    [data-skin-chrome='sidebar-corners'],
+    [role='tooltip']
+  )
+  > :has([role='dialog'][aria-modal='true']) {
+  opacity: 1 !important;
+  transition: none !important;
+  animation: none !important;
 }
 
 /* This copy sits immediately before the official mask, so the mask samples
@@ -1928,8 +2019,8 @@ body[data-dsh-maid-atelier] [data-maid-settings-backdrop-frame] {
 }
 
 /* The settings surface is translucent by design. Demote the raster composer
-   while its trigger owns the expanded dialog so the ornate input frame does
-   not visually compete with, or accept input through, the modal surface. */
+   while the settings dialog is open. The projected attribute is driven by
+   the actual dialog presence, so closing the panel always restores input. */
 body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
   z-index: 0;
   opacity: 0.75;
@@ -2032,17 +2123,37 @@ body[data-dsh-maid-atelier][data-maid-composer-motion]
   }
 }
 
+/* The porcelain plate is a backing layer: keep it behind every content box.
+   It was promoted to z-index: 0, which sits ABOVE in-flow children — invisible
+   to the lifted direct children, but the attachments slot below is
+   display: contents (no box, cannot be lifted), so its rail would be painted
+   under the plate and the image preview vanished. z-index: -1 keeps the bleed
+   visible (still above the card's own background) while every child wins. */
 body[data-dsh-maid-atelier] [data-composer-card]::after {
   content: '';
   position: absolute;
   inset: 0 -0.52% -2%;
-  z-index: 0;
+  z-index: -1;
   border-radius: 38px;
   background: inherit;
   pointer-events: none;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card] > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* The official attachments slot is a display: contents container: it emits no
+   box, so the child-lift rule above cannot reach its rail and the preview
+   images fell back to in-flow paint order, under the porcelain plate. Lift
+   the slot's content boxes to the same tier as the textarea/toolbar row —
+   except the drag overlay, which is position: fixed and must keep its own
+   coordinate system (its mask class is the only fixed surface in the slot). */
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-slot='conversation.input.attachments']
+  > :not([class*='mask']) {
   position: relative;
   z-index: 2;
 }
@@ -2982,6 +3093,307 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82);
 }
 
+/* Responsive settings shell for constrained viewports only. The official
+   SettingsPanel keeps its default centered modal position and size on
+   desktop; once the viewport drops below the desktop threshold the panel
+   owns the full workspace instead of squeezing an intermediate modal, and
+   on phones the category rail moves above the content. The narrowest panes
+   stack setting rows so descriptions stay readable instead of collapsing
+   into vertical fragments. Mirrors orca-link's constrained-viewport rules
+   without adopting its docked opening position. The translucent glass
+   surface from the block above stays intact at every size;
+   `data-maid-settings-open` is projected by index.ts from the live dialog,
+   so every rule below self-restores on close. */
+/* Any viewport below the desktop threshold becomes a full workspace: no
+   centering tax, crushed columns or clipped lower controls. */
+@media (max-width: 1099px), (max-height: 680px) {
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* Phones and narrow panes move the category rail above the content. */
+@media (max-width: 640px) {
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    flex-direction: column;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+    box-sizing: border-box;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(197, 164, 104, 0.42);
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    flex: 1;
+    width: auto;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+    padding: 0 4px;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav button {
+    min-width: 0;
+    height: 36px;
+    padding: 7px 8px;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
+    min-height: 0;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :first-child {
+    min-height: 46px;
+    height: auto;
+    padding: 8px 10px;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child {
+    padding: 0 14px 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Official setting rows are desktop two-column flex layouts. On phone-sized
+   content panes, stack copy above its control and release the 48px text
+   gutter so descriptions remain normal sentences instead of vertical
+   fragments. The skin-manager customization card (this skin's own controls)
+   uses the same row contract and stacks with it. */
+@media (max-width: 520px) {
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_row']:has(> [class$='_rowText']) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_rowText'] {
+    width: 100%;
+    padding-right: 0;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_row']:has(> [class$='_rowText']) > :last-child,
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_selector'] {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_selector'] {
+    justify-content: space-between;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([class$='_toggleRow'], [class$='_selectRow']) {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([class$='_toggleRow'], [class$='_selectRow']) > span {
+    width: 100%;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    [class$='_selectRow'] select {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* The official settings selects (provider/API-protocol pickers, plus this
+   skin's own customization card) keep the product's `_input` geometry on the
+   closed state — the same height, radius, border and porcelain fill as the
+   text inputs beside them. Only the operating-system-drawn popup is replaced,
+   so the open list matches the atelier language instead of the native
+   saturated gray. Chromium's customizable-select contract keeps native
+   keyboard, focus and form behavior intact; engines without base-select
+   support keep the host's normal select (the official appearance: none plus
+   its inline SVG arrow). Scoped to dialogs because the settings surface and
+   its portaled modal editors are the only select-bearing surfaces the skin
+   owns, and dialogs already receive the skin's token reset above. */
+@supports (appearance: base-select) {
+  body[data-dsh-maid-atelier] [role='dialog'] select {
+    appearance: base-select;
+    /* Drop the official gray background arrow: ::picker-icon takes it over. */
+    background-image: none;
+    /* Every select becomes a flex row so ::picker-icon sits vertically
+       centered on its label — the official `_selectInput` rule below states
+       its own geometry, while bare selects (this skin's customization card)
+       inherit the product's 30px control box and need only the row layout.
+       Single-line truncation keeps long option labels from wrapping inside
+       the 240px control. */
+    display: flex;
+    align-items: center;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select[class$='_selectInput'] {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding-block: 0;
+    padding-inline: 10px;
+    line-height: 22px;
+    text-align: left;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select::picker-icon {
+    width: 8px;
+    height: 6px;
+    margin-left: 10px;
+    flex: none;
+    content: '';
+    background: #c5a468;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transition: transform 140ms ease;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select[class$='_selectInput']::picker-icon {
+    flex: none;
+    margin-left: auto;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select:open::picker-icon {
+    transform: rotate(180deg);
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select::picker(select) {
+    appearance: base-select;
+    max-height: min(420px, 62vh);
+    min-width: min(200px, calc(100vw - 24px));
+    margin-block: 4px;
+    padding: 4px;
+    border: 1px solid rgba(197, 164, 104, 0.64);
+    border-radius: 10px;
+    background:
+      linear-gradient(145deg, rgba(252, 250, 245, 0.98), rgba(222, 230, 246, 0.96));
+    box-shadow:
+      0 18px 44px rgba(13, 29, 68, 0.24),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+    color: #172347;
+    scrollbar-color: rgba(71, 91, 145, 0.3) transparent;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option {
+    align-items: center;
+    min-height: 30px;
+    padding: 7px 30px 7px 10px;
+    border-left: 2px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #4d5d7f;
+    /* The picker column is capped at the control's 240px; keep long labels
+       on one line (truncated by the picker's own clip) instead of wrapping. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option:hover,
+  body[data-dsh-maid-atelier] [role='dialog'] select option:focus-visible {
+    border-left-color: rgba(197, 164, 104, 0.72);
+    background: rgba(103, 126, 183, 0.12);
+    color: #172347;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option:checked {
+    border-left-color: #c5a468;
+    background: linear-gradient(90deg, rgba(197, 164, 104, 0.22), transparent 74%);
+    color: #10204d;
+    font-weight: 600;
+  }
+
+  body[data-dsh-maid-atelier] [role='dialog'] select option::checkmark {
+    content: '';
+    width: 7px;
+    height: 7px;
+    margin-left: auto;
+    border: 1px solid currentColor;
+    background: currentColor;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select::picker-icon {
+    background: #d3b477;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select::picker(select) {
+    border-color: rgba(211, 180, 119, 0.66);
+    background:
+      linear-gradient(145deg, rgba(19, 38, 82, 0.98), rgba(7, 19, 51, 0.97));
+    box-shadow:
+      0 20px 48px rgba(0, 0, 0, 0.42),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    color: #e7ecf7;
+    scrollbar-color: rgba(143, 163, 211, 0.34) transparent;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option {
+    color: #bdc9e3;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option:hover,
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option:focus-visible {
+    border-left-color: rgba(211, 180, 119, 0.78);
+    background: rgba(164, 183, 229, 0.14);
+    color: #e7ecf7;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] [role='dialog'] select option:checked {
+    border-left-color: #d3b477;
+    background: linear-gradient(90deg, rgba(211, 180, 119, 0.2), transparent 74%);
+    color: #f3e8cf;
+  }
+}
+
 /* The official title bar (Web-app window-controls-overlay and the desktop
    shell) leads with a menu button that only duplicates the sidebar's own
    expand/collapse control. Hide it so the skin's sidebar chrome starts at
@@ -3016,14 +3428,59 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
   flex: none;
   filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.62));
 }
-/* The top curtain is position:fixed against the viewport, so it paints over
-   the frame's own title-bar row in frameless surfaces (Web-app overlay /
-   desktop shell). Move it below that row. env() cannot be used here: the
-   CSS-modules pipeline rewrites its identifier, so the fallback always
-   wins; the skin runtime instead measures the sidebar column's rendered
-   top edge (the exact row boundary) into --maid-titlebar-height. */
+
+/* Optional conversation typography from #22. Code keeps its existing
+   monospace contract. The textarea, visible backdrop, and hidden sizing
+   mirror must share exact font metrics or selection/caret geometry drifts. */
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  :is([data-chat-flow], [class*='userRow'] [class*='bubble']) {
+  --dsw-font-family: Georgia, 'Times New Roman', 'Songti SC',
+    'Noto Serif SC', 'Noto Serif CJK SC', STSong, SimSun, serif;
+  font-family: var(--dsw-font-family);
+}
+
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-chat-flow]
+  div[class*='markdown'],
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-chat-flow]
+  div[class*='markdown']
+  :is(h1, h2, h3, h4, h5, h6, p, li, blockquote, td, th),
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-composer-card]
+  :is(
+    textarea,
+    [data-input-backdrop],
+    [data-input-mirror],
+    button,
+    [class*='triggerLabel']
+  ) {
+  font-family: Georgia, 'Times New Roman', 'Songti SC',
+    'Noto Serif SC', 'Noto Serif CJK SC', STSong, SimSun, serif;
+}
+
+html[data-dsh-whale-maid-font='serif']
+  body[data-dsh-maid-atelier]
+  [data-chat-flow]
+  div[class*='markdown']
+  :is(code, pre, kbd, samp) {
+  font-family: var(
+    --ds-font-family-code,
+    ui-monospace,
+    'SF Mono',
+    Menlo,
+    Consolas,
+    monospace
+  );
+}
+/* The curtain is seated in the conversation column, whose top edge already
+   follows the frame's title-bar row in browser and desktop surfaces. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
-  top: var(--maid-titlebar-height, 0px);
+  top: 0;
 }
 
 /* Dress the official title-bar row with the sidebar navy so the sidebar
@@ -3092,9 +3549,14 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 }
 
-/* 空态胶囊：输入为空且未聚焦时，整卡收成一条轻量提示条，几乎不占空间；
-   点击胶囊（client 的 click 委托会聚焦 textarea）或输入后恢复原始输入框。 */
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) {
+/* 空态胶囊（设置「输入框显示方式」＝空态胶囊）：输入为空且未聚焦、无弹出
+   菜单打开时，整卡收成一条轻量胶囊；点击胶囊（composer-capsule 的 click
+   委托聚焦 textarea）或输入后恢复。状态由 composer-capsule.ts 维护，避免
+   body 级 :has() 在输入时反复重算。 */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card] {
   max-width: 320px;
   min-height: 34px;
   gap: 0;
@@ -3105,21 +3567,31 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(texta
     0 4px 14px rgba(15, 30, 72, 0.14),
     inset 0 1px rgba(255, 255, 255, 0.6);
   overflow: hidden;
-  transition:
-    max-width 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
-    min-height 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
-    padding 420ms cubic-bezier(0.22, 0.78, 0.2, 1),
-    border-radius 420ms cubic-bezier(0.22, 0.78, 0.2, 1);
+  /* 只动画 compositor 友好属性；布局项瞬时切换。 */
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  animation: maidAtelierCapsuleIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
 }
 
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) [data-input-mirror],
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) [data-input-backdrop],
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) > [class*='row'] {
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card] {
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.42),
+    inset 0 1px rgba(255, 255, 255, 0.07);
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  :is([data-input-mirror], [data-input-backdrop], [data-composer-card] > [class*='row']) {
   display: none !important;
 }
 
-/* textarea 必须保留可聚焦：压到 0 尺寸并隐藏占位，聚焦后立即恢复 */
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) textarea {
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card] textarea {
   min-height: 0 !important;
   height: 0 !important;
   padding: 0 !important;
@@ -3127,35 +3599,81 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(texta
 }
 
 /* 统计行（stats / Session log）随卡片一起收起 */
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])) ~ [data-slot='conversation.composer.dock'] {
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-slot='conversation.composer.dock'] {
   display: none;
 }
 
 /* 金框装饰在胶囊态隐藏，胶囊内容由 ::after 呈现 */
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true']))::before {
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]::before {
   display: none;
 }
 
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true']))::after {
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]::after {
   content: '✎ 给智能体发消息';
   display: flex;
   align-items: center;
   justify-content: center;
   inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: transparent;
   color: var(--dsw-alias-label-caption);
   font-family: Georgia, 'Times New Roman', var(--dsw-font-family);
   font-size: 13px;
   letter-spacing: 0.02em;
   cursor: text;
-  border-radius: inherit;
-  background: transparent;
   pointer-events: none;
 }
 
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(textarea:placeholder-shown):not(:focus-within):not(:has([aria-expanded='true'])):hover {
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]:hover {
   border-color: rgba(225, 191, 124, 0.85);
   box-shadow:
     0 6px 18px rgba(15, 30, 72, 0.2),
     inset 0 1px rgba(255, 255, 255, 0.7);
   transform: translateY(-1px);
+}
+
+/* 展开衔接动画：布局宽度/高度瞬时恢复，仅 transform/opacity 走合成器，
+   避免折叠/展开反复触发长对话的整块重排（性能优化，替代 420ms 布局过渡）。 */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-expanding]
+  [data-composer-card] {
+  animation: maidAtelierCapsuleOut 260ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+@keyframes maidAtelierCapsuleIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes maidAtelierCapsuleOut {
+  from {
+    opacity: 0.35;
+    transform: translateY(8px) scale(0.965);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

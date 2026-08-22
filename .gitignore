@@ -2,3 +2,9 @@ node_modules/
 *.tsbuildinfo
 *.js.map
 .DS_Store
+
+# 皮肤开发笔记:权威副本在 dsh-skin-template(本目录为 junction 共享,不入库)
+.agents/notes/
+
+# 本地技能测试环境:隔离 DSH_HOME 与测试 profile,含复制的本机配置,绝不可入库
+.test-env/

@@ -13,6 +13,32 @@ import { apply } from '../src/client/index.ts'
 
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
 
+/**
+ * Declarations of the settings-open rule governing the sidebar content root's
+ * stacking context — the one seat two specs below both read.
+ *
+ * Matched with `\s*` between the selector parts rather than literal newlines:
+ * a Windows checkout carries CRLF, so a hard-coded `\n` finds nothing and the
+ * lookup degrades to an empty block, which passes every `not.toContain`
+ * silently. Specs assert this is non-empty for the same reason.
+ */
+const SETTINGS_ROOT_STACKING_RULE = CSS.match(
+  /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+)?.[1] ?? ''
+
+/**
+ * Declarations of the settings-dialog carrier fade/rail-in suppression: the
+ * official sidebar toggles `railIn`/`fading` classes on the SidebarRoot
+ * element, whose `.footArea` (the dialog's carrier) then animates opacity.
+ * The carrier sits one layer deeper than the root release above: the
+ * sidebar column's direct `div` is the display:contents slot anchor, its
+ * direct child is the SidebarRoot, and the carrier is that root's direct
+ * child containing the dialog.
+ */
+const SETTINGS_CARRIER_FADE_RULE = CSS.match(
+  /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :not\([\s\S]*?\)\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+)?.[1] ?? ''
+
 let fiber: Fiber | undefined
 
 async function mount(): Promise<Fiber> {
@@ -90,6 +116,7 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('injects chrome and retracts every element on dispose', async () => {
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()
     expect(document.body.querySelectorAll('[data-skin-chrome]').length).toBeGreaterThan(0)
     expect(document.body.querySelectorAll('[data-skin-trim-layer]')).toHaveLength(2)
@@ -169,35 +196,30 @@ describe('Maid Atelier skin apply', () => {
     document.body.innerHTML = `
       <header><div role="tablist"></div></header>
       <main data-phase="active"><div data-chat-flow></div></main>
-      <div data-dsh-better-sidebar></div>
       <div data-cordis-panel></div>
-      <div data-slot="sidebar.settings"><button aria-expanded="true"></button></div>
+      <div data-slot="sidebar.settings"><div role="dialog" aria-modal="true"></div></div>
     `
     fiber = await mount()
 
     expect(document.body.hasAttribute('data-maid-chat-active')).toBe(true)
     expect(document.body.hasAttribute('data-maid-conversation-active')).toBe(true)
     expect(document.body.hasAttribute('data-maid-workspace')).toBe(true)
-    expect(document.body.hasAttribute('data-maid-better-sidebar-open')).toBe(true)
     expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(true)
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
 
     document.querySelector('header')!.remove()
     document.querySelector('main')!.remove()
     document.querySelector('[data-cordis-panel]')!.remove()
-    document.querySelector('[aria-expanded]')!.setAttribute('aria-expanded', 'false')
-    document.body.setAttribute('data-dsh-sidebar-collapsed', '')
+    document.querySelector('[data-slot="sidebar.settings"] [role="dialog"]')!.remove()
     await flushMutations()
 
     expect(document.body.hasAttribute('data-maid-chat-active')).toBe(false)
     expect(document.body.hasAttribute('data-maid-conversation-active')).toBe(false)
     expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
-    expect(document.body.hasAttribute('data-maid-better-sidebar-open')).toBe(false)
     expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(false)
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
 
     await fiber.dispose()
-    document.body.removeAttribute('data-dsh-sidebar-collapsed')
   })
 
   it('restores pre-existing projected state attributes on dispose', async () => {
@@ -245,14 +267,17 @@ describe('Maid Atelier skin apply', () => {
       </div>
     `
     fiber = await mount()
-    const trigger = document.querySelector<HTMLButtonElement>("[data-slot='sidebar.settings'] > button")!
+    const settingsSlot = document.querySelector<HTMLElement>("[data-slot='sidebar.settings']")!
     const overlay = document.createElement('div')
     overlay.setAttribute('role', 'presentation')
     const mask = document.createElement('div')
     mask.className = 'fixture_mask'
     overlay.append(mask)
     document.body.append(overlay)
-    trigger.setAttribute('aria-expanded', 'true')
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    settingsSlot.append(dialog)
     await flushMutations()
 
     const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
@@ -260,7 +285,7 @@ describe('Maid Atelier skin apply', () => {
     expect(copy?.nextElementSibling).toBe(mask)
     expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
 
-    trigger.setAttribute('aria-expanded', 'false')
+    dialog.remove()
     await flushMutations()
     expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
   })
@@ -353,20 +378,72 @@ describe('Maid Atelier skin apply', () => {
     expect(document.title).toBe('original')
   })
 
-  it('installs an inlined background and restores prior body styles', async () => {
-    document.body.style.setProperty('background-position', 'left bottom')
+  it('installs the palace through a skin-owned variable and restores prior body styles', async () => {
+    document.body.style.setProperty('--maid-palace-art', 'legacy')
     fiber = await mount()
-    expect(document.body.style.backgroundImage).toContain('data:image/webp;base64,')
-    expect(document.body.style.backgroundImage).not.toContain('linear-gradient')
-    expect(document.body.style.backgroundPosition).toBe('center top')
-    expect(document.body.style.backgroundSize).toBe('cover')
-    expect(document.body.style.backgroundAttachment).toBe('scroll')
-    await fiber.dispose()
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).not.toContain('linear-gradient')
+    // The palace is no longer painted on body: the conversation-column stage
+    // owns it (see the character-stage rule), so body carries only the custom
+    // property consumed by that stage.
     expect(document.body.style.backgroundImage).toBe('')
-    expect(document.body.style.backgroundPosition).toBe('left bottom')
+    await fiber.dispose()
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe('legacy')
+  })
+
+  it('seats the character stage inside the conversation column', async () => {
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
+    fiber = await mount()
+    const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+    const topTrim = document.querySelector<HTMLElement>("[data-skin-chrome='top-trim']")
+    const bottomTrim = document.querySelector<HTMLElement>("[data-skin-chrome='bottom-trim']")
+    expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+    expect(topTrim?.parentElement?.className).toBe('fixture_centerCol')
+    expect(bottomTrim?.parentElement?.className).toBe('fixture_centerCol')
+    // Palace + maids are one owned layer retracted on dispose.
+    await fiber.dispose()
+    expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='top-trim']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='bottom-trim']")).toBeNull()
+  })
+
+  it('retries seating the character stage when the conversation column mounts later', async () => {
+    fiber = await mount()
+    expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+
+    document.body.insertAdjacentHTML('beforeend', '<div class="fixture_centerCol"></div>')
+    await flushMutations()
+
+    const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+    const topTrim = document.querySelector<HTMLElement>("[data-skin-chrome='top-trim']")
+    const bottomTrim = document.querySelector<HTMLElement>("[data-skin-chrome='bottom-trim']")
+    expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+    expect(topTrim?.parentElement?.className).toBe('fixture_centerCol')
+    expect(bottomTrim?.parentElement?.className).toBe('fixture_centerCol')
+  })
+
+  it('keeps each overlapping activation in ownership of its own character stage', async () => {
+    const originalBodyStyle = document.body.getAttribute('style')
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
+    const first = await mount()
+    const second = await mount()
+    try {
+      expect(document.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(2)
+
+      await first.dispose()
+      const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+      expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+      expect(document.querySelectorAll("[data-skin-chrome='character-stage']")).toHaveLength(1)
+    } finally {
+      await first.dispose()
+      await second.dispose()
+      if (originalBodyStyle === null) document.body.removeAttribute('style')
+      else document.body.setAttribute('style', originalBodyStyle)
+    }
   })
 
   it('keeps both original-resolution characters independent from the palace backdrop', async () => {
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()
     const stage = document.querySelector("[data-skin-chrome='character-stage']")
     const characters = stage?.querySelectorAll<HTMLImageElement>('[data-maid-character]')
@@ -381,7 +458,7 @@ describe('Maid Atelier skin apply', () => {
   it('follows live viewport resizing without transition lag and restores the marker', async () => {
     fiber = await mount()
     const resizeRule = CSS.match(
-      /\[data-maid-viewport-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
+      /\[data-maid-layout-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(resizeRule).toContain('transition: none')
     expect(resizeRule).toContain('filter: none')
@@ -389,16 +466,49 @@ describe('Maid Atelier skin apply', () => {
     vi.useFakeTimers()
     try {
       window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
       vi.advanceTimersByTime(120)
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
 
       window.dispatchEvent(new Event('resize'))
       await fiber.dispose()
       fiber = undefined
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
       window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('tracks conversation-column resizes (panel push) through the layout lease', async () => {
+    let resize: ResizeObserverCallback | undefined
+    const observed = new Set<Element>()
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        resize = callback
+      }
+
+      observe(target: Element): void { observed.add(target) }
+      unobserve(target: Element): void { observed.delete(target) }
+      disconnect(): void { observed.clear() }
+    })
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
+
+    vi.useFakeTimers()
+    try {
+      fiber = await mount()
+      const chat = document.querySelector<HTMLElement>('.fixture_centerCol')!
+      expect(observed.has(chat)).toBe(true)
+      // The layout lease must also fire when only the chat area moves —
+      // workbench panels push it without a window resize.
+      resize?.([
+        { target: chat, contentRect: { width: 800, height: 600 } } as ResizeObserverEntry,
+      ], {} as ResizeObserver)
+      await Promise.resolve()
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
+      vi.advanceTimersByTime(120)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
     } finally {
       vi.useRealTimers()
     }
@@ -432,15 +542,15 @@ describe('Maid Atelier skin apply', () => {
     vi.useFakeTimers()
     try {
       window.dispatchEvent(new Event('resize'))
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       await first.dispose()
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(true)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(true)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       vi.advanceTimersByTime(120)
-      expect(document.body.hasAttribute('data-maid-viewport-resizing')).toBe(false)
+      expect(document.body.hasAttribute('data-maid-layout-resizing')).toBe(false)
       expect(document.body.hasAttribute('data-maid-low-power')).toBe(true)
 
       await second.dispose()
@@ -511,6 +621,29 @@ describe('Maid Atelier skin apply', () => {
     expect(backingRule).toContain('inset: 0 -0.52% -2%')
     expect(backingRule).toContain('background: inherit')
     expect(backingRule).toContain('pointer-events: none')
+    // The plate must stay behind in-flow children: the attachments slot is
+    // display: contents (no box to lift), so its rail only wins if the plate
+    // is a negative layer, not z-index: 0.
+    expect(backingRule).toContain('z-index: -1')
+    expect(backingRule).not.toContain('z-index: 0')
+  })
+
+  it('lifts the attachments slot content above the composer decorations', () => {
+    const slotRule = CSS.match(
+      /\[data-composer-card\]\s*> \[data-slot='conversation\.input\.attachments'\]\s*> :not\(\[class\*='mask'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const childLiftRule = CSS.match(
+      /\[data-composer-card\] > \*\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(childLiftRule).toContain('z-index: 2')
+    // The slot emits no box (display: contents), so its rail must be lifted
+    // explicitly to the same tier as the textarea/toolbar row.
+    expect(slotRule).toContain('position: relative')
+    expect(slotRule).toContain('z-index: 2')
+    // The drag overlay is position: fixed; the lift must not reach it.
+    expect(CSS).toMatch(
+      /\[data-composer-card\]\s*> \[data-slot='conversation\.input\.attachments'\]\s*> :not\(\[class\*='mask'\]\)\s*\{[^}]*z-index: 2/s,
+    )
   })
 
   it('masks transcript content without duplicating character art', () => {
@@ -521,8 +654,6 @@ describe('Maid Atelier skin apply', () => {
     expect(seatRule).toContain('background: none')
     expect(CSS).not.toContain("[data-skin-chrome='character-stage']::before")
     expect(CSS).toMatch(/\[data-maid-character\]\s*\{[^}]*z-index: 1/s)
-    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='left'\]\s*\{[^}]*translate: var\(--maid-sidebar-width\) 0/s)
-    expect(CSS).toMatch(/@media \(max-width: 700px\)[\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: 0/s)
     expect(CSS).not.toContain('left: -82px')
     expect(CSS).not.toContain('right: -82px')
     expect(CSS).not.toContain('--maid-character-left-art')
@@ -758,6 +889,19 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarLayerSelector).toContain("[role='tooltip']")
   })
 
+  it('releases a tooltip carrier without demoting the gold sidebar frame', () => {
+    const tooltipCarrierRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const frameRule = CSS.match(
+      /\[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(tooltipCarrierRule).not.toBe('')
+    expect(tooltipCarrierRule).toContain('z-index: auto')
+    expect(tooltipCarrierRule).not.toContain('position: static')
+    expect(frameRule).toContain('z-index: 4')
+  })
+
   it('paints the sidebar double rule without shrinking the collapsed rail', () => {
     const sidebarRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
@@ -862,7 +1006,7 @@ describe('Maid Atelier skin apply', () => {
     expect(badgeRule).toContain('rgba(7, 18, 52, 0.58)')
   })
 
-  it('moves character art only for active Chat and preserves inspection-page composition', () => {
+  it('keeps the character stage scoped to the conversation column with maids at its bottom corners', () => {
     const stageRule = CSS.match(
       /\[data-skin-chrome='character-stage'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -881,21 +1025,51 @@ describe('Maid Atelier skin apply', () => {
     const baseRightRule = CSS.match(
       /\[data-maid-character='right'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(stageRule).toContain('position: fixed')
+    // The stage is inside the chat area (positioned by the conversation
+    // column's box), not fixed to the viewport.
+    expect(stageRule).toContain('position: absolute')
+    expect(stageRule).toContain('inset: 0')
+    expect(stageRule).toContain('z-index: 0')
     expect(stageRule).toContain('contain: strict')
+    // cover + center: wide chat crops the vertical overflow centered (top and
+    // bottom together); a chat narrower than the art keeps it full-height and
+    // crops horizontally centered — never shrink-to-width.
+    expect(stageRule).toContain('background: var(--maid-palace-art) center / cover no-repeat')
     expect(sharedRule).toContain('translate 620ms')
     expect(sharedRule).not.toContain('left 620ms')
     expect(sharedRule).not.toContain('right 620ms')
     expect(sharedRule).not.toContain('filter 420ms')
-    expect(baseLeftRule).toContain('left: 0')
-    expect(baseLeftRule).toContain('translate: calc(var(--maid-sidebar-width) + clamp(')
-    expect(baseRightRule).toContain('right: 0')
-    expect(baseRightRule).toContain('translate: clamp(-8px, -0.2vw, 0px) 0')
-    expect(chatLeftRule).toContain('translate: calc(var(--maid-sidebar-width) + clamp(')
-    expect(chatLeftRule).toContain('height: clamp(420px, 64vh, 760px)')
-    expect(chatRightRule).toContain('translate: clamp(-8px, -0.5vw, 0px) 0')
+    // The ConversationRoot paints above the stage via position: relative
+    // (no z-index — no new stacking context).
+    const conversationRootRule = CSS.match(
+      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\)\s*:is\(\[data-phase='hero'\], \[data-phase='active'\], \[data-phase='settling'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(conversationRootRule).toContain('position: relative')
+    expect(conversationRootRule).not.toContain('z-index')
+    // Left maid at chat-area bottom-left, right maid at chat-area bottom-right,
+    // both sized against the chat area's height (percentages of the stage).
+    expect(baseLeftRule).toContain('left: clamp(8px, 1.5%, 24px)')
+    expect(baseLeftRule).toContain('bottom: 0')
+    expect(baseLeftRule).toContain('height: 96%')
+    expect(baseRightRule).toContain('right: clamp(8px, 1.5%, 24px)')
+    expect(baseRightRule).toContain('bottom: 0')
+    expect(baseRightRule).toContain('height: 92%')
+    // Left and right maids share the same corner layout: no asymmetric
+    // sidebar-offset translate, no viewport units in the edge offsets.
+    expect(baseLeftRule).not.toContain('var(--maid-sidebar-width)')
+    expect(baseLeftRule).not.toContain('vw')
+    expect(baseRightRule).not.toContain('var(--maid-sidebar-width)')
+    expect(baseRightRule).not.toContain('vw')
+    expect(chatLeftRule).toContain('height: 64%')
+    expect(chatRightRule).toContain('height: 62%')
+    expect(chatLeftRule).not.toContain('translate:')
+    expect(chatRightRule).not.toContain('translate:')
     expect(CSS).not.toMatch(/\[data-maid-character='(?:left|right)'\]\s*\{[^}]*(?:left|right):\s*-/s)
     expect(CSS).not.toMatch(/\[data-maid-conversation-active\]\s*\[data-maid-character/s)
+    // The better-sidebar fixed-indent adaptation is gone: the artwork follows
+    // the chat area, so no panel-state projection survives in the character rules.
+    expect(CSS).not.toMatch(/\[data-maid-character='right'\][^{]*\{[^}]*clamp\(-460px/s)
+    expect(CSS).not.toContain('data-maid-better-sidebar-open')
   })
 
   it('recovers the rc.6 rail search after its stale click collapses the wide field', async () => {
@@ -956,9 +1130,6 @@ describe('Maid Atelier skin apply', () => {
     )
     expect(CSS).toMatch(
       /\[data-ds-dark-theme\] \[data-dsh-better-sidebar\]\s*\{[^}]*--dsw-specific-sidebar-fill: rgba\(10, 22, 54, 0\.96\)/s,
-    )
-    expect(CSS).toMatch(
-      /\[data-maid-better-sidebar-open\][\s\S]*?\[data-maid-character='right'\]\s*\{[^}]*translate: clamp\(-460px, -24vw, -320px\) 0/s,
     )
   })
 
@@ -1193,6 +1364,79 @@ describe('Maid Atelier skin apply', () => {
     expect(settingsRule).toContain('border-image-width: 0 34px')
   })
 
+  it('retires the sidebar stacking context while the settings dialog is open', () => {
+    // SettingsPanel is a position:fixed layer mounted inside the sidebar
+    // content root, not in a document portal. The root carries
+    // `position: relative; z-index: 2`, which makes it a stacking context, and
+    // that ancestor context paints the fixed panel differently under WebKit
+    // than under the Blink builds this skin was developed against: on Safari
+    // 26.6 the panel laid out at its correct size and hit-tested as the
+    // topmost element, yet never appeared. Raising the root's z-index keeps
+    // the context and does not help; removing the context does — relative +
+    // z-index auto creates no stacking context, so position must stay
+    // relative (position: static re-homes the mask's containing block and
+    // trips Chromium's compositor into painting the mascot over the mask).
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toBe('')
+    expect(SETTINGS_ROOT_STACKING_RULE).toContain('z-index: auto')
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('z-index: 1000')
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('position: static')
+    // The root release is only about stacking; the fade suppression below
+    // lives on the dialog carrier one layer deeper.
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('opacity')
+    expect(SETTINGS_ROOT_STACKING_RULE).not.toContain('animation')
+  })
+
+  it('keeps the settings dialog carrier opaque across the sidebar auto-collapse', () => {
+    // The official sidebar toggles its 1024px auto-collapse with class phases
+    // on the SidebarRoot element: `railIn` runs a rail-fade-in animation on
+    // the root's .footArea (0% opacity: 0, backwards fill — the fixed
+    // settings overlay is mounted inside .footArea, so the whole panel fades
+    // from transparent), and `fading` fades every root child to 0. The same
+    // defect hit orca-link, which suppressed it on the .footArea carrier.
+    expect(SETTINGS_CARRIER_FADE_RULE).not.toBe('')
+    expect(SETTINGS_CARRIER_FADE_RULE).toContain('opacity: 1 !important')
+    expect(SETTINGS_CARRIER_FADE_RULE).toContain('transition: none !important')
+    expect(SETTINGS_CARRIER_FADE_RULE).toContain('animation: none !important')
+  })
+
+  it('targets the carrier suppression at the official footArea, not the SidebarRoot', () => {
+    // The slot anchor is a display:contents wrapper, so the column's direct
+    // div is NOT the SidebarRoot: the root (z-index release target) and the
+    // footArea (fade target) are different layers. Guard the selectors
+    // against regressing to the wrong element.
+    document.body.innerHTML = `
+      <div class="fixture_sidebarCol">
+        <div data-slot="sidebar" style="display: contents">
+          <div class="fixture_root">
+            <div class="fixture_logoRow"></div>
+            <div class="fixture_footArea">
+              <div class="fixture_footerActions"></div>
+              <div class="fixture_settingsArea">
+                <div data-slot="sidebar.settings">
+                  <button type="button">Settings</button>
+                  <div role="presentation">
+                    <div class="fixture_mask"></div>
+                    <div role="dialog" aria-modal="true"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const root = document.querySelector<HTMLElement>('.fixture_root')!
+    const footArea = document.querySelector<HTMLElement>('.fixture_footArea')!
+    const rootRelease = document.querySelector(
+      ":is([data-pane='sidebar'], [class*='sidebarCol']) > div > :has([role='dialog'][aria-modal='true'])",
+    )
+    const carrier = document.querySelector(
+      ":is([data-pane='sidebar'], [class*='sidebarCol']) > div > :not([data-skin-chrome='sidebar-mascot'], [data-skin-chrome='sidebar-corners'], [role='tooltip']) > :has([role='dialog'][aria-modal='true'])",
+    )
+    expect(rootRelease).toBe(root)
+    expect(carrier).toBe(footArea)
+  })
+
   it('lets the official settings mask blur every skin-owned layer', () => {
     const sidebarRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
@@ -1208,14 +1452,18 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const conversationHeaderRule = CSS.match(
+      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const composerRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const obscuredComposerRule = CSS.match(
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const promotedSettingsRootRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\)\s*\{([^}]*)\}/s,
+    const releasedSettingsRowRule = CSS.match(
+      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const preservedSidebarFrameRule = CSS.match(
-      /:has\(\s*\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\[aria-expanded='true'\]\s*\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
+      /:has\(\[role='dialog'\]\[aria-modal='true'\]\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(sidebarRule).toContain('z-index: auto')
     expect(sidebarInnerRule).toContain('isolation: auto')
@@ -1223,8 +1471,21 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarContentRule).toBe('')
     expect(footerRule).toContain('z-index: auto')
     expect(topTrimRule).toContain('z-index: 20')
-    expect(bottomTrimRule).toContain('z-index: 19')
-    expect(promotedSettingsRootRule).toContain('z-index: 1000')
+    expect(bottomTrimRule).toContain('z-index: 20')
+    expect(conversationHeaderRule).toContain('z-index: 21')
+    expect(CSS).not.toContain("button[class*='tab']")
+    expect(CSS).not.toContain("[class*='tabActive']")
+    expect(CSS).toMatch(/button\[role='tab'\]\s*\{[^}]*color: #d7def0/s)
+    expect(CSS).toMatch(/button\[role='tab'\]\[aria-selected='true'\]\s*\{[^}]*color: #fff7e6/s)
+    expect(composerRule).toContain('z-index: 21')
+    // Not a promotion any more: the sidebar row releases its stacking
+    // context (z-index: auto, position stays relative) so the settings
+    // dialog's native modal layer competes at page level again. Shared with
+    // the dedicated spec above so one rule is parsed in one place.
+    expect(releasedSettingsRowRule).not.toBe('')
+    expect(releasedSettingsRowRule).toContain('z-index: auto')
+    expect(releasedSettingsRowRule).not.toContain('position: static')
+    expect(releasedSettingsRowRule).not.toContain('z-index: 1000')
     expect(preservedSidebarFrameRule).toBe('')
     expect(obscuredComposerRule).toContain('z-index: 0')
     expect(obscuredComposerRule).toContain('opacity: 0.75')
@@ -1246,10 +1507,154 @@ describe('Maid Atelier skin apply', () => {
     )
   })
 
+  it('responds to constrained viewports without squeezing settings rows', () => {
+    // The settings overlay owns the viewport below the desktop threshold.
+    const fullScreenRule = CSS.match(
+      /@media \(max-width: 1099px\), \(max-height: 680px\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(fullScreenRule).toContain('width: 100vw')
+    expect(fullScreenRule).toContain('height: 100vh')
+    expect(fullScreenRule).toContain('height: 100dvh')
+    expect(fullScreenRule).toContain('border-radius: 0')
+
+    // Phones move the category rail above the content as a 3-across grid.
+    const phoneRule = CSS.match(
+      /@media \(max-width: 640px\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(phoneRule).toContain('flex-direction: column')
+    expect(phoneRule).toContain('flex-direction: row')
+    expect(phoneRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
+    expect(phoneRule).toContain('border-bottom: 1px solid rgba(197, 164, 104, 0.42)')
+    expect(phoneRule).toContain('min-height: 0')
+
+    // Narrow panes stack official rows and this skin's customization card.
+    const narrowRule = CSS.match(
+      /@media \(max-width: 520px\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(narrowRule).toContain("[class$='_row']:has(> [class$='_rowText'])")
+    expect(narrowRule).toContain('flex-direction: column')
+    expect(narrowRule).toContain("padding-right: 0")
+    expect(narrowRule).toContain("[class$='_selectRow'] select")
+    expect(narrowRule).toContain('max-width: none')
+
+    // The default centered opening position is kept: no docked large-screen
+    // layout, no baseline size/position overrides on the settings overlay.
+    expect(CSS).not.toMatch(/@media \(min-width: 1100px\) and \(min-height: 681px\)/)
+    expect(CSS).not.toMatch(
+      /data-maid-settings-open[\s\S]*?\[role='presentation'\]\s*\{[^}]*justify-content: flex-start/s,
+    )
+    const overlayBaselineRule = [...CSS.matchAll(
+      /body\[data-dsh-maid-atelier\]\[data-maid-settings-open\]\s+\[data-slot='sidebar\.settings'\]\s*> \[role='presentation'\]\s*\{([^}]*)\}/g,
+    )].map(match => match[1] ?? '').join('\n')
+    expect(overlayBaselineRule).toBe('')
+
+    // Every rule is scoped to the open settings dialog, never body-level :has.
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\](?:\[[^\]]+\]|:not\([^)]*\))*:has\(/,
+    )
+  })
+
+  it('dresses the settings select popup in the porcelain-and-gold language', () => {
+    const baseSelectRule = CSS.match(
+      /@supports \(appearance: base-select\)\s*\{[\s\S]*?body\[data-dsh-maid-atelier\] \[role='dialog'\] select\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const inputSelectRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select\[class\$='_selectInput'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const pickerIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const openIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select:open::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const pickerRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const optionRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const hoverRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:hover,\s*body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:focus-visible\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const checkedRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkIconRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkPickerRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select::picker\(select\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkOptionRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkCheckedRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[role='dialog'\] select option:checked\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+
+    // The closed control keeps the product's `_input` geometry (32px, 8px
+    // radius, porcelain fill) shared with the text inputs beside it; only the
+    // OS arrow is dropped so ::picker-icon can own it. Every select — the
+    // official `_selectInput` and the skin's own bare customization card
+    // selects — becomes a flex row so the icon is vertically centered, with
+    // single-line truncation for long labels.
+    expect(baseSelectRule).toContain('appearance: base-select')
+    expect(baseSelectRule).toContain('background-image: none')
+    expect(baseSelectRule).toContain('display: flex')
+    expect(baseSelectRule).toContain('align-items: center')
+    expect(baseSelectRule).toContain('white-space: nowrap')
+    expect(baseSelectRule).toContain('overflow: hidden')
+    expect(inputSelectRule).toContain('box-sizing: border-box')
+    expect(inputSelectRule).toContain('display: flex')
+    expect(inputSelectRule).toContain('height: 32px')
+    expect(inputSelectRule).toContain('padding-inline: 10px')
+
+    // Gold chevron flips while the popup is open.
+    expect(pickerIconRule).toContain('background: #c5a468')
+    expect(pickerIconRule).toContain('clip-path: polygon(0 0, 100% 0, 50% 100%)')
+    expect(pickerIconRule).toContain('transition: transform 140ms ease')
+    expect(pickerIconRule).toContain('flex: none')
+    expect(openIconRule).toContain('transform: rotate(180deg)')
+
+    // The popup reuses the settings surface's glass porcelain and gold rim.
+    expect(pickerRule).toContain('max-height: min(420px, 62vh)')
+    expect(pickerRule).toContain('min-width: min(200px, calc(100vw - 24px))')
+    expect(pickerRule).toContain('border: 1px solid rgba(197, 164, 104, 0.64)')
+    expect(pickerRule).toContain('border-radius: 10px')
+    expect(pickerRule).toContain('rgba(252, 250, 245, 0.98)')
+    expect(pickerRule).toContain('scrollbar-color')
+    expect(optionRule).toContain('min-height: 30px')
+    expect(optionRule).toContain('border-left: 2px solid transparent')
+    expect(optionRule).toContain('white-space: nowrap')
+    expect(hoverRule).toContain('rgba(197, 164, 104, 0.72)')
+    expect(checkedRule).toContain('border-left-color: #c5a468')
+    expect(checkedRule).toContain('font-weight: 600')
+
+    // Night palette swaps the panel to navy glass with the brighter gold.
+    expect(darkIconRule).toContain('background: #d3b477')
+    expect(darkPickerRule).toContain('border-color: rgba(211, 180, 119, 0.66)')
+    expect(darkPickerRule).toContain('rgba(19, 38, 82, 0.98)')
+    expect(darkPickerRule).toContain('color: #e7ecf7')
+    expect(darkOptionRule).toContain('color: #bdc9e3')
+    expect(darkCheckedRule).toContain('border-left-color: #d3b477')
+
+    // Every rule stays inside a dialog and behind the base-select gate: no
+    // body-level select styling, no body-level :has() selector.
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\](?:\[[^\]]+\])?\s+select\s*\{[^}]*appearance: base-select/s,
+    )
+    expect(CSS).not.toMatch(
+      /body\[data-dsh-maid-atelier\]\s+(?:\[[^\]]+\]\s+)*:has\([^)]*\)[^{}]*select\s*\{/s,
+    )
+  })
+
   it('renders the active workspace as a crested ribbon with a connected session tree', () => {
     const ribbonShapeRule = CSS.match(/\[data-maid-workspace-active\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
     const shieldRule = CSS.match(
       /\[data-maid-workspace-row\] > \[class\*='folder'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const sessionRowRule = CSS.match(
+      /\[data-maid-session-row\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const selectedSessionRule = CSS.match(
       /\[data-maid-session-row\]\[aria-selected='true'\]\s*\{([^}]*)\}/s,
@@ -1276,6 +1681,9 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain('clip-path: inset(0 100% 0 0)')
     expect(CSS).toContain('clip-path: inset(0 12% 0 0)')
     expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonContentEnter')
+    expect(sessionRowRule).toContain('box-sizing: border-box')
+    expect(sessionRowRule).toContain('width: 100%')
+    expect(sessionRowRule).toContain('min-width: 0')
     expect(selectedSessionRule).toContain('background: transparent')
     expect(selectedSessionRule).toContain('color: #fff8e8')
     expect(selectedSessionPlaqueRule).toContain('inset: 0 0 0 18px')
@@ -1342,7 +1750,7 @@ describe('Maid Atelier skin apply', () => {
     expect(mascotRule).toContain('bottom: calc(var(--maid-sidebar-swag-height) + 94px)')
     expect(mascotRule).toContain('width: var(--maid-sidebar-mascot-width)')
     expect(mascotRule).toContain('max-height: 38%')
-    expect(mascotRule).toContain('z-index: 1')
+    expect(mascotRule).toContain('z-index: 0')
     expect(mascotRule).toContain('opacity: 0.92')
     expect(mascotRule).toContain('saturate(1)')
     expect(mascotRule).toContain('brightness(1.08)')
@@ -1359,19 +1767,21 @@ describe('Maid Atelier skin apply', () => {
     expect(workspaceTrimRule).toContain('height: 76px')
     expect(workspaceTrimRule).toContain('background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x')
     expect(CSS).not.toMatch(/var\(--maid-top-trim-art\)[^;]*100% 100%/)
+    expect(topTrimRule).toContain('position: absolute')
     expect(topTrimRule).toContain('inset: 0 0 auto 0')
-    expect(topTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(topTrimRule).not.toContain('--maid-sidebar-width')
     expect(topTrimRule).not.toContain('box-shadow')
   })
 
   it('tiles the bottom border while keeping its center crest independently sized', () => {
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const crestRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]::after\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(bottomTrimRule).toContain('position: absolute')
     expect(bottomTrimRule).toContain('inset: auto 0 0 0')
-    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).not.toContain('--maid-sidebar-width')
     expect(bottomTrimRule).toContain('background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x')
     expect(bottomTrimRule).not.toContain('100% 100%')
-    expect(crestRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(crestRule).toContain('left: calc((100% - 8px) / 2)')
     expect(crestRule).toContain('transform: translateX(-50%)')
     expect(crestRule).toContain('background: var(--maid-bottom-crest-art) center / contain no-repeat')
   })
@@ -1384,7 +1794,7 @@ describe('Maid Atelier skin apply', () => {
     const movingTrimRule = CSS.match(
       /body\[data-dsh-maid-atelier\]\[data-maid-composer-motion\]\s*\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).not.toContain('--maid-sidebar-width')
     expect(bottomTrimRule).toContain('transform: translateY(0)')
     expect(bottomTrimRule).toContain('transition: transform 520ms')
     expect(bottomTrimRule).not.toContain('transition: translate 520ms')
@@ -1415,7 +1825,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-skin-trim-layer='landing'\]::after\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(landingBowRule).toContain("content: ''")
-    expect(landingBowRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(landingBowRule).toContain('left: calc((100% - 8px) / 2)')
     expect(landingBowRule).toContain('background: var(--maid-bow-art) center / contain no-repeat')
     expect(CSS).not.toMatch(/\[data-skin-trim-layer='workspace'\]::after/)
   })
@@ -1502,11 +1912,12 @@ describe('Maid Atelier skin apply', () => {
       disconnect(): void {}
     })
     document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
+    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
 
     fiber = await mount()
     const bodyStyle = document.body.getAttribute('style')
     resize?.([
-      { contentRect: { width: 96 } as DOMRectReadOnly } as ResizeObserverEntry,
+      { target: sidebar, contentRect: { width: 96 } as DOMRectReadOnly } as ResizeObserverEntry,
     ], {} as ResizeObserver)
 
     const widthRule = document.head
@@ -1546,17 +1957,17 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-maid-sidebar-size')).toBe(false)
   })
 
-  it('switches between matched day and night backgrounds with the base theme', async () => {
+  it('switches between matched day and night palaces with the base theme', async () => {
     fiber = await mount()
-    const light = document.body.style.backgroundImage
+    const light = document.body.style.getPropertyValue('--maid-palace-art')
     document.body.dataset.dsDarkTheme = ''
     await flushMutations()
-    const dark = document.body.style.backgroundImage
+    const dark = document.body.style.getPropertyValue('--maid-palace-art')
     expect(dark).not.toBe(light)
     expect(dark).toContain('data:image/webp;base64,')
     expect(dark).not.toContain('linear-gradient')
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
-    expect(document.body.style.backgroundImage).toBe(light)
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe(light)
   })
 })

@@ -1,0 +1,4 @@
+# Permanent generic skin manager; installed skins expose their own controls.
+- insert:
+    - id: ui-skin-deep-whale-manager
+      name: '@dsh-external/dsh-client-ui-skin-deep-whale-manager'
