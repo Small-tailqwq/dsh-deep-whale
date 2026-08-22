@@ -160,7 +160,11 @@ export function renderManagedBlock(target: SkinTarget, catalog: SkinCatalogEntry
 /** Compose a new patch without touching content outside the managed block. */
 export function switchPatch(source: string, target: SkinTarget, catalog: SkinCatalogEntry[]): string {
   const stripped = stripManagedBlock(source).replace(/\s+$/, '')
-  const unmanaged = stripped.trim() === '[]' ? '' : stripped
+  const lines = stripped.split(/\r?\n/)
+  const yamlLines = lines.filter(line => line.trim() !== '' && !line.trimStart().startsWith('#'))
+  const unmanaged = yamlLines.length === 1 && yamlLines[0]!.trim() === '[]'
+    ? lines.filter(line => line.trim() !== '[]').join('\n').replace(/\s+$/, '')
+    : stripped
   return `${unmanaged === '' ? '' : `${unmanaged}\n\n`}${renderManagedBlock(target, catalog)}\n`
 }
 
@@ -210,6 +214,60 @@ export function useSkin(
     }
     throw error
   }
+}
+
+/** Read the last explicit disabled value for each installed skin in one patch layer. */
+export function readSkinStates(source: string, catalog: SkinCatalogEntry[]): Map<string, boolean> {
+  const known = new Set(catalog.map(skin => skin.wiringId))
+  const states = new Map<string, boolean>()
+  let currentId: string | undefined
+  let currentIndent = -1
+  let propertyIndent: number | undefined
+  for (const line of source.split(/\r?\n/)) {
+    const entry = line.match(/^(\s*)-\s+id:\s*(['"]?)([^'"#\s]+)\2\s*(?:#.*)?$/)
+    if (entry !== null) {
+      /* Only top-level `- id:` rows are loader patch records: a nested `- id:`
+         inside another plugin's config is that plugin's data, not a skin state. */
+      if (entry[1]!.length !== 0) continue
+      currentId = known.has(entry[3]!) ? entry[3] : undefined
+      currentIndent = entry[1]!.length
+      propertyIndent = undefined
+      continue
+    }
+    if (currentId === undefined) continue
+    const trimmed = line.trim()
+    if (trimmed === '' || trimmed.startsWith('#')) continue
+    const indent = line.length - line.trimStart().length
+    if (indent <= currentIndent) {
+      currentId = undefined
+      continue
+    }
+    propertyIndent = propertyIndent === undefined ? indent : Math.min(propertyIndent, indent)
+    const disabled = line.match(/^\s*disabled:\s*(true|false)\s*(?:#.*)?$/)
+    if (disabled !== null && indent === propertyIndent) states.set(currentId, disabled[1] === 'true')
+  }
+  return states
+}
+
+/** Return installed skins that are effectively enabled after profile then home overrides. */
+export function enabledSkins(sources: string[], catalog: SkinCatalogEntry[]): SkinCatalogEntry[] {
+  const states = new Map<string, boolean>()
+  for (const source of sources) {
+    for (const [id, disabled] of readSkinStates(source, catalog)) states.set(id, disabled)
+  }
+  return catalog.filter(skin => states.get(skin.wiringId) !== true)
+}
+
+/** Fail safe when a direct marketplace install would otherwise activate multiple skins. */
+export function ensureSafeInitialState(
+  patchPaths = resolvePatchTargets(),
+  catalog = discoverInstalledSkins(patchPaths[0]),
+): boolean {
+  if (catalog.length < 2) return false
+  const sources = patchPaths.map(path => existsSync(path) ? readFileSync(path, 'utf8') : '')
+  if (enabledSkins(sources, catalog).length < 2) return false
+  useSkin('official', patchPaths, catalog)
+  return true
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {
@@ -295,5 +353,12 @@ export function makeSkinManagerRoute(
 
 /** Register the switching route with lifecycle-owned cleanup. */
 export function apply(ctx: HostContext): void {
-  ctx.effect(() => ctx.webServer.register(makeSkinManagerRoute()), 'ui-skin-manager: catalog and activation route')
+  ctx.effect(() => {
+    try {
+      ensureSafeInitialState()
+    } catch (error) {
+      console.error('[skin-manager] failed to enforce startup mutual exclusion', error)
+    }
+    return ctx.webServer.register(makeSkinManagerRoute())
+  }, 'ui-skin-manager: startup guard and catalog/activation route')
 }
