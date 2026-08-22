@@ -1,5 +1,7 @@
 # dsh-deep-whale · 鲸鱼娘皮肤系列
 
+**[简体中文](README.md)** · [English](README.en.md)
+
 DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 ## 效果预览
@@ -30,22 +32,56 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 ## 安装
 
-### 懒人版
+> **皮肤的安装手段只有一个正确姿势：让你的 dsh 读取本仓库的 [INSTALL.md](INSTALL.md)（标准安装入口），它会引导 dsh 使用自带的 `dsh-skin-install` 技能执行**——询问你选哪一套、交代署名链与许可、并写入互斥开关。不要自己照抄下面的命令——照抄会把 skin-manager 与**两套皮肤**全部装上，而两套皮肤默认**同时运行**（详见[皮肤互斥机制](#皮肤互斥机制必读)与 [issue #65](https://github.com/Small-tailqwq/dsh-deep-whale/issues/65)）。
 
-对你的 dsh 说：
-```
-安装一下这个皮肤包：https://github.com/Small-tailqwq/dsh-deep-whale
-```
-dsh 会按 `dsh-skin-install` 技能走完整流程：列出全部皮肤、交代署名链与许可、用绝对路径注册并激活你选的那一套。
+### 标准流程：让 dsh 按 INSTALL.md 安装（推荐，唯一保证互斥的路径）
 
-### 手动安装（推荐绝对路径）
+1. 让你的 dsh 读取本仓库的标准安装入口：
+
+   ```
+   读取 https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md 并按其中指引安装皮肤
+   ```
+
+2. INSTALL.md 会把 dsh 引导到仓库自带的 `dsh-skin-install` 技能（若 dsh 无法读取远端文件：先 `git clone` 到本地，在 dsh 中把 clone 目录**打开为工作区**——技能会被自动发现——或让它读取本地 `INSTALL.md` 路径）。技能随后依次完成：
+
+   列出全部皮肤并**询问你要激活哪一套** → 交代署名链与许可（CC BY-NC-SA 4.0）→ 绝对路径注册所选皮肤（连同 skin-manager）→ **写入两个 patch 层的互斥 `disabled` 行** → 验证生效。之后切换皮肤也走同一入口（配置热重载，无需重启）。
+
+   已安装/已知目标时走快车道：直接说“切换到 maid-atelier”或“安装 orca-link”，技能跳过询问与扫描，预计 1–2 分钟完成。
+
+### 皮肤互斥机制（必读）
+
+- 先分清：`skin-manager` 不是皮肤，而是**皮肤管理器**（提供发现、切换与定制面板），需要常驻启用；互斥的对象是**皮肤本身**——本仓库的皮肤是 maid-atelier 与 orca-link。
+- 皮肤启停由 patch 层控制：profile 的 `~/.dsh/profiles/web/cordis.patch.yml` 与 home 层的 `~/.dsh/cordis.patch.yml` 里各自的 `- id: <wiring.id>` + `disabled: true/false` 行（**两层都要写**，home 层优先级更高）。
+- **patch 里没有某皮肤行的 `disabled` 行 → 该皮肤默认启用**。一次把多套皮肤（maid-atelier 与 orca-link）都装上、又从未切换时，它们会**同时运行**：装饰层互相叠加、侧栏/设置区被搅乱，典型症状是**设置按钮消失、侧栏宽度/布局异常、界面混乱**（原版正常）。
+- skin-manager（设置 → 皮肤管理）激活时会自动把互斥行写入两个 patch 层；手写时“只保留一套”必须**显式停用其余每一套**。
+- 安装了皮肤管理器后，皮肤定制项（如“不那么二次元模式”的可见时段）保存在当前浏览器，由管理器统一应用。
+
+### 手动安装（备用路径，装完必须立即补齐互斥写入）
 
 ```sh
 git clone https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置
-dsh plugin --profile web add <clone 的绝对路径>/skin-manager   # 常驻皮肤管理面板
+dsh plugin --profile web add <clone 的绝对路径>/skin-manager   # 常驻皮肤管理面板（推荐）
 dsh plugin --profile web add <clone 的绝对路径>/maid-atelier   # 深海女仆工坊
 dsh plugin --profile web add <clone 的绝对路径>/orca-link      # 虎鲸链路
 ```
+
+> ⚠️ 上面命令会安装**皮肤管理器 + 两套皮肤**；两套皮肤默认**同时启用**。安装后必须立即执行下面任一步骤，只保留一套皮肤生效，否则就会出现互斥机制一节描述的症状。
+
+**方式 A（推荐）：设置 → 皮肤管理 → 点击要用的那一套「切换」**。管理器自动把互斥 `disabled` 行写入两个 patch 层并热重载，刷新页面即可。
+
+**方式 B：手写两个 patch 层**。把下面的行**追加到** `~/.dsh/profiles/web/cordis.patch.yml` **和** `~/.dsh/cordis.patch.yml`（两者缺一不可，home 层覆盖 profile 层）：
+
+```yaml
+# 示例：只启用 maid-atelier；改为 orca-link 时把 false 移到它那行，两套皮肤只能有一套是 false
+- id: ui-skin-maid-atelier
+  disabled: false
+- id: ui-skin-orca-link
+  disabled: true
+- id: ui-skin-deep-whale-manager
+  disabled: false
+```
+
+> 若 patch 文件还是 dsh 的默认模板（注释 + 一行 `[]`），请**用上面的列表整体替换 `[]` 那一行**——“注释 + `[]` + 其他条目”是非法 YAML，配置解析会失败（服务器会保留上一个可用配置继续运行，修复后并刷新即可）。
 
 Windows 示例（正斜杠与反斜杠均可，pnpm 会自动规范化）：
 ```powershell
@@ -53,7 +89,13 @@ dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/skin-manager
 dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
 ```
 
-安装管理器和任意皮肤包并刷新后，打开 DSH 的“设置 → 皮肤管理”。面板会自动发现当前 Web profile 中所有带有效 `skin.json` 的皮肤；皮肤支持 v1 自定义协议时，还会显示它自行声明的配置项。“不那么二次元模式”可设置多个显示或隐藏时段，配置均保存在当前浏览器。
+### 装多了 / 出现异常怎么办
+
+症状：设置按钮消失、侧栏被装饰层覆盖或宽度异常、界面混乱（停用皮肤后恢复）。
+
+1. 打开 设置 → 皮肤管理，点击「官方默认」或任一皮肤——管理器会自动写互斥行并热重载，刷新即可恢复；
+2. 管理器不可用时（或配置已被写坏）：按上方方式 B 手动重写两个 patch 层的互斥行；
+3. 也可以直接摘掉不用的包：`dsh plugin --profile web remove <包名>`，摘除后同样检查互斥行。
 
 ### 相对路径的规则（容易踩坑）
 
@@ -69,7 +111,7 @@ dsh --profile web --dump-config        # 皮肤行在组合配置中，disabled 
 ```
 刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。
 
-### 安装失败排查
+### 常见安装失败排查
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
@@ -77,10 +119,6 @@ dsh --profile web --dump-config        # 皮肤行在组合配置中，disabled 
 | 命令成功但 `dsh plugin list` 没有该包 | 相对路径解析到了错误位置（clone 位置与假设不符） | 用绝对路径重新 add |
 | `pnpm not found on PATH` | 环境缺少 pnpm | 安装 pnpm（`npm i -g pnpm`）后重试 |
 | 包在列表里但页面无效果 | 皮肤被 `disabled`（多皮肤互斥开关）或浏览器未刷新 | `--dump-config` 核对 disabled；刷新页面 |
-
-### 懒人版 · 自带技能
-
-本仓库自带 `dsh-skin-install` 技能（`.agents/skills/`）。dsh 在仓库目录内运行时自动发现该技能；对你的 dsh 说"安装一下这个皮肤包"或"切换皮肤"，它会列出仓库全部皮肤、询问你要激活哪一套，并交代作者署名链与许可边界后再安装。无需自行克隆到 dsh 源码里，皮肤开关走配置热重载，无需重启。
 
 ## 贡献者
 
@@ -99,10 +137,9 @@ dsh --profile web --dump-config        # 皮肤行在组合配置中，disabled 
 - **@Vergemesh** — 原版/鲸鱼娘皮肤即时切换（#27）
 - **@joejojoking-cloud** — top-trim 装饰层级（#26）、字符舞台层级（#31）修复
 
-> 本节由人工维护，新增此类 PR 时请同步更新。
 
 ## 许可
 
 本仓库各皮肤为**衍生创作**,整体以 CC BY-NC-SA 4.0(署名-非商业性使用-相同方式共享)发布,禁止商业性使用。署名链见各皮肤 `NOTICE`。
 
-皮肤工程脚手架来自 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui) ,本仓库仅分发皮肤成品,不包含脚手架。
+皮肤工程脚手架来自 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)，本仓库仅分发皮肤成品,不包含脚手架。

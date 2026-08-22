@@ -9,11 +9,18 @@ description: 安装、切换、更新或验证 DSH Web 本地皮肤（dsh-deep-w
 
 **本技能只给流程指导，具体事实以现场读取为准**：仓库会更新（新增皮肤、改署名链），不要依赖本文件或记忆中的清单，实时读取。
 
+## 效率红线（任何场景都必须遵守）
+
+- **一步一条命令**：同一个信息只获取一次；验证以 `dsh --profile <name> --dump-config` 的一次输出为准，不要再去 grep/read dsh 安装目录源码求证 patch 语义。
+- **调用预算**：已安装→切换 ≤ 8 次工具调用；初次安装 ≤ 20 次；更新 ≤ 6 次。超预算说明在重复劳动，立即停止并汇报已完成动作。
+- **默认不调用 `dsh-plugin-verify`，禁止读 dsh 源码包**。只有用户明确反馈“不生效/报错”时才进入诊断。
+- 页面观感（装饰是否好看、设置面板布局）由用户刷新后自行确认，不由你逐项核对。
+
 ## 先判断场景（决定走哪条路）
 
 先查当前 dsh 环境：`dsh plugin --profile <name> list`（实际 profile 名如 web；本地路径安装显示为 `link:`）。按目标皮肤的 `package` 名核对是否已安装，并确认本地是否有该仓库的 clone：
 
-- **已安装（link: 依赖）→ 场景 A 切换**：直接热切换，不 clone、不提问、不介绍。
+- **已安装（link: 依赖）→ 场景 A 切换**：直接热切换，不 clone、不提问、不介绍，**跳过“重启安全闸门”与扫描清单**。
 - **未安装但本地已有仓库 clone → 场景 B 初次安装（本地仓库）**：直接用现有 clone，绝不重新下载。
 - **未安装且本地无 clone → 场景 B 初次安装（需克隆）**：此时才 `git clone`。
 - **用户明确要求"更新/检查更新" → 场景 C 更新**：才对比远端提交。
@@ -39,7 +46,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 1. 告知用户在设置 → 皮肤管理页点击目标皮肤的"切换"按钮（或脚本调用 `POST /api/dsh/skins { target }`，同源校验后服务端执行）；
 2. 服务端 `useSkin` 等价于手改两个 patch 层（目标 `disabled: false`、其余 `disabled: true`），**带 catalog 校验与原子回滚**，比手改更安全；
 3. 保存即热重载生效（配置 HMR），**无需重启**；告知用户刷新页面即可，会话不受影响；
-4. 快速验证：`dsh --profile <name> --dump-config` 确认目标皮肤行 `disabled: false`；设置 → 皮肤管理页当前激活标记正确（有 `dsh-plugin-verify` 技能时走其三层验证）。
+4. 快速验证：`dsh --profile <name> --dump-config` 一次输出，确认目标皮肤行 `disabled: false`、其余皮肤 `disabled: true`、管理器 `disabled: false`。到此结束，不做其他验证。
 
 **备选（无 skin-manager 插件 / 脚本化批处理）：手改两个 patch 层**：
 1. 修改**两个** patch 层（都改，home 层覆盖 profile 层）：
@@ -47,7 +54,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
    - `~/.dsh/cordis.patch.yml`
 2. 目标皮肤 `disabled: false`，其余已安装皮肤各补一行 `disabled: true`。注意：patch 里没有行的皮肤默认**启用**，所以"只保留一套"必须显式停用其余每一套。
 3. 保存即热重载生效（配置 HMR），**无需重启**；告知用户刷新页面即可，会话不受影响。
-4. 快速验证：`dsh --profile <name> --dump-config` 确认目标皮肤行 `disabled: false`（有 `dsh-plugin-verify` 技能时走其三层验证）。
+4. 快速验证：`dsh --profile <name> --dump-config` 一次输出，确认目标皮肤行 `disabled: false`、其余皮肤 `disabled: true`。到此结束。
 
 若用户只说了"切换皮肤"而未指明哪一套，才用一句话列出已安装皮肤询问目标。
 
@@ -70,6 +77,8 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 用交互工具（如 `ask_user_question`）列出所有皮肤（名称 + tagline），询问激活哪一套，并始终提供"保持现状/不切换"选项。**初次安装不要跳过交互擅自安装。**
 
+**若用户已在任务里指名皮肤（如"安装 maid-atelier"），跳过询问，直接按该皮肤继续。**
+
 ### 4. 向用户交代版权署名链与许可（初次安装必做）
 
 - **署名链**：读取所选皮肤的 `NOTICE`（署名链权威来源）与 README，简述创作链（"一创 XX → 二创 XX → 本皮肤 XX"），附作者主页链接。**以 NOTICE 实际内容为准**，不要凭记忆介绍。
@@ -84,11 +93,11 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
   **路径规范（安装失败高发区）**：绝对路径最稳（Windows 正斜杠/反斜杠均可，pnpm 会自动规范化）；相对路径按 **dsh 命令调用目录**解析——`./`、`../` 前缀可以，但**不要用裸目录名**（如 `add maid-atelier`，会被当作 npm 包名去 registry 拉取而 404 失败）。安装后先 `dsh plugin --profile <name> list` 确认包已注册，再继续。更新（场景 C）后 bundle 变化走热切换，无需重启；**初次安装是新增插件包，必须重启**。
 - 安装并安全重启后，同样写入两个 patch 层的 `disabled` 行（见场景 A），保持同一时间只启用一套皮肤。
 
-### 6. 验证生效
+### 6. 验证生效（两条命令，到此为止）
 
-- `dsh --profile <name> --dump-config` 核对皮肤行 `disabled` 状态与 patch 来源：每行标注 `patched by <文件路径>`，确认两个 patch 层都生效（home 层覆盖 profile 层）。
-- **安装了 skin-manager 插件时**：设置 → 皮肤管理页应列出该皮肤（`GET /api/dsh/skins` 从 profile 清单发现，无需重启即可显示），可在此激活；皮肤若声明了定制项（`exposeSkinCustomization`），页面显示"深海女仆工坊 / ORCA LINK"等定制卡片，逐项核对开关与说明生效。
-- 有 `dsh-plugin-verify` 技能时走其三层验证（组合层/产物层/执行层）；没有时至少做到：刷新页面后 `window.__DSH_BOOT__` 的 entries 含目标皮肤的 **package 名**（boot 图以包名为 key，不是 `wiring.id`），且进程未重启（PID 不变，证明走的是热重载）。
+- `dsh --profile <name> --dump-config` 一次输出，确认：目标皮肤行存在且 `disabled: false`、其余皮肤 `disabled: true`、管理器 `disabled: false`。能看到这些即可，**不要逐行标注 patch 来源**。
+- 安装了 skin-manager 时，`GET /api/dsh/skins` 能返回目录即可；**不要**核对定制卡片等页面细节。
+- **不要调用 `dsh-plugin-verify`，不要读 dsh 源码。** 页面效果由用户刷新后自行确认；只有用户反馈异常才进入诊断。
 - 告知用户刷新页面查看效果；皮肤异常（控制台报错、布局问题）时收集现象再排查。
 
 ## 场景 C：更新（仅用户明确要求时）
