@@ -35,6 +35,7 @@ import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 import { installMaidComposerCapsule } from './composer-capsule.ts'
 import { installMaidComposerScroll } from './composer-scroll.ts'
 import { installMaidCustomization } from './customization.ts'
+import { installMaidTableCards } from './table-card.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
@@ -417,6 +418,7 @@ export function apply(ctx: Context): void {
   let observer: MutationObserver | undefined
   let titlebarOverlay: WindowControlsOverlay | undefined
   let syncTitlebarHeight: (() => void) | undefined
+  let disposeMaidTableCards: (() => void) | undefined
 
   ctx.effect(() => () => {
     delete body.dataset.dshMaidAtelier
@@ -429,6 +431,7 @@ export function apply(ctx: Context): void {
     }
     disposeMaidComposerCapsule()
     disposeMaidComposerScroll()
+    disposeMaidTableCards()
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
@@ -497,6 +500,7 @@ export function apply(ctx: Context): void {
   // capsule collapses the empty unfocused card, scroll fades it on scroll-up.
   const disposeMaidComposerCapsule = installMaidComposerCapsule(body)
   const disposeMaidComposerScroll = installMaidComposerScroll(body)
+  disposeMaidTableCards = installMaidTableCards(ctx).dispose
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
   body.style.setProperty('--maid-bottom-trim-art', `url(${MAID_ATELIER_BOTTOM_TRIM_TILE})`)
   body.style.setProperty('--maid-bottom-crest-art', `url(${MAID_ATELIER_BOTTOM_CREST})`)

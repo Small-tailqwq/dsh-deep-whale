@@ -1153,12 +1153,72 @@ describe('Maid Atelier skin apply', () => {
     const bubbleRule = CSS.match(
       /\[data-chat-flow-kind='assistant-step'\] > \* > \* > \* > div\[class\*='markdown'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(bubbleRule).toContain('max-width: min(680px, 96%)')
+    expect(bubbleRule).toContain('max-width: min(100%, calc(var(--dsh-chat-content-width, 680px) - 32px))')
     expect(bubbleRule).toContain('padding: 14px 18px')
     expect(bubbleRule).toContain('border-radius: 18px 18px 18px 7px')
     expect(bubbleRule).not.toContain('backdrop-filter')
     expect(CSS).not.toContain("div:not([data-variant])")
     expect(CSS).toContain("[data-variant='think']")
+  })
+
+  it('keeps DSH 0.1.1 wide tables embedded with an explicit expand affordance', () => {
+    const frameRule = CSS.match(
+      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const frameBorderRule = CSS.match(
+      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]::before\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const frameGlowRule = Array.from(
+      CSS.matchAll(/\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]::after\s*\{([^}]*)\}/g),
+      (match) => match[1],
+    ).find((rule) => rule.includes('filter: blur')) ?? ''
+    const wideRule = CSS.match(
+      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\] > :global\(\.md-table-wide\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const expandRule = CSS.match(
+      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\] > \[data-maid-table-expand\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const lightboxRule = CSS.match(/\[data-maid-table-lightbox\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const panelRule = CSS.match(/\[data-maid-table-panel\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const expandedRule = CSS.match(/\[data-maid-table-expanded\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    // The table preview stays inside the bubble. Overflow remains readable by
+    // native horizontal scroll, while table-card.ts adds an explicit expand
+    // control and a skin-owned clone for the large view.
+    expect(frameRule).toContain('width: max-content')
+    expect(frameRule).toContain('max-width: 100%')
+    expect(frameRule).toContain('margin-inline: auto')
+    expect(frameRule).toContain('border-radius: 8px')
+    expect(frameRule).toContain('background:')
+    expect(frameRule).toContain('overflow: visible')
+    expect(frameRule).not.toContain('overflow-x: auto')
+    expect(frameRule).not.toContain('scrollbar-color')
+    expect(frameRule).not.toContain('background-size:')
+    expect(frameBorderRule).toContain('padding: 2px')
+    expect(frameBorderRule).toContain('background-size: 260% 260%')
+    expect(frameBorderRule).toContain('mask-composite: exclude')
+    expect(frameGlowRule).toContain('padding: 4px')
+    expect(frameGlowRule).toContain('filter: blur(4px)')
+    expect(frameGlowRule).toContain('mask-composite: exclude')
+    expect(frameGlowRule).not.toContain('radial-gradient')
+    expect(wideRule).toContain('overflow-x: auto')
+    expect(frameRule).not.toContain('width: min(max-content')
+    expect(frameRule).not.toContain('transform:')
+    expect(frameRule).not.toContain('left: 50%')
+    expect(CSS).not.toContain("[data-chat-flow-kind='assistant-step'] :global(.md-table-wide)::after")
+    expect(CSS).toContain('@keyframes maidAtelierTableLiquidBorder')
+    expect(expandRule).toContain('position: absolute')
+    expect(expandRule).toContain('right: 8px')
+    expect(expandRule).toContain('cursor: zoom-in')
+    expect(lightboxRule).toContain('position: fixed')
+    expect(lightboxRule).toContain('z-index: 940')
+    expect(panelRule).toContain('width: min(var(--maid-table-expanded-width, 1180px), 100%)')
+    expect(expandedRule).toContain('width: 100%')
+    expect(expandedRule).toContain('min-width: 0')
+    // `md-table-wide` is a bare class the renderer emits through clsx; a CSS
+    // Modules build hashes selector classes, which silently disabled the rule
+    // (the breakout kept painting). The :global() guard is the contract.
+    expect(wideRule).not.toHaveLength(0)
+    expect(CSS).toContain(":global(.md-table-wide)")
   })
 
   it('keeps reasoning and command-style assistant blocks outside Markdown bubbles', () => {
@@ -1858,9 +1918,10 @@ describe('Maid Atelier skin apply', () => {
     const workspaceHeaderRule = CSS.match(
       /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const reducedMotionRule = CSS.match(
-      /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/,
-    )?.[1] ?? ''
+    const reducedMotionRule = Array.from(
+      CSS.matchAll(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/g),
+      (match) => match[1],
+    ).join('\n')
     const workspaceHeaderKeyframes = CSS.match(
       /@keyframes maidAtelierWorkspaceHeaderEnter\s*\{[\s\S]*?\r?\n\}/,
     )?.[0] ?? ''
@@ -1870,6 +1931,8 @@ describe('Maid Atelier skin apply', () => {
     expect(reducedMotionRule).toContain('transition: none')
     expect(reducedMotionRule).toContain('animation: none')
     expect(reducedMotionRule).toContain('[data-maid-workspace-active]::before')
+    expect(reducedMotionRule).toContain('[data-maid-table-frame]::before')
+    expect(reducedMotionRule).toContain('[data-maid-table-frame]::after')
   })
 
   it('keeps the skin chrome aligned to the live sidebar width and restores the prior value', async () => {
