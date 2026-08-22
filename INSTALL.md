@@ -14,7 +14,7 @@ Tell dsh one of the following:
 Read https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md and install the skins following its guidance
 ```
 
-**2 Local** — when online reads are unavailable, or you want to control where the clone lives: clone this repository locally first (reuse an existing clone if you have one), open the clone directory in dsh **as the workspace**, then say:
+**2 Local** — when online reads are unavailable, or you want to control where the clone lives: clone this repository locally first (reuse an existing clone if you have one; `git clone --depth 1` is enough), open the clone directory in dsh **as the workspace**, then say:
 
 ```
 Load the skill at <clone directory>/.agents/skills/dsh-skin-install and install the skins from this repository

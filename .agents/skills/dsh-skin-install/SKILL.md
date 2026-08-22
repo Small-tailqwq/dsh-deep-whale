@@ -63,7 +63,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 ### 1. 定位仓库（本地优先，绝不重复下载）
 
 - 在当前工作目录或常见位置找含 `skin.json` 的目录（仓库根或子目录）；**找到即用，不重新 clone**。
-- 找不到本地 clone 时，才 `git clone https://github.com/Small-tailqwq/dsh-deep-whale` 到临时目录。
+- 找不到本地 clone 时，才 `git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale` 到临时目录（浅克隆足够：本仓库分发成品 bundle，不需要历史；网络慢时优先浅克隆）。
 - 皮肤目录形态：每个皮肤 = 一个含 `skin.json` 的子目录（如 `maid-atelier/`、`orca-link/`），`lib/` 内是预构建的 client bundle（随仓库分发，无需自行构建）。
 
 ### 2. 扫描皮肤清单（实时，勿硬编码）

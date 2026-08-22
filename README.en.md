@@ -57,7 +57,7 @@ Click an image for the full size.
 ### Manual installation (fallback; you MUST finish the mutual-exclusion write-up right after)
 
 ```sh
-git clone https://github.com/Small-tailqwq/dsh-deep-whale   # clone anywhere
+git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone anywhere (shallow is enough, skips history)
 dsh plugin --profile web add <abs path to clone>/skin-manager   # persistent skin manager panel (recommended)
 dsh plugin --profile web add <abs path to clone>/maid-atelier   # Abyssal Maid Atelier
 dsh plugin --profile web add <abs path to clone>/orca-link      # ORCA LINK
