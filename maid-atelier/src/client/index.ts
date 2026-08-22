@@ -39,7 +39,7 @@ import { installMaidCustomization } from './customization.ts'
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
-const SIDEBAR_ORNAMENT_SETTLE_MS = 180
+const VIEWPORT_RESIZE_SETTLE_MS = 120
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const CONVERSATION_COLUMN_SELECTOR = ":is([data-pane='conversation'], [class*='centerCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
@@ -387,6 +387,7 @@ export function apply(ctx: Context): void {
   const body = document.body
   ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
   const originalTitle = document.title
+  const layoutResizeLease = createBodyAttributeLease(body, 'data-maid-layout-resizing')
   const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
   const previous = new Map<string, string>()
   for (const property of BACKDROP_PROPERTIES) {
@@ -408,7 +409,8 @@ export function apply(ctx: Context): void {
   let resizeObserver: ResizeObserver | undefined
   let composerPhase: 'hero' | 'active' | undefined
   let composerMotionTimer: ReturnType<typeof setTimeout> | undefined
-  let sidebarOrnamentTimer: ReturnType<typeof setTimeout> | undefined
+  let viewportResizeTimer: ReturnType<typeof setTimeout> | undefined
+  let handleViewportResize: (() => void) | undefined
   let railSearchFocusFrame: number | undefined
   let recoverRailSearchFocus: ((event: MouseEvent) => void) | undefined
   let settingsBackdropFrame: HTMLDivElement | undefined
@@ -428,7 +430,9 @@ export function apply(ctx: Context): void {
     disposeMaidComposerCapsule()
     disposeMaidComposerScroll()
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
-    if (sidebarOrnamentTimer !== undefined) clearTimeout(sidebarOrnamentTimer)
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
+    layoutResizeLease.release()
     lowPowerLease.release()
     if (railSearchFocusFrame !== undefined) cancelAnimationFrame(railSearchFocusFrame)
     if (recoverRailSearchFocus !== undefined) {
@@ -460,6 +464,15 @@ export function apply(ctx: Context): void {
     if (document.title === SKIN_TITLE) document.title = originalTitle
   }, 'ui-skin-maid-atelier: layered background and ornament')
 
+  handleViewportResize = (): void => {
+    layoutResizeLease.acquire()
+    if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
+    viewportResizeTimer = setTimeout(() => {
+      layoutResizeLease.release()
+      viewportResizeTimer = undefined
+    }, VIEWPORT_RESIZE_SETTLE_MS)
+  }
+  window.addEventListener('resize', handleViewportResize)
   if (!hasAcceleratedWebGL()) lowPowerLease.acquire()
 
   const syncSystemChrome = (): void => {
@@ -569,28 +582,6 @@ export function apply(ctx: Context): void {
   titlebarOverlay?.addEventListener('geometrychange', syncTitlebarHeight)
   syncTitlebarHeight()
 
-  const applySidebarOrnamentSize = (width: number): void => {
-    const roundPx = (value: number): string => `${Math.round(value * 100) / 100}px`
-    widthRule.style.setProperty('--maid-sidebar-swag-height', roundPx(Math.min(94, Math.max(54, width * 0.2575))))
-    widthRule.style.setProperty('--maid-sidebar-mascot-width', roundPx(Math.min(320, width * 0.82)))
-  }
-
-  let sidebarOrnamentInitialized = false
-  const scheduleSidebarOrnamentSize = (width: number, sizeChanged: boolean): void => {
-    if (sidebarOrnamentTimer !== undefined) clearTimeout(sidebarOrnamentTimer)
-    sidebarOrnamentTimer = undefined
-    if (!sidebarOrnamentInitialized || sizeChanged) {
-      applySidebarOrnamentSize(width)
-      sidebarOrnamentInitialized = true
-      return
-    }
-    sidebarOrnamentTimer = setTimeout(() => {
-      const stableWidth = Number.parseFloat(widthRule.style.getPropertyValue('--maid-sidebar-width'))
-      if (stableWidth > 0) applySidebarOrnamentSize(stableWidth)
-      sidebarOrnamentTimer = undefined
-    }, SIDEBAR_ORNAMENT_SETTLE_MS)
-  }
-
   const applySidebarWidth = (width: number): void => {
     if (width <= 0) return
     const roundPx = (value: number): string => `${Math.round(value * 100) / 100}px`
@@ -600,22 +591,20 @@ export function apply(ctx: Context): void {
     // curtain translate, ::after centering) and forces a full style pass per
     // frame. Write only when a derived state actually moved.
     const compact = width <= 104
-    const sizeChanged = body.dataset.maidSidebarSize !== nextSize
-    const compactChanged = body.hasAttribute('data-maid-sidebar-compact') !== compact
     if (roundPx(width) === widthRule.style.getPropertyValue('--maid-sidebar-width')
-      && !sizeChanged
-      && !compactChanged) {
+      && body.dataset.maidSidebarSize === nextSize
+      && body.hasAttribute('data-maid-sidebar-compact') === compact) {
       return
     }
     widthRule.style.setProperty('--maid-sidebar-width', roundPx(width))
-    scheduleSidebarOrnamentSize(width, sizeChanged)
-    if (sizeChanged) body.dataset.maidSidebarSize = nextSize
-    if (compactChanged) body.toggleAttribute('data-maid-sidebar-compact', compact)
+    widthRule.style.setProperty('--maid-sidebar-swag-height', roundPx(Math.min(94, Math.max(54, width * 0.2575))))
+    widthRule.style.setProperty('--maid-sidebar-mascot-width', roundPx(Math.min(320, width * 0.82)))
+    body.dataset.maidSidebarSize = nextSize
+    if (compact) body.dataset.maidSidebarCompact = ''
+    else delete body.dataset.maidSidebarCompact
   }
 
   const clearSidebarWidth = (): void => {
-    if (sidebarOrnamentTimer !== undefined) clearTimeout(sidebarOrnamentTimer)
-    sidebarOrnamentTimer = undefined
     widthRule.style.setProperty('--maid-sidebar-width', '0px')
     widthRule.style.setProperty('--maid-sidebar-swag-height', '54px')
     widthRule.style.setProperty('--maid-sidebar-mascot-width', '0px')
@@ -649,13 +638,21 @@ export function apply(ctx: Context): void {
     )
   }
 
-  const ensureSidebarObserved = (): void => {
+  let observedChatArea: HTMLElement | undefined
+
+  const ensureResizeObserved = (): void => {
     if (!resizeObserver) return
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar !== observedSidebar) {
       if (observedSidebar) resizeObserver.unobserve(observedSidebar)
       observedSidebar = sidebar ?? undefined
       if (sidebar) resizeObserver.observe(sidebar)
+    }
+    const chat = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
+    if (chat !== observedChatArea) {
+      if (observedChatArea) resizeObserver.unobserve(observedChatArea)
+      observedChatArea = chat ?? undefined
+      if (chat) resizeObserver.observe(chat)
     }
   }
 
@@ -696,8 +693,12 @@ export function apply(ctx: Context): void {
 
   if (typeof ResizeObserver !== 'undefined') {
     resizeObserver = new ResizeObserver((entries) => {
+      // Sidebar entries drive the ornament width; conversation-area entries
+      // drive the layout lease so maid tracking re-tracks during any push
+      // (right/bottom workbench panels) without transition lag.
       for (const entry of entries) {
         if (entry.target === observedSidebar) applySidebarWidth(entry.contentRect.width)
+        else if (entry.target === observedChatArea) handleViewportResize?.()
       }
     })
   }
@@ -764,7 +765,7 @@ export function apply(ctx: Context): void {
   decorateWorkspaceTree(decoratedElements)
   ensureChatAreaStage(characterStage)
   ensureChatAreaChrome(topTrim, bottomTrim)
-  ensureSidebarObserved()
+  ensureResizeObserved()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
   syncComposerMotion()
@@ -778,7 +779,7 @@ export function apply(ctx: Context): void {
     decorateWorkspaceTree(decoratedElements)
     ensureChatAreaStage(characterStage)
     ensureChatAreaChrome(topTrim, bottomTrim)
-    ensureSidebarObserved()
+    ensureResizeObserved()
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar === null) clearSidebarWidth()
     else if (resizeObserver === undefined) applySidebarWidth(sidebar.getBoundingClientRect().width)
@@ -862,7 +863,7 @@ export function apply(ctx: Context): void {
     if (!sidebarStructureChanged && chatStructureChanged) {
       ensureChatAreaStage(characterStage)
       ensureChatAreaChrome(topTrim, bottomTrim)
-      ensureSidebarObserved()
+      ensureResizeObserved()
     }
     if (backdropChanged) syncBackdrop()
     if (composerChanged) {
