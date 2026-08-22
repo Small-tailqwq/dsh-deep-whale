@@ -418,7 +418,7 @@ export function apply(ctx: Context): void {
   let observer: MutationObserver | undefined
   let titlebarOverlay: WindowControlsOverlay | undefined
   let syncTitlebarHeight: (() => void) | undefined
-  let disposeMaidTableCards: (() => void) | undefined
+  let disposeMaidTableCards = (): void => {}
 
   ctx.effect(() => () => {
     delete body.dataset.dshMaidAtelier

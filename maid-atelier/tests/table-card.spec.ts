@@ -25,7 +25,7 @@ describe('installMaidTableCards', () => {
     expect(card.style.marginLeft).toBe('')
   })
 
-  it('marks overflowing tables as expandable and opens a cloned lightbox', () => {
+  it('marks overflowing tables as expandable and opens a cloned lightbox', async () => {
     let resize: ResizeObserverCallback | undefined
     vi.stubGlobal('ResizeObserver', class {
       constructor(callback: ResizeObserverCallback) {
@@ -74,6 +74,8 @@ describe('installMaidTableCards', () => {
     expect(card.hasAttribute('data-maid-table-open')).toBe(true)
     expect(lightbox?.querySelector('[data-maid-table-expanded] table')).not.toBeNull()
     expect(lightbox?.querySelector('[data-maid-table-expand]')).toBeNull()
+    await Promise.resolve()
+    expect(lightbox?.querySelector('[data-maid-table-frame]')).toBeNull()
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(card.hasAttribute('data-maid-table-open')).toBe(false)
@@ -107,7 +109,13 @@ describe('installMaidTableCards', () => {
         ?.click()
       expect(document.querySelector('[data-maid-table-lightbox]')).not.toBeNull()
 
+      const timerBaseline = vi.getTimerCount()
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      expect(document.querySelector('[data-maid-table-closing]')).not.toBeNull()
+      expect(vi.getTimerCount()).toBe(timerBaseline + 1)
+
       runtime.dispose()
+      expect(vi.getTimerCount()).toBe(timerBaseline)
       vi.runAllTimers()
 
       expect(card.closest('[data-maid-table-frame]')).toBeNull()
@@ -153,6 +161,11 @@ describe('installMaidTableCards', () => {
     expect(frame?.hasAttribute('data-maid-table-expandable')).toBe(false)
     expect(button?.hidden).toBe(true)
 
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+    expect(card.dispatchEvent(enter)).toBe(true)
+    expect(enter.defaultPrevented).toBe(false)
+    expect(document.querySelector('[data-maid-table-lightbox]')).toBeNull()
+
     Object.defineProperty(card, 'scrollWidth', { configurable: true, value: 960 })
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
     expect(card.getAttribute('tabindex')).toBe('0')
@@ -161,6 +174,28 @@ describe('installMaidTableCards', () => {
 
     runtime.dispose()
     expect(card.getAttribute('tabindex')).toBe('-1')
+  })
+
+  it('retracts a partially adopted table when installation throws', () => {
+    vi.stubGlobal('ResizeObserver', class {
+      observe(): void {
+        throw new Error('observe failed')
+      }
+      unobserve(): void {}
+      disconnect(): void {}
+    })
+
+    const card = document.createElement('div')
+    card.className = 'md-table-wide'
+    card.setAttribute('tabindex', '-1')
+    document.body.append(card)
+
+    expect(() => installMaidTableCards({} as never)).toThrow('observe failed')
+    expect(card.parentElement).toBe(document.body)
+    expect(card.closest('[data-maid-table-frame]')).toBeNull()
+    expect(card.getAttribute('tabindex')).toBe('-1')
+    expect(card.hasAttribute('data-maid-table-expandable')).toBe(false)
+    expect(document.querySelector('[data-maid-table-expand]')).toBeNull()
   })
 
   it('does not open the table lightbox while a native modal dialog is present', () => {

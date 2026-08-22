@@ -756,6 +756,7 @@ window.__ModuleLoader__.load({
 			let observer;
 			let resizeObserver;
 			let overlay;
+			const closingOverlays = /* @__PURE__ */ new Map();
 			const release = (wrapper) => {
 				const binding = bindings.get(wrapper);
 				if (binding !== void 0) {
@@ -788,13 +789,25 @@ window.__ModuleLoader__.load({
 					return;
 				}
 				root.dataset.maidTableClosing = "";
-				window.setTimeout(() => root.remove(), 180);
+				const timer = window.setTimeout(() => {
+					closingOverlays.delete(root);
+					root.remove();
+				}, 180);
+				closingOverlays.set(root, timer);
+			};
+			const removeClosingOverlays = () => {
+				for (const [root, timer] of closingOverlays) {
+					clearTimeout(timer);
+					root.remove();
+				}
+				closingOverlays.clear();
 			};
 			const hasForeignModalDialog = () => {
 				return Array.from(document.querySelectorAll(MODAL_DIALOG_SELECTOR)).some(isForeignModalDialog);
 			};
 			const openOverlay = (wrapper) => {
-				closeOverlay();
+				closeOverlay(true);
+				removeClosingOverlays();
 				if (hasForeignModalDialog()) return;
 				const root = document.createElement("div");
 				root.setAttribute(OVERLAY_ATTRIBUTE, "");
@@ -866,7 +879,7 @@ window.__ModuleLoader__.load({
 				if (button !== void 0) button.hidden = !wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE);
 			};
 			const adopt = (wrapper) => {
-				if (bindings.has(wrapper)) return;
+				if (bindings.has(wrapper) || wrapper.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null) return;
 				const parent = wrapper.parentNode;
 				if (parent === null) return;
 				const frame = document.createElement("div");
@@ -885,7 +898,7 @@ window.__ModuleLoader__.load({
 					openOverlay(wrapper);
 				};
 				const onKeyDown = (event) => {
-					if (event.key !== "Enter" && event.key !== " " || interactiveTarget(event.target)) return;
+					if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE) || event.key !== "Enter" && event.key !== " " || interactiveTarget(event.target)) return;
 					event.preventDefault();
 					openOverlay(wrapper);
 				};
@@ -895,12 +908,6 @@ window.__ModuleLoader__.load({
 				const onPointerLeave = () => {
 					frame.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE);
 				};
-				button.addEventListener("click", onClick);
-				wrapper.addEventListener("keydown", onKeyDown);
-				wrapper.addEventListener("pointerleave", onPointerLeave);
-				wrapper.addEventListener("scroll", onScroll, { passive: true });
-				parent.insertBefore(frame, wrapper);
-				frame.append(wrapper, button);
 				bindings.set(wrapper, {
 					button,
 					frame,
@@ -910,35 +917,53 @@ window.__ModuleLoader__.load({
 					onPointerLeave,
 					onScroll
 				});
-				resizeObserver?.observe(wrapper);
-				measure(wrapper);
-			};
-			if (typeof ResizeObserver !== "undefined") resizeObserver = new ResizeObserver((entries) => {
-				for (const entry of entries) measure(entry.target);
-			});
-			observer = new MutationObserver((records) => {
-				let sawForeignModal = false;
-				for (const record of records) for (const node of record.addedNodes) {
-					if (!(node instanceof Element)) continue;
-					if (isForeignModalDialog(node) || Array.from(node.querySelectorAll(MODAL_DIALOG_SELECTOR)).some(isForeignModalDialog)) sawForeignModal = true;
-					if (node.matches(".md-table-wide")) adopt(node);
-					else if (node.querySelectorAll(".md-table-wide").length > 0) node.querySelectorAll(MAID_TABLE_SELECTOR).forEach(adopt);
+				try {
+					button.addEventListener("click", onClick);
+					wrapper.addEventListener("keydown", onKeyDown);
+					wrapper.addEventListener("pointerleave", onPointerLeave);
+					wrapper.addEventListener("scroll", onScroll, { passive: true });
+					parent.insertBefore(frame, wrapper);
+					frame.append(wrapper, button);
+					resizeObserver?.observe(wrapper);
+					measure(wrapper);
+				} catch (error) {
+					release(wrapper);
+					throw error;
 				}
-				if (sawForeignModal && overlay !== void 0) closeOverlay(true);
-			});
-			observer.observe(document.body, {
-				childList: true,
-				subtree: true
-			});
-			document.querySelectorAll(MAID_TABLE_SELECTOR).forEach(adopt);
-			return { dispose() {
+			};
+			const runtime = { dispose() {
 				closeOverlay(true);
+				removeClosingOverlays();
 				observer?.disconnect();
 				resizeObserver?.disconnect();
 				resizeObserver = void 0;
 				for (const wrapper of [...bindings.keys()]) release(wrapper);
 				bindings.clear();
 			} };
+			try {
+				if (typeof ResizeObserver !== "undefined") resizeObserver = new ResizeObserver((entries) => {
+					for (const entry of entries) measure(entry.target);
+				});
+				observer = new MutationObserver((records) => {
+					let sawForeignModal = false;
+					for (const record of records) for (const node of record.addedNodes) {
+						if (!(node instanceof Element)) continue;
+						if (isForeignModalDialog(node) || Array.from(node.querySelectorAll(MODAL_DIALOG_SELECTOR)).some(isForeignModalDialog)) sawForeignModal = true;
+						if (node.matches(".md-table-wide")) adopt(node);
+						else if (node.querySelectorAll(".md-table-wide").length > 0) node.querySelectorAll(MAID_TABLE_SELECTOR).forEach(adopt);
+					}
+					if (sawForeignModal && overlay !== void 0) closeOverlay(true);
+				});
+				observer.observe(document.body, {
+					childList: true,
+					subtree: true
+				});
+				document.querySelectorAll(MAID_TABLE_SELECTOR).forEach(adopt);
+				return runtime;
+			} catch (error) {
+				runtime.dispose();
+				throw error;
+			}
 		}
 		//#endregion
 		//#region src/client/index.ts
@@ -1260,7 +1285,7 @@ window.__ModuleLoader__.load({
 			let observer;
 			let titlebarOverlay;
 			let syncTitlebarHeight;
-			let disposeMaidTableCards;
+			let disposeMaidTableCards = () => {};
 			ctx.effect(() => () => {
 				delete body.dataset.dshMaidAtelier;
 				delete body.dataset.maidComposerMotion;

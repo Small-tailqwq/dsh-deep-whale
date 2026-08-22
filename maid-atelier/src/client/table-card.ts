@@ -69,6 +69,7 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
   let observer: MutationObserver | undefined
   let resizeObserver: ResizeObserver | undefined
   let overlay: OverlayState | undefined
+  const closingOverlays = new Map<HTMLDivElement, ReturnType<typeof setTimeout>>()
 
   const release = (wrapper: HTMLElement): void => {
     const binding = bindings.get(wrapper)
@@ -104,7 +105,19 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
       return
     }
     root.dataset.maidTableClosing = ''
-    window.setTimeout(() => root.remove(), 180)
+    const timer = window.setTimeout(() => {
+      closingOverlays.delete(root)
+      root.remove()
+    }, 180)
+    closingOverlays.set(root, timer)
+  }
+
+  const removeClosingOverlays = (): void => {
+    for (const [root, timer] of closingOverlays) {
+      clearTimeout(timer)
+      root.remove()
+    }
+    closingOverlays.clear()
   }
 
   const hasForeignModalDialog = (): boolean => {
@@ -112,7 +125,8 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
   }
 
   const openOverlay = (wrapper: HTMLElement): void => {
-    closeOverlay()
+    closeOverlay(true)
+    removeClosingOverlays()
     if (hasForeignModalDialog()) return
 
     const root = document.createElement('div')
@@ -196,7 +210,7 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
   }
 
   const adopt = (wrapper: HTMLElement): void => {
-    if (bindings.has(wrapper)) return
+    if (bindings.has(wrapper) || wrapper.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null) return
     const parent = wrapper.parentNode
     if (parent === null) return
     const frame = document.createElement('div')
@@ -215,7 +229,9 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
       openOverlay(wrapper)
     }
     const onKeyDown = (event: KeyboardEvent): void => {
-      if ((event.key !== 'Enter' && event.key !== ' ') || interactiveTarget(event.target)) return
+      if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)
+        || (event.key !== 'Enter' && event.key !== ' ')
+        || interactiveTarget(event.target)) return
       event.preventDefault()
       openOverlay(wrapper)
     }
@@ -225,12 +241,6 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     const onPointerLeave = (): void => {
       frame.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE)
     }
-    button.addEventListener('click', onClick)
-    wrapper.addEventListener('keydown', onKeyDown)
-    wrapper.addEventListener('pointerleave', onPointerLeave)
-    wrapper.addEventListener('scroll', onScroll, { passive: true })
-    parent.insertBefore(frame, wrapper)
-    frame.append(wrapper, button)
     bindings.set(wrapper, {
       button,
       frame,
@@ -240,45 +250,63 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
       onPointerLeave,
       onScroll,
     })
-    resizeObserver?.observe(wrapper)
-    measure(wrapper)
-  }
-
-  if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        measure(entry.target as HTMLElement)
-      }
-    })
-  }
-
-  observer = new MutationObserver((records) => {
-    let sawForeignModal = false
-    for (const record of records) {
-      for (const node of record.addedNodes) {
-        if (!(node instanceof Element)) continue
-        if (isForeignModalDialog(node) || Array.from(node.querySelectorAll(MODAL_DIALOG_SELECTOR)).some(isForeignModalDialog)) {
-          sawForeignModal = true
-        }
-        if (node.matches(MAID_TABLE_SELECTOR)) adopt(node as HTMLElement)
-        else if (node.querySelectorAll(MAID_TABLE_SELECTOR).length > 0) {
-          node.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(adopt)
-        }
-      }
+    try {
+      button.addEventListener('click', onClick)
+      wrapper.addEventListener('keydown', onKeyDown)
+      wrapper.addEventListener('pointerleave', onPointerLeave)
+      wrapper.addEventListener('scroll', onScroll, { passive: true })
+      parent.insertBefore(frame, wrapper)
+      frame.append(wrapper, button)
+      resizeObserver?.observe(wrapper)
+      measure(wrapper)
+    } catch (error) {
+      release(wrapper)
+      throw error
     }
-    if (sawForeignModal && overlay !== undefined) closeOverlay(true)
-  })
-  observer.observe(document.body, { childList: true, subtree: true })
-  document.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(adopt)
+  }
 
-  return {
+  const runtime: TableCardRuntime = {
     dispose(): void {
       closeOverlay(true)
+      removeClosingOverlays()
       observer?.disconnect()
       resizeObserver?.disconnect()
       resizeObserver = undefined
       for (const wrapper of [...bindings.keys()]) release(wrapper)
       bindings.clear()
     },
+  }
+
+  try {
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          measure(entry.target as HTMLElement)
+        }
+      })
+    }
+
+    observer = new MutationObserver((records) => {
+      let sawForeignModal = false
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (!(node instanceof Element)) continue
+          if (isForeignModalDialog(node) || Array.from(node.querySelectorAll(MODAL_DIALOG_SELECTOR)).some(isForeignModalDialog)) {
+            sawForeignModal = true
+          }
+          if (node.matches(MAID_TABLE_SELECTOR)) adopt(node as HTMLElement)
+          else if (node.querySelectorAll(MAID_TABLE_SELECTOR).length > 0) {
+            node.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(adopt)
+          }
+        }
+      }
+      if (sawForeignModal && overlay !== undefined) closeOverlay(true)
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    document.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(adopt)
+    return runtime
+  } catch (error) {
+    runtime.dispose()
+    throw error
   }
 }
