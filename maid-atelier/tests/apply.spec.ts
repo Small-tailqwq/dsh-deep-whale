@@ -989,7 +989,10 @@ describe('Maid Atelier skin apply', () => {
     expect(stageRule).toContain('inset: 0')
     expect(stageRule).toContain('z-index: 0')
     expect(stageRule).toContain('contain: strict')
-    expect(stageRule).toContain('background: var(--maid-palace-art)')
+    // cover + center: wide chat crops the vertical overflow centered (top and
+    // bottom together); a chat narrower than the art keeps it full-height and
+    // crops horizontally centered — never shrink-to-width.
+    expect(stageRule).toContain('background: var(--maid-palace-art) center / cover no-repeat')
     expect(sharedRule).toContain('translate 620ms')
     expect(sharedRule).not.toContain('left 620ms')
     expect(sharedRule).not.toContain('right 620ms')

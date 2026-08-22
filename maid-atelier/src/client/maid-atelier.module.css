@@ -113,7 +113,14 @@ body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
   overflow: hidden;
   pointer-events: none;
   contain: strict;
-  background: var(--maid-palace-art) center top / cover no-repeat;
+  /* Palace scaling policy: `cover` keeps the art's aspect ratio and fills the
+     stage on both axes by scaling to the WIDER axis — a wide chat area shows
+     the art edge-to-edge horizontally and crops the vertical overflow, while
+     a chat area narrower than the art's ratio keeps the art full-height and
+     crops the horizontal overflow (no shrink-to-width in narrow windows).
+     Position `center` centers the overhanging axis on both sides (top+bottom
+     or left+right), instead of anchoring to the top edge. */
+  background: var(--maid-palace-art) center / cover no-repeat;
 }
 
 /* The conversation column is the stage's containing block. It stays
