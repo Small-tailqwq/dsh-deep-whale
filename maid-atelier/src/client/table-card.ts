@@ -21,6 +21,7 @@ const EXPANDABLE_ATTRIBUTE = 'data-maid-table-expandable'
 const OPEN_ATTRIBUTE = 'data-maid-table-open'
 const CONTROL_ATTRIBUTE = 'data-maid-table-expand'
 const FRAME_ATTRIBUTE = 'data-maid-table-frame'
+const SCROLL_SUPPRESSED_ATTRIBUTE = 'data-maid-table-scroll-suppressed'
 const OVERLAY_ATTRIBUTE = 'data-maid-table-lightbox'
 const MODAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true']"
 const EXPANDED_HORIZONTAL_CHROME = 96
@@ -37,6 +38,8 @@ interface TableBinding {
   originalTabIndex: string | null
   onClick: (event: MouseEvent) => void
   onKeyDown: (event: KeyboardEvent) => void
+  onPointerLeave: () => void
+  onScroll: () => void
 }
 
 interface OverlayState {
@@ -72,6 +75,8 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     if (binding !== undefined) {
       binding.button.removeEventListener('click', binding.onClick)
       wrapper.removeEventListener('keydown', binding.onKeyDown)
+      wrapper.removeEventListener('pointerleave', binding.onPointerLeave)
+      wrapper.removeEventListener('scroll', binding.onScroll)
       bindings.delete(wrapper)
       if (binding.originalTabIndex === null) wrapper.removeAttribute('tabindex')
       else wrapper.setAttribute('tabindex', binding.originalTabIndex)
@@ -202,7 +207,8 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     button.hidden = true
     button.setAttribute(CONTROL_ATTRIBUTE, '')
     button.dataset.skinOwner = SKIN_OWNER
-    button.setAttribute('aria-label', '展开表格')
+    button.setAttribute('aria-label', '展开表格预览')
+    button.title = '展开表格预览'
     const originalTabIndex = wrapper.getAttribute('tabindex')
     const onClick = (event: MouseEvent): void => {
       event.stopPropagation()
@@ -213,11 +219,27 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
       event.preventDefault()
       openOverlay(wrapper)
     }
+    const onScroll = (): void => {
+      frame.setAttribute(SCROLL_SUPPRESSED_ATTRIBUTE, '')
+    }
+    const onPointerLeave = (): void => {
+      frame.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE)
+    }
     button.addEventListener('click', onClick)
     wrapper.addEventListener('keydown', onKeyDown)
+    wrapper.addEventListener('pointerleave', onPointerLeave)
+    wrapper.addEventListener('scroll', onScroll, { passive: true })
     parent.insertBefore(frame, wrapper)
     frame.append(wrapper, button)
-    bindings.set(wrapper, { button, frame, originalTabIndex, onClick, onKeyDown })
+    bindings.set(wrapper, {
+      button,
+      frame,
+      originalTabIndex,
+      onClick,
+      onKeyDown,
+      onPointerLeave,
+      onScroll,
+    })
     resizeObserver?.observe(wrapper)
     measure(wrapper)
   }

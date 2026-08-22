@@ -58,6 +58,13 @@ describe('installMaidTableCards', () => {
     expect(frame?.hasAttribute('data-maid-table-expandable')).toBe(true)
     const button = frame?.querySelector<HTMLButtonElement>('[data-maid-table-expand]')
     expect(button?.dataset.skinOwner).toBe('maid-atelier')
+    expect(button?.getAttribute('aria-label')).toBe('展开表格预览')
+    expect(button?.title).toBe('展开表格预览')
+
+    card.dispatchEvent(new Event('scroll'))
+    expect(frame?.hasAttribute('data-maid-table-scroll-suppressed')).toBe(true)
+    card.dispatchEvent(new Event('pointerleave'))
+    expect(frame?.hasAttribute('data-maid-table-scroll-suppressed')).toBe(false)
 
     button?.click()
     const lightbox = document.querySelector('[data-maid-table-lightbox]')
