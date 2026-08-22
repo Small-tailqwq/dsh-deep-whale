@@ -191,6 +191,15 @@ function ensureChatAreaStage(stage: HTMLElement): boolean {
   return true
 }
 
+function ensureChatAreaChrome(...chrome: HTMLElement[]): boolean {
+  const chat = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
+  if (!chat) return false
+  for (const element of chrome) {
+    if (element.parentElement !== chat) chat.append(element)
+  }
+  return true
+}
+
 function hasAcceleratedWebGL(): boolean {
   if (typeof WebGLRenderingContext === 'undefined') return false
   const canvas = document.createElement('canvas')
@@ -734,10 +743,28 @@ export function apply(ctx: Context): void {
     }
   }
 
+  const topTrim = document.createElement('div')
+  topTrim.dataset.skinChrome = 'top-trim'
+  topTrim.dataset.skinOwner = SKIN_OWNER
+  topTrim.setAttribute('aria-hidden', 'true')
+  const landingTrimLayer = document.createElement('div')
+  landingTrimLayer.dataset.skinTrimLayer = 'landing'
+  const workspaceTrimLayer = document.createElement('div')
+  workspaceTrimLayer.dataset.skinTrimLayer = 'workspace'
+  topTrim.append(landingTrimLayer, workspaceTrimLayer)
+  ownedNodes.add(topTrim)
+
+  const bottomTrim = document.createElement('div')
+  bottomTrim.dataset.skinChrome = 'bottom-trim'
+  bottomTrim.dataset.skinOwner = SKIN_OWNER
+  bottomTrim.setAttribute('aria-hidden', 'true')
+  ownedNodes.add(bottomTrim)
+
   decorateTitlebarBrand(ownedNodes)
   decorateSidebar(ownedNodes, decoratedElements)
   decorateWorkspaceTree(decoratedElements)
   ensureChatAreaStage(characterStage)
+  ensureChatAreaChrome(topTrim, bottomTrim)
   ensureResizeObserved()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
@@ -751,6 +778,7 @@ export function apply(ctx: Context): void {
     decorateSidebar(ownedNodes, decoratedElements)
     decorateWorkspaceTree(decoratedElements)
     ensureChatAreaStage(characterStage)
+    ensureChatAreaChrome(topTrim, bottomTrim)
     ensureResizeObserved()
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar === null) clearSidebarWidth()
@@ -834,6 +862,7 @@ export function apply(ctx: Context): void {
     else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
     if (!sidebarStructureChanged && chatStructureChanged) {
       ensureChatAreaStage(characterStage)
+      ensureChatAreaChrome(topTrim, bottomTrim)
       ensureResizeObserved()
     }
     if (backdropChanged) syncBackdrop()
@@ -857,25 +886,6 @@ export function apply(ctx: Context): void {
     childList: true,
     subtree: true,
   })
-
-  const topTrim = document.createElement('div')
-  topTrim.dataset.skinChrome = 'top-trim'
-  topTrim.dataset.skinOwner = SKIN_OWNER
-  topTrim.setAttribute('aria-hidden', 'true')
-  const landingTrimLayer = document.createElement('div')
-  landingTrimLayer.dataset.skinTrimLayer = 'landing'
-  const workspaceTrimLayer = document.createElement('div')
-  workspaceTrimLayer.dataset.skinTrimLayer = 'workspace'
-  topTrim.append(landingTrimLayer, workspaceTrimLayer)
-  ownedNodes.add(topTrim)
-  body.append(topTrim)
-
-  const bottomTrim = document.createElement('div')
-  bottomTrim.dataset.skinChrome = 'bottom-trim'
-  bottomTrim.dataset.skinOwner = SKIN_OWNER
-  bottomTrim.setAttribute('aria-hidden', 'true')
-  ownedNodes.add(bottomTrim)
-  body.append(bottomTrim)
 
   const favicon = document.createElement('link')
   favicon.rel = 'icon'

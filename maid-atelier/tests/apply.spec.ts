@@ -116,6 +116,7 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('injects chrome and retracts every element on dispose', async () => {
+    document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()
     expect(document.body.querySelectorAll('[data-skin-chrome]').length).toBeGreaterThan(0)
     expect(document.body.querySelectorAll('[data-skin-trim-layer]')).toHaveLength(2)
@@ -394,10 +395,16 @@ describe('Maid Atelier skin apply', () => {
     document.body.innerHTML = '<div class="fixture_centerCol"></div>'
     fiber = await mount()
     const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+    const topTrim = document.querySelector<HTMLElement>("[data-skin-chrome='top-trim']")
+    const bottomTrim = document.querySelector<HTMLElement>("[data-skin-chrome='bottom-trim']")
     expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+    expect(topTrim?.parentElement?.className).toBe('fixture_centerCol')
+    expect(bottomTrim?.parentElement?.className).toBe('fixture_centerCol')
     // Palace + maids are one owned layer retracted on dispose.
     await fiber.dispose()
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='top-trim']")).toBeNull()
+    expect(document.querySelector("[data-skin-chrome='bottom-trim']")).toBeNull()
   })
 
   it('retries seating the character stage when the conversation column mounts later', async () => {
@@ -408,7 +415,11 @@ describe('Maid Atelier skin apply', () => {
     await flushMutations()
 
     const stage = document.querySelector<HTMLElement>("[data-skin-chrome='character-stage']")
+    const topTrim = document.querySelector<HTMLElement>("[data-skin-chrome='top-trim']")
+    const bottomTrim = document.querySelector<HTMLElement>("[data-skin-chrome='bottom-trim']")
     expect(stage?.parentElement?.className).toBe('fixture_centerCol')
+    expect(topTrim?.parentElement?.className).toBe('fixture_centerCol')
+    expect(bottomTrim?.parentElement?.className).toBe('fixture_centerCol')
   })
 
   it('keeps each overlapping activation in ownership of its own character stage', async () => {
@@ -1462,6 +1473,10 @@ describe('Maid Atelier skin apply', () => {
     expect(topTrimRule).toContain('z-index: 20')
     expect(bottomTrimRule).toContain('z-index: 20')
     expect(conversationHeaderRule).toContain('z-index: 21')
+    expect(CSS).not.toContain("button[class*='tab']")
+    expect(CSS).not.toContain("[class*='tabActive']")
+    expect(CSS).toMatch(/button\[role='tab'\]\s*\{[^}]*color: #d7def0/s)
+    expect(CSS).toMatch(/button\[role='tab'\]\[aria-selected='true'\]\s*\{[^}]*color: #fff7e6/s)
     expect(composerRule).toContain('z-index: 21')
     // Not a promotion any more: the sidebar row releases its stacking
     // context (z-index: auto, position stays relative) so the settings
@@ -1752,19 +1767,21 @@ describe('Maid Atelier skin apply', () => {
     expect(workspaceTrimRule).toContain('height: 76px')
     expect(workspaceTrimRule).toContain('background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x')
     expect(CSS).not.toMatch(/var\(--maid-top-trim-art\)[^;]*100% 100%/)
+    expect(topTrimRule).toContain('position: absolute')
     expect(topTrimRule).toContain('inset: 0 0 auto 0')
-    expect(topTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(topTrimRule).not.toContain('--maid-sidebar-width')
     expect(topTrimRule).not.toContain('box-shadow')
   })
 
   it('tiles the bottom border while keeping its center crest independently sized', () => {
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const crestRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]::after\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(bottomTrimRule).toContain('position: absolute')
     expect(bottomTrimRule).toContain('inset: auto 0 0 0')
-    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).not.toContain('--maid-sidebar-width')
     expect(bottomTrimRule).toContain('background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x')
     expect(bottomTrimRule).not.toContain('100% 100%')
-    expect(crestRule).toContain('left: calc((100% - var(--maid-sidebar-width) - 8px) / 2)')
+    expect(crestRule).toContain('left: calc((100% - 8px) / 2)')
     expect(crestRule).toContain('transform: translateX(-50%)')
     expect(crestRule).toContain('background: var(--maid-bottom-crest-art) center / contain no-repeat')
   })
@@ -1777,7 +1794,7 @@ describe('Maid Atelier skin apply', () => {
     const movingTrimRule = CSS.match(
       /body\[data-dsh-maid-atelier\]\[data-maid-composer-motion\]\s*\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(bottomTrimRule).toContain('translate: var(--maid-sidebar-width) 0')
+    expect(bottomTrimRule).not.toContain('--maid-sidebar-width')
     expect(bottomTrimRule).toContain('transform: translateY(0)')
     expect(bottomTrimRule).toContain('transition: transform 520ms')
     expect(bottomTrimRule).not.toContain('transition: translate 520ms')

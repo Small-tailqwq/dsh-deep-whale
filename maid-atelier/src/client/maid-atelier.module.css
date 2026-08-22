@@ -255,9 +255,8 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
    independently translated layers let the landing ornament leave upward
    while the lace-free workspace band drops in from above. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
-  position: fixed;
+  position: absolute;
   inset: 0 0 auto 0;
-  translate: var(--maid-sidebar-width) 0;
   z-index: 20;
   height: 76px;
   overflow: hidden;
@@ -317,12 +316,10 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
 }
 
 /* The bottom band repeats at its native height while the center crest remains
-   an independent fixed-size layer. Resizing the sidebar therefore changes the
-   main-pane span without scaling either raster ornament. */
+   an independent fixed-size layer inside the conversation column. */
 body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
-  position: fixed;
+  position: absolute;
   inset: auto 0 0 0;
-  translate: var(--maid-sidebar-width) 0;
   transform: translateY(0);
   z-index: 20;
   height: 60px;
@@ -345,7 +342,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
   content: '';
   position: absolute;
   bottom: 0;
-  left: calc((100% - var(--maid-sidebar-width) - 8px) / 2);
+  left: calc((100% - 8px) / 2);
   width: 94px;
   height: 54px;
   transform: translateX(-50%);
@@ -354,7 +351,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
 }
 
 /* pointer-events does not affect painting order. Keep the semantic workspace
-   header above the fixed decorative layer so its controls remain visible. */
+   header above the conversation-owned decorative layer. */
 body[data-dsh-maid-atelier] header:has([role='tablist']) {
   position: relative;
   z-index: 21;
@@ -398,8 +395,8 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
   }
 }
 
-/* The trim backs the conversation header and its tablist with the navy band;
-   dress the overlaid text in the porcelain/gold system for contrast. */
+/* The trim backs the conversation header with the navy band. Keep the native
+   controls above it and restate their foregrounds for the dark surface. */
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] {
   position: relative;
   z-index: 21;
@@ -411,19 +408,36 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
   color: inherit;
 }
 
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button {
+  text-shadow: inherit;
+}
+
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'] {
+  color: #d7def0;
+}
+
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true'] {
+  color: #fff7e6;
+}
+
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true']::after {
+  background: var(--maid-gold);
+  box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
+}
+
 /* Secondary readouts (counters, captions, meta) step down in brightness. */
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is([class*='counter'], [class*='caption'], [class*='meta']) {
   color: #b5c1dd;
 }
 
 /* Header icon buttons and the reroll action keep the gold trim. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:hover {
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):hover {
   color: var(--maid-gold-soft);
 }
 
 body[data-dsh-maid-atelier]
   :is([data-pane='conversation'], [class*='centerCol'])
-  header[class*='header'] :is(button, [role='tab']):focus-visible {
+  header[class*='header'] button:not([role='tab']):focus-visible {
   border-radius: 4px;
   outline: 1px solid rgba(235, 204, 143, 0.86);
   outline-offset: 2px;
@@ -433,23 +447,6 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [class*='reroll'] {
   border-color: rgba(225, 191, 124, 0.55);
   background: rgba(255, 252, 243, 0.08);
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='tabs'] {
-  border-color: rgba(225, 207, 170, 0.4);
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) button[class*='tab'] {
-  color: #b5c1dd;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) button[class*='tab']:hover {
-  color: #f8f3e8;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) button[class*='tabActive'] {
-  color: #f8f3e8;
-  border-bottom-color: var(--maid-gold);
 }
 
 /* Pane surfaces. Class-substring fallbacks support the current product build;
@@ -3480,14 +3477,10 @@ html[data-dsh-whale-maid-font='serif']
     monospace
   );
 }
-/* The top curtain is position:fixed against the viewport, so it paints over
-   the frame's own title-bar row in frameless surfaces (Web-app overlay /
-   desktop shell). Move it below that row. env() cannot be used here: the
-   CSS-modules pipeline rewrites its identifier, so the fallback always
-   wins; the skin runtime instead measures the sidebar column's rendered
-   top edge (the exact row boundary) into --maid-titlebar-height. */
+/* The curtain is seated in the conversation column, whose top edge already
+   follows the frame's title-bar row in browser and desktop surfaces. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
-  top: var(--maid-titlebar-height, 0px);
+  top: 0;
 }
 
 /* Dress the official title-bar row with the sidebar navy so the sidebar
