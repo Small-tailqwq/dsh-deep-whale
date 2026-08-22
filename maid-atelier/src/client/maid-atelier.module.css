@@ -99,15 +99,37 @@ body[data-dsh-maid-atelier] [data-shell-overlay] {
   z-index: 1000;
 }
 
-/* High-resolution characters remain independent from the palace so viewport
-   and conversation changes never resample the architecture behind them. */
+/* The palace and both maids live INSIDE the conversation column: the stage is
+   an absolutely positioned first child (z-index 0) whose box IS the chat area,
+   so any layout push — a right/bottom workbench squeezing the center column —
+   moves and re-fits the artwork with the chat instead of leaving it fixed to
+   the viewport. The palace rides the --maid-palace-art custom property from
+   the client entry; the maids seat at the stage's bottom corners and scale
+   with its height (% of the stage), never with the viewport. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
   contain: strict;
+  background: var(--maid-palace-art) center top / cover no-repeat;
+}
+
+/* The conversation column is the stage's containing block. It stays
+   z-index auto (no new stacking context), so fixed popups keep their
+   page-level tier. */
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) {
+  position: relative;
+}
+
+/* The ConversationRoot is the column's in-flow content. `position: relative`
+   without a z-index lifts it into the positioned band AFTER the stage in DOM
+   order, so chat rows, the header and the composer paint above the artwork
+   while fixed popups inside it keep painting at page level. */
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol'])
+  :is([data-phase='hero'], [data-phase='active'], [data-phase='settling']) {
+  position: relative;
 }
 
 body[data-dsh-maid-atelier] [data-maid-character] {
@@ -126,18 +148,19 @@ body[data-dsh-maid-atelier] [data-maid-character] {
     opacity 420ms ease;
 }
 
+/* Both maids anchor at the bottom corners of the chat area and size against
+   its height. The edge offsets stay small so the artwork never collides with
+   the transcript column (max 748px, centered) in a wide chat. */
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
-  bottom: clamp(-34px, -2.4vh, -12px);
-  left: 0;
-  translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
-  height: clamp(560px, 96vh, 1180px);
+  bottom: 0;
+  left: clamp(8px, 1.5%, 24px);
+  height: 96%;
 }
 
 body[data-dsh-maid-atelier] [data-maid-character='right'] {
-  right: 0;
-  translate: clamp(-8px, -0.2vw, 0px) 0;
-  bottom: clamp(-26px, -1.8vh, -8px);
-  height: clamp(540px, 92vh, 1120px);
+  right: clamp(8px, 1.5%, 24px);
+  bottom: 0;
+  height: 92%;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
@@ -151,31 +174,17 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-character] {
    not expose data-chat-flow, so Trajectory and similar canvases stay put. */
 body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='left'] {
-  translate: calc(var(--maid-sidebar-width) + clamp(8px, 1.3vw, 24px)) 0;
-  bottom: clamp(-24px, -1.5vh, -8px);
-  height: clamp(420px, 64vh, 760px);
+  height: 64%;
   opacity: 0.9;
 }
 
 body[data-dsh-maid-atelier][data-maid-chat-active]
   [data-maid-character='right'] {
-  translate: clamp(-8px, -0.5vw, 0px) 0;
-  bottom: clamp(-24px, -1.5vh, -8px);
-  height: clamp(420px, 62vh, 730px);
+  height: 62%;
   opacity: 0.9;
 }
 
 @media (max-width: 1080px) {
-  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
-    [data-maid-character='left'] {
-    translate: var(--maid-sidebar-width) 0;
-  }
-
-  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
-    [data-maid-character='right'] {
-    translate: 0;
-  }
-
   body[data-dsh-maid-atelier] [data-maid-character] {
     opacity: 0.74;
   }
@@ -184,46 +193,20 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
 @media (max-width: 700px) {
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='left'] {
-    translate: var(--maid-sidebar-width) 0;
-    height: clamp(300px, 46vh, 410px);
+    height: 46%;
   }
 
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='right'] {
-    translate: 0;
-    height: clamp(300px, 44vh, 390px);
+    height: 44%;
   }
 }
 
-/* dsh-better-sidebar ports a right workbench onto document.body. While its
-   right panel is open, pull the right maid left of the panel so the artwork
-   is not hidden behind the fixed workbench. The skin projects that state
-   without a root :has(), so terminal row writes stay locally invalidated. */
-body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
-  [data-maid-character='right'] {
-  translate: clamp(-460px, -24vw, -320px) 0;
-}
-
-body[data-dsh-maid-atelier][data-maid-better-sidebar-open][data-maid-chat-active]
-  [data-maid-character='right'] {
-  translate: clamp(-460px, -24vw, -320px) 0;
-  height: clamp(360px, 56vh, 680px);
-  opacity: 0.86;
-}
-
-/* On narrow viewports better-sidebar becomes a full-width drawer; hide the
-   right maid instead of pushing it past the left edge. */
-@media (max-width: 700px) {
-  body[data-dsh-maid-atelier][data-maid-better-sidebar-open]
-    [data-maid-character='right'] {
-    translate: 0;
-    opacity: 0;
-  }
-}
-
-/* A continuously changing viewport gives layout transitions a new destination
-   every frame. Follow the resize directly, then restore state-change motion. */
-body[data-dsh-maid-atelier][data-maid-viewport-resizing]
+/* A continuously changing layout — a viewport resize or a right/bottom
+   workbench pushing the conversation column — gives transitions a new
+   destination every frame. Follow the resize directly, then restore
+   state-change motion. */
+body[data-dsh-maid-atelier][data-maid-layout-resizing]
   [data-maid-character] {
   transition: none;
   filter: none;
