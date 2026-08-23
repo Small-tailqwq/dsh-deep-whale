@@ -70,6 +70,14 @@ dsh plugin --profile web update '@dsh-external/dsh-client-ui-skin-deep-whale-man
 
 GitHub 依赖被 pnpm 锁定到安装时刻的 commit；`update` 重新解析仓库最新提交。也可以不带包名执行 `dsh plugin --profile web update`（更新 profile 全部依赖，只装了本仓库皮肤时效果相同）。bundle 内容更新走配置热重载；只有新增/删除插件包才需要重启。
 
+### 懒得敲命令？让 AI 装
+
+把下面这段话发给任意 AI（或 dsh 本体）即可。[INSTALL.md](INSTALL.md) 是标准安装入口：AI 会读到它后引导到仓库自带的 `dsh-skin-install` 技能——普通安装执行的是上面这一行命令，迁移旧安装、本地开发、测试指定提交等场景则按技能流程处理（预置互斥、绝对路径 link、冷启动验证），比手敲更稳。
+
+```
+读取 https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md 并按其中的指引安装本仓库皮肤
+```
+
 ### 皮肤互斥机制（必读）
 
 - 先分清：`skin-manager` 不是皮肤，而是**皮肤管理器**（提供发现、切换与定制面板），需要常驻启用；互斥的对象是**皮肤本身**——本仓库的皮肤是 maid-atelier 与 orca-link。
@@ -136,7 +144,7 @@ dsh plugin --profile web list          # 应看到三个 @dsh-external/dsh-clien
 dsh --profile web --dump-config        # manager 行 disabled: false；两套皮肤互斥：skins 恰一套 false
 ```
 
-> 一行安装后、**尚未重启前** `--dump-config` 会显示两套皮肤都启用（patch 里还没有互斥行）——这是正常过渡态；重启时 skin-manager 兜底回退并写入互斥行。冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）。启动页 HTML 必须引用 manager 与启用皮肤的 `/plugins/<真实包名>/client.js`；不同 DSH 版本载体不同（旧版在 `window.__DSH_BOOT__` JSON 里，0.1.1rc2+ 是直接 `<script src>` 标签），下面这条两种版本都能用：
+> 一行安装后、**尚未重启前** `--dump-config` 的状态取决于你的 patch 层：干净环境下两套皮肤都还没有互斥行（默认启用，是正常过渡态——首次重启时 skin-manager 兜底回退并写入互斥行）；若 home 层残留过互斥行（之前装过本仓库皮肤又卸载），则直接沿用该状态。冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）。启动页 HTML 必须引用 manager 与启用皮肤的 `/plugins/<真实包名>/client.js`；不同 DSH 版本载体不同（旧版在 `window.__DSH_BOOT__` JSON 里，0.1.1rc2+ 是直接 `<script src>` 标签），下面这条两种版本都能用：
 
 ```js
 document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) ?? []

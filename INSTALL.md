@@ -2,6 +2,8 @@
 
 The one-line install pulls the skin manager and all Deep Whale skins directly from GitHub as `#path:` sub-packages — no clone, no AI assistance. Requires **pnpm ≥ 9**.
 
+> AI assistants: follow this file as the installation guide. A plain install is just the one-liner below; use the bundled `.agents/skills/dsh-skin-install` skill only for legacy migration, local development builds, specified-commit testing, or diagnosis.
+
 ## Linux / macOS / WSL
 
 ```sh

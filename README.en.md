@@ -70,6 +70,14 @@ dsh plugin --profile web update '@dsh-external/dsh-client-ui-skin-deep-whale-man
 
 GitHub dependencies are pinned to the commit resolved at install time; `update` re-resolves the latest commit. You can also run `dsh plugin --profile web update` without a package name (updates the whole profile; identical if only these packages are installed). Bundle content updates hot-reload through config HMR; a restart is needed only when adding/removing plugin packages.
 
+### Can't be bothered? Let an AI install it
+
+Paste this into any AI (or dsh itself). [INSTALL.md](INSTALL.md) is the standard entry point: the AI reads it and is led to the bundled `dsh-skin-install` skill — a plain install runs the same one-liner above, while legacy migration, local development and specified-commit flows follow the skill (staged mutual exclusion, absolute-path links, cold-start verification).
+
+```
+Read https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md and install the skins from this repository following its guidance
+```
+
 ### Skin mutual exclusion (must read)
 
 - First, a distinction: `skin-manager` is not a skin — it is the **skin manager** (discovery, switching and customization panels) and stays enabled permanently; mutual exclusion applies to the **skins themselves** — maid-atelier and orca-link.
@@ -136,7 +144,7 @@ dsh plugin --profile web list          # should list all three @dsh-external/dsh
 dsh --profile web --dump-config        # manager row disabled: false; skins mutually exclusive — exactly one false
 ```
 
-> Right after the one-line install, **before the first restart**, `--dump-config` shows both skins enabled (no exclusion rows yet) — that is a normal transitional state; the skin-manager fallback rewrites the rows at restart. After the cold start, inspect the client roster in the browser console (configuration entries alone do not prove browser bundles were registered). The startup page must reference `/plugins/<real package name>/client.js` for the manager and the active skin; the carrier differs across DSH versions (older builds put it in the `window.__DSH_BOOT__` JSON, 0.1.1rc2+ uses direct `<script src>` tags), so this one-liner works on both:
+> Right after the one-line install, **before the first restart**, what `--dump-config` shows depends on your patch layers: in a clean environment both skins have no exclusion rows yet (enabled by default — a normal transitional state; the skin-manager fallback rewrites the rows at the first restart). If the home layer already carries exclusion rows (you installed and later removed this skin series before), that state is simply reused. After the cold start, inspect the client roster in the browser console (configuration entries alone do not prove browser bundles were registered). The startup page must reference `/plugins/<real package name>/client.js` for the manager and the active skin; the carrier differs across DSH versions (older builds put it in the `window.__DSH_BOOT__` JSON, 0.1.1rc2+ uses direct `<script src>` tags), so this one-liner works on both:
 
 ```js
 document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) ?? []

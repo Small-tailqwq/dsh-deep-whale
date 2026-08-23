@@ -108,7 +108,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 ### 6. 验证生效
 
 - `dsh plugin --profile <name> list`：正式安装应看到三个 `github:` 依赖；本地流程应看到三/两个 `link:` 依赖。
-- `dsh --profile <name> --dump-config` 一次输出：manager 行 `disabled: false`；皮肤恰一套 `false`（或首次重启前的过渡态——两套都无 disabled 行，启动兜底后才会写入）。
+- `dsh --profile <name> --dump-config` 一次输出：manager 行 `disabled: false`；皮肤恰一套 `false`（或首次重启前的过渡态——干净环境两套都无 disabled 行，启动兜底后才会写入；若 home 层残留互斥行则直接沿用）。
 - 走重启安全闸门完成冷启动，并核对启动页 client roster：manager 与当前启用皮肤必须存在（`/plugins/<真实包名>/client.js`）。不得用配置树、裸包名匹配或 API 返回替代此项。
 - 安装了 skin-manager 时，`GET /api/dsh/skins` 能返回目录即可；**不要**核对定制卡片等页面细节。
 - **不要调用 `dsh-plugin-verify`，不要读 dsh 源码。** 页面效果由用户刷新后自行确认；只有用户反馈异常才进入诊断。
