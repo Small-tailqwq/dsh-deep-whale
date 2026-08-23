@@ -8,9 +8,9 @@
     "test": "node scripts/check-root-bundle.mjs"
   },
   "dependencies": {
-    "@dsh-external/dsh-client-ui-skin-deep-whale-manager": "github:Small-tailqwq/dsh-deep-whale#v0.2.0&path:/skin-manager",
-    "@dsh-external/dsh-client-ui-skin-maid-atelier": "github:Small-tailqwq/dsh-deep-whale#v0.2.0&path:/maid-atelier",
-    "@dsh-external/dsh-client-ui-skin-orca-link": "github:Small-tailqwq/dsh-deep-whale#v0.2.0&path:/orca-link"
+    "@dsh-external/dsh-client-ui-skin-deep-whale-manager": "github:Small-tailqwq/dsh-deep-whale#codex/test-umbrella-package&path:/skin-manager",
+    "@dsh-external/dsh-client-ui-skin-maid-atelier": "github:Small-tailqwq/dsh-deep-whale#codex/test-umbrella-package&path:/maid-atelier",
+    "@dsh-external/dsh-client-ui-skin-orca-link": "github:Small-tailqwq/dsh-deep-whale#codex/test-umbrella-package&path:/orca-link"
   },
   "dsh": {
     "bundle": {

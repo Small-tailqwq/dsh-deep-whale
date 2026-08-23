@@ -48,11 +48,7 @@ dsh plugin --profile web add "github:Small-tailqwq/dsh-deep-whale"
 dsh plugin --profile web update @dsh-external/dsh-deep-whale
 ```
 
-若需要安装本地修改，把 GitHub spec 换成仓库根目录的绝对路径：
-
-```powershell
-dsh plugin --profile web add C:/absolute/path/dsh-deep-whale
-```
+本地开发**不要 add 仓库根目录**：根包的三个子依赖钉死在发行 tag 上，本地 link 安装不会解析它们，启动会直接报 `Cannot find package '@dsh-external/dsh-client-ui-skin-...'`。请改用下文[独立子包安装](#独立子包安装兼容与开发路径)——对 skin-manager 与目标皮肤的**子目录**分别 add 绝对路径。
 
 ### 皮肤互斥机制（必读）
 
@@ -120,10 +116,10 @@ dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
 dsh plugin --profile web list          # 根包安装应看到 @dsh-external/dsh-deep-whale
 dsh --profile web --dump-config        # manager=false；两套皮肤首次均为 true
 ```
-冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）：
+冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）。启动页 HTML 必须引用 manager 与启用皮肤的 `/plugins/<真实包名>/client.js`；不同 DSH 版本载体不同（旧版在 `window.__DSH_BOOT__` JSON 里，0.1.1rc2+ 是直接 `<script src>` 标签），下面这条两种版本都能用：
 
 ```js
-window.__DSH_BOOT__.entries.map(({ id }) => id).filter((id) => id.includes('deep-whale') || id.includes('maid-atelier') || id.includes('orca-link'))
+document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) ?? []
 ```
 
 结果必须包含 manager 与当前启用的皮肤包名；被停用的皮肤可以不出现。刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。

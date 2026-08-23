@@ -23,7 +23,7 @@ description: 迁移、切换、更新或验证 DSH Web 的 dsh-deep-whale 根 bu
 - **根 bundle 已安装 → 场景 A 切换**：直接热切换，不 clone、不提问、不介绍，**跳过“重启安全闸门”与扫描清单**。
 - **仅旧版独立三包已安装 → 场景 B 迁移**：先切官方默认，移除旧包，再安装根 bundle；禁止根包与旧包同时出现在 bundles。
 - **未安装且只需正式版本 → 场景 B 首次安装**：直接添加 `github:Small-tailqwq/dsh-deep-whale`，不 clone。
-- **用户明确要求本地开发版本 → 场景 B/D**：复用现有 clone，用仓库根绝对路径 link；找不到才 clone。
+- **用户明确要求本地开发版本 → 场景 B/D**：复用现有 clone，对 skin-manager 与目标皮肤的**子目录**绝对路径 link（仓库根目录 add 不可用，见场景 B）；找不到才 clone。
 - **用户明确要求"更新/检查更新" → 场景 C 更新**：才对比远端提交。
 - **用户要求加载本地修改或测试指定提交 → 场景 D 验证开发版本**：保护当前工作区和正在运行的 DSH。
 
@@ -37,7 +37,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 2. 检查 `~/.dsh/profiles/<profile>/package.json`：依赖键、`dsh.profile.bundles` 条目和本地 link 目标的真实包名必须一致。发现别名或旧 scope 时，先用 `dsh plugin --profile <name> remove <错误键>` 移除，再用目标目录的绝对路径 `add`；**若包名/依赖键正确、只是 link 路径过期或不可访问，直接对新绝对路径执行 `add` 覆盖链接，不要先 remove。**不要手改或追查 `node_modules`、pnpm lockfile；异常后只重跑一次 `plugin list`，仍失败就停下汇报。
 3. 运行 `dsh plugin --profile <name> list` 和 `dsh --profile <name> --dump-config`。目标 entry 必须能组合、包名正确且启停状态符合预期。
 4. 只有确实需要重启时，先运行 `dsh --profile <name> --help` 核对当前 CLI 参数，再在保留现有进程的情况下启动冷启动探针。当前已验证语法是 `dsh --profile <name> --no-open --port 0`；若现场 CLI 没有 `--no-open`，使用其 help 所示启动语法并设置 `BROWSER=echo` 抑制弹窗。等待它打印临时 URL 后，只终止这个探针进程。探针失败则保留原进程，修复后重试；禁止让用户用生产端口重启来“试试看”。
-5. 冷启动探针成功后才替换原进程，并验证固定端口返回 HTTP 200。解析启动页 `window.__DSH_BOOT__.entries`：必须包含 manager 和当前启用皮肤的真实子包 id；被停用的皮肤可以不出现。只查 HTML 是否含字符串、只看 `--dump-config` 或只看 API 都不能证明 client bundle 已注册。终止进程时只操作刚刚记录的精确 PID/会话，不按进程名批量结束。
+5. 冷启动探针成功后才替换原进程，并验证固定端口返回 HTTP 200。核对启动页 client roster：HTML 中必须存在 manager 与当前启用皮肤的 `/plugins/<真实包名>/client.js` 引用——0.1.1rc2+ 即启动页的 `<script src>` 标签，旧版本在 `window.__DSH_BOOT__` JSON 的 url 字段里，两种载体都落在同一 URL 模式上；被停用的皮肤可以不出现。只匹配裸包名、只看 `--dump-config` 或只看 API 都不能证明 client bundle 已注册。终止进程时只操作刚刚记录的精确 PID/会话，不按进程名批量结束。
 
 诊断必须有界：热加载未发生时先查 link 目标、`lib/client.js` 哈希、boot entry 与 `--dump-config`；不要递归扫描整个 `~/.dsh`、全局 `node_modules`，也不要用长时间 SSE 请求碰运气。
 
@@ -66,7 +66,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 ### 1. 确定安装来源
 
 - 正式安装直接使用 `github:Small-tailqwq/dsh-deep-whale`；根包依赖同一仓库版本标签下的真实子包，pnpm 将它们作为同一发行快照安装。发布新根版本时，依赖 spec、根 `version` 与 Git tag 必须同步。
-- 本地开发才定位 clone，并以仓库根绝对路径安装。不要分别 add 子目录，除非用户明确要求验证独立包兼容性。
+- 本地开发才定位 clone，并按"独立子包安装"流程分别 add skin-manager 与目标皮肤的**子目录**绝对路径。**禁止 add 仓库根目录**：pnpm 对 link 安装不解析根包钉死在发行 tag 上的子依赖，启动会直接 `ERR_MODULE_NOT_FOUND`；根包只从 GitHub spec 安装。
 - 根 `package.json` 的 `dependencies` 提供带各自 `dsh.client` manifest 的真实子包，`dsh.skinCollection.packages` 声明 manager 可发现的皮肤包名，根 `cordis.patch.yml` 提供安全默认 wiring。三者必须一起验证。
 
 ### 2. 扫描皮肤清单（实时，勿硬编码）
@@ -94,7 +94,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 - **新安装**：根 patch 已让 manager `disabled: false`、全部皮肤 `disabled: true`，因此可直接 add，不需要先改用户 patch：
   - 正式版本：`dsh plugin --profile <name> add "github:Small-tailqwq/dsh-deep-whale"`
-  - 本地版本：`dsh plugin --profile <name> add <仓库根绝对路径>`
+  - 本地版本：改走独立子包流程（README「独立子包安装」）：先跑 stage-mutual-exclusion 脚本预置互斥，再分别 `add <仓库绝对路径>/skin-manager` 与目标皮肤子目录；**不要 add 仓库根目录**（link 安装不解析 tag 子依赖，启动即失败）。
 - **旧版迁移**：先通过 manager 切到官方默认；再移除 manager/maid/orca 三个旧依赖，确认它们已从 `dsh.profile.bundles` 消失，最后 add 根包。不得让根包与独立包同时存在，因为它们插入相同 wiring id。
 - **独立包兼容性测试（仅明确要求时）**：仍须先运行技能自带脚本，在两个 patch 层预置互斥行：
   `node <仓库绝对路径>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile <name> --target <skin-id|official>`
@@ -105,7 +105,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 - `dsh plugin --profile <name> list` 应只显示根包（迁移后不得残留三个独立包）。
 - `dsh --profile <name> --dump-config` 一次输出，确认三个真实子包 entry 存在、管理器 `disabled: false`、首次安装两套皮肤均为 `true`；已有选择则恰好一套为 `false`。
-- 走重启安全闸门完成冷启动，并解析 `window.__DSH_BOOT__.entries`；manager 与当前启用皮肤的真实包 id 必须存在。不得用配置树或 HTML 原始字符串替代此项。
+- 走重启安全闸门完成冷启动，并核对启动页 HTML 中的 `/plugins/<真实包名>/client.js` 引用（0.1.1rc2+ 为 `<script src>` 标签，旧版本在 `window.__DSH_BOOT__` JSON 内）；manager 与当前启用皮肤必须存在。不得用配置树、裸包名匹配或 API 返回替代此项。
 - 安装了 skin-manager 时，`GET /api/dsh/skins` 能返回目录即可；**不要**核对定制卡片等页面细节。
 - **不要调用 `dsh-plugin-verify`，不要读 dsh 源码。** 页面效果由用户刷新后自行确认；只有用户反馈异常才进入诊断。
 - 告知用户刷新页面查看效果；皮肤异常（控制台报错、布局问题）时收集现象再排查。
@@ -120,7 +120,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 ## 场景 D：加载本地修改或测试指定提交
 
-- **当前根 link 目录里的源码修改**：先按仓库脚本构建并确认提交型 `lib/` 同步，再通过 patch 禁用/启用目标 entry 触发热加载；记录并复核 PID，正常情况下不重启。
+- **当前 link 的子包目录里的源码修改**：先按仓库脚本构建并确认提交型 `lib/` 同步，再通过 patch 禁用/启用目标 entry 触发热加载；记录并复核 PID，正常情况下不重启。
 - **测试指定提交**：禁止对用户正在使用的工作区执行 `git restore --source=<commit> --worktree -- <skin>`。创建临时 detached worktree，在其中构建并验证，然后用绝对路径把同名包重新 link 到该 worktree；记录原 link 路径，测试结束后才能按用户指示恢复。
 - 重新 link 后先核对依赖键仍等于目标 `package.json.name`。若包身份改变，按“移除旧键 → 绝对路径 add → dump-config → 冷启动探针”的顺序处理，不能依赖旧进程内存里的插件图。
 - 热加载失败时不要触碰未变化的 patch 文件伪造刷新，也不要立即建议重启；先走有界诊断。只有新增/删除插件包或启动图确实无法热更新时才使用安全重启流程。
@@ -131,5 +131,5 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 - 皮肤可热切换，`wiring.id` 即 patch 层控制的插件 id；皮肤中心/互斥切换机制兼容。
 - 根包 `@dsh-external/dsh-deep-whale` 依赖 manager/maid/orca 三个真实子包；每个子包自己的 `dsh.client` 负责进入 client roster，`dsh.skinCollection.packages` 只负责让 manager 发现归属该 collection 的皮肤。根 patch 直接插入真实子包名。
 - **skin-manager 插件**在设置面板注册"皮肤管理"分类：发现已安装皮肤（`GET /api/dsh/skins`）、一键激活（`POST /api/dsh/skins { target }`，同源校验 + catalog 校验 + 两 patch 层原子写入回滚）、皮肤定制声明渲染。启动冲突时自动回退官方默认。
-- 仓库 README 的普通安装入口是一条根包 GitHub spec；绝对路径仅用于本地开发。
+- 仓库 README 的普通安装入口是一条根包 GitHub spec；本地开发只用 skin-manager 与皮肤**子目录**的绝对路径（仓库根目录 add 不受支持，link 安装不解析 tag 子依赖）。
 - 反馈问题走仓库 issue，不要联系画师本人；二创关注是另一回事。

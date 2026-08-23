@@ -46,7 +46,7 @@ Restart DSH once after the first package installation, then open Settings → Sk
 dsh plugin --profile web update @dsh-external/dsh-deep-whale
 ```
 
-For local development, replace the GitHub spec with the absolute repository-root path.
+For local development, do **not** add the repository root: the root's three child dependencies are pinned to a release tag, and a local link install never resolves them, so startup fails with `Cannot find package '@dsh-external/dsh-client-ui-skin-...'`. Use the [standalone sub-package install](#standalone-packages-compatibility-and-development) below instead — add the skin-manager and target skin **sub-directories** by absolute path.
 
 ### Skin mutual exclusion (must read)
 
@@ -114,10 +114,10 @@ Symptoms: the settings button disappears, the sidebar is covered by decoration o
 dsh plugin --profile web list          # root install shows @dsh-external/dsh-deep-whale
 dsh --profile web --dump-config        # manager=false; both skins initially true
 ```
-After a cold start, also inspect the client roster in the browser console (configuration entries alone do not prove browser bundles were registered):
+After a cold start, also inspect the client roster in the browser console (configuration entries alone do not prove browser bundles were registered). The startup page must reference `/plugins/<real package name>/client.js` for the manager and the active skin; the carrier differs across DSH versions (older builds put it in the `window.__DSH_BOOT__` JSON, 0.1.1rc2+ uses direct `<script src>` tags), so this one-liner works on both:
 
 ```js
-window.__DSH_BOOT__.entries.map(({ id }) => id).filter((id) => id.includes('deep-whale') || id.includes('maid-atelier') || id.includes('orca-link'))
+document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) ?? []
 ```
 
 It must contain the manager and the active skin package; disabled skins may be absent. Refresh the browser to see the skin; skin toggles go through config hot reload, so no dsh restart is needed (restart only when adding/removing plugin packages).
