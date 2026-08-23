@@ -32,32 +32,41 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 ## 安装
 
-> **皮肤的安装手段只有一个正确姿势：让你的 dsh 读取本仓库的 [INSTALL.md](INSTALL.md)（标准安装入口），它会引导 dsh 使用自带的 `dsh-skin-install` 技能执行**——默认安装 skin-manager 与仓库内全部皮肤，但只激活你选中的一套。技能会在新增包**之前**预置互斥开关，避免两套皮肤曾经同时运行（详见[皮肤互斥机制](#皮肤互斥机制必读)与 [issue #65](https://github.com/Small-tailqwq/dsh-deep-whale/issues/65)）。
+### 一条命令安装（推荐）
 
-### 标准流程：让 dsh 按 INSTALL.md 安装（推荐，唯一保证互斥的路径）
+仓库根目录是一个完整的 DSH bundle：它依赖同一仓库版本标签下的 skin-manager 与全部皮肤子包，保留各子包自己的 `dsh.client` 声明，并以“官方默认”（两套皮肤都停用）安全启动。
 
-1. 让你的 dsh 读取本仓库的标准安装入口：
+```sh
+dsh plugin --profile web add "github:Small-tailqwq/dsh-deep-whale"
+```
 
-   ```
-   读取 https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md 并按其中指引安装皮肤
-   ```
+首次新增插件包后重启一次 DSH，然后打开“设置 → 皮肤管理”选择 maid-atelier 或 orca-link。之后切换只走配置热重载，无需重启，也不需要 AI 参与安装。
 
-2. INSTALL.md 会把 dsh 引导到仓库自带的 `dsh-skin-install` 技能（若 dsh 无法读取远端文件：先 `git clone` 到本地，在 dsh 中把 clone 目录**打开为工作区**——技能会被自动发现——或让它读取本地 `INSTALL.md` 路径）。技能随后依次完成：
+更新根包：
 
-   列出全部皮肤并明确“**全部安装、只选择激活哪一套**” → 交代署名链与许可（CC BY-NC-SA 4.0）→ **先原子预置两个 patch 层的互斥 `disabled` 行** → 绝对路径注册 skin-manager 与全部皮肤 → 验证组合配置与冷启动。首次新增包需要用户重启一次；之后切换只走配置热重载，无需重启。
+```sh
+dsh plugin --profile web update @dsh-external/dsh-deep-whale
+```
 
-   已安装/已知目标时走快车道：直接说“切换到 maid-atelier”或“安装 orca-link”，技能跳过询问与扫描，预计 1–2 分钟完成。
+若需要安装本地修改，把 GitHub spec 换成仓库根目录的绝对路径：
+
+```powershell
+dsh plugin --profile web add C:/absolute/path/dsh-deep-whale
+```
 
 ### 皮肤互斥机制（必读）
 
 - 先分清：`skin-manager` 不是皮肤，而是**皮肤管理器**（提供发现、切换与定制面板），需要常驻启用；互斥的对象是**皮肤本身**——本仓库的皮肤是 maid-atelier 与 orca-link。
 - 皮肤启停由 patch 层控制：profile 的 `~/.dsh/profiles/web/cordis.patch.yml` 与 home 层的 `~/.dsh/cordis.patch.yml` 里各自的 `- id: <wiring.id>` + `disabled: true/false` 行（**两层都要写**，home 层优先级更高）。
 - **patch 里没有某皮肤行的 `disabled` 行 → 该皮肤默认启用**。一次把多套皮肤（maid-atelier 与 orca-link）都装上、又从未切换时，它们会**同时运行**：装饰层互相叠加、侧栏/设置区被搅乱，典型症状是**设置按钮消失、侧栏宽度/布局异常、界面混乱**（原版正常）。
+- 根 bundle 的默认 patch 已显式启用 manager、停用全部皮肤，因此首次启动不会出现叠加窗口。
 - skin-manager（设置 → 皮肤管理）激活时会自动把互斥行写入两个 patch 层；手写时“只保留一套”必须**显式停用其余每一套**。
-- 第三方市场等渠道若绕过标准安装流程，skin-manager 会在启动时合并 profile→home 两层状态；检测到实际同时启用两套及以上皮肤时，自动原子回退到“官方默认”。已有零套或一套启用的合法选择不会被改写。
+- 第三方市场或旧版独立包若绕过根 bundle，skin-manager 仍会在启动时检测冲突并原子回退到“官方默认”。
 - 安装了皮肤管理器后，皮肤定制项（如“不那么二次元模式”的可见时段）保存在当前浏览器，由管理器统一应用。
 
-### 手动安装（备用路径，必须先预置互斥状态）
+### 独立子包安装（兼容与开发路径）
+
+> 普通用户不需要使用本节。根 bundle 与下面三个独立 bundle 不能同时注册，否则会重复插入相同 wiring id。从旧版迁移时先切到“官方默认”，移除三个旧包，再安装根包并重启。
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置（浅克隆足够，跳过历史）
@@ -108,17 +117,23 @@ dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
 ### 安装后验证
 
 ```sh
-dsh plugin --profile web list          # 应看到 @dsh-external/dsh-client-ui-skin-* 的 link: 依赖
-dsh --profile web --dump-config        # 皮肤行在组合配置中，disabled 状态正确
+dsh plugin --profile web list          # 根包安装应看到 @dsh-external/dsh-deep-whale
+dsh --profile web --dump-config        # manager=false；两套皮肤首次均为 true
 ```
-刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。
+冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）：
+
+```js
+window.__DSH_BOOT__.entries.map(({ id }) => id).filter((id) => id.includes('deep-whale') || id.includes('maid-atelier') || id.includes('orca-link'))
+```
+
+结果必须包含 manager 与当前启用的皮肤包名；被停用的皮肤可以不出现。刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。
 
 ### 常见安装失败排查
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| `ERR_PNPM_FETCH_404 ... <名字>` | 传了裸目录名（如 `add maid-atelier`），被当成 npm 包名 | 改为绝对路径或 `./`/`../` 前缀路径 |
-| 命令成功但 `dsh plugin list` 没有该包 | 相对路径解析到了错误位置（clone 位置与假设不符） | 用绝对路径重新 add |
+| `ERR_PNPM_FETCH_404` | GitHub spec 拼写错误、网络不可用，或独立子包用了裸目录名 | 复制上方完整 spec；开发 link 使用绝对路径 |
+| 根包与独立包同时存在 | 旧安装未迁移，wiring id 重复 | 切到官方默认，移除三个旧包，只保留根包 |
 | `pnpm not found on PATH` | 环境缺少 pnpm | 安装 pnpm（`npm i -g pnpm`）后重试 |
 | 包在列表里但页面无效果 | 皮肤被 `disabled`（多皮肤互斥开关）或浏览器未刷新 | `--dump-config` 核对 disabled；刷新页面 |
 

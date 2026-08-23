@@ -81,6 +81,7 @@ describe('generic skin switch patch', () => {
     try {
       mkdirSync(dirname(skinJson), { recursive: true })
       writeFileSync(join(directory, 'package.json'), JSON.stringify({ dependencies: { '@test/deepcel': 'link:test' } }))
+      writeFileSync(join(dirname(skinJson), 'package.json'), JSON.stringify({ name: '@test/deepcel' }))
       writeFileSync(skinJson, JSON.stringify({
         id: 'deepcel', name: 'Deepcel', package: '@test/deepcel', bodyAttr: 'data-deepcel',
         wiring: { id: 'ui-skin-deepcel' }, dshCompatibility: '0.1.1rc2', order: 7,
@@ -89,6 +90,37 @@ describe('generic skin switch patch', () => {
         {
           id: 'deepcel', name: 'Deepcel', package: '@test/deepcel', wiringId: 'ui-skin-deepcel',
           bodyAttr: 'data-deepcel', dshCompatibility: '0.1.1rc2', order: 7,
+        },
+      ])
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('discovers skins declared by an installed collection package', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-skin-collection-'))
+    const patch = join(directory, 'cordis.patch.yml')
+    const collection = join(directory, 'node_modules', '@test', 'collection')
+    const skin = join(collection, 'node_modules', '@test', 'maid')
+    try {
+      mkdirSync(skin, { recursive: true })
+      writeFileSync(join(directory, 'package.json'), JSON.stringify({
+        dependencies: { '@test/collection': 'link:test' },
+      }))
+      writeFileSync(join(collection, 'package.json'), JSON.stringify({
+        name: '@test/collection',
+        dependencies: { '@test/maid': 'file:skin' },
+        dsh: { skinCollection: { packages: ['@test/maid', '../../not-a-package', '@test/not-owned'] } },
+      }))
+      writeFileSync(join(skin, 'package.json'), JSON.stringify({ name: '@test/maid' }))
+      writeFileSync(join(skin, 'skin.json'), JSON.stringify({
+        id: 'maid', name: 'Maid', package: '@test/maid', bodyAttr: 'data-maid',
+        wiring: { id: 'ui-skin-maid' }, order: 5,
+      }))
+      expect(discoverInstalledSkins(patch)).toEqual([
+        {
+          id: 'maid', name: 'Maid', package: '@test/maid', wiringId: 'ui-skin-maid',
+          bodyAttr: 'data-maid', order: 5,
         },
       ])
     } finally {

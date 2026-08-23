@@ -15,6 +15,7 @@ const name = "ui-skin-deep-whale-manager";
 const inject = ["webServer"];
 const MANAGED_START = "# --- dsh-skin managed (auto-generated; do not edit) ---";
 const MANAGED_END = "# --- end dsh-skin managed ---";
+const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/i;
 /** Resolve the profile patch without inspecting credentials or unrelated files. */
 function resolveProfilePatch(env = process.env, cwd = process.cwd()) {
 	const configuredHome = env.DSH_HOME?.trim();
@@ -41,20 +42,48 @@ function packageNames(manifestPath) {
 		return [];
 	}
 }
-function skinManifestPath(profileManifest, packageName) {
-	const require = createRequire(profileManifest);
+function packageManifestPath(ownerManifest, packageName) {
+	const require = createRequire(ownerManifest);
 	try {
-		return require.resolve(`${packageName}/skin.json`);
+		return require.resolve(`${packageName}/package.json`);
 	} catch {
-		try {
-			const packageJson = require.resolve(`${packageName}/package.json`);
-			const candidate = join(dirname(packageJson), "skin.json");
-			return existsSync(candidate) ? candidate : null;
-		} catch {
-			const candidate = join(dirname(profileManifest), "node_modules", ...packageName.split("/"), "skin.json");
-			return existsSync(candidate) ? candidate : null;
-		}
+		const candidate = join(dirname(ownerManifest), "node_modules", ...packageName.split("/"), "package.json");
+		return existsSync(candidate) ? candidate : null;
 	}
+}
+/** Resolve direct profile packages plus skin dependencies explicitly owned by a collection. */
+function installedPackages(profileManifest) {
+	const queue = packageNames(profileManifest).map((name) => ({
+		name,
+		ownerManifest: profileManifest
+	}));
+	const found = [];
+	const visited = /* @__PURE__ */ new Set();
+	for (let index = 0; index < queue.length; index += 1) {
+		const current = queue[index];
+		if (visited.has(current.name)) continue;
+		const manifestPath = packageManifestPath(current.ownerManifest, current.name);
+		if (manifestPath === null) continue;
+		visited.add(current.name);
+		found.push({
+			name: current.name,
+			manifestPath
+		});
+		try {
+			const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+			const dependencies = new Set(Object.keys(manifest.dependencies ?? {}));
+			const packages = manifest.dsh?.skinCollection?.packages;
+			if (!Array.isArray(packages)) continue;
+			for (const name of packages) {
+				if (typeof name !== "string" || !PACKAGE_NAME.test(name) || !dependencies.has(name)) continue;
+				queue.push({
+					name,
+					ownerManifest: manifestPath
+				});
+			}
+		} catch {}
+	}
+	return found;
 }
 function catalogEntry(manifest, installedPackage) {
 	const id = manifest.id;
@@ -85,11 +114,11 @@ function discoverInstalledSkins(profilePatch = resolveProfilePatch()) {
 	const found = [];
 	const ids = /* @__PURE__ */ new Set();
 	const wiringIds = /* @__PURE__ */ new Set();
-	for (const packageName of packageNames(profileManifest)) {
-		const path = skinManifestPath(profileManifest, packageName);
-		if (path === null) continue;
+	for (const installedPackage of installedPackages(profileManifest)) {
+		const path = join(dirname(installedPackage.manifestPath), "skin.json");
+		if (!existsSync(path)) continue;
 		try {
-			const entry = catalogEntry(JSON.parse(readFileSync(path, "utf8")), packageName);
+			const entry = catalogEntry(JSON.parse(readFileSync(path, "utf8")), installedPackage.name);
 			if (entry === null || ids.has(entry.id) || wiringIds.has(entry.wiringId)) continue;
 			ids.add(entry.id);
 			wiringIds.add(entry.wiringId);
@@ -103,11 +132,11 @@ function discoverSkinDirectories(profilePatch = resolveProfilePatch()) {
 	const profileManifest = join(dirname(profilePatch), "package.json");
 	const dirs = /* @__PURE__ */ new Map();
 	const wiringIds = /* @__PURE__ */ new Set();
-	for (const packageName of packageNames(profileManifest)) {
-		const path = skinManifestPath(profileManifest, packageName);
-		if (path === null) continue;
+	for (const installedPackage of installedPackages(profileManifest)) {
+		const path = join(dirname(installedPackage.manifestPath), "skin.json");
+		if (!existsSync(path)) continue;
 		try {
-			const entry = catalogEntry(JSON.parse(readFileSync(path, "utf8")), packageName);
+			const entry = catalogEntry(JSON.parse(readFileSync(path, "utf8")), installedPackage.name);
 			if (entry === null || dirs.has(entry.id) || wiringIds.has(entry.wiringId)) continue;
 			wiringIds.add(entry.wiringId);
 			dirs.set(entry.id, dirname(path));

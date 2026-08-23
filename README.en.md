@@ -32,30 +32,35 @@ Click an image for the full size.
 
 ## Installation
 
-> **There is exactly one correct way to install a skin: have your dsh read this repository's [INSTALL.md](INSTALL.md) (the standard installation entry point), which leads dsh to the bundled `dsh-skin-install` skill**. By default it installs skin-manager and every skin in the repository while activating only the one you choose. It stages mutual exclusion **before** adding packages, so the skins are never allowed to run simultaneously (see [Skin mutual exclusion (must read)](#skin-mutual-exclusion-must-read) and [issue #65](https://github.com/Small-tailqwq/dsh-deep-whale/issues/65)).
+### One-command installation (recommended)
 
-### Standard flow: install through INSTALL.md (recommended, the only exclusion-safe path)
+The repository root is a complete DSH bundle. It depends on skin-manager and every skin subpackage at the same repository release tag, preserving each package's own `dsh.client` declaration, then starts safely on the official default with both skins disabled.
 
-1. Have your dsh read this repository's standard installation entry point:
+```sh
+dsh plugin --profile web add "github:Small-tailqwq/dsh-deep-whale"
+```
 
-   ```
-   Read https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md and install the skins following its guidance
-   ```
+Restart DSH once after the first package installation, then open Settings → Skin Management and select maid-atelier or orca-link. Later switches hot-reload without a restart or an AI-assisted installer.
 
-2. INSTALL.md leads dsh to the bundled `dsh-skin-install` skill (if dsh cannot read remote files: `git clone` locally, then open the clone directory in dsh as the **workspace** — the skill is auto-discovered — or have it read the local `INSTALL.md` path). The skill then completes, in order: lists every skin and says **all will be installed while you choose which one to activate** → explains the attribution chain and license (CC BY-NC-SA 4.0) → **atomically stages mutual exclusion in both patch layers** → registers skin-manager and all skins using absolute paths → verifies the composed config and a cold start. First-time package registration needs one user-performed restart; later switches hot-reload without a restart.
+```sh
+dsh plugin --profile web update @dsh-external/dsh-deep-whale
+```
 
-   Already installed, or you know the target? Take the fast path: say "switch to maid-atelier" or "install orca-link" — the skill skips the survey and finishes in about 1–2 minutes.
+For local development, replace the GitHub spec with the absolute repository-root path.
 
 ### Skin mutual exclusion (must read)
 
 - First, a distinction: `skin-manager` is not a skin — it is the **skin manager** (discovery, switching and customization panels) and should stay enabled permanently; mutual exclusion applies to the **skins themselves** — maid-atelier and orca-link in this repository.
 - Skin enable/disable is controlled by patch layers: each of `~/.dsh/profiles/web/cordis.patch.yml` (profile layer) and `~/.dsh/cordis.patch.yml` (home layer) carries `- id: <wiring.id>` + `disabled: true/false` rows (**both layers must be written**; the home layer outranks the profile layer).
 - **A skin without a `disabled` row in the patch is enabled by default.** If you install several skins at once (e.g. maid-atelier and orca-link) and never switch, they all run **simultaneously**: their decoration layers stack on top of each other and the sidebar/settings area gets mangled. Typical symptoms are **the settings button disappearing, abnormal sidebar width/layout, and a chaotic UI** (the stock UI is fine).
+- The root bundle explicitly enables the manager and disables every skin, so a fresh install has no overlap window.
 - skin-manager (Settings → Skin Management) writes the exclusion rows into both patch layers for you when activating; if you hand-edit the patch, keeping “only one skin enabled” requires **explicitly disabling every other skin**.
-- If a marketplace or another third-party channel bypasses the standard flow, skin-manager merges the profile then home-layer states at startup. When two or more skins would be effectively enabled, it atomically falls back to "Official default"; existing safe zero-or-one-skin selections are left untouched.
+- Legacy standalone and marketplace installs are still guarded: skin-manager atomically falls back to "Official default" if multiple skins would be active.
 - With skin-manager installed, skin customization items (e.g. the "less anime mode" visibility schedule) are stored in the current browser and applied by the manager.
 
-### Manual installation (fallback; stage mutual exclusion first)
+### Standalone packages (compatibility and development)
+
+> Regular users do not need this section. Never register the root bundle and these standalone bundles together: they insert the same wiring ids. To migrate, select Official Default, remove the three old packages, install the root bundle, and restart.
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone anywhere (shallow is enough, skips history)
@@ -106,17 +111,23 @@ Symptoms: the settings button disappears, the sidebar is covered by decoration o
 ### Post-install verification
 
 ```sh
-dsh plugin --profile web list          # should show @dsh-external/dsh-client-ui-skin-* as link: deps
-dsh --profile web --dump-config        # skin rows appear in the composed config with correct disabled states
+dsh plugin --profile web list          # root install shows @dsh-external/dsh-deep-whale
+dsh --profile web --dump-config        # manager=false; both skins initially true
 ```
-Refresh the browser to see the skin; skin toggles go through config hot reload, so no dsh restart is needed (restart only when adding/removing plugin packages).
+After a cold start, also inspect the client roster in the browser console (configuration entries alone do not prove browser bundles were registered):
+
+```js
+window.__DSH_BOOT__.entries.map(({ id }) => id).filter((id) => id.includes('deep-whale') || id.includes('maid-atelier') || id.includes('orca-link'))
+```
+
+It must contain the manager and the active skin package; disabled skins may be absent. Refresh the browser to see the skin; skin toggles go through config hot reload, so no dsh restart is needed (restart only when adding/removing plugin packages).
 
 ### Install failure troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ERR_PNPM_FETCH_404 ... <name>` | bare directory name passed (e.g. `add maid-atelier`), treated as an npm package | use an absolute path or a `./`/`../`-prefixed path |
-| command succeeds but `dsh plugin list` lacks the package | relative path resolved to the wrong location (clone location differed from assumption) | re-add with an absolute path |
+| `ERR_PNPM_FETCH_404` | misspelled GitHub spec, unavailable network, or a bare standalone directory | copy the complete spec above; use absolute paths for development links |
+| root and standalone packages both appear | a legacy installation was not migrated | select Official Default, remove the three old packages, and keep only the root bundle |
 | `pnpm not found on PATH` | pnpm missing from the environment | install pnpm (`npm i -g pnpm`) and retry |
 | package listed but no effect on the page | skin is `disabled` (multi-skin mutual exclusion) or the browser was not refreshed | check `disabled` in `--dump-config`; refresh |
 

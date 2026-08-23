@@ -41,6 +41,21 @@ interface SkinManifest {
   wiring?: { id?: unknown }
 }
 
+interface PackageManifest {
+  dependencies?: Record<string, unknown>
+  dsh?: {
+    profile?: { bundles?: unknown[] }
+    skinCollection?: { packages?: unknown }
+  }
+}
+
+interface InstalledPackage {
+  name: string
+  manifestPath: string
+}
+
+const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/i
+
 /** Resolve the profile patch without inspecting credentials or unrelated files. */
 export function resolveProfilePatch(env: NodeJS.ProcessEnv = process.env, cwd = process.cwd()): string {
   const configuredHome = env.DSH_HOME?.trim()
@@ -65,10 +80,7 @@ export function resolvePatchTargets(env: NodeJS.ProcessEnv = process.env, cwd = 
 
 function packageNames(manifestPath: string): string[] {
   try {
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-      dependencies?: Record<string, unknown>
-      dsh?: { profile?: { bundles?: unknown[] } }
-    }
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest
     const names = new Set(Object.keys(manifest.dependencies ?? {}))
     for (const value of manifest.dsh?.profile?.bundles ?? []) {
       if (typeof value === 'string') names.add(value)
@@ -79,20 +91,42 @@ function packageNames(manifestPath: string): string[] {
   }
 }
 
-function skinManifestPath(profileManifest: string, packageName: string): string | null {
-  const require = createRequire(profileManifest)
+function packageManifestPath(ownerManifest: string, packageName: string): string | null {
+  const require = createRequire(ownerManifest)
   try {
-    return require.resolve(`${packageName}/skin.json`)
+    return require.resolve(`${packageName}/package.json`)
   } catch {
+    const candidate = joinPath(dirname(ownerManifest), 'node_modules', ...packageName.split('/'), 'package.json')
+    return existsSync(candidate) ? candidate : null
+  }
+}
+
+/** Resolve direct profile packages plus skin dependencies explicitly owned by a collection. */
+function installedPackages(profileManifest: string): InstalledPackage[] {
+  const queue = packageNames(profileManifest).map(name => ({ name, ownerManifest: profileManifest }))
+  const found: InstalledPackage[] = []
+  const visited = new Set<string>()
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index]!
+    if (visited.has(current.name)) continue
+    const manifestPath = packageManifestPath(current.ownerManifest, current.name)
+    if (manifestPath === null) continue
+    visited.add(current.name)
+    found.push({ name: current.name, manifestPath })
     try {
-      const packageJson = require.resolve(`${packageName}/package.json`)
-      const candidate = joinPath(dirname(packageJson), 'skin.json')
-      return existsSync(candidate) ? candidate : null
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest
+      const dependencies = new Set(Object.keys(manifest.dependencies ?? {}))
+      const packages = manifest.dsh?.skinCollection?.packages
+      if (!Array.isArray(packages)) continue
+      for (const name of packages) {
+        if (typeof name !== 'string' || !PACKAGE_NAME.test(name) || !dependencies.has(name)) continue
+        queue.push({ name, ownerManifest: manifestPath })
+      }
     } catch {
-      const candidate = joinPath(dirname(profileManifest), 'node_modules', ...packageName.split('/'), 'skin.json')
-      return existsSync(candidate) ? candidate : null
+      // One malformed collection must not hide direct packages or other collections.
     }
   }
+  return found
 }
 
 function catalogEntry(manifest: SkinManifest, installedPackage: string): SkinCatalogEntry | null {
@@ -127,11 +161,11 @@ export function discoverInstalledSkins(profilePatch = resolveProfilePatch()): Sk
   const found: SkinCatalogEntry[] = []
   const ids = new Set<string>()
   const wiringIds = new Set<string>()
-  for (const packageName of packageNames(profileManifest)) {
-    const path = skinManifestPath(profileManifest, packageName)
-    if (path === null) continue
+  for (const installedPackage of installedPackages(profileManifest)) {
+    const path = joinPath(dirname(installedPackage.manifestPath), 'skin.json')
+    if (!existsSync(path)) continue
     try {
-      const entry = catalogEntry(JSON.parse(readFileSync(path, 'utf8')) as SkinManifest, packageName)
+      const entry = catalogEntry(JSON.parse(readFileSync(path, 'utf8')) as SkinManifest, installedPackage.name)
       if (entry === null || ids.has(entry.id) || wiringIds.has(entry.wiringId)) continue
       ids.add(entry.id)
       wiringIds.add(entry.wiringId)
@@ -148,11 +182,11 @@ export function discoverSkinDirectories(profilePatch = resolveProfilePatch()): M
   const profileManifest = joinPath(dirname(profilePatch), 'package.json')
   const dirs = new Map<string, string>()
   const wiringIds = new Set<string>()
-  for (const packageName of packageNames(profileManifest)) {
-    const path = skinManifestPath(profileManifest, packageName)
-    if (path === null) continue
+  for (const installedPackage of installedPackages(profileManifest)) {
+    const path = joinPath(dirname(installedPackage.manifestPath), 'skin.json')
+    if (!existsSync(path)) continue
     try {
-      const entry = catalogEntry(JSON.parse(readFileSync(path, 'utf8')) as SkinManifest, packageName)
+      const entry = catalogEntry(JSON.parse(readFileSync(path, 'utf8')) as SkinManifest, installedPackage.name)
       if (entry === null || dirs.has(entry.id) || wiringIds.has(entry.wiringId)) continue
       wiringIds.add(entry.wiringId)
       dirs.set(entry.id, dirname(path))

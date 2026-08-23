@@ -1,0 +1,34 @@
+{
+  "name": "@dsh-external/dsh-deep-whale",
+  "description": "One-command DSH bundle for the Deep Whale skin manager and all Deep Whale skins",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/check-root-bundle.mjs"
+  },
+  "dependencies": {
+    "@dsh-external/dsh-client-ui-skin-deep-whale-manager": "github:Small-tailqwq/dsh-deep-whale#v0.2.0&path:/skin-manager",
+    "@dsh-external/dsh-client-ui-skin-maid-atelier": "github:Small-tailqwq/dsh-deep-whale#v0.2.0&path:/maid-atelier",
+    "@dsh-external/dsh-client-ui-skin-orca-link": "github:Small-tailqwq/dsh-deep-whale#v0.2.0&path:/orca-link"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "skinCollection": {
+      "packages": [
+        "@dsh-external/dsh-client-ui-skin-maid-atelier",
+        "@dsh-external/dsh-client-ui-skin-orca-link"
+      ]
+    }
+  },
+  "files": [
+    "cordis.patch.yml",
+    "scripts/check-root-bundle.mjs",
+    "INSTALL.md",
+    "README.md",
+    "README.en.md"
+  ],
+  "license": "CC-BY-NC-SA-4.0"
+}

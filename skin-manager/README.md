@@ -8,19 +8,19 @@
 - 渲染活动皮肤通过 v1 协议主动暴露的配置项；
 - 通用的“不那么二次元模式”：按本机时间设置多个显示或隐藏时段。
 
-安装管理模块与需要切换的皮肤包：
+普通用户直接安装仓库根 bundle：
 
 ```powershell
-dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/skin-manager
-dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/maid-atelier
-dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/orca-link
+dsh plugin --profile web add "github:Small-tailqwq/dsh-deep-whale"
 ```
+
+开发独立子包时仍可分别 link，但不要与根 bundle 同时注册。
 
 切换与启动兜底都会同步改写当前 Web profile 与优先级更高的 home patch 中的标准 `dsh-skin managed` 区段；区段外的用户 YAML 保持不变。已有零套或一套皮肤启用时，启动兜底不写文件。自定义配置按 `skinId` 保存在浏览器 `localStorage`，不会修改模型请求或 DSH 服务。
 
 ## 皮肤接入
 
-激活管理只要求皮肤包导出有效的 `skin.json`，其中 `package` 必须等于实际包名，且包含 `id`、`bodyAttr` 和 `wiring.id`。需要详细配置的皮肤再从自己的 client 入口调用 `exposeSkinCustomization()`：
+激活管理支持两种归属路径：profile 直接依赖导出有效 `skin.json`；或已安装的根 bundle 通过 `dsh.skinCollection.packages` 列出其真实皮肤依赖。后者只接受同时出现在根包 `dependencies` 中的包名，不读取任意路径。两种方式中 `package` 都必须匹配 `skin.json.package`，并包含 `id`、`bodyAttr` 和 `wiring.id`。需要详细配置的皮肤再从自己的 client 入口调用 `exposeSkinCustomization()`：
 
 ```ts
 import { exposeSkinCustomization } from '@dsh-external/dsh-client-ui-skin-deep-whale-manager/protocol'

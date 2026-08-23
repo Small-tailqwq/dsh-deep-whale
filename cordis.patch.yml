@@ -1,0 +1,12 @@
+# One-command distribution bundle. The manager is always available, while every
+# skin starts disabled so a fresh install can never stack multiple skins.
+- insert:
+    - id: ui-skin-deep-whale-manager
+      name: '@dsh-external/dsh-client-ui-skin-deep-whale-manager'
+      disabled: false
+    - id: ui-skin-maid-atelier
+      name: '@dsh-external/dsh-client-ui-skin-maid-atelier'
+      disabled: true
+    - id: ui-skin-orca-link
+      name: '@dsh-external/dsh-client-ui-skin-orca-link'
+      disabled: true

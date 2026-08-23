@@ -12,11 +12,13 @@ DeepSeek Harness Web GUI 的深海女仆工坊皮肤：双女仆背景、深海�
 
 ## 安装
 
+推荐通过仓库根 bundle 一次安装管理器和全部皮肤：
+
 ```sh
-git clone https://github.com/dsh-external/dsh-deep-whale
-cd <harness>
-dsh plugin --profile web add ../dsh-deep-whale/maid-atelier
+dsh plugin --profile web add "github:Small-tailqwq/dsh-deep-whale"
 ```
+
+重启后在“设置 → 皮肤管理”中选择“深海女仆工坊”。独立子包 link 仅用于本地开发。
 
 加载即生效、卸载即复原(与皮肤中心/dsh-skin 的互斥切换兼容,`wiring.id` 为 `ui-skin-maid-atelier`)。
 
