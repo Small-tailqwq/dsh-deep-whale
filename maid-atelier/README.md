@@ -12,11 +12,13 @@ DeepSeek Harness Web GUI 的深海女仆工坊皮肤：双女仆背景、深海�
 
 ## 安装
 
+推荐连同皮肤管理器一起，从仓库一行安装（需要 pnpm ≥ 9，`#path:` 子目录语法）：
+
 ```sh
-git clone https://github.com/dsh-external/dsh-deep-whale
-cd <harness>
-dsh plugin --profile web add ../dsh-deep-whale/maid-atelier
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'
 ```
+
+PowerShell 版本（`#` 是注释起始，spec 必须单引号包裹）见仓库 README。首次安装后重启一次 DSH，然后在“设置 → 皮肤管理”中选择“深海女仆工坊”；之后切换走配置热重载。独立子包 link 仅用于本地开发。
 
 加载即生效、卸载即复原(与皮肤中心/dsh-skin 的互斥切换兼容,`wiring.id` 为 `ui-skin-maid-atelier`)。
 
@@ -27,14 +29,14 @@ dsh plugin --profile web add ../dsh-deep-whale/maid-atelier
 皮肤素材为衍生创作,署名链(详见 `NOTICE`):
 
 1. **一创 上善**（[Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili：上善无形](https://b23.tv/8h5L4xz)）—— 鲸鱼娘角色形象原作者
-2. **二创 zipzip**（[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili：ZipZipPipe](https://b23.tv/Pnw6nG8)）—— 在其形象上加入 DeepSeek 元素的女仆鲸鱼娘二次设计(生成模型 GPT Image 2)
+2. **二创 ZipZipPipe**（[Pixiv](https://www.pixiv.net/users/18604994) · [Bilibili：ZipZipPipe](https://b23.tv/Pnw6nG8)）—— 在其形象上加入 DeepSeek 元素的女仆鲸鱼娘二次设计(生成模型 GPT Image 2)
 3. **三创(本皮肤)Small-tailqwq** —— DeepSeek 元素再设计
 
 完整许可文本见 `LICENSE`;素材源文件在 `assets/`。
 
 ## 开发与构建
 
-皮肤工程脚手架(目录模板、`tsdown.client.ts` 构建预设、`dsh-skin-new` 脚手架、皮肤中心与切换脚本)来自 [dsh-external/dsh-web-ui](https://github.com/dsh-external/dsh-web-ui)(作者:那位兄弟)——**本仓库只分发皮肤成品(含预构建 `lib/`),不包含脚手架**。开发构建请在该仓库的 `skins/maid-atelier/` 目录进行:
+皮肤工程脚手架(目录模板、`tsdown.client.ts` 构建预设、`dsh-skin-new` 脚手架、皮肤中心与切换脚本)来自 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)(作者:Solitude)——**本仓库只分发皮肤成品(含预构建 `lib/`),不包含脚手架**。开发构建请在该仓库的 `skins/maid-atelier/` 目录进行:
 
 ```sh
 cd <dsh-web-ui>/skins/maid-atelier

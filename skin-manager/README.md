@@ -8,13 +8,13 @@
 - 渲染活动皮肤通过 v1 协议主动暴露的配置项；
 - 通用的“不那么二次元模式”：按本机时间设置多个显示或隐藏时段。
 
-安装管理模块与需要切换的皮肤包：
+与皮肤一起，从仓库一行安装（需要 pnpm ≥ 9，`#path:` 子目录语法）：
 
-```powershell
-dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/skin-manager
-dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/maid-atelier
-dsh plugin --profile web add C:/absolute/path/dsh-deep-whale/orca-link
+```sh
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
 ```
+
+PowerShell 版本（`#` 是注释起始，spec 必须单引号包裹）见仓库 README。首次安装后重启一次 DSH；首次重启时管理器兜底检测到两套及以上皮肤同时启用会原子回退官方默认，之后在“设置 → 皮肤管理”切换。本地开发时对 skin-manager 与皮肤目录分别以绝对路径 link，不要与 GitHub 安装混跑（同一包名，后 add 覆盖）。
 
 切换与启动兜底都会同步改写当前 Web profile 与优先级更高的 home patch 中的标准 `dsh-skin managed` 区段；区段外的用户 YAML 保持不变。已有零套或一套皮肤启用时，启动兜底不写文件。自定义配置按 `skinId` 保存在浏览器 `localStorage`，不会修改模型请求或 DSH 服务。
 
