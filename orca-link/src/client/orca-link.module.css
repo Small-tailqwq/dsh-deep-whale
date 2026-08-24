@@ -1207,6 +1207,51 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
   z-index: 1;
 }
 
+/* Plugin-injected sidebar entries (skill-explorer / ssh / task-board rows;
+   L2 semantic attribute, issue #506) are direct children of the sidebar root,
+   one slot below the official New Session button. In the wide stage the
+   official button's transparent hit plane (z-index: 2, ::before over the
+   portrait area) would swallow clicks meant for these rows — keep the entries
+   on the rung above it so the row itself stays clickable while the rest of
+   the stage still opens a new session.
+
+   The wide stage also owns the top of the pane (portrait art down to
+   --orca-stage), so instead of floating one text row on the art, push the
+   entries below the stage: they read as a control row above the workspace.
+   Flow anchor = the production shell's measured 120px from pane top to the
+   browsing region's normal position (see the region rule below); entries sit
+   at that same slot, so the margin drops them to stage + 4. */
+body[data-dsh-orca-link][data-orca-sidebar-wide]
+  [data-slot='sidebar']
+  > :first-child
+  > button[data-dsh-part='sidebar-entry'] {
+  z-index: 3;
+  margin-top: calc(var(--orca-stage, 300px) - 116px);
+}
+
+/* The browsing-region rule below assumes the 120px production flow (no
+   plugin rows). With an entry above it that flow starts one row lower, so the
+   stage-margin must retire or the region drops by a full stage and leaves a
+   dead band between the entry and the workspace. Without the entry the
+   original margin still does the stage push. */
+body[data-dsh-orca-link][data-orca-sidebar-wide]
+  [data-slot='sidebar']
+  > :first-child:has(> button[data-dsh-part='sidebar-entry'])
+  [class*='regionArea'] {
+  margin-top: 0;
+}
+
+/* The stage offset applies to the FIRST injected entry only: sibling plugins
+   (ssh / task-board / skill-explorer) stack their rows one after the other,
+   so a full stage-sized margin on every entry would separate each native row
+   by 124–204px. The z-index promotion above still covers all entries. */
+body[data-dsh-orca-link][data-orca-sidebar-wide]
+  [data-slot='sidebar']
+  > :first-child
+  > button[data-dsh-part='sidebar-entry'] ~ button[data-dsh-part='sidebar-entry'] {
+  margin-top: 0;
+}
+
 /* Tooltip bubbles mount beside their anchors inside that anchor's carrier,
    which the lift above just turned into a stacking context: the fixed bubble
    cannot paint out of it and loses to the conversation header — the same
@@ -1415,7 +1460,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-orca-link-brand] {
   pointer-events: none;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button {
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) {
   position: relative;
   z-index: 2;
   overflow: visible;
@@ -1425,12 +1470,12 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
   color: transparent;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button > * {
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) > * {
   opacity: 0;
   pointer-events: none;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button::before {
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
   position: absolute;
   top: -14px;
   right: -14px;
@@ -1452,7 +1497,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
   transition: opacity 160ms ease;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button::after {
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::after {
   position: absolute;
   top: calc(var(--orca-stage, 300px) - 86px);
   right: -10px;
@@ -1465,32 +1510,32 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:hover::before,
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:focus-visible::before {
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::before,
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::before {
   opacity: 0.62;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:hover::after,
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:focus-visible::after {
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::after,
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::after {
   opacity: 0.92;
   transform: translate(-2px, -2px);
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:focus-visible {
+body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible {
   outline: none;
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button {
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) {
   position: relative;
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button > svg {
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) > svg {
   opacity: 0;
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button::before {
+body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -2764,6 +2809,15 @@ body[data-dsh-orca-link] {
     background: transparent;
     backdrop-filter: none;
   }
+  /* The portrait stage is retired in this layout, so the entries' stage-sized
+     offset would leave a blank band above the plugin rows; reset it with the
+     rest of the stage chrome. */
+  body[data-dsh-orca-link][data-orca-sidebar-wide]
+    [data-slot='sidebar']
+    > :first-child
+    > button[data-dsh-part='sidebar-entry'] {
+    margin-top: 0;
+  }
   body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before { display: none; }
   body[data-dsh-orca-link] .spine,
   body[data-dsh-orca-link] .signalChip,
@@ -2801,7 +2855,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [data-orca-composer-restore],
   body[data-dsh-orca-link] .lightSceneLayer,
   body[data-dsh-orca-link] .darkSceneLayer,
-  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > button::before,
+  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before,
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell] { opacity: 0.55; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
