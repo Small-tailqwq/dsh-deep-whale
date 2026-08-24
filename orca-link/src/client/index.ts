@@ -30,6 +30,7 @@ const DARK_ACTIVE_ART_PROPERTY = '--orca-link-dark-active-art'
 const SIDEBAR_WIDTH_PROPERTY = '--orca-sidebar-width'
 const SIDEBAR_ART_WIDTH_PROPERTY = '--orca-sidebar-art-width'
 const SIDEBAR_WIDE_ATTRIBUTE = 'data-orca-sidebar-wide'
+const APP_FRAME_SELECTOR = "[id='root'] > div[data-slot='root'] > div"
 const cls = (name: keyof typeof css): string => css[name] ?? ''
 
 const FAVICON = [
@@ -92,10 +93,25 @@ function mountDshWordmark(): boolean {
 }
 
 function syncSidebarWidth(body: HTMLElement, pane: Element): number {
-  const width = pane.getBoundingClientRect().width
-  if (width <= 0) return 0
-  body.style.setProperty(SIDEBAR_WIDTH_PROPERTY, `${width}px`)
-  body.toggleAttribute(SIDEBAR_WIDE_ATTRIBUTE, width > 96)
+  const measuredWidth = pane.getBoundingClientRect().width
+  if (measuredWidth <= 0) return 0
+
+  // AppFrame writes the transition's final grid tracks to its inline style
+  // before animation begins. Prefer that endpoint over ResizeObserver's
+  // intermediate pane width so one open/close produces one body style write,
+  // not one inherited custom-property invalidation per rendered frame.
+  const frame = body.querySelector<HTMLElement>(APP_FRAME_SELECTOR)
+  const firstTrack = frame?.style.gridTemplateColumns.trim().match(/^(-?(?:\d+|\d*\.\d+))px(?:\s|$)/)?.[1]
+  const targetWidth = firstTrack === undefined ? measuredWidth : Number.parseFloat(firstTrack)
+  const width = Number.isFinite(targetWidth) && targetWidth > 0 ? targetWidth : measuredWidth
+  const serializedWidth = `${width}px`
+  if (body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY) !== serializedWidth) {
+    body.style.setProperty(SIDEBAR_WIDTH_PROPERTY, serializedWidth)
+  }
+  const wide = width > 96
+  if (body.hasAttribute(SIDEBAR_WIDE_ATTRIBUTE) !== wide) {
+    body.toggleAttribute(SIDEBAR_WIDE_ATTRIBUTE, wide)
+  }
   return width
 }
 
