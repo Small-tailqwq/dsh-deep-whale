@@ -159,6 +159,19 @@ body[data-dsh-orca-link] [data-dsh-better-sidebar] [class$='_terminal'] {
   overflow: clip;
 }
 
+/* Produced-file summaries synchronously measure their chips after resize.
+   Freeze each row at its own current width during AppFrame track motion; keep
+   the custom property on the row so invalidation cannot fan out from a shared
+   ancestor into the entire conversation subtree. */
+body[data-dsh-orca-link]
+  [data-produced-files-row][data-orca-responsive-width-locked] {
+  box-sizing: border-box;
+  flex: 0 0 var(--orca-responsive-locked-width) !important;
+  width: var(--orca-responsive-locked-width) !important;
+  min-width: var(--orca-responsive-locked-width) !important;
+  max-width: var(--orca-responsive-locked-width) !important;
+}
+
 body[data-dsh-orca-link] [data-orca-terminal-width-locked] {
   box-sizing: border-box;
   width: var(--orca-terminal-locked-width) !important;
@@ -166,6 +179,19 @@ body[data-dsh-orca-link] [data-orca-terminal-width-locked] {
   max-width: var(--orca-terminal-locked-width) !important;
   align-self: flex-start;
   overflow: clip;
+}
+
+/* Produced-file summaries synchronously measure their chips after resize.
+   Freeze each row at its own current width during AppFrame track motion; keep
+   the custom property on the row so invalidation cannot fan out from a shared
+   ancestor into the entire conversation subtree. */
+body[data-dsh-orca-link]
+  [data-produced-files-row][data-orca-responsive-width-locked] {
+  box-sizing: border-box;
+  flex: 0 0 var(--orca-responsive-locked-width) !important;
+  width: var(--orca-responsive-locked-width) !important;
+  min-width: var(--orca-responsive-locked-width) !important;
+  max-width: var(--orca-responsive-locked-width) !important;
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme] {
@@ -2340,6 +2366,12 @@ body[data-dsh-orca-link] .spine {
   background: repeating-linear-gradient(180deg, var(--orca-line) 0 1px, transparent 1px 56px);
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
   mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+}
+
+/* The seam is decorative in constrained layouts; retiring it avoids moving a
+   body-level fixed layer alongside the AppFrame track transition. */
+@media (max-width: 1099px) {
+  body[data-dsh-orca-link] .spine { display: none; }
 }
 
 /* ---- Hero橱窗：空态是皮肤的展示窗口 -------------------------------------- */
