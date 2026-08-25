@@ -2985,7 +2985,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
   }
 }
 
-/* Collapsed reasoning, tool, and context rows sit directly over detailed
+/* Collapsed reasoning, tool, context, and workflow rows sit directly over detailed
    background art. A low-contrast porcelain wash stabilizes legibility without
    turning the compact disclosure list into a stack of message cards. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
@@ -3022,10 +3022,36 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   );
 }
 
+/* Workflow runs use the shared DisclosureRow contract but live outside the
+   tool `data-variant` wrapper. Preserve their native full-width layout while
+   giving a collapsed run header the same translucent wash as other tools. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-workflow-run] > :not([data-open='true']) > [data-disclosure-row='true'] {
+  background: linear-gradient(
+    90deg,
+    rgba(248, 250, 255, 0.32),
+    rgba(248, 250, 255, 0.2) 72%,
+    rgba(248, 250, 255, 0.08)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-workflow-run] > :not([data-open='true']) > [data-disclosure-row='true'] {
+  background: linear-gradient(
+    90deg,
+    rgba(10, 20, 48, 0.58),
+    rgba(13, 25, 59, 0.4) 72%,
+    rgba(13, 25, 59, 0.16)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   :is(
     [data-variant]:not([data-variant='think']) > [data-open='true'],
-    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
+    [data-workflow-run] > [data-open='true']
   ) {
   overflow: hidden;
   border-radius: 10px;
@@ -3040,7 +3066,8 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   :is(
     [data-variant]:not([data-variant='think']) > [data-open='true'],
-    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
+    [data-workflow-run] > [data-open='true']
   ) {
   overflow: hidden;
   border-radius: 10px;
@@ -3061,7 +3088,8 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 body[data-dsh-maid-atelier]
   :is(
     [data-variant]:not([data-variant='think']) > [data-open='true'],
-    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
+    [data-workflow-run] > [data-open='true']
   ) {
   backdrop-filter: blur(12px) saturate(0.92);
 }
@@ -3114,10 +3142,44 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-variant='bash'] {
   backdrop-filter: blur(8px) saturate(0.92);
 }
 
+/* The dedicated skill toolview also sits outside the shared DisclosureRow
+   contract. Blur only its summary row so the native instructions card and
+   inspect control keep their own surfaces and layout. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-tool='skill'] > :first-child {
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 250, 255, 0.32),
+    rgba(248, 250, 255, 0.2) 72%,
+    rgba(248, 250, 255, 0.08)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-tool='skill'] > :first-child {
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 20, 48, 0.58),
+    rgba(13, 25, 59, 0.4) 72%,
+    rgba(13, 25, 59, 0.16)
+  );
+  backdrop-filter: blur(8px) saturate(0.92);
+}
+
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   :is(
     [data-variant]:not([data-variant='think']) > [data-open='true'],
-    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
+    [data-workflow-run] > [data-open='true']
   ) > [data-disclosure-row='true'] {
   background: transparent;
   backdrop-filter: none;
@@ -3126,7 +3188,8 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   :is(
     [data-variant]:not([data-variant='think']) > [data-open='true'],
-    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']
+    [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
+    [data-workflow-run] > [data-open='true']
   ) > [data-disclosure-row='true'] {
   background: transparent;
   backdrop-filter: none;
