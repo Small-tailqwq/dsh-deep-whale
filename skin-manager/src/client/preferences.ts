@@ -49,6 +49,12 @@ function normalizeSetting(setting: SkinSetting, value: unknown): SkinSettingValu
       ? value
       : setting.defaultValue
   }
+  if (setting.type === 'range') {
+    const numeric = typeof value === 'number' && Number.isFinite(value) ? value : setting.defaultValue
+    const min = setting.min
+    const max = setting.max
+    return Math.min(max, Math.max(min, numeric))
+  }
   return normalizeVisibilitySchedule(value, setting.defaultValue)
 }
 

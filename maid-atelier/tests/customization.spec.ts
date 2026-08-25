@@ -44,6 +44,25 @@ describe('maid customization declaration', () => {
     expect(composerMode?.type).toBe('select')
     expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.value) : []).toEqual(['persistent', 'capsule', 'scroll'])
     expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.label) : []).toEqual(['始终显示', '空态胶囊（点击展开）', '上滚隐去 · 下滚渐现'])
+    expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.labelEn) : []).toEqual(['Always visible', 'Idle capsule (click to expand)', 'Hide on scroll up · show on scroll down'])
+    dispose()
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('declares English copy for every localized surface', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    expect(definition.titleEn).toBe('Abyssal Maid Atelier')
+    for (const setting of definition.settings) {
+      expect(setting.labelEn, `${setting.key} labelEn`).toBeTypeOf('string')
+      if (setting.description !== undefined) expect(setting.descriptionEn, `${setting.key} descriptionEn`).toBeTypeOf('string')
+      if (setting.type === 'select') {
+        for (const option of setting.options) expect(option.labelEn, `${setting.key}/${option.value} labelEn`).toBeTypeOf('string')
+      }
+    }
     dispose()
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })

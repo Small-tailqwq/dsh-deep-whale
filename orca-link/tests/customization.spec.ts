@@ -53,4 +53,21 @@ describe('ORCA LINK customization declaration', () => {
     dispose()
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
+
+  it('declares English copy for the manager surface', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installOrcaCustomization()
+    const definition = registration!.definition
+    // The title is already language-neutral; every label and description
+    // carries an explicit En variant for the manager's fallback path.
+    expect(definition.title).toBe('ORCA LINK')
+    for (const setting of definition.settings) {
+      expect(setting.labelEn, `${setting.key} labelEn`).toBeTypeOf('string')
+      if (setting.description !== undefined) expect(setting.descriptionEn, `${setting.key} descriptionEn`).toBeTypeOf('string')
+    }
+    dispose()
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
 })

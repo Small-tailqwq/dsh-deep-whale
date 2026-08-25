@@ -28,6 +28,11 @@ const NESTED_SCROLL_SURFACE_SELECTOR = [
 
 const SCROLL_THRESHOLD = 10
 const BOTTOM_THRESHOLD = 24
+// A wheel gesture on the draft scroller may keep scrolling the transcript for
+// a short while afterwards: the host's InputBar forwards the delta once the
+// capped draft box reaches its own edge, so the transcript scroll that follows
+// the gesture is not a "scrolling back through history" intent.
+const SEAT_GESTURE_WINDOW_MS = 200
 
 interface SeatSnapshot {
   hidden: string | null
@@ -83,6 +88,29 @@ function wheelBelongsToNestedSurface(event: WheelEvent, scrollport: HTMLElement)
     if (!/(auto|scroll)/.test(style.overflowY) || candidate.scrollHeight <= candidate.clientHeight) continue
     if (event.deltaY < 0 && candidate.scrollTop > 0) return true
     if (event.deltaY > 0 && candidate.scrollTop + candidate.clientHeight < candidate.scrollHeight) return true
+  }
+  return false
+}
+
+/**
+ * The host composer renders the draft in a capped scroll box
+ * (`overflow-y: auto` with `max-height`) inside the seat. A wheel gesture on
+ * that box belongs to the draft outright — including once it reaches its edge,
+ * where the host forwards the delta to the transcript. Driving the hide state
+ * from that forwarded scroll would hide (and blur) the composer whose long
+ * draft the user is reading, so such gestures never steer the seat.
+ */
+function wheelTargetsSeatDraft(event: WheelEvent): boolean {
+  const target = event.target
+  if (!(target instanceof Element)) return false
+  const seat = target.closest(COMPOSER_SEAT_SELECTOR)
+  if (seat === null) return false
+  for (const candidate of event.composedPath()) {
+    if (candidate === seat) break
+    if (!(candidate instanceof HTMLElement)) continue
+    const style = getComputedStyle(candidate)
+    if (!/(auto|scroll)/.test(style.overflowY)) continue
+    if (candidate.scrollHeight > candidate.clientHeight + 1) return true
   }
   return false
 }
@@ -147,6 +175,10 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     if (!scrollEnabled(doc)) write(seat, INTERACTIVE_ATTRIBUTE, null)
   }
 
+  // Timestamp until which transcript scrolls are treated as forwarded draft
+  // gestures (see SEAT_GESTURE_WINDOW_MS) rather than scroll-intent.
+  let seatGestureUntil = 0
+
   const onScroll = (event: Event): void => {
     if (!current() || !scrollEnabled(doc)) return
     const scrollport = event.target
@@ -157,6 +189,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     const top = scrollport.scrollTop
     const previousTop = lastTops.get(scrollport)
     lastTops.set(scrollport, top)
+    if (Date.now() < seatGestureUntil) return
 
     const distanceToBottom = scrollport.scrollHeight - top - scrollport.clientHeight
     if (distanceToBottom <= BOTTOM_THRESHOLD) {
@@ -169,6 +202,12 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
 
   const onWheel = (event: WheelEvent): void => {
     if (!current() || !scrollEnabled(doc)) return
+    // Checked before the delta threshold: touchpad inertia tails emit small
+    // deltas that still chain onto the transcript via the host's forwarding.
+    if (wheelTargetsSeatDraft(event)) {
+      seatGestureUntil = Date.now() + SEAT_GESTURE_WINDOW_MS
+      return
+    }
     if (Math.abs(event.deltaY) <= SCROLL_THRESHOLD) return
 
     for (const candidate of event.composedPath()) {

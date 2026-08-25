@@ -25,6 +25,11 @@ const SCROLL_THRESHOLD = 10
 const BOTTOM_THRESHOLD = 24
 const GHOST_LIFETIME_MS = 260
 const ENTER_LIFETIME_MS = 560
+// A wheel gesture on the draft scroller may keep scrolling the transcript for
+// a short while afterwards: the host's InputBar forwards the delta once the
+// capped draft box reaches its own edge, so the transcript scroll that follows
+// the gesture is not a "scrolling back through history" intent.
+const SEAT_GESTURE_WINDOW_MS = 200
 
 interface ScrollBinding {
   lastTop: number | null
@@ -78,6 +83,29 @@ function wheelBelongsToNestedSurface(event: WheelEvent, scrollport: HTMLElement)
 }
 
 /**
+ * The host composer renders the draft in a capped scroll box
+ * (`overflow-y: auto` with `max-height`) inside the seat. A wheel gesture on
+ * that box belongs to the draft outright — including once it reaches its edge,
+ * where the host forwards the delta to the transcript. Driving the hide state
+ * from that forwarded scroll would hide (and blur) the composer whose long
+ * draft the user is reading, so such gestures never steer the seat.
+ */
+function wheelTargetsSeatDraft(event: WheelEvent): boolean {
+  const target = event.target
+  if (!(target instanceof Element)) return false
+  const seat = target.closest(COMPOSER_SEAT_SELECTOR)
+  if (seat === null) return false
+  for (const candidate of event.composedPath()) {
+    if (candidate === seat) break
+    if (!(candidate instanceof HTMLElement)) continue
+    const style = getComputedStyle(candidate)
+    if (!/(auto|scroll)/.test(style.overflowY)) continue
+    if (candidate.scrollHeight > candidate.clientHeight + 1) return true
+  }
+  return false
+}
+
+/**
  * Own the ORCA composer transition and scroll-intent presentation. This
  * module observes the host's stable data hooks; it never submits prompts or
  * creates sessions itself.
@@ -87,6 +115,9 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const phases = new WeakMap<HTMLElement, string>()
   const scrollBindings = new Map<HTMLElement, ScrollBinding>()
+  // Timestamp until which transcript scrolls are treated as forwarded draft
+  // gestures (see SEAT_GESTURE_WINDOW_MS) rather than scroll-intent.
+  let seatGestureUntil = 0
   let hasSeenHero = false
 
   const schedule = (callback: () => void, delay: number): void => {
@@ -243,6 +274,12 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     }
 
     const onWheel = (event: WheelEvent): void => {
+      // Checked before the delta threshold: touchpad inertia tails emit small
+      // deltas that still chain onto the transcript via the host's forwarding.
+      if (wheelTargetsSeatDraft(event)) {
+        seatGestureUntil = Date.now() + SEAT_GESTURE_WINDOW_MS
+        return
+      }
       if (wheelBelongsToNestedSurface(event, scrollport)) return
       if (binding.lastTop === null) binding.lastTop = scrollport.scrollTop
       const seat = activeSeatOf(scrollport)
@@ -256,6 +293,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
       binding.lastTop = top
       const seat = activeSeatOf(scrollport)
       if (seat !== null) {
+        if (Date.now() < seatGestureUntil) return
         const distanceToBottom = scrollport.scrollHeight - top - scrollport.clientHeight
         if (distanceToBottom <= BOTTOM_THRESHOLD) showSeat(seat)
         else if (previousTop !== null && top > previousTop + SCROLL_THRESHOLD) showSeat(seat)

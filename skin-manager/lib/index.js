@@ -455,6 +455,7 @@ async function inspectSkinVersion(id, dir, deps = defaultDeps) {
 	if (installed.buildDirty) note = "已安装运行文件与构建指纹不一致（本地有修改），不判定为远端更新";
 	else if (remoteMeta === null && installed.fingerprint !== null) note = "远端缺少有效构建指纹，无法判断更新";
 	else if (buildSame) state = "up-to-date";
+	else if (installed.dirty) note = "本地有未提交修改，无法用提交祖先关系判断当前运行文件是否需要更新";
 	else if (installed.baseRef === null) note = "构建指纹不同，但已安装包缺少可比较的源码提交，无法判断先后";
 	else try {
 		const remoteRef = remoteMeta?.sourceCommit ?? branch;

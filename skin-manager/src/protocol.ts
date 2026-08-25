@@ -19,28 +19,52 @@ export interface VisibilitySchedule {
   ranges: TimeRange[]
 }
 
+/**
+ * Every `*En` field is an optional English variant of its sibling: the
+ * manager shows it while the host UI language is English and falls back to
+ * the Chinese declaration otherwise, so unlocalized skins keep working
+ * under the same protocol version.
+ */
 interface SettingBase<T> {
   key: string
   label: string
+  labelEn?: string
   description?: string
+  descriptionEn?: string
   defaultValue: T
+  /** When this boolean setting key is true, the control becomes disabled. */
+  disabledWhen?: string
 }
 
 export interface BooleanSetting extends SettingBase<boolean> {
   type: 'boolean'
 }
 
+export interface SelectOption {
+  value: string
+  label: string
+  labelEn?: string
+}
+
 export interface SelectSetting extends SettingBase<string> {
   type: 'select'
-  options: Array<{ value: string, label: string }>
+  options: SelectOption[]
+}
+
+export interface RangeSetting extends SettingBase<number> {
+  type: 'range'
+  min: number
+  max: number
+  step?: number
+  unit?: string
 }
 
 export interface VisibilityScheduleSetting extends SettingBase<VisibilitySchedule> {
   type: 'visibility-schedule'
 }
 
-export type SkinSetting = BooleanSetting | SelectSetting | VisibilityScheduleSetting
-export type SkinSettingValue = boolean | string | VisibilitySchedule
+export type SkinSetting = BooleanSetting | SelectSetting | RangeSetting | VisibilityScheduleSetting
+export type SkinSettingValue = boolean | string | number | VisibilitySchedule
 export type SkinValues = Record<string, SkinSettingValue>
 
 export interface SkinCustomizationState {
@@ -53,6 +77,7 @@ export interface SkinCustomizationDefinition {
   protocol: typeof SKIN_CUSTOMIZATION_PROTOCOL
   skinId: string
   title: string
+  titleEn?: string
   settings: SkinSetting[]
   /** null means release all customization-owned state. Must be idempotent. */
   apply(state: SkinCustomizationState | null): void

@@ -202,7 +202,8 @@
 }
 
 .toggleRow,
-.selectRow {
+.selectRow,
+.sliderRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -211,13 +212,15 @@
 }
 
 .toggleRow > span,
-.selectRow > span {
+.selectRow > span,
+.sliderRow > span {
   display: grid;
   gap: 2px;
 }
 
 .toggleRow small,
 .selectRow small,
+.sliderRow small,
 .hint {
   color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
@@ -269,6 +272,81 @@
 .selectRow select {
   max-width: 240px;
   padding-inline: 8px;
+}
+
+/* Dependent controls (e.g. webcam character while peak pricing is on) are
+ * visually disabled but keep their value for when the dependency is toggled off. */
+.selectRow select:disabled,
+.sliderRow input:disabled,
+.toggleRow input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Pixel-drawn NGO/retro volume slider. The chrome follows the game's
+ * ControlPanel: a chunky 1px border box, saturated brand track and a
+ * neon-pink thumb with a crisp hard shadow. */
+.sliderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(120px, 220px);
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.sliderValue {
+  min-width: 3ch;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sliderRow input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 0;
+  background: var(--dsw-specific-input-major);
+  cursor: pointer;
+  image-rendering: pixelated;
+}
+
+.sliderRow input[type='range']::-webkit-slider-runnable-track {
+  height: 8px;
+  border: 1px solid var(--dsw-alias-brand-primary);
+  border-radius: 0;
+  background: linear-gradient(180deg, #bdf6ff, #52bce2 55%, #3716b1);
+}
+
+.sliderRow input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 22px;
+  margin-top: -8px;
+  border: 2px solid var(--dsw-alias-brand-primary);
+  border-radius: 0;
+  background: #ff70c8;
+  box-shadow: 2px 2px 0 rgb(81 39 255 / 35%);
+}
+
+.sliderRow input[type='range']::-moz-range-track {
+  height: 8px;
+  border: 1px solid var(--dsw-alias-brand-primary);
+  border-radius: 0;
+  background: linear-gradient(180deg, #bdf6ff, #52bce2 55%, #3716b1);
+}
+
+.sliderRow input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 18px;
+  border: 2px solid var(--dsw-alias-brand-primary);
+  border-radius: 0;
+  background: #ff70c8;
+  box-shadow: 2px 2px 0 rgb(81 39 255 / 35%);
 }
 
 /* The time editor splits "HH:MM" into an hour and a minute select so the

@@ -8,6 +8,7 @@ import type {
   VisibilitySchedule,
 } from '../protocol.ts'
 import { SkinCustomizationRegistry } from './runtime.ts'
+import { definitionTitle, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
 import css from './skin-manager.module.css'
 
 export interface SkinManagerInjected {
@@ -20,13 +21,14 @@ const shortDate = (iso: string | null): string => iso === null ? '' : iso.slice(
 const shortMessage = (message: string): string => message.length > 42 ? `${message.slice(0, 42)}…` : message
 
 function VersionRow({ info, onCopied }: { info: SkinVersionInfo, onCopied(): void }) {
+  const copy = skinManagerCopy(useUiLang())
   const segment = (text: string, className?: string): ReactNode => (
     <span className={className ?? css.versionMuted}>{text}</span>
   )
   if (info.source === 'none' || info.local === null) {
-    return <div className={css.versionRow}>{segment(info.note ?? '版本信息不可用')}</div>
+    return <div className={css.versionRow}>{segment(info.note ?? copy.versionUnavailable)}</div>
   }
-  const copy = async (): Promise<void> => {
+  const copyHash = async (): Promise<void> => {
     try {
       await navigator.clipboard?.writeText(info.local!.hash)
       onCopied(true)
@@ -41,42 +43,43 @@ function VersionRow({ info, onCopied }: { info: SkinVersionInfo, onCopied(): voi
         type="button"
         className={css.versionHash}
         title={info.source === 'git'
-          ? `完整提交 ${info.local.hash}\n日期 ${info.local.date ?? '未知'}`
-          : `完整构建指纹 ${info.local.hash}`}
-        onClick={() => void copy()}
+          ? copy.gitHashTitle(info.local.hash, info.local.date)
+          : copy.buildHashTitle(info.local.hash)}
+        onClick={() => void copyHash()}
       >
-        {info.source === 'git' ? '本地提交' : '本地构建'} {info.local.short}
+        {info.source === 'git' ? copy.localCommit : copy.localBuild} {info.local.short}
       </button>
-      {info.remote === null && segment(info.note ?? '未对比')}
+      {info.remote === null && segment(info.note ?? copy.notCompared)}
       {info.remote !== null && info.remote.state === 'up-to-date' && remoteLatest !== null && (
-        segment(`与远端一致（${remoteLatest.short}）`, css.versionOk)
+        segment(copy.upToDate(remoteLatest.short), css.versionOk)
       )}
       {info.remote !== null && info.remote.state === 'update-available' && remoteLatest !== null && (
         <>
           <span className={css.versionUpdate}>
-            仓库有新构建：{remoteLatest.short} · {shortDate(remoteLatest.date)} · {shortMessage(remoteLatest.message ?? '')}
+            {copy.updateAvailable(remoteLatest.short, shortDate(remoteLatest.date), shortMessage(remoteLatest.message ?? ''))}
           </span>
         </>
       )}
       {info.remote !== null && info.remote.state === 'local-ahead' && remoteLatest !== null && (
-        segment(`本地领先（远端 ${remoteLatest.short}）`)
+        segment(copy.localAhead(remoteLatest.short))
       )}
       {info.remote !== null && info.remote.state === 'diverged' && remoteLatest !== null && (
-        segment(`与远端分叉（远端 ${remoteLatest.short}）`)
+        segment(copy.diverged(remoteLatest.short))
       )}
       {info.remote !== null && info.remote.state === 'unknown' && (
-        segment('无法判断更新')
+        segment(copy.unknownUpdate)
       )}
-      {info.dirty && segment('本地有未提交修改')}
+      {info.dirty && segment(copy.localDirty)}
       {info.note !== undefined && segment(info.note)}
     </div>
   )
 }
 
-function Toggle({ checked, label, description, onChange }: {
+function Toggle({ checked, label, description, disabled = false, onChange }: {
   checked: boolean
   label: string
   description?: string
+  disabled?: boolean
   onChange(value: boolean): void
 }) {
   return (
@@ -86,7 +89,7 @@ function Toggle({ checked, label, description, onChange }: {
         {description && <small>{description}</small>}
       </span>
       <label className={css.toggleSwitch}>
-        <input type="checkbox" role="switch" checked={checked} onChange={event => onChange(event.currentTarget.checked)} />
+        <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={event => onChange(event.currentTarget.checked)} />
       </label>
     </div>
   )
@@ -106,18 +109,19 @@ function TimeSelect({ label, value, onChange }: {
   value: string
   onChange(value: string): void
 }) {
+  const copy = skinManagerCopy(useUiLang())
   const [hour = '00', minute = '00'] = value.split(':')
   const setHour = (hour: string): void => onChange(`${hour}:${minute}`)
   const setMinute = (minute: string): void => onChange(`${hour}:${minute}`)
   return (
     <span className={css.timeSelect}>
-      <select aria-label={`${label} 时`} value={hour} onChange={event => setHour(event.currentTarget.value)}>
+      <select aria-label={copy.hourAria(label)} value={hour} onChange={event => setHour(event.currentTarget.value)}>
         {Array.from({ length: 24 }, (_, hour) => (
           <option key={hour} value={padTime(hour)}>{padTime(hour)}</option>
         ))}
       </select>
       <span className={css.timeColon} aria-hidden="true">:</span>
-      <select aria-label={`${label} 分`} value={minute} onChange={event => setMinute(event.currentTarget.value)}>
+      <select aria-label={copy.minuteAria(label)} value={minute} onChange={event => setMinute(event.currentTarget.value)}>
         {Array.from({ length: 60 }, (_, minute) => (
           <option key={minute} value={padTime(minute)}>{padTime(minute)}</option>
         ))}
@@ -131,6 +135,8 @@ export function ScheduleEditor({ setting, value, onChange }: {
   value: VisibilitySchedule
   onChange(value: VisibilitySchedule): void
 }) {
+  const lang = useUiLang()
+  const copy = skinManagerCopy(lang)
   const updateRange = (index: number, patch: Partial<TimeRange>): void => onChange({
     ...value,
     ranges: value.ranges.map((range, current) => current === index ? { ...range, ...patch } : range),
@@ -139,34 +145,34 @@ export function ScheduleEditor({ setting, value, onChange }: {
     <div className={css.schedule}>
       <Toggle
         checked={value.enabled}
-        label={setting.label}
-        description={setting.description}
+        label={settingLabel(setting, lang)}
+        description={settingDescription(setting, lang)}
         onChange={enabled => onChange({ ...value, enabled })}
       />
       {value.enabled && (
         <div className={css.scheduleDetails}>
           <label className={css.selectRow}>
-            <span>规则方式</span>
+            <span>{copy.schedulePolicy}</span>
             <select value={value.outside} onChange={event => onChange({ ...value, outside: event.currentTarget.value as VisibilitySchedule['outside'] })}>
-              <option value="visible">这些时段隐藏，其余时间显示</option>
-              <option value="hidden">这些时段显示，其余时间隐藏</option>
+              <option value="visible">{copy.policyHideInRanges}</option>
+              <option value="hidden">{copy.policyShowInRanges}</option>
             </select>
           </label>
           <div className={css.rangeList}>
             {value.ranges.map((range, index) => (
               <div className={css.rangeRow} key={index}>
                 <TimeSelect
-                  label={`时段 ${index + 1} 开始`}
+                  label={copy.rangeStartAria(index + 1)}
                   value={range.start}
                   onChange={start => updateRange(index, { start })}
                 />
-                <span>至</span>
+                <span>{copy.rangeTo}</span>
                 <TimeSelect
-                  label={`时段 ${index + 1} 结束`}
+                  label={copy.rangeEndAria(index + 1)}
                   value={range.end}
                   onChange={end => updateRange(index, { end })}
                 />
-                <button type="button" onClick={() => onChange({ ...value, ranges: value.ranges.filter((_, current) => current !== index) })}>删除</button>
+                <button type="button" onClick={() => onChange({ ...value, ranges: value.ranges.filter((_, current) => current !== index) })}>{copy.removeRange}</button>
               </div>
             ))}
           </div>
@@ -176,35 +182,71 @@ export function ScheduleEditor({ setting, value, onChange }: {
             disabled={value.ranges.length >= 24}
             onClick={() => onChange({ ...value, ranges: [...value.ranges, { start: '09:00', end: '12:00' }] })}
           >
-            添加时间段
+            {copy.addRange}
           </button>
-          <small className={css.hint}>使用本机时间；支持跨午夜，例如 22:00 至 07:00。时间段按“开始包含、结束不包含”计算。</small>
+          <small className={css.hint}>{copy.scheduleHint}</small>
         </div>
       )}
     </div>
   )
 }
 
-function SettingEditor({ setting, value, onChange }: {
+function RangeEditor({ setting, label, description, value, disabled = false, onChange }: {
+  setting: Extract<SkinSetting, { type: 'range' }>
+  label: string
+  description?: string
+  value: number
+  disabled?: boolean
+  onChange(value: number): void
+}) {
+  return (
+    <label className={css.sliderRow}>
+      <span>
+        <span>{label}</span>
+        {description && <small>{description}</small>}
+      </span>
+      <span className={css.sliderValue}>{value}{setting.unit ?? ''}</span>
+      <input
+        type="range"
+        min={setting.min}
+        max={setting.max}
+        step={setting.step ?? 1}
+        value={value}
+        disabled={disabled}
+        aria-label={label}
+        onChange={event => onChange(Number(event.currentTarget.value))}
+      />
+    </label>
+  )
+}
+
+function SettingEditor({ setting, value, disabled = false, onChange }: {
   setting: SkinSetting
   value: SkinSettingValue
+  disabled?: boolean
   onChange(value: SkinSettingValue): void
 }) {
+  const lang = useUiLang()
+  const label = settingLabel(setting, lang)
+  const description = settingDescription(setting, lang)
   if (setting.type === 'boolean') {
-    return <Toggle checked={value as boolean} label={setting.label} description={setting.description} onChange={onChange} />
+    return <Toggle checked={value as boolean} label={label} description={description} disabled={disabled} onChange={onChange} />
   }
   if (setting.type === 'select') {
     return (
       <label className={css.selectRow}>
         <span>
-          <span>{setting.label}</span>
-          {setting.description && <small>{setting.description}</small>}
+          <span>{label}</span>
+          {description && <small>{description}</small>}
         </span>
-        <select value={value as string} onChange={event => onChange(event.currentTarget.value)}>
-          {setting.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        <select value={value as string} disabled={disabled} onChange={event => onChange(event.currentTarget.value)}>
+          {setting.options.map(option => <option key={option.value} value={option.value}>{optionLabel(option, lang)}</option>)}
         </select>
       </label>
     )
+  }
+  if (setting.type === 'range') {
+    return <RangeEditor setting={setting} label={label} description={description} value={value as number} disabled={disabled} onChange={onChange} />
   }
   return <ScheduleEditor setting={setting} value={value as VisibilitySchedule} onChange={onChange} />
 }
@@ -213,18 +255,23 @@ function CustomizationCard({ definition, registry }: {
   definition: SkinCustomizationDefinition
   registry: SkinCustomizationRegistry
 }) {
+  const lang = useUiLang()
   const values = registry.values(definition)
   return (
     <section className={css.card} data-skin-customization={definition.skinId}>
-      <h3>{definition.title}</h3>
-      {definition.settings.map(setting => (
-        <SettingEditor
-          key={setting.key}
-          setting={setting}
-          value={values[setting.key]!}
-          onChange={value => registry.set(definition, setting.key, value)}
-        />
-      ))}
+      <h3>{definitionTitle(definition, lang)}</h3>
+      {definition.settings.map(setting => {
+        const disabled = setting.disabledWhen !== undefined && values[setting.disabledWhen] === true
+        return (
+          <SettingEditor
+            key={setting.key}
+            setting={setting}
+            value={values[setting.key]!}
+            disabled={disabled}
+            onChange={value => registry.set(definition, setting.key, value)}
+          />
+        )
+      })}
     </section>
   )
 }
@@ -241,6 +288,8 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   const [error, setError] = useState<string | null>(null)
   const live = useRef(true)
   const copyTimer = useRef<number | undefined>(undefined)
+  const lang = useUiLang()
+  const copy = skinManagerCopy(lang)
   const current = active(catalog)
   const currentDefinitions = definitions.filter(definition => definition.skinId === current)
 
@@ -301,20 +350,20 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   return (
     <div className={css.section} data-dsh-skin-manager>
       <header className={css.header}>
-        <h2>皮肤管理</h2>
-        <p>这里会发现当前 Web profile 中已安装的皮肤。激活由管理器统一处理；详细配置由皮肤按通用协议自行声明并负责应用。每个皮肤下方显示本地提交或构建指纹；「检查更新」只比较官方仓库的构建结果，不会改动你的本地文件。</p>
+        <h2>{copy.headerTitle}</h2>
+        <p>{copy.headerIntro}</p>
       </header>
 
       <section className={css.card}>
         <div className={css.cardHeader}>
-          <h3>已安装皮肤</h3>
+          <h3>{copy.installedTitle}</h3>
           <button
             type="button"
             className={css.checkButton}
             disabled={loading || checking}
             onClick={checkVersions}
           >
-            {checking ? '检查中…' : '检查更新'}
+            {checking ? copy.checking : copy.checkUpdates}
           </button>
         </div>
         <button
@@ -324,43 +373,49 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
           onClick={() => choose('official')}
         >
           <span>
-            <span>官方默认</span>
-            <small>不启用任何皮肤</small>
+            <span>{copy.officialName}</span>
+            <small>{copy.officialDescription}</small>
           </span>
           <small className={css.defaultState}>
-            {current === 'official' ? '当前' : switching === 'official' ? '切换中' : '切换'}
+            {current === 'official' ? copy.stateCurrent : switching === 'official' ? copy.stateSwitching : copy.stateSwitch}
           </small>
         </button>
         <div className={css.skinGrid}>
-          {catalog.map(skin => (
-            <div key={skin.id} className={css.skinTile}>
-              <button
-                type="button"
-                className={current === skin.id ? css.activeSkin : css.skinButton}
-                disabled={loading || switching !== null || current === skin.id}
-                onClick={() => choose(skin.id)}
-              >
-                <span>{skin.name}</span>
-                {skin.nameEn && <small>{skin.nameEn}</small>}
-                <small>{current === skin.id ? '当前' : switching === skin.id ? '切换中' : '切换'}</small>
-              </button>
-              {skin.dshCompatibility && (
-                <small className={css.compatibility}>已适配 DSH {skin.dshCompatibility}</small>
-              )}
-              <VersionRow
-                info={versions.get(skin.id) ?? { id: skin.id, source: 'none', local: null, remote: null, dirty: false, note: '尚未读取' }}
-                onCopied={announceCopied}
-              />
-            </div>
-          ))}
+          {catalog.map(skin => {
+            // English UI: lead with the English name and demote the Chinese
+            // one to the subtitle, mirroring the default zh presentation.
+            const primaryName = lang === 'en' && skin.nameEn !== undefined ? skin.nameEn : skin.name
+            const secondaryName = lang === 'en' ? (skin.nameEn !== undefined ? skin.name : undefined) : skin.nameEn
+            return (
+              <div key={skin.id} className={css.skinTile}>
+                <button
+                  type="button"
+                  className={current === skin.id ? css.activeSkin : css.skinButton}
+                  disabled={loading || switching !== null || current === skin.id}
+                  onClick={() => choose(skin.id)}
+                >
+                  <span>{primaryName}</span>
+                  {secondaryName !== undefined && <small>{secondaryName}</small>}
+                  <small>{current === skin.id ? copy.stateCurrent : switching === skin.id ? copy.stateSwitching : copy.stateSwitch}</small>
+                </button>
+                {skin.dshCompatibility && (
+                  <small className={css.compatibility}>{copy.compatibility(skin.dshCompatibility)}</small>
+                )}
+                <VersionRow
+                  info={versions.get(skin.id) ?? { id: skin.id, source: 'none', local: null, remote: null, dirty: false, note: copy.versionUnread }}
+                  onCopied={announceCopied}
+                />
+              </div>
+            )
+          })}
         </div>
         {catalog.length === 0 && !loading && (
-          <p className={css.hint}>当前 profile 未发现皮肤包；安装本仓库皮肤后可回到这里激活。</p>
+          <p className={css.hint}>{copy.noSkins}</p>
         )}
-        {copied === 'ok' && <p className={css.hint}>完整版本标识已复制到剪贴板。</p>}
-        {copied === 'fail' && <p className={css.error}>复制失败：浏览器拒绝了剪贴板访问。</p>}
-        {loading && <p className={css.hint}>正在读取已安装皮肤…</p>}
-        {error !== null && <p className={css.error}>操作失败：{error}</p>}
+        {copied === 'ok' && <p className={css.hint}>{copy.copiedOk}</p>}
+        {copied === 'fail' && <p className={css.error}>{copy.copyFailed}</p>}
+        {loading && <p className={css.hint}>{copy.loadingSkins}</p>}
+        {error !== null && <p className={css.error}>{copy.actionFailed(error)}</p>}
       </section>
 
       {currentDefinitions.map(definition => (
@@ -368,8 +423,8 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
       ))}
       {!loading && current !== 'official' && current !== 'unknown' && currentDefinitions.length === 0 && (
         <section className={css.card}>
-          <h3>详细配置</h3>
-          <p className={css.hint}>当前皮肤尚未暴露可配置项；仍可在上方正常激活和切换。</p>
+          <h3>{copy.settingsTitle}</h3>
+          <p className={css.hint}>{copy.noSettings}</p>
         </section>
       )}
     </div>

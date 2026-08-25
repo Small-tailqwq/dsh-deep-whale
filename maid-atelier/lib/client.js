@@ -368,6 +368,7 @@ window.__ModuleLoader__.load({
 		].join(",");
 		const SCROLL_THRESHOLD = 10;
 		const BOTTOM_THRESHOLD = 24;
+		const SEAT_GESTURE_WINDOW_MS = 200;
 		const ownershipByDocument = /* @__PURE__ */ new WeakMap();
 		function phaseRootOf(element) {
 			let candidate = element;
@@ -399,6 +400,28 @@ window.__ModuleLoader__.load({
 				if (!/(auto|scroll)/.test(style.overflowY) || candidate.scrollHeight <= candidate.clientHeight) continue;
 				if (event.deltaY < 0 && candidate.scrollTop > 0) return true;
 				if (event.deltaY > 0 && candidate.scrollTop + candidate.clientHeight < candidate.scrollHeight) return true;
+			}
+			return false;
+		}
+		/**
+		* The host composer renders the draft in a capped scroll box
+		* (`overflow-y: auto` with `max-height`) inside the seat. A wheel gesture on
+		* that box belongs to the draft outright — including once it reaches its edge,
+		* where the host forwards the delta to the transcript. Driving the hide state
+		* from that forwarded scroll would hide (and blur) the composer whose long
+		* draft the user is reading, so such gestures never steer the seat.
+		*/
+		function wheelTargetsSeatDraft(event) {
+			const target = event.target;
+			if (!(target instanceof Element)) return false;
+			const seat = target.closest(COMPOSER_SEAT_SELECTOR);
+			if (seat === null) return false;
+			for (const candidate of event.composedPath()) {
+				if (candidate === seat) break;
+				if (!(candidate instanceof HTMLElement)) continue;
+				const style = getComputedStyle(candidate);
+				if (!/(auto|scroll)/.test(style.overflowY)) continue;
+				if (candidate.scrollHeight > candidate.clientHeight + 1) return true;
 			}
 			return false;
 		}
@@ -460,6 +483,7 @@ window.__ModuleLoader__.load({
 				write(seat, INTERACTIVE_ATTRIBUTE, "");
 				if (!scrollEnabled(doc)) write(seat, INTERACTIVE_ATTRIBUTE, null);
 			};
+			let seatGestureUntil = 0;
 			const onScroll = (event) => {
 				if (!current() || !scrollEnabled(doc)) return;
 				const scrollport = event.target;
@@ -469,6 +493,7 @@ window.__ModuleLoader__.load({
 				const top = scrollport.scrollTop;
 				const previousTop = lastTops.get(scrollport);
 				lastTops.set(scrollport, top);
+				if (Date.now() < seatGestureUntil) return;
 				if (scrollport.scrollHeight - top - scrollport.clientHeight <= BOTTOM_THRESHOLD) {
 					showSeat(seat);
 					return;
@@ -478,6 +503,10 @@ window.__ModuleLoader__.load({
 			};
 			const onWheel = (event) => {
 				if (!current() || !scrollEnabled(doc)) return;
+				if (wheelTargetsSeatDraft(event)) {
+					seatGestureUntil = Date.now() + SEAT_GESTURE_WINDOW_MS;
+					return;
+				}
 				if (Math.abs(event.deltaY) <= SCROLL_THRESHOLD) return;
 				for (const candidate of event.composedPath()) {
 					if (!(candidate instanceof HTMLElement) || !candidate.matches(SCROLLPORT_SELECTOR)) continue;
@@ -673,18 +702,22 @@ window.__ModuleLoader__.load({
 				protocol: 1,
 				skinId: "maid-atelier",
 				title: "深海女仆工坊",
+				titleEn: "Abyssal Maid Atelier",
 				settings: [
 					{
 						key: "artwork",
 						type: "boolean",
 						label: "显示双女仆立绘",
+						labelEn: "Show the twin maid artwork",
 						defaultValue: true
 					},
 					{
 						key: "sfwMode",
 						type: "visibility-schedule",
 						label: "不那么二次元模式",
+						labelEn: "Not-so-anime mode",
 						description: "按本机时间控制大幅立绘；可设置工作时段隐藏、其他时间显示，也可反向设置。",
+						descriptionEn: "Control the large artwork by local time; hide it during work hours and show it otherwise, or the reverse.",
 						defaultValue: {
 							enabled: false,
 							outside: "visible",
@@ -695,39 +728,48 @@ window.__ModuleLoader__.load({
 						key: "font",
 						type: "select",
 						label: "对话区字体",
+						labelEn: "Conversation font",
 						defaultValue: "system",
 						options: [{
 							value: "system",
-							label: "系统默认无衬线"
+							label: "系统默认无衬线",
+							labelEn: "System default sans"
 						}, {
 							value: "serif",
-							label: "Georgia 衬线（#22）"
+							label: "Georgia 衬线（#22）",
+							labelEn: "Georgia serif (#22)"
 						}]
 					},
 					{
 						key: "modelExit",
 						type: "boolean",
 						label: "根据所选模型显示立绘",
+						labelEn: "Show artwork based on the selected model",
 						defaultValue: false
 					},
 					{
 						key: "composerMode",
 						type: "select",
 						label: "输入框显示方式",
+						labelEn: "Composer visibility mode",
 						description: "始终显示；空态胶囊在输入框为空且未聚焦时收起为简约胶囊；滚动显隐在上滚回顾时隐去、下滚渐现。",
+						descriptionEn: "Always visible; the idle capsule collapses to a slim capsule while the composer is empty and unfocused; scroll mode hides it when scrolling up to review and reveals it when scrolling down.",
 						defaultValue: "persistent",
 						options: [
 							{
 								value: "persistent",
-								label: "始终显示"
+								label: "始终显示",
+								labelEn: "Always visible"
 							},
 							{
 								value: "capsule",
-								label: "空态胶囊（点击展开）"
+								label: "空态胶囊（点击展开）",
+								labelEn: "Idle capsule (click to expand)"
 							},
 							{
 								value: "scroll",
-								label: "上滚隐去 · 下滚渐现"
+								label: "上滚隐去 · 下滚渐现",
+								labelEn: "Hide on scroll up · show on scroll down"
 							}
 						]
 					}
