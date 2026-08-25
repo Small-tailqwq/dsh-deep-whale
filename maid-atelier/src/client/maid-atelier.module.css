@@ -1932,9 +1932,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 /* The official model picker keeps its trigger and menu as adjacent children
    of one CSS-module root. Drop only the hero card's composited blur while
    that exact menu is mounted: provider switches can replace extension-slot
-   content without repainting it through the filtered composer layer. */
+   content without repainting it through the filtered composer layer. The
+   rules stay anchored to the native `conversation.input.model` seat so
+   extension menus in other input slots never pick up the skin's surface. */
 body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-card]:has(
-    [class$='_root']
+    [data-slot='conversation.input.model']
+      [class$='_root']
       > button[class$='_trigger'][aria-haspopup='menu'][aria-expanded='true']
       + [role='menu'][class$='_menu']
   ) {
@@ -1943,6 +1946,7 @@ body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-card]:has(
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
+  [data-slot='conversation.input.model']
   [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
   > [role='menu'][class$='_menu'] {
   background: rgba(232, 238, 249, 0.98);
@@ -1951,6 +1955,7 @@ body[data-dsh-maid-atelier] [data-composer-card]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
+  [data-slot='conversation.input.model']
   [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
   > [role='menu'][class$='_menu'] {
   background: rgba(24, 40, 80, 0.98);

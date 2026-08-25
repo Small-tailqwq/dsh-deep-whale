@@ -692,6 +692,11 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[class\*='triggerEffort'\]\s*\{[^}]*color: #a77c36/s)
   })
 
+  it('anchors the model-menu rules to the native input.model seat', () => {
+    expect(CSS).toMatch(/\[data-composer-card\]:has\(\s*\[data-slot='conversation\.input\.model'\][\s\S]*?\[aria-expanded='true'\]\s*\+ \[role='menu'\]\[class\$='_menu'\]\s*\)\s*\{[^}]*backdrop-filter: none/s)
+    expect(CSS).toMatch(/\[data-composer-card\]\s*\[data-slot='conversation\.input\.model'\]\s*\[class\$='_root'\]:has\(> button\[class\$='_trigger'\]\[aria-haspopup='menu'\]\)\s*> \[role='menu'\]\[class\$='_menu'\]\s*\{[^}]*backdrop-filter: none/s)
+  })
+
   it('nine-slices one composer frame across hero and workspace heights', () => {
     const frameRule = CSS.match(/\[data-composer-card\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
     expect(frameRule).toContain('inset: -20px -14px -18px')
