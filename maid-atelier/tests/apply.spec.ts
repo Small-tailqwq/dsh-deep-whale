@@ -686,9 +686,9 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-phase='active'\] \[data-composer-card\] > \[class\*='row'\]\s*\{[^}]*padding: 2px 14px 10px/s)
     expect(CSS).toMatch(/button\[class\*='add'\][\s\S]*?width: 38px[\s\S]*?border-radius: 50%/)
     expect(CSS).toMatch(/\[class\*='modes'\] button\[class\*='trigger'\]:has\(\[class\*='triggerIcon'\]\)/)
-    expect(CSS).toMatch(/button\[aria-haspopup='dialog'\] \[class\*='track'\]\s*\{[^}]*stroke: #4d6bab/s)
-    expect(CSS).toMatch(/button\[aria-haspopup='dialog'\] \[class\*='fill'\]\s*\{[^}]*stroke: #d3a957/s)
-    expect(CSS).toMatch(/\[role='dialog'\] \[class\*='header'\][\s\S]*?color: #172347/)
+    expect(CSS).toMatch(/button\[class\$='_trigger'\]\[aria-haspopup='dialog'\]:has\(> svg circle\[class\$='_fill'\]\)\s*circle\[class\$='_track'\]\s*\{[^}]*stroke: #4d6bab/s)
+    expect(CSS).toMatch(/button\[class\$='_trigger'\]\[aria-haspopup='dialog'\]:has\(> svg circle\[class\$='_track'\]\)\s*circle\[class\$='_fill'\]\s*\{[^}]*stroke: #d3a957/s)
+    expect(CSS).toMatch(/\[role='dialog'\] \[class\$='_header'\][\s\S]*?color: #172347/)
     expect(CSS).toMatch(/\[class\*='triggerEffort'\]\s*\{[^}]*color: #a77c36/s)
   })
 
