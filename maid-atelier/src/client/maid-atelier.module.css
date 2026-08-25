@@ -273,11 +273,13 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-visio
 
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
    independently translated layers let the landing ornament leave upward
-   while the lace-free workspace band drops in from above. */
+   while the lace-free workspace band drops in from above. The decor stays
+   below the sidebar root's stacking context (z 2), so fixed overlays that
+   extension slots mount inside it (peak/cost alerts) are never covered. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
   position: absolute;
   inset: 0 0 auto 0;
-  z-index: 20;
+  z-index: 1;
   height: 76px;
   overflow: hidden;
   pointer-events: none;
@@ -336,12 +338,13 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
 }
 
 /* The bottom band repeats at its native height while the center crest remains
-   an independent fixed-size layer inside the conversation column. */
+   an independent fixed-size layer inside the conversation column. Same z
+   rationale as the top curtain: below the sidebar root's z 2 context. */
 body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   position: absolute;
   inset: auto 0 0 0;
   transform: translateY(0);
-  z-index: 20;
+  z-index: 1;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
