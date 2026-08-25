@@ -962,6 +962,25 @@ body[data-dsh-maid-atelier]
   margin-top: 0;
 }
 
+/* sidebar.footer.action is the host's extension boundary. Keep its surface
+   and label tokens on the same navy palette so third-party cards cannot pair
+   the sidebar's porcelain text with the light application's panel fills. */
+body[data-dsh-maid-atelier] [data-slot='sidebar.footer.action'] {
+  --dsw-alias-bg-base: rgba(5, 14, 43, 0.96);
+  --dsw-alias-bg-layer-1: rgba(16, 36, 86, 0.94);
+  --dsw-alias-bg-layer-2: rgba(11, 25, 66, 0.97);
+  --dsw-alias-bg-layer-3: rgba(24, 40, 80, 0.98);
+  --dsw-alias-label-primary: #f8f3e8;
+  --dsw-alias-label-secondary: #d7def0;
+  --dsw-alias-label-tertiary: #b5c1dd;
+  --dsw-alias-label-caption: #96a8ce;
+  --dsw-alias-border-l1: rgba(225, 207, 170, 0.2);
+  --dsw-alias-border-l2: rgba(225, 207, 170, 0.32);
+  --dsw-alias-interactive-bg-hover: rgba(255, 252, 243, 0.1);
+  --dsw-alias-interactive-bg-active: rgba(197, 164, 104, 0.3);
+  color: var(--dsw-alias-label-primary);
+}
+
 body[data-dsh-maid-atelier] [data-cordis-badge] {
   min-height: 49px;
   color: #f4e3bf;
@@ -1910,6 +1929,38 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   backdrop-filter: blur(3px) saturate(0.88);
 }
 
+/* The official model picker keeps its trigger and menu as adjacent children
+   of one CSS-module root. Drop only the hero card's composited blur while
+   that exact menu is mounted: provider switches can replace extension-slot
+   content without repainting it through the filtered composer layer. The
+   rules stay anchored to the native `conversation.input.model` seat so
+   extension menus in other input slots never pick up the skin's surface. */
+body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-card]:has(
+    [data-slot='conversation.input.model']
+      [class$='_root']
+      > button[class$='_trigger'][aria-haspopup='menu'][aria-expanded='true']
+      + [role='menu'][class$='_menu']
+  ) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+body[data-dsh-maid-atelier] [data-composer-card]
+  [data-slot='conversation.input.model']
+  [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
+  > [role='menu'][class$='_menu'] {
+  background: rgba(232, 238, 249, 0.98);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
+  [data-slot='conversation.input.model']
+  [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
+  > [role='menu'][class$='_menu'] {
+  background: rgba(24, 40, 80, 0.98);
+}
+
 body[data-dsh-maid-atelier] [data-phase='hero']
   [data-composer-card] > [class*='row'] {
   min-height: 50px;
@@ -2239,11 +2290,17 @@ body[data-dsh-maid-atelier] [data-phase='active']
   display: none;
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] button {
+body[data-dsh-maid-atelier] [data-composer-card] button:not(
+    [data-slot='conversation.input.left'] *,
+    [data-slot='conversation.input.right'] *
+  ) {
   transition: transform 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] button:hover:not(:disabled) {
+body[data-dsh-maid-atelier] [data-composer-card] button:hover:not(:disabled):not(
+    [data-slot='conversation.input.left'] *,
+    [data-slot='conversation.input.right'] *
+  ) {
   transform: translateY(-1px);
 }
 
@@ -2367,82 +2424,99 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] [class*='tr
 /* Context pressure: blue is the available-capacity base and gold is the
    occupied share. The popover repeats that grammar, using three gold values
    only to preserve its system/tools/messages breakdown. */
-body[data-dsh-maid-atelier] [data-composer-card] button[aria-haspopup='dialog'] {
+body[data-dsh-maid-atelier] [data-composer-card]
+  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_track']):has(> svg circle[class$='_fill']) {
   width: 30px;
   height: 30px;
   border: 1px solid rgba(69, 94, 153, 0.22);
   background: rgba(225, 233, 251, 0.5);
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] button[aria-haspopup='dialog'] [class*='track'] {
+body[data-dsh-maid-atelier] [data-composer-card]
+  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_fill'])
+  circle[class$='_track'] {
   stroke: #4d6bab;
   stroke-width: 2.2;
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] button[aria-haspopup='dialog'] [class*='fill'] {
+body[data-dsh-maid-atelier] [data-composer-card]
+  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_track'])
+  circle[class$='_fill'] {
   stroke: #d3a957;
   stroke-width: 2.4;
   filter: drop-shadow(0 0 2px rgba(211, 169, 87, 0.36));
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  button[aria-haspopup='dialog'] {
+  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_track']):has(> svg circle[class$='_fill']) {
   border-color: rgba(125, 153, 216, 0.24);
   background: rgba(39, 60, 112, 0.56);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  button[aria-haspopup='dialog'] [class*='track'] {
+  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_fill'])
+  circle[class$='_track'] {
   stroke: #7896d4;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='bar'] {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_bar'] {
   background: rgba(71, 103, 174, 0.68);
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='segment'] {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_segment'] {
   background: var(--meter-tint, #d3a957);
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='header'],
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_header'],
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='header'] :is(span, div) {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_header'] :is(span, div) {
   color: #172347;
   text-shadow: none;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='headline'] {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_headline'] {
   color: #56678c;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='header'],
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_header'],
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='header'] :is(span, div) {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_header'] :is(span, div) {
   color: #f2e7cf;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [role='dialog'] [class*='headline'] {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [role='dialog'] [class$='_headline'] {
   color: #afbddb;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [class*='colorSystem'] {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [class$='_colorSystem'] {
   --meter-tint: #f0d99f;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [class*='colorTools'] {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [class$='_colorTools'] {
   --meter-tint: #dfbd73;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[aria-haspopup='dialog']) [class*='colorMessages'] {
+  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  [class$='_colorMessages'] {
   --meter-tint: #c99a43;
 }
 
