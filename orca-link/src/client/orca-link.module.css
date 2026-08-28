@@ -620,15 +620,16 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
   to { opacity: 1; }
 }
 
+/* Tooltip bubbles stay mounted inside the dialog but consume viewport
+   coordinates. Keep the panel entrance to paint-only properties: a transform,
+   even translateX(0) retained by fill-mode, would re-home those fixed bubbles. */
 @keyframes orcaSettingsPanelIn {
   from {
     opacity: 0;
-    transform: translateX(-20px);
     box-shadow: none;
   }
   to {
     opacity: 1;
-    transform: translateX(0);
     box-shadow: var(--orca-shadow);
   }
 }
