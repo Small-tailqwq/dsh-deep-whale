@@ -25,6 +25,14 @@ export function installOrcaCustomization(root: HTMLElement = document.documentEl
       'data-dsh-whale-orca-character',
       state.values.character === true && scheduleVisible ? 'visible' : 'hidden',
     )
+    projector.set(
+      'data-dsh-whale-orca-character-mirror',
+      state.values.mirrorCharacter === true ? 'mirrored' : 'original',
+    )
+    projector.set(
+      'data-dsh-whale-orca-settings-layout',
+      state.values.centerSettings === true ? 'centered' : 'docked',
+    )
   }
 
   return exposeSkinCustomization({
@@ -40,6 +48,15 @@ export function installOrcaCustomization(root: HTMLElement = document.documentEl
         defaultValue: true,
       },
       {
+        key: 'mirrorCharacter',
+        type: 'boolean',
+        label: '镜像左上角状态小人',
+        labelEn: 'Mirror the corner status character',
+        description: '左右翻转角色动画，方便调整鼠标与键盘手位。',
+        descriptionEn: 'Flip the character animation horizontally to match your mouse and keyboard hand position.',
+        defaultValue: false,
+      },
+      {
         key: 'background',
         type: 'boolean',
         label: '显示背景',
@@ -52,6 +69,15 @@ export function installOrcaCustomization(root: HTMLElement = document.documentEl
         label: '显示红绿灯定价指示',
         labelEn: 'Show the pricing traffic light',
         defaultValue: true,
+      },
+      {
+        key: 'centerSettings',
+        type: 'boolean',
+        label: '设置界面居中',
+        labelEn: 'Center the settings panel',
+        description: '在宽阔视口中将设置面板放在屏幕中央；窄视口仍使用全屏布局。',
+        descriptionEn: 'Place the settings panel in the center on large viewports; constrained viewports remain full-screen.',
+        defaultValue: false,
       },
       {
         key: 'sfwMode',

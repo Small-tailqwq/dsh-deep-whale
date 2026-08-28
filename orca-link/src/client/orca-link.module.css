@@ -672,6 +672,38 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
     visibility: visible;
     pointer-events: none;
   }
+
+  html[data-dsh-whale-orca-settings-layout='centered']
+    body[data-dsh-orca-link][data-orca-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] {
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+  }
+
+  html[data-dsh-whale-orca-settings-layout='centered']
+    body[data-dsh-orca-link][data-orca-sidebar-wide]
+    [data-slot='sidebar.settings'] > [role='presentation'] {
+    padding-left: 24px;
+  }
+
+  html[data-dsh-whale-orca-settings-layout='centered']
+    body[data-dsh-orca-link][data-orca-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'],
+  html[data-dsh-whale-orca-settings-layout='centered']
+    body[data-dsh-orca-link][data-orca-sidebar-wide]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    width: min(800px, calc(100vw - 48px));
+    height: min(760px, calc(100vh - 48px));
+    transform-origin: center;
+  }
+
+  html[data-dsh-whale-orca-settings-layout='centered']
+    body[data-dsh-orca-link][data-orca-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+    justify-content: flex-start;
+    padding-bottom: 0;
+  }
 }
 
 /* Settings nav: active section uses a slightly deeper brown emphasis, and
@@ -1363,6 +1395,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
 }
 
 body[data-dsh-orca-link] .statusCharacterFrame {
+  --orca-character-mirror: 1;
   position: absolute;
   top: 0;
   bottom: 0;
@@ -1372,8 +1405,15 @@ body[data-dsh-orca-link] .statusCharacterFrame {
   height: 100%;
   margin-inline: auto;
   overflow: hidden;
+  transform: scaleX(var(--orca-character-mirror));
   animation: orcaGateWeave 1.06s steps(8, end) infinite;
   will-change: transform;
+}
+
+html[data-dsh-whale-orca-character-mirror='mirrored']
+  body[data-dsh-orca-link]
+  .statusCharacterFrame {
+  --orca-character-mirror: -1;
 }
 
 body[data-dsh-orca-link] .statusCharacterSprite {
@@ -2955,14 +2995,14 @@ body[data-dsh-orca-link] {
 }
 
 @keyframes orcaGateWeave {
-  0%   { transform: translate(-0.090px, 0.062px); }
-  14%  { transform: translate(0.090px, -0.062px); }
-  29%  { transform: translate(0.032px, 0.062px); }
-  43%  { transform: translate(-0.041px, -0.016px); }
-  58%  { transform: translate(0.059px, 0.011px); }
-  72%  { transform: translate(-0.018px, -0.062px); }
-  86%  { transform: translate(0.090px, 0.034px); }
-  100% { transform: translate(-0.090px, 0.062px); }
+  0%   { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
+  14%  { transform: translate(0.090px, -0.062px) scaleX(var(--orca-character-mirror)); }
+  29%  { transform: translate(0.032px, 0.062px) scaleX(var(--orca-character-mirror)); }
+  43%  { transform: translate(-0.041px, -0.016px) scaleX(var(--orca-character-mirror)); }
+  58%  { transform: translate(0.059px, 0.011px) scaleX(var(--orca-character-mirror)); }
+  72%  { transform: translate(-0.018px, -0.062px) scaleX(var(--orca-character-mirror)); }
+  86%  { transform: translate(0.090px, 0.034px) scaleX(var(--orca-character-mirror)); }
+  100% { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
 }
 
 @keyframes orcaFilmGrainShift {

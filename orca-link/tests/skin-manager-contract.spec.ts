@@ -6,8 +6,10 @@ const css = readFileSync(new URL('../src/client/orca-link.module.css', import.me
 describe('skin-manager stylesheet contract', () => {
   it('supports each ORCA presentation toggle', () => {
     expect(css).toContain("data-dsh-whale-orca-character='hidden'")
+    expect(css).toContain("data-dsh-whale-orca-character-mirror='mirrored'")
     expect(css).toContain("data-dsh-whale-orca-background='hidden'")
     expect(css).toContain("data-dsh-whale-orca-pricing='hidden'")
+    expect(css).toContain("data-dsh-whale-orca-settings-layout='centered'")
   })
 
   it('lets the shared timer hide only illustration layers', () => {

@@ -16,6 +16,15 @@ describe('ORCA modal style boundaries', () => {
     expect(css).not.toContain(":has([data-slot='sidebar'] [role='dialog'])")
   })
 
+  it('restores the centered desktop layout only through its customization attribute', () => {
+    const centeredRule = css.match(
+      /data-dsh-whale-orca-settings-layout='centered'[\s\S]*?\[role='presentation'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(centeredRule).toContain('justify-content: center')
+    expect(centeredRule).toContain('align-items: center')
+    expect(css).toContain('transform-origin: center')
+  })
+
   it('leaves native modal and portal-menu layering to the host contract', () => {
     expect(css).not.toContain('--orca-z-settings-menu')
     expect(css).not.toMatch(/\[data-orca-settings-open\][^{]*:is\(\[role='menu'\], \[role='listbox'\]\)/)
