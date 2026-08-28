@@ -1571,11 +1571,17 @@ describe('Maid Atelier skin apply', () => {
     const settingsSurfaceRule = CSS.match(
       /\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const settingsSurfaceBackingRule = CSS.match(
+      /\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]::before\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     const darkSettingsSurfaceRule = CSS.match(
       /\[data-ds-dark-theme\]\s+\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(settingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68)')
-    expect(settingsSurfaceRule).toContain('backdrop-filter: blur(6px) saturate(0.9)')
+    expect(settingsSurfaceRule).toContain('background: transparent')
+    expect(settingsSurfaceRule).not.toContain('backdrop-filter')
+    expect(settingsSurfaceBackingRule).toContain('background: var(--dsw-alias-bg-layer-2)')
+    expect(settingsSurfaceBackingRule).toContain('backdrop-filter: blur(6px) saturate(0.9)')
     expect(darkSettingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82)')
     expect(CSS).not.toMatch(
       /body\[data-dsh-maid-atelier\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]/s,
