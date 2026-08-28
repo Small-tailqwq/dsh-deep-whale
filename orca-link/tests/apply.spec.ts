@@ -23,6 +23,7 @@ afterEach(async () => {
   document.body.innerHTML = ''
   document.title = ''
   document.documentElement.lang = ''
+  vi.unstubAllGlobals()
 })
 
 describe('Orca Link skin apply', () => {
@@ -89,6 +90,37 @@ describe('Orca Link skin apply', () => {
     expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('')
     expect(document.body.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
     expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(false)
+  })
+
+  it('commits the AppFrame target width only once across intermediate resize notifications', async () => {
+    let notifyResize = (): void => {}
+    class ResizeObserverStub {
+      constructor(callback: ResizeObserverCallback) { notifyResize = () => callback([], this as unknown as ResizeObserver) }
+      observe(): void {}
+      disconnect(): void {}
+      unobserve(): void {}
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    document.body.innerHTML = `
+      <div id="root"><div data-slot="root"><div style="grid-template-columns: 56px minmax(0px, 1fr) 0px"></div></div></div>
+      <div data-slot="sidebar"><div><div><button type="button"><svg></svg></button></div></div></div>
+    `
+    const pane = document.querySelector<HTMLElement>("[data-slot='sidebar'] > :first-child")!
+    const frame = document.querySelector<HTMLElement>("[id='root'] > div[data-slot='root'] > div")!
+    let measuredWidth = 55
+    pane.getBoundingClientRect = () => ({ width: measuredWidth } as DOMRect)
+    fiber = await mount()
+    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('56px')
+
+    const setProperty = vi.spyOn(document.body.style, 'setProperty')
+    frame.style.gridTemplateColumns = '280px minmax(0px, 1fr) 0px'
+    for (const intermediate of [72, 164, 238, 280]) {
+      measuredWidth = intermediate
+      notifyResize()
+    }
+    const widthWrites = setProperty.mock.calls.filter(([property]) => property === '--orca-sidebar-width')
+    expect(widthWrites).toEqual([['--orca-sidebar-width', '280px']])
+    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
   })
 
   it('tracks only the current conversation in the sidebar link signal', async () => {
@@ -518,6 +550,61 @@ describe('Orca Link skin apply', () => {
     scrollTop = 1_000
     scrollport.dispatchEvent(new Event('scroll'))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+  })
+
+  it('wheeling a long draft at its edge never hides the composer', async () => {
+    document.body.innerHTML = `
+      <div data-phase="active">
+        <div data-conversation-scroll>
+          <div data-chat-flow></div>
+          <div data-composer-seat>
+            <div data-composer-card>
+              <div class="draft-scroll"><textarea></textarea></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const scrollport = document.querySelector<HTMLElement>('[data-conversation-scroll]')!
+    const seat = document.querySelector<HTMLElement>('[data-composer-seat]')!
+    const draft = document.querySelector<HTMLElement>('.draft-scroll')!
+    const textarea = document.querySelector<HTMLTextAreaElement>('textarea')!
+    draft.style.overflowY = 'auto'
+    Object.defineProperties(draft, {
+      clientHeight: { configurable: true, value: 300 },
+      scrollHeight: { configurable: true, value: 700 },
+    })
+    let scrollTop = 600
+    Object.defineProperties(scrollport, {
+      scrollTop: { configurable: true, get: () => scrollTop, set: (value: number) => { scrollTop = value } },
+      scrollHeight: { configurable: true, value: 1_400 },
+      clientHeight: { configurable: true, value: 400 },
+    })
+
+    fiber = await mount()
+
+    // draft scroller at its edge; the host forwards the delta to the transcript
+    textarea.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -120 }))
+    scrollTop = 480
+    scrollport.dispatchEvent(new Event('scroll')) // forwarded transcript scroll
+    expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+
+    // inertia tails (small deltas) refresh the same gesture window
+    textarea.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -6 }))
+    scrollTop = 420
+    scrollport.dispatchEvent(new Event('scroll'))
+    expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+
+    // once the window closes, transcript scroll-intent steers the seat again
+    vi.useFakeTimers()
+    vi.setSystemTime(Date.now() + 250)
+    try {
+      scrollTop = 360
+      scrollport.dispatchEvent(new Event('scroll'))
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(true)
   })
 
   it('collapses the composer from either inward handle and keeps it manually locked', async () => {
