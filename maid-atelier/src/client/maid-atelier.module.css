@@ -3614,12 +3614,29 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu
 }
 
 /* Keep the settings surface above the composer while leaving the composer
-   visible as a dimmed, blurred background layer. */
+   visible as a dimmed, blurred background layer. The host tooltip reads
+   viewport coordinates into a fixed-position bubble mounted inside this
+   dialog. A backdrop filter on the dialog itself would turn the dialog into
+   that bubble's containing block, so paint the glass on an isolated backing
+   layer instead. */
 body[data-dsh-maid-atelier]
   [data-slot='sidebar.settings']
   [role='presentation']
   > [role='dialog'][aria-modal='true'] {
   --dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68);
+  isolation: isolate;
+  background: transparent;
+}
+
+body[data-dsh-maid-atelier]
+  [data-slot='sidebar.settings']
+  [role='presentation']
+  > [role='dialog'][aria-modal='true']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background: var(--dsw-alias-bg-layer-2);
   backdrop-filter: blur(6px) saturate(0.9);
 }
