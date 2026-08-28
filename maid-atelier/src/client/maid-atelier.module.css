@@ -1905,16 +1905,14 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] {
 }
 
 /* Restore the generous landing-page composition without imposing its height
-   on the docked workspace composer. The hidden mirror is the one node that
-   already owns text measurement; growing it also grows the textarea and
-   backdrop, keeps the toolbar attached to the card edge, and limits the
-   transition to one layout-changing property. */
-body[data-dsh-maid-atelier] [data-input-mirror] {
+   on the docked workspace composer. The resident Lexical surface owns text
+   measurement, so its floor keeps the toolbar attached to the card edge. */
+body[data-dsh-maid-atelier] [data-composer-input] {
   min-height: 0;
   transition: min-height 520ms cubic-bezier(0.22, 0.78, 0.2, 1);
 }
 
-body[data-dsh-maid-atelier] [data-phase='hero'] [data-input-mirror] {
+body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-input] {
   min-height: clamp(72px, 9vh, 118px);
 }
 
@@ -2226,7 +2224,7 @@ body[data-dsh-maid-atelier] [data-composer-card] > * {
 /* The official attachments slot is a display: contents container: it emits no
    box, so the child-lift rule above cannot reach its rail and the preview
    images fell back to in-flow paint order, under the porcelain plate. Lift
-   the slot's content boxes to the same tier as the textarea/toolbar row —
+   the slot's content boxes to the same tier as the editor/toolbar row —
    except the drag overlay, which is position: fixed and must keep its own
    coordinate system (its mask class is the only fixed surface in the slot). */
 body[data-dsh-maid-atelier]
@@ -2237,13 +2235,13 @@ body[data-dsh-maid-atelier]
   z-index: 2;
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] textarea {
+body[data-dsh-maid-atelier] [data-composer-card] [data-composer-input] {
   caret-color: #405a99;
 }
 
 /* The navy caret disappears against the dark composer card (≈2:1 contrast);
    the light periwinkle keeps the caret legible on the night palette. */
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] textarea {
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] [data-composer-input] {
   caret-color: #bcd2ff;
 }
 
@@ -3976,8 +3974,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
 }
 
 /* Optional conversation typography from #22. Code keeps its existing
-   monospace contract. The textarea, visible backdrop, and hidden sizing
-   mirror must share exact font metrics or selection/caret geometry drifts. */
+   monospace contract. The Lexical editor is the sole draft text surface. */
 html[data-dsh-whale-maid-font='serif']
   body[data-dsh-maid-atelier]
   :is([data-chat-flow], [class*='userRow'] [class*='bubble']) {
@@ -3999,9 +3996,8 @@ html[data-dsh-whale-maid-font='serif']
   body[data-dsh-maid-atelier]
   [data-composer-card]
   :is(
+    [data-composer-input],
     textarea,
-    [data-input-backdrop],
-    [data-input-mirror],
     button,
     [class*='triggerLabel']
   ) {
@@ -4099,7 +4095,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier] [data-composer-card],
-  body[data-dsh-maid-atelier] [data-input-mirror] {
+  body[data-dsh-maid-atelier] [data-composer-input] {
     animation: none;
     transition: none;
   }
@@ -4107,7 +4103,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
 
 /* 空态胶囊（设置「输入框显示方式」＝空态胶囊）：输入为空且未聚焦、无弹出
    菜单打开时，整卡收成一条轻量胶囊；点击胶囊（composer-capsule 的 click
-   委托聚焦 textarea）或输入后恢复。状态由 composer-capsule.ts 维护，避免
+   委托聚焦 Lexical editor）或输入后恢复。状态由 composer-capsule.ts 维护，避免
    body 级 :has() 在输入时反复重算。 */
 body[data-dsh-maid-atelier]
   [data-phase='active']
@@ -4140,18 +4136,8 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 body[data-dsh-maid-atelier]
   [data-phase='active']
   [data-composer-seat][data-maid-composer-capsule]
-  :is([data-input-mirror], [data-input-backdrop], [data-composer-card] > [class*='row']) {
+  :is([data-input-scroll], [data-composer-card] > [class*='row']) {
   display: none !important;
-}
-
-body[data-dsh-maid-atelier]
-  [data-phase='active']
-  [data-composer-seat][data-maid-composer-capsule]
-  [data-composer-card] textarea {
-  min-height: 0 !important;
-  height: 0 !important;
-  padding: 0 !important;
-  opacity: 0;
 }
 
 /* 统计行（stats / Session log）随卡片一起收起 */

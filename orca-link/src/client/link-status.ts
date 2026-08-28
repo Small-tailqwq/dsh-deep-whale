@@ -61,13 +61,13 @@ function resolveStatus(root: HTMLElement | null): LinkStatus {
   if (root.querySelector('[data-plan-review-key]') !== null) return 'review'
   if (root.querySelector('[data-question-key]') !== null) return 'input'
 
-  const input = root.querySelector<HTMLTextAreaElement>('textarea[data-phase]')
+  const input = root.querySelector<HTMLElement>('[data-composer-input][data-phase]')
   if (input?.dataset.phase === 'submitting' || input?.dataset.phase === 'adjudicating') return 'syncing'
   if (
     root.querySelector("svg[data-orca-link-icon='stop']") !== null
     || root.querySelector("[data-state='running']") !== null
   ) return 'working'
-  if (input?.disabled === true) return 'offline'
+  if (input?.getAttribute('aria-disabled') === 'true') return 'offline'
 
   const flow = root.querySelector<HTMLElement>('[data-chat-flow]')
   if (flow === null) return 'ready'
@@ -108,7 +108,7 @@ export function installOrcaLinkStatus(body: HTMLElement): () => void {
       'data-phase',
       'data-state',
       'data-orca-link-icon',
-      'disabled',
+      'aria-disabled',
     ],
   })
   synchronize()

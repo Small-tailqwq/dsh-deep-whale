@@ -136,7 +136,7 @@ describe('Orca Link skin apply', () => {
       </div>
       <div data-phase="hero">
         <div data-conversation-scroll>
-          <div data-composer-seat><textarea data-phase="plain"></textarea></div>
+          <div data-composer-seat><div data-composer-input contenteditable="true" data-phase="plain"></div></div>
         </div>
       </div>
     `
@@ -156,7 +156,7 @@ describe('Orca Link skin apply', () => {
         <div data-chat-flow-kind="assistant-step"><div data-state="ok"></div></div>
         <div data-chat-flow-kind="turn-tail"></div>
       </div>
-      <div data-composer-seat><textarea data-phase="plain"></textarea></div>
+      <div data-composer-seat><div data-composer-input contenteditable="true" data-phase="plain"></div></div>
     `
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(signal.dataset.orcaLinkStatus).toBe('complete')
@@ -193,6 +193,15 @@ describe('Orca Link skin apply', () => {
     scroll.querySelector('[data-chat-flow]')!.innerHTML = '<div data-chat-flow-kind="user"></div>'
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(label.textContent).toBe('SESSION READY')
+
+    const composerInput = scroll.querySelector<HTMLElement>('[data-composer-input]')!
+    composerInput.dataset.phase = 'submitting'
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(label.textContent).toBe('LINK SYNC')
+    composerInput.dataset.phase = 'plain'
+    composerInput.setAttribute('aria-disabled', 'true')
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(label.textContent).toBe('LINK OFFLINE')
 
     root.dataset.phase = 'hero'
     await new Promise(resolve => { setTimeout(resolve, 0) })
@@ -456,7 +465,7 @@ describe('Orca Link skin apply', () => {
           <div data-chat-flow></div>
           <div data-composer-seat>
             <div data-composer-card>
-              <textarea>launch</textarea>
+              <div data-composer-input contenteditable="true">launch</div>
               <button type="button">send</button>
             </div>
           </div>
@@ -466,11 +475,11 @@ describe('Orca Link skin apply', () => {
     const root = document.querySelector<HTMLElement>('[data-phase]')!
     const seat = document.querySelector<HTMLElement>('[data-composer-seat]')!
     const card = document.querySelector<HTMLElement>('[data-composer-card]')!
-    const textarea = document.querySelector<HTMLTextAreaElement>('textarea')!
+    const input = document.querySelector<HTMLElement>('[data-composer-input]')!
     card.getBoundingClientRect = () => ({ left: 100, top: 200, width: 600, height: 120 } as DOMRect)
 
     fiber = await mount()
-    textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
     expect(seat.hasAttribute('data-orca-composer-exiting')).toBe(true)
     expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(1)
 
@@ -491,7 +500,7 @@ describe('Orca Link skin apply', () => {
         <div data-conversation-scroll>
           <div data-chat-flow></div>
           <div role="listbox"><div data-model-option>model option</div></div>
-          <div data-composer-seat><div data-composer-card><textarea></textarea></div></div>
+          <div data-composer-seat><div data-composer-card><div data-composer-input contenteditable="true"></div></div></div>
         </div>
       </div>
     `
@@ -527,20 +536,20 @@ describe('Orca Link skin apply', () => {
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: 100 }))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
 
-    const textarea = document.querySelector<HTMLTextAreaElement>('textarea')!
-    textarea.focus()
+    const input = document.querySelector<HTMLElement>('[data-composer-input]')!
+    input.focus()
     scrollTop = 500
     scrollport.dispatchEvent(new Event('scroll'))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(true)
-    expect(document.activeElement).not.toBe(textarea)
+    expect(document.activeElement).not.toBe(input)
 
     scrollTop = 540
     scrollport.dispatchEvent(new Event('scroll'))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
 
-    textarea.focus()
+    input.focus()
     expect(seat.hasAttribute('data-orca-composer-interactive')).toBe(true)
-    textarea.blur()
+    input.blur()
     await new Promise(resolve => { queueMicrotask(resolve) })
     expect(seat.hasAttribute('data-orca-composer-interactive')).toBe(false)
 
@@ -559,7 +568,7 @@ describe('Orca Link skin apply', () => {
           <div data-chat-flow></div>
           <div data-composer-seat>
             <div data-composer-card>
-              <div class="draft-scroll"><textarea></textarea></div>
+              <div class="draft-scroll"><div data-composer-input contenteditable="true"></div></div>
             </div>
           </div>
         </div>
@@ -568,7 +577,7 @@ describe('Orca Link skin apply', () => {
     const scrollport = document.querySelector<HTMLElement>('[data-conversation-scroll]')!
     const seat = document.querySelector<HTMLElement>('[data-composer-seat]')!
     const draft = document.querySelector<HTMLElement>('.draft-scroll')!
-    const textarea = document.querySelector<HTMLTextAreaElement>('textarea')!
+    const input = document.querySelector<HTMLElement>('[data-composer-input]')!
     draft.style.overflowY = 'auto'
     Object.defineProperties(draft, {
       clientHeight: { configurable: true, value: 300 },
@@ -584,13 +593,13 @@ describe('Orca Link skin apply', () => {
     fiber = await mount()
 
     // draft scroller at its edge; the host forwards the delta to the transcript
-    textarea.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -120 }))
+    input.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -120 }))
     scrollTop = 480
     scrollport.dispatchEvent(new Event('scroll')) // forwarded transcript scroll
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
 
     // inertia tails (small deltas) refresh the same gesture window
-    textarea.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -6 }))
+    input.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -6 }))
     scrollTop = 420
     scrollport.dispatchEvent(new Event('scroll'))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
@@ -614,7 +623,7 @@ describe('Orca Link skin apply', () => {
         <div data-conversation-scroll>
           <div data-chat-flow></div>
           <div data-composer-seat>
-            <div data-composer-card><textarea>保留这段草稿</textarea></div>
+            <div data-composer-card><div data-composer-input contenteditable="true">保留这段草稿</div></div>
           </div>
         </div>
       </div>
@@ -655,7 +664,7 @@ describe('Orca Link skin apply', () => {
 
     expect(seat.hasAttribute('data-orca-composer-manual-hidden')).toBe(true)
     expect(seat.hasAttribute('inert')).toBe(true)
-    expect((document.querySelector('textarea') as HTMLTextAreaElement).value).toBe('保留这段草稿')
+    expect(document.querySelector<HTMLElement>('[data-composer-input]')?.textContent).toBe('保留这段草稿')
     const restore = document.querySelector<HTMLButtonElement>('[data-orca-composer-restore]')!
     expect(restore).not.toBeNull()
     expect(restore.style.left).toBe('656px')
@@ -687,7 +696,7 @@ describe('Orca Link skin apply', () => {
       <div data-phase="active">
         <div data-conversation-scroll>
           <div data-chat-flow></div>
-          <div data-composer-seat><div data-composer-card><textarea>draft</textarea></div></div>
+          <div data-composer-seat><div data-composer-card><div data-composer-input contenteditable="true">draft</div></div></div>
         </div>
       </div>
     `
@@ -753,7 +762,7 @@ describe('Orca Link skin apply', () => {
     document.body.innerHTML = `
       <div data-phase="hero">
         <div data-conversation-scroll>
-          <div data-composer-seat><div data-composer-card><textarea></textarea></div></div>
+          <div data-composer-seat><div data-composer-card><div data-composer-input contenteditable="true"></div></div></div>
         </div>
       </div>
     `
@@ -770,7 +779,7 @@ describe('Orca Link skin apply', () => {
           <div data-slot="conversation.session">
             <div data-slot="conversation.view"><div data-chat-flow></div></div>
           </div>
-          <div data-composer-seat><div data-composer-card><textarea></textarea></div></div>
+          <div data-composer-seat><div data-composer-card><div data-composer-input contenteditable="true"></div></div></div>
         </div>
       </div>
     `

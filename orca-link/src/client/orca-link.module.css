@@ -111,6 +111,7 @@ body[data-dsh-orca-link] :where(
   [role='tooltip'],
   [role='treeitem'],
   [data-composer-card],
+  [data-composer-input],
   [data-skin-chrome]
 ):not(
   [data-slot='conversation.input.left'] *,
@@ -2003,17 +2004,17 @@ body[data-dsh-orca-link] :where(input, textarea, select):not(
   ) {
   background-color: var(--dsw-specific-input-major);
   color: var(--orca-ink);
-  /* rc8 renders the composer draft on a transparent textarea (ghost text) and
-     paints the visible copy on [data-input-backdrop]. IME composition and
-     caret-adjacent input render on the textarea itself, so the webkit fill
-     must follow the ink color or typed text stays invisible. */
   -webkit-text-fill-color: var(--orca-ink);
   caret-color: var(--orca-blue);
 }
 
-body[data-dsh-orca-link] [data-composer-card] input,
-body[data-dsh-orca-link] [data-composer-card] textarea {
+body[data-dsh-orca-link] [data-composer-card] :is(input, textarea, [data-composer-input]) {
   background-color: transparent;
+}
+
+body[data-dsh-orca-link] [data-composer-card] [data-composer-input] {
+  color: var(--orca-ink);
+  caret-color: var(--orca-blue);
 }
 
 body[data-dsh-orca-link] :where(input, textarea):not(

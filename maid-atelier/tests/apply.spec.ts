@@ -638,7 +638,7 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     expect(childLiftRule).toContain('z-index: 2')
     // The slot emits no box (display: contents), so its rail must be lifted
-    // explicitly to the same tier as the textarea/toolbar row.
+    // explicitly to the same tier as the editor/toolbar row.
     expect(slotRule).toContain('position: relative')
     expect(slotRule).toContain('z-index: 2')
     // The drag overlay is position: fixed; the lift must not reach it.
@@ -918,13 +918,13 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('restores the large hero text floor without fixing the workspace height', () => {
-    const mirrorRule = CSS.match(/\[data-input-mirror\]\s*\{([^}]*)\}/s)?.[1] ?? ''
-    const heroMirrorRule = CSS.match(
-      /\[data-phase='hero'\] \[data-input-mirror\]\s*\{([^}]*)\}/s,
+    const inputRule = CSS.match(/\[data-composer-input\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const heroInputRule = CSS.match(
+      /\[data-phase='hero'\] \[data-composer-input\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    expect(mirrorRule).toContain('min-height: 0')
-    expect(heroMirrorRule).toContain('min-height: clamp(72px, 9vh, 118px)')
-    expect(mirrorRule).toContain('transition: min-height 520ms')
+    expect(inputRule).toContain('min-height: 0')
+    expect(heroInputRule).toContain('min-height: clamp(72px, 9vh, 118px)')
+    expect(inputRule).toContain('transition: min-height 520ms')
     expect(CSS).not.toMatch(/\[data-phase='hero'\] \[data-composer-card\][^{]*\{[^}]*min-height/s)
   })
 
@@ -1321,24 +1321,24 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
   })
 
-  it('preserves mirror-driven composer sizing and clears the statistics dock', () => {
+  it('preserves editor-driven composer sizing and clears the statistics dock', () => {
     const cardRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
-    const textareaRule = CSS.match(/\[data-composer-card\] textarea\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const inputRule = CSS.match(/\[data-composer-card\] \[data-composer-input\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const footerClearanceRule = CSS.match(
       /\[data-phase='active'\] \[data-composer-card\]:has\(\+ \*\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(cardRule).toContain('min-height: 0')
     expect(cardRule).not.toContain('min-height: 210px')
-    expect(textareaRule).not.toContain('min-height: 112px')
+    expect(inputRule).not.toContain('min-height: 112px')
     expect(footerClearanceRule).toContain('margin-block-end: 12px')
   })
 
   it('keeps the composer caret legible in dark mode without washing out light mode', () => {
     expect(CSS).toMatch(
-      /\[data-composer-card\] textarea\s*\{[^}]*caret-color: #405a99/s,
+      /\[data-composer-card\] \[data-composer-input\]\s*\{[^}]*caret-color: #405a99/s,
     )
     expect(CSS).toMatch(
-      /\[data-ds-dark-theme\] \[data-composer-card\] textarea\s*\{[^}]*caret-color: #bcd2ff/s,
+      /\[data-ds-dark-theme\] \[data-composer-card\] \[data-composer-input\]\s*\{[^}]*caret-color: #bcd2ff/s,
     )
   })
 

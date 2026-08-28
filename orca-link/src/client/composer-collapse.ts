@@ -83,7 +83,7 @@ function isPrimaryPointer(event: PointerEvent): boolean {
 
 /**
  * Upgrade the decorative ORCA composer brackets into inward drag handles.
- * The host keeps ownership of the textarea, draft and submit path; this
+ * The host keeps ownership of the editor, draft and submit path; this
  * module only presents a reversible, manually locked visibility state.
  */
 export function installOrcaComposerCollapse(body: HTMLElement): () => void {

@@ -49,7 +49,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     observer = new MutationObserver(records => {
       if (records.some(record => {
         const element = record.target instanceof Element ? record.target : undefined
-        if (element?.closest('[data-input-backdrop]')) return false
+        if (record.type === 'childList' && element?.closest('[data-composer-input]')) return false
         if (record.type === 'attributes') return element?.matches("button[aria-haspopup='menu']") === true
         if (element?.closest("[data-composer-card] button[aria-haspopup='menu']")) return true
         return [...record.addedNodes, ...record.removedNodes].some(node => (

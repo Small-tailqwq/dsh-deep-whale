@@ -189,7 +189,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     ghost.setAttribute('aria-hidden', 'true')
     ghost.setAttribute('inert', '')
     ghost.querySelectorAll('[id]').forEach(element => { element.removeAttribute('id') })
-    ghost.querySelectorAll<HTMLElement>('button, input, textarea, select, [tabindex]').forEach(element => {
+    ghost.querySelectorAll<HTMLElement>('button, input, textarea, select, [contenteditable], [tabindex]').forEach(element => {
       element.tabIndex = -1
     })
     ghost.style.left = `${rect.left}px`
@@ -216,18 +216,20 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
 
   const onKeyDown = (event: KeyboardEvent): void => {
     const target = event.target
-    if (!(target instanceof HTMLTextAreaElement)) return
+    if (!(target instanceof Element)) return
+    const input = target.closest<HTMLElement>('[data-composer-input]')
+    if (input === null) return
 
-    const root = phaseRootOf(target)
+    const root = phaseRootOf(input)
     if (root?.dataset.phase === 'active') {
-      const seat = target.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
+      const seat = input.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
       if (seat !== null) activateSeat(seat)
       return
     }
     if (root?.dataset.phase !== 'hero') return
     if (event.key !== 'Enter' || event.shiftKey || event.repeat || event.isComposing || event.keyCode === 229) return
 
-    const card = target.closest<HTMLElement>(COMPOSER_CARD_SELECTOR)
+    const card = input.closest<HTMLElement>(COMPOSER_CARD_SELECTOR)
     if (card === null || card.matches("[class*='cardWorkspaceTrigger']")) return
     if (card.querySelector("[aria-expanded='true']") !== null) return
     const primary = primaryButtonOf(card)

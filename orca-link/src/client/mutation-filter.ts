@@ -5,10 +5,11 @@
  *
  * - xterm, which mutates thousands of internal row nodes while replaying a
  *   terminal;
- * - the rc8 composer's ghost-text backdrop (`[data-input-backdrop]`), whose
- *   text nodes are rebuilt on every keystroke by the draft renderer.
+ * - the alpha composer's Lexical surface (`[data-composer-input]`), whose
+ *   child nodes are maintained by the editor while typing.
  */
-const HIGH_CHURN_SELECTOR = '.xterm, [data-input-backdrop]'
+const HIGH_CHURN_SELECTOR = '.xterm'
+const COMPOSER_INPUT_SELECTOR = '[data-composer-input]'
 
 function belongsToHighChurnSubtree(node: Node): boolean {
   if (node instanceof Element) {
@@ -21,9 +22,13 @@ function isHighChurnOnly(record: MutationRecord): boolean {
   if (belongsToHighChurnSubtree(record.target)) return true
   if (record.type !== 'childList') return false
 
-  // Replacing the backdrop itself reports its parent as the mutation target.
+  // Ignore only edits *inside* the resident Lexical root. Replacing the root
+  // itself targets its parent and must still reconcile skin-owned chrome.
+  if (record.target instanceof Element && record.target.closest(COMPOSER_INPUT_SELECTOR) !== null) return true
+
+  // Replacing an xterm subtree reports its parent as the mutation target.
   // Inspect the changed nodes too, and ignore the record only when every
-  // added/removed node belongs to one of the excluded high-churn subtrees.
+  // added/removed node belongs to that excluded subtree.
   const changed = [...record.addedNodes, ...record.removedNodes]
   return changed.length > 0 && changed.every(belongsToHighChurnSubtree)
 }

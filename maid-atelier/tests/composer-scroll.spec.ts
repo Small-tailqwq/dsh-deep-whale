@@ -10,7 +10,7 @@ interface Fixture {
   root: HTMLElement
   scrollport: HTMLElement
   seat: HTMLElement
-  textarea: HTMLTextAreaElement
+  input: HTMLElement
   dispose: () => void
 }
 
@@ -37,21 +37,23 @@ function mount(mode: string = 'scroll'): Fixture {
   flow.dataset.chatFlow = ''
   const seat = document.createElement('div')
   seat.dataset.composerSeat = ''
-  const textarea = document.createElement('textarea')
-  seat.append(textarea)
+  const input = document.createElement('div')
+  input.dataset.composerInput = ''
+  input.setAttribute('contenteditable', 'true')
+  seat.append(input)
   scrollport.append(flow, seat)
   root.append(scrollport)
   document.body.append(root)
   document.documentElement.setAttribute(SWITCH, mode)
-  return { root, scrollport, seat, textarea, dispose: installMaidComposerScroll(document.body) }
+  return { root, scrollport, seat, input, dispose: installMaidComposerScroll(document.body) }
 }
 
 /** Seat 内挂一个溢出的草稿滚动盒（宿主 InputBar 的 capped `.scroll`）。 */
 function mountWithDraft(mode: string = 'scroll'): Fixture & { draft: HTMLElement } {
   const fixture = mount(mode)
   const draft = overflowBox(300, 700)
-  fixture.textarea.remove()
-  draft.append(fixture.textarea)
+  fixture.input.remove()
+  draft.append(fixture.input)
   fixture.seat.append(draft)
   return { ...fixture, draft }
 }
@@ -138,16 +140,16 @@ describe('maid composer scroll-intent', () => {
   })
 
   it('focusing the composer brings it back and marks it interactive', async () => {
-    const { scrollport, seat, textarea, dispose } = mount()
+    const { scrollport, seat, input, dispose } = mount()
     scrollTo(scrollport, 400)
     scrollTo(scrollport, 200)
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
 
-    textarea.focus()
+    input.focus()
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
     expect(seat.hasAttribute('data-maid-composer-interactive')).toBe(true)
 
-    textarea.blur()
+    input.blur()
     await nextMicrotask()
     expect(seat.hasAttribute('data-maid-composer-interactive')).toBe(false)
     dispose()
@@ -180,21 +182,21 @@ describe('maid composer scroll-intent', () => {
   })
 
   it('wheeling a long draft at its edge never hides the seat', () => {
-    const { scrollport, seat, textarea, dispose } = mountWithDraft()
+    const { scrollport, seat, input, dispose } = mountWithDraft()
     scrollTo(scrollport, 400) // baseline
 
     // draft scroller at its edge; the host forwards the delta to the transcript
-    textarea.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }))
+    input.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }))
     scrollTo(scrollport, 280) // forwarded transcript scroll within the gesture window
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
     dispose()
   })
 
   it('the draft gesture window also covers touchpad inertia tails', () => {
-    const { scrollport, seat, textarea, dispose } = mountWithDraft()
+    const { scrollport, seat, input, dispose } = mountWithDraft()
     scrollTo(scrollport, 400)
 
-    textarea.dispatchEvent(new WheelEvent('wheel', { deltaY: -6, bubbles: true }))
+    input.dispatchEvent(new WheelEvent('wheel', { deltaY: -6, bubbles: true }))
     scrollTo(scrollport, 280)
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
     dispose()
@@ -204,10 +206,10 @@ describe('maid composer scroll-intent', () => {
     vi.useFakeTimers()
     vi.setSystemTime(1_000_000)
     try {
-      const { scrollport, seat, textarea, dispose } = mountWithDraft()
+      const { scrollport, seat, input, dispose } = mountWithDraft()
       scrollTo(scrollport, 400)
 
-      textarea.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }))
+      input.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }))
       vi.advanceTimersByTime(250)
       scrollTo(scrollport, 260) // a real upward transcript scroll, no gesture in flight
       expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
@@ -218,13 +220,13 @@ describe('maid composer scroll-intent', () => {
   })
 
   it('wheel on a short draft (no overflow) still steers by direction', () => {
-    const { scrollport, seat, textarea, dispose } = mount()
+    const { scrollport, seat, input, dispose } = mount()
     scrollTo(scrollport, 400)
 
-    textarea.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }))
+    input.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }))
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
 
-    textarea.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true }))
+    input.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true }))
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
     dispose()
   })
