@@ -1896,6 +1896,14 @@ body[data-dsh-maid-atelier] [data-composer-card] {
   box-shadow: var(--maid-shadow);
 }
 
+/* The raster frame is authored for a roughly 720px docked card. Cap only the
+   active composer at that visual width so Alpha 1's wider conversation range
+   cannot stretch the lace and centre bow; the percentage cap keeps narrow
+   workspaces fluid, and the host root continues to centre the card. */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] {
+  max-width: min(100%, 720px);
+}
+
 /* Restore the generous landing-page composition without imposing its height
    on the docked workspace composer. The hidden mirror is the one node that
    already owns text measurement; growing it also grows the textarea and
@@ -4200,6 +4208,144 @@ body[data-dsh-maid-atelier]
   [data-composer-seat][data-maid-composer-expanding]
   [data-composer-card] {
   animation: maidAtelierCapsuleOut 260ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+/* Alpha 1 conversation chrome. Match the host's semantic resize handles and
+   turn rail only inside this skin; the generated class names are intentionally
+   excluded so another plugin's similarly named chrome cannot inherit it. */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > [data-width-handle='left'][data-side='left']::after,
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > [data-width-handle='right'][data-side='right']::after {
+  width: 3px;
+  background: linear-gradient(
+    to bottom,
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) - 56px),
+    rgba(75, 149, 186, 0.22) calc(var(--dsh-width-handle-pointer-y, 50%) - 46px),
+    #4b95ba calc(var(--dsh-width-handle-pointer-y, 50%) - 30px),
+    #accfe0 calc(var(--dsh-width-handle-pointer-y, 50%) - 14px),
+    #fbfdff var(--dsh-width-handle-pointer-y, 50%),
+    #accfe0 calc(var(--dsh-width-handle-pointer-y, 50%) + 14px),
+    #4b95ba calc(var(--dsh-width-handle-pointer-y, 50%) + 30px),
+    rgba(75, 149, 186, 0.22) calc(var(--dsh-width-handle-pointer-y, 50%) + 46px),
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) + 56px)
+  );
+  filter:
+    drop-shadow(0 0 1px rgba(251, 253, 255, 0.96))
+    drop-shadow(0 0 4px rgba(75, 149, 186, 0.5));
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-phase='active']
+  > [data-width-handle='left'][data-side='left']::after,
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-phase='active']
+  > [data-width-handle='right'][data-side='right']::after {
+  background: linear-gradient(
+    to bottom,
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) - 54px),
+    var(--maid-periwinkle) calc(var(--dsh-width-handle-pointer-y, 50%) - 36px),
+    var(--maid-gold-soft) calc(var(--dsh-width-handle-pointer-y, 50%) - 12px),
+    var(--maid-porcelain) var(--dsh-width-handle-pointer-y, 50%),
+    var(--maid-gold-soft) calc(var(--dsh-width-handle-pointer-y, 50%) + 12px),
+    var(--maid-periwinkle) calc(var(--dsh-width-handle-pointer-y, 50%) + 36px),
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) + 54px)
+  );
+  filter:
+    drop-shadow(0 0 1px rgba(9, 19, 51, 0.98))
+    drop-shadow(0 0 6px rgba(226, 207, 170, 0.82));
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > [data-width-handle='left'][data-side='left']:is(:hover, [data-dragging])::after,
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > [data-width-handle='right'][data-side='right']:is(:hover, [data-dragging])::after {
+  transform-origin: center;
+  animation: maidAtelierWidthHandlePulse 1.15s ease-in-out infinite;
+}
+
+body[data-dsh-maid-atelier]
+  nav[aria-label='轮次导航']
+  > div
+  > div
+  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']::before {
+  background: rgba(82, 106, 168, 0.72);
+  box-shadow: 0 0 0 1px rgba(248, 246, 240, 0.54);
+}
+
+body[data-dsh-maid-atelier]
+  nav[aria-label='轮次导航']
+  > div
+  > div
+  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']:is(:hover, :focus-visible)::before {
+  background: var(--maid-gold);
+  box-shadow:
+    0 0 0 1px var(--maid-porcelain),
+    0 0 7px rgba(197, 164, 104, 0.72);
+}
+
+body[data-dsh-maid-atelier]
+  nav[aria-label='轮次导航']
+  > div
+  > div
+  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮'][aria-current='true']::before {
+  background: var(--maid-ink);
+  box-shadow:
+    0 0 0 1px var(--maid-gold-soft),
+    0 0 7px rgba(23, 35, 71, 0.5);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  nav[aria-label='轮次导航']
+  > div
+  > div
+  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']::before {
+  background: rgba(142, 165, 218, 0.72);
+  box-shadow: 0 0 0 1px rgba(9, 19, 51, 0.9);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  nav[aria-label='轮次导航']
+  > div
+  > div
+  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']:is(:hover, :focus-visible)::before,
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  nav[aria-label='轮次导航']
+  > div
+  > div
+  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮'][aria-current='true']::before {
+  background: var(--maid-gold-soft);
+  box-shadow:
+    0 0 0 1px var(--maid-porcelain),
+    0 0 8px rgba(226, 207, 170, 0.76);
+}
+
+@keyframes maidAtelierWidthHandlePulse {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scaleX(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-maid-atelier]
+    [data-phase='active']
+    > [data-width-handle='left'][data-side='left']::after,
+  body[data-dsh-maid-atelier]
+    [data-phase='active']
+    > [data-width-handle='right'][data-side='right']::after {
+    animation: none;
+  }
 }
 
 @keyframes maidAtelierCapsuleIn {
