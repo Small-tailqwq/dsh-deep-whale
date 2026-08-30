@@ -4266,6 +4266,14 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]
   [data-phase='active']
   [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace'] {
+  display: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]::after {
   content: '✎ 给智能体发消息';
   display: flex;
