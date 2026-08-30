@@ -19,11 +19,15 @@ import {
   MAID_ATELIER_PALACE_DARK,
   MAID_ATELIER_PALACE_LIGHT,
 } from './background-art.generated.ts'
+import {
+  MAID_ATELIER_COMPOSER_FRAME_SHELL,
+  MAID_ATELIER_COMPOSER_LACE_TILE,
+  MAID_ATELIER_COMPOSER_RIBBON_STRETCH,
+} from './composer-art.generated.ts'
 import { MAID_ATELIER_MAID_RIGHT_VISION } from './vision-art.generated.ts'
 import {
   MAID_ATELIER_BOTTOM_CREST,
   MAID_ATELIER_BOTTOM_TRIM_TILE,
-  MAID_ATELIER_COMPOSER_FRAME,
   MAID_ATELIER_SETTINGS_FRAME,
   MAID_ATELIER_SIDEBAR_CORNER,
 } from './chrome-art.generated.ts'
@@ -150,6 +154,8 @@ const BACKDROP_PROPERTIES = [
   '--maid-sidebar-swag-art',
   '--maid-sidebar-corner-art',
   '--maid-composer-frame-art',
+  '--maid-composer-ribbon-art',
+  '--maid-composer-lace-art',
   '--maid-settings-frame-art',
   '--maid-workspace-crest-art',
   '--maid-workspace-ribbon-art',
@@ -514,7 +520,9 @@ export function apply(ctx: Context): void {
   body.style.setProperty('--maid-new-session-art', `url(${MAID_ATELIER_NEW_SESSION})`)
   body.style.setProperty('--maid-sidebar-swag-art', `url(${MAID_ATELIER_SIDEBAR_SWAG})`)
   body.style.setProperty('--maid-sidebar-corner-art', `url(${MAID_ATELIER_SIDEBAR_CORNER})`)
-  body.style.setProperty('--maid-composer-frame-art', `url(${MAID_ATELIER_COMPOSER_FRAME})`)
+  body.style.setProperty('--maid-composer-frame-art', `url(${MAID_ATELIER_COMPOSER_FRAME_SHELL})`)
+  body.style.setProperty('--maid-composer-ribbon-art', `url(${MAID_ATELIER_COMPOSER_RIBBON_STRETCH})`)
+  body.style.setProperty('--maid-composer-lace-art', `url(${MAID_ATELIER_COMPOSER_LACE_TILE})`)
   body.style.setProperty('--maid-settings-frame-art', `url(${MAID_ATELIER_SETTINGS_FRAME})`)
   body.style.setProperty('--maid-workspace-crest-art', `url(${MAID_ATELIER_WORKSPACE_SHIELD})`)
   body.style.setProperty('--maid-workspace-ribbon-art', `url(${MAID_ATELIER_WORKSPACE_RIBBON})`)

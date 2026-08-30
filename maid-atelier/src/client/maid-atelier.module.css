@@ -1876,8 +1876,9 @@ body[data-dsh-maid-atelier]
   pointer-events: none;
 }
 
-/* Composer card: live controls sit beneath one hollow raster plate that keeps
-   the reference frame, porcelain rim, continuous lace, and bow aligned. */
+/* Composer card: live controls sit beneath one hollow frame. The frame shell,
+   stretchable ribbon, repeating lace, and fixed bow keep independent scale
+   ownership so the same composition works at normal and ultrawide widths. */
 body[data-dsh-maid-atelier] [data-composer-card] {
   position: relative;
   z-index: 21;
@@ -1894,14 +1895,6 @@ body[data-dsh-maid-atelier] [data-composer-card] {
     linear-gradient(180deg, rgba(255, 254, 250, 0.88), rgba(244, 247, 253, 0.76)),
     var(--dsw-specific-input-major);
   box-shadow: var(--maid-shadow);
-}
-
-/* The raster frame is authored for a roughly 720px docked card. Cap only the
-   active composer at that visual width so Alpha 1's wider conversation range
-   cannot stretch the lace and centre bow; the percentage cap keeps narrow
-   workspaces fluid, and the host root continues to centre the card. */
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] {
-  max-width: min(100%, 720px);
 }
 
 /* Restore the generous landing-page composition without imposing its height
@@ -2146,6 +2139,23 @@ body[data-dsh-maid-atelier] [data-composer-card]::before {
   /* The frame stays above the backing plate, but below the live controls and
      their in-place menus. A higher layer traps both selectors under the bow. */
   z-index: 1;
+  /* The shell's top-middle slice is transparent. Paint the bow above two
+     independently stretched blue halves, then repeat only the white lace
+     below; the shell still owns the corners, sides, and bottom edge. */
+  background-image:
+    var(--maid-bow-art),
+    var(--maid-composer-ribbon-art),
+    var(--maid-composer-ribbon-art),
+    var(--maid-composer-lace-art);
+  background-position: center top, left top, right top, left 39px;
+  background-size:
+    auto 72px,
+    calc(50% + 1px) 39px,
+    calc(50% + 1px) 39px,
+    auto 33px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x;
+  background-origin: border-box;
+  background-clip: border-box;
   border-style: solid;
   border-width: 72px 54px 52px;
   border-image-source: var(--maid-composer-frame-art);
