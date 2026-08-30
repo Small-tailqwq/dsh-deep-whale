@@ -29,13 +29,98 @@ const EXPANDED_HORIZONTAL_CHROME = 96
 const EXPANDED_MIN_WIDTH = 560
 const LIGHTBOX_EDGE_GAP = 56
 
+interface AttributeLease {
+  originalValue: string | null
+  owners: Set<symbol>
+}
+
+interface ControlLease {
+  button: HTMLButtonElement
+  owners: Map<symbol, () => void>
+  onClick: (event: MouseEvent) => void
+}
+
+const attributeLeases = new WeakMap<HTMLElement, Map<string, AttributeLease>>()
+const controlLeases = new WeakMap<HTMLElement, ControlLease>()
+
+function setLeasedAttribute(element: HTMLElement, attribute: string, owner: symbol, active: boolean): void {
+  let attributes = attributeLeases.get(element)
+  let lease = attributes?.get(attribute)
+  if (active) {
+    if (attributes === undefined) {
+      attributes = new Map()
+      attributeLeases.set(element, attributes)
+    }
+    if (lease === undefined) {
+      lease = { originalValue: element.getAttribute(attribute), owners: new Set() }
+      attributes.set(attribute, lease)
+    }
+    lease.owners.add(owner)
+    element.setAttribute(attribute, '')
+    return
+  }
+  if (lease === undefined || attributes === undefined) return
+  lease.owners.delete(owner)
+  if (lease.owners.size > 0) {
+    element.setAttribute(attribute, '')
+    return
+  }
+  if (element.getAttribute(attribute) === '') {
+    if (lease.originalValue === null) element.removeAttribute(attribute)
+    else element.setAttribute(attribute, lease.originalValue)
+  }
+  attributes.delete(attribute)
+  if (attributes.size === 0) attributeLeases.delete(element)
+}
+
+function acquireControl(wrapper: HTMLElement, owner: symbol, activate: () => void): HTMLButtonElement {
+  let lease = controlLeases.get(wrapper)
+  if (lease === undefined) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.hidden = true
+    button.setAttribute(CONTROL_ATTRIBUTE, '')
+    button.dataset.skinOwner = SKIN_OWNER
+    button.setAttribute('aria-label', '展开表格预览')
+    button.title = '展开表格预览'
+    const owners = new Map<symbol, () => void>()
+    const onClick = (event: MouseEvent): void => {
+      if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)) return
+      const current = Array.from(owners.values()).at(-1)
+      if (current === undefined) return
+      event.stopPropagation()
+      current()
+    }
+    button.addEventListener('click', onClick)
+    lease = { button, owners, onClick }
+    controlLeases.set(wrapper, lease)
+  }
+  lease.owners.set(owner, activate)
+  try {
+    if (lease.button.parentElement !== wrapper) wrapper.append(lease.button)
+  } catch (error) {
+    releaseControl(wrapper, owner)
+    throw error
+  }
+  return lease.button
+}
+
+function releaseControl(wrapper: HTMLElement, owner: symbol): void {
+  const lease = controlLeases.get(wrapper)
+  if (lease === undefined) return
+  lease.owners.delete(owner)
+  if (lease.owners.size > 0) return
+  lease.button.removeEventListener('click', lease.onClick)
+  lease.button.remove()
+  controlLeases.delete(wrapper)
+}
+
 interface TableCardRuntime {
   dispose(): void
 }
 
 interface TableBinding {
   button: HTMLButtonElement
-  onClick: (event: MouseEvent) => void
   onPointerLeave: () => void
   onScroll: () => void
 }
@@ -58,6 +143,7 @@ function isForeignModalDialog(element: Element): boolean {
  * call; every observer and mutation is torn down by the returned disposer.
  */
 export function installMaidTableCards(_ctx: Context): TableCardRuntime {
+  const owner = Symbol('maid-table-card-activation')
   const bindings = new Map<HTMLElement, TableBinding>()
   let observer: MutationObserver | undefined
   let resizeObserver: ResizeObserver | undefined
@@ -67,24 +153,23 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
   const release = (wrapper: HTMLElement): void => {
     const binding = bindings.get(wrapper)
     if (binding !== undefined) {
-      binding.button.removeEventListener('click', binding.onClick)
       wrapper.removeEventListener('pointerleave', binding.onPointerLeave)
       wrapper.removeEventListener('scroll', binding.onScroll)
-      binding.button.remove()
+      releaseControl(wrapper, owner)
       bindings.delete(wrapper)
     }
     resizeObserver?.unobserve(wrapper)
-    wrapper.removeAttribute(FRAME_ATTRIBUTE)
-    wrapper.removeAttribute(EXPANDABLE_ATTRIBUTE)
-    wrapper.removeAttribute(OPEN_ATTRIBUTE)
-    wrapper.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE)
+    setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, false)
+    setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false)
+    setLeasedAttribute(wrapper, OPEN_ATTRIBUTE, owner, false)
+    setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false)
   }
 
   const closeOverlay = (immediate = false): void => {
     if (overlay === undefined) return
     const { root, source, onClick, onKeyDown } = overlay
     overlay = undefined
-    source.removeAttribute(OPEN_ATTRIBUTE)
+    setLeasedAttribute(source, OPEN_ATTRIBUTE, owner, false)
     root.removeEventListener('click', onClick)
     document.removeEventListener('keydown', onKeyDown)
     if (immediate) {
@@ -171,7 +256,7 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     root.addEventListener('click', onClick)
     document.addEventListener('keydown', onKeyDown)
     document.body.append(root)
-    wrapper.setAttribute(OPEN_ATTRIBUTE, '')
+    setLeasedAttribute(wrapper, OPEN_ATTRIBUTE, owner, true)
     overlay = { root, source: wrapper, onClick, onKeyDown }
     close.focus({ preventScroll: true })
   }
@@ -185,9 +270,9 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     const viewport = wrapper.clientWidth
     const natural = table?.scrollWidth ?? wrapper.scrollWidth
     if (viewport > 0 && natural > viewport + 1) {
-      wrapper.setAttribute(EXPANDABLE_ATTRIBUTE, '')
+      setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, true)
     } else {
-      wrapper.removeAttribute(EXPANDABLE_ATTRIBUTE)
+      setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false)
     }
     const button = bindings.get(wrapper)?.button
     if (button !== undefined) button.hidden = !wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)
@@ -195,36 +280,22 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
 
   const adopt = (wrapper: HTMLElement): void => {
     if (bindings.has(wrapper) || wrapper.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null) return
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.hidden = true
-    button.setAttribute(CONTROL_ATTRIBUTE, '')
-    button.dataset.skinOwner = SKIN_OWNER
-    button.setAttribute('aria-label', '展开表格预览')
-    button.title = '展开表格预览'
-    const onClick = (event: MouseEvent): void => {
-      if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)) return
-      event.stopPropagation()
-      openOverlay(wrapper)
-    }
+    const button = acquireControl(wrapper, owner, () => openOverlay(wrapper))
     const onScroll = (): void => {
-      wrapper.setAttribute(SCROLL_SUPPRESSED_ATTRIBUTE, '')
+      setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, true)
     }
     const onPointerLeave = (): void => {
-      wrapper.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE)
+      setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false)
     }
     bindings.set(wrapper, {
       button,
-      onClick,
       onPointerLeave,
       onScroll,
     })
     try {
-      wrapper.setAttribute(FRAME_ATTRIBUTE, '')
-      button.addEventListener('click', onClick)
+      setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, true)
       wrapper.addEventListener('pointerleave', onPointerLeave)
       wrapper.addEventListener('scroll', onScroll, { passive: true })
-      wrapper.append(button)
       resizeObserver?.observe(wrapper)
       measure(wrapper)
     } catch (error) {

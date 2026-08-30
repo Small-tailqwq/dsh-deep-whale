@@ -86,7 +86,17 @@ describe('installMaidTableCards', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(card.hasAttribute('data-maid-table-open')).toBe(false)
 
+    const replacement = installMaidTableCards({} as never)
     runtime.dispose()
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(true)
+    expect(card.hasAttribute('data-maid-table-expandable')).toBe(true)
+    expect(card.querySelectorAll('[data-maid-table-expand]')).toHaveLength(1)
+    button?.click()
+    expect(document.querySelector('[data-maid-table-lightbox]')).not.toBeNull()
+
+    replacement.dispose()
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(false)
+    expect(card.querySelector('[data-maid-table-expand]')).toBeNull()
   })
 
   it('removes injected controls and overlays on dispose', () => {

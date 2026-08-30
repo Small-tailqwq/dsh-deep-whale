@@ -791,6 +791,84 @@ window.__ModuleLoader__.load({
 		const EXPANDED_HORIZONTAL_CHROME = 96;
 		const EXPANDED_MIN_WIDTH = 560;
 		const LIGHTBOX_EDGE_GAP = 56;
+		const attributeLeases = /* @__PURE__ */ new WeakMap();
+		const controlLeases = /* @__PURE__ */ new WeakMap();
+		function setLeasedAttribute(element, attribute, owner, active) {
+			let attributes = attributeLeases.get(element);
+			let lease = attributes?.get(attribute);
+			if (active) {
+				if (attributes === void 0) {
+					attributes = /* @__PURE__ */ new Map();
+					attributeLeases.set(element, attributes);
+				}
+				if (lease === void 0) {
+					lease = {
+						originalValue: element.getAttribute(attribute),
+						owners: /* @__PURE__ */ new Set()
+					};
+					attributes.set(attribute, lease);
+				}
+				lease.owners.add(owner);
+				element.setAttribute(attribute, "");
+				return;
+			}
+			if (lease === void 0 || attributes === void 0) return;
+			lease.owners.delete(owner);
+			if (lease.owners.size > 0) {
+				element.setAttribute(attribute, "");
+				return;
+			}
+			if (element.getAttribute(attribute) === "") {
+				if (lease.originalValue === null) element.removeAttribute(attribute);
+				else element.setAttribute(attribute, lease.originalValue);
+			}
+			attributes.delete(attribute);
+			if (attributes.size === 0) attributeLeases.delete(element);
+		}
+		function acquireControl(wrapper, owner, activate) {
+			let lease = controlLeases.get(wrapper);
+			if (lease === void 0) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.hidden = true;
+				button.setAttribute(CONTROL_ATTRIBUTE, "");
+				button.dataset.skinOwner = SKIN_OWNER$1;
+				button.setAttribute("aria-label", "展开表格预览");
+				button.title = "展开表格预览";
+				const owners = /* @__PURE__ */ new Map();
+				const onClick = (event) => {
+					if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)) return;
+					const current = Array.from(owners.values()).at(-1);
+					if (current === void 0) return;
+					event.stopPropagation();
+					current();
+				};
+				button.addEventListener("click", onClick);
+				lease = {
+					button,
+					owners,
+					onClick
+				};
+				controlLeases.set(wrapper, lease);
+			}
+			lease.owners.set(owner, activate);
+			try {
+				if (lease.button.parentElement !== wrapper) wrapper.append(lease.button);
+			} catch (error) {
+				releaseControl(wrapper, owner);
+				throw error;
+			}
+			return lease.button;
+		}
+		function releaseControl(wrapper, owner) {
+			const lease = controlLeases.get(wrapper);
+			if (lease === void 0) return;
+			lease.owners.delete(owner);
+			if (lease.owners.size > 0) return;
+			lease.button.removeEventListener("click", lease.onClick);
+			lease.button.remove();
+			controlLeases.delete(wrapper);
+		}
 		function isForeignModalDialog(element) {
 			return element.matches(MODAL_DIALOG_SELECTOR) && !element.hasAttribute(OVERLAY_ATTRIBUTE) && element.closest(`[${OVERLAY_ATTRIBUTE}]`) === null;
 		}
@@ -799,6 +877,7 @@ window.__ModuleLoader__.load({
 		* call; every observer and mutation is torn down by the returned disposer.
 		*/
 		function installMaidTableCards(_ctx) {
+			const owner = Symbol("maid-table-card-activation");
 			const bindings = /* @__PURE__ */ new Map();
 			let observer;
 			let resizeObserver;
@@ -807,23 +886,22 @@ window.__ModuleLoader__.load({
 			const release = (wrapper) => {
 				const binding = bindings.get(wrapper);
 				if (binding !== void 0) {
-					binding.button.removeEventListener("click", binding.onClick);
 					wrapper.removeEventListener("pointerleave", binding.onPointerLeave);
 					wrapper.removeEventListener("scroll", binding.onScroll);
-					binding.button.remove();
+					releaseControl(wrapper, owner);
 					bindings.delete(wrapper);
 				}
 				resizeObserver?.unobserve(wrapper);
-				wrapper.removeAttribute(FRAME_ATTRIBUTE);
-				wrapper.removeAttribute(EXPANDABLE_ATTRIBUTE);
-				wrapper.removeAttribute(OPEN_ATTRIBUTE);
-				wrapper.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE);
+				setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, false);
+				setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false);
+				setLeasedAttribute(wrapper, OPEN_ATTRIBUTE, owner, false);
+				setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false);
 			};
 			const closeOverlay = (immediate = false) => {
 				if (overlay === void 0) return;
 				const { root, source, onClick, onKeyDown } = overlay;
 				overlay = void 0;
-				source.removeAttribute(OPEN_ATTRIBUTE);
+				setLeasedAttribute(source, OPEN_ATTRIBUTE, owner, false);
 				root.removeEventListener("click", onClick);
 				document.removeEventListener("keydown", onKeyDown);
 				if (immediate) {
@@ -892,7 +970,7 @@ window.__ModuleLoader__.load({
 				root.addEventListener("click", onClick);
 				document.addEventListener("keydown", onKeyDown);
 				document.body.append(root);
-				wrapper.setAttribute(OPEN_ATTRIBUTE, "");
+				setLeasedAttribute(wrapper, OPEN_ATTRIBUTE, owner, true);
 				overlay = {
 					root,
 					source: wrapper,
@@ -909,43 +987,29 @@ window.__ModuleLoader__.load({
 				const table = wrapper.querySelector("table");
 				const viewport = wrapper.clientWidth;
 				const natural = table?.scrollWidth ?? wrapper.scrollWidth;
-				if (viewport > 0 && natural > viewport + 1) wrapper.setAttribute(EXPANDABLE_ATTRIBUTE, "");
-				else wrapper.removeAttribute(EXPANDABLE_ATTRIBUTE);
+				if (viewport > 0 && natural > viewport + 1) setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, true);
+				else setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false);
 				const button = bindings.get(wrapper)?.button;
 				if (button !== void 0) button.hidden = !wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE);
 			};
 			const adopt = (wrapper) => {
 				if (bindings.has(wrapper) || wrapper.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null) return;
-				const button = document.createElement("button");
-				button.type = "button";
-				button.hidden = true;
-				button.setAttribute(CONTROL_ATTRIBUTE, "");
-				button.dataset.skinOwner = SKIN_OWNER$1;
-				button.setAttribute("aria-label", "展开表格预览");
-				button.title = "展开表格预览";
-				const onClick = (event) => {
-					if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)) return;
-					event.stopPropagation();
-					openOverlay(wrapper);
-				};
+				const button = acquireControl(wrapper, owner, () => openOverlay(wrapper));
 				const onScroll = () => {
-					wrapper.setAttribute(SCROLL_SUPPRESSED_ATTRIBUTE, "");
+					setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, true);
 				};
 				const onPointerLeave = () => {
-					wrapper.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE);
+					setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false);
 				};
 				bindings.set(wrapper, {
 					button,
-					onClick,
 					onPointerLeave,
 					onScroll
 				});
 				try {
-					wrapper.setAttribute(FRAME_ATTRIBUTE, "");
-					button.addEventListener("click", onClick);
+					setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, true);
 					wrapper.addEventListener("pointerleave", onPointerLeave);
 					wrapper.addEventListener("scroll", onScroll, { passive: true });
-					wrapper.append(button);
 					resizeObserver?.observe(wrapper);
 					measure(wrapper);
 				} catch (error) {
