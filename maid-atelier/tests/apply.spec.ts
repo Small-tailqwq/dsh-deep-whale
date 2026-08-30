@@ -585,6 +585,7 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('installs and restores the raster control plates', async () => {
+    document.body.innerHTML = '<div data-composer-card></div>'
     document.body.style.setProperty('--maid-new-session-art', 'legacy')
     document.body.style.setProperty('--maid-workspace-ribbon-art', 'legacy-ribbon')
     fiber = await mount()
@@ -596,6 +597,13 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-cap-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-fill-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-fill-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-cap-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-composer-lace-art')).toContain('data:image/png;base64,')
+    expect(document.querySelector("[data-composer-card] > [data-skin-chrome='composer-lace']")).not.toBeNull()
+    expect(document.querySelector('[data-maid-composer-lace-center]')).not.toBeNull()
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/webp;base64,')
     expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toContain('data:image/webp;base64,')
@@ -609,6 +617,13 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-cap-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-fill-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-fill-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-cap-art')).toBe('')
+    expect(document.body.style.getPropertyValue('--maid-composer-lace-art')).toBe('')
+    expect(document.querySelector("[data-skin-chrome='composer-lace']")).toBeNull()
+    expect(document.querySelector('[data-maid-composer-lace-center]')).toBeNull()
     expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toBe('')
     expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toBe('legacy-ribbon')
@@ -697,16 +712,50 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-composer-card\]\s*\[data-slot='conversation\.input\.model'\]\s*\[class\$='_root'\]:has\(> button\[class\$='_trigger'\]\[aria-haspopup='menu'\]\)\s*> \[role='menu'\]\[class\$='_menu'\]\s*\{[^}]*backdrop-filter: none/s)
   })
 
-  it('nine-slices one composer frame across hero and workspace heights', () => {
+  it('composes one scale-owned composer frame across hero and workspace widths', () => {
     const frameRule = CSS.match(/\[data-composer-card\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const activeCardRule = CSS.match(
+      /\[data-phase='active'\] \[data-composer-card\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(activeCardRule).toContain(
+      'max-width: min(100%, max(720px, var(--dsh-composer-card-max-width)))',
+    )
     expect(frameRule).toContain('inset: -20px -14px -18px')
     expect(frameRule).toContain('z-index: 1')
+    expect(frameRule).toContain('var(--maid-bow-art)')
+    expect(frameRule).toContain('var(--maid-composer-ribbon-left-cap-art)')
+    expect(frameRule).toContain('var(--maid-composer-ribbon-left-fill-art)')
+    expect(frameRule).toContain('var(--maid-composer-ribbon-right-fill-art)')
+    expect(frameRule).toContain('var(--maid-composer-ribbon-right-cap-art)')
+    expect(frameRule).not.toContain('var(--maid-composer-lace-art)')
+    expect(frameRule).toContain('left 54px top')
+    expect(frameRule).toContain('right 54px top')
+    expect(frameRule).toContain('left 156px top')
+    expect(frameRule).toContain('right 156px top')
+    expect(frameRule).toContain('max(0px, calc(50% - 156px)) 32px')
+    expect(frameRule).toContain('background-repeat: no-repeat')
     expect(frameRule).toContain('border-width: 72px 54px 52px')
     expect(frameRule).toContain('border-image-source: var(--maid-composer-frame-art)')
     expect(frameRule).toContain('border-image-slice: 170 120 115 120')
     expect(frameRule).toContain('border-image-width: 72px 54px 52px 54px')
     expect(frameRule).toContain('border-image-repeat: stretch')
     expect(frameRule).not.toContain('100% 100%')
+    expect(CSS).toMatch(
+      /\[data-skin-chrome='composer-lace'\]::before\s*\{[^}]*left: 54px[^}]*var\(--maid-composer-lace-art\)[^}]*background-position: left top/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-skin-chrome='composer-lace'\]::after\s*\{[^}]*right: 54px[^}]*var\(--maid-composer-lace-art\)[^}]*background-position: right top/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-skin-chrome='composer-lace'\]::before,[\s\S]*?\[data-skin-chrome='composer-lace'\]::after\s*\{[^}]*width: calc\(50% - 96px\)/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-maid-composer-lace-center\]\s*\{[^}]*left: calc\(50% - 42px\)[^}]*width: 84px[^}]*var\(--maid-composer-lace-art\)[^}]*background-position: left top/s,
+    )
+    expect(CSS).toMatch(
+      /\[data-maid-composer-lace-center\]\s*\{[^}]*background-size: auto 33px[^}]*background-repeat: repeat-x/s,
+    )
+    expect(CSS).not.toContain('max-width: min(100%, 720px)')
   })
 
   it('three-slices the new-session plate without stretching its ornamental ends', () => {
