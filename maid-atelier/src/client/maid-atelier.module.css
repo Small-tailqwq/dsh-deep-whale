@@ -1876,9 +1876,9 @@ body[data-dsh-maid-atelier]
   pointer-events: none;
 }
 
-/* Composer card: live controls sit beneath one hollow frame. The frame shell,
-   stretchable ribbon, repeating lace, and fixed bow keep independent scale
-   ownership so the same composition works at normal and ultrawide widths. */
+/* Composer card: live controls sit beneath one hollow frame. Fixed ribbon
+   ends, independently stretchable ribbon bodies, repeating lace, and the
+   fixed bow keep the original composition at normal and ultrawide widths. */
 body[data-dsh-maid-atelier] [data-composer-card] {
   position: relative;
   z-index: 21;
@@ -1895,6 +1895,12 @@ body[data-dsh-maid-atelier] [data-composer-card] {
     linear-gradient(180deg, rgba(255, 254, 250, 0.88), rgba(244, 247, 253, 0.76)),
     var(--dsw-specific-input-major);
   box-shadow: var(--maid-shadow);
+}
+
+/* Preserve the calibrated conversation width by default, but follow a larger
+   host width when a wide workspace exposes one. */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] {
+  max-width: min(100%, max(720px, var(--dsh-composer-card-max-width)));
 }
 
 /* Restore the generous landing-page composition without imposing its height
@@ -2139,21 +2145,27 @@ body[data-dsh-maid-atelier] [data-composer-card]::before {
   /* The frame stays above the backing plate, but below the live controls and
      their in-place menus. A higher layer traps both selectors under the bow. */
   z-index: 1;
-  /* The shell's top-middle slice is transparent. Paint the bow above two
-     independently stretched blue halves, then repeat only the white lace
-     below; the shell still owns the corners, sides, and bottom edge. */
+  /* The shell keeps the fixed corner lace. Rebuild only its transparent center
+     from ribbon slices; the clipped lace strips below join under the bow. */
   background-image:
     var(--maid-bow-art),
-    var(--maid-composer-ribbon-art),
-    var(--maid-composer-ribbon-art),
-    var(--maid-composer-lace-art);
-  background-position: center top, left top, right top, left 39px;
+    var(--maid-composer-ribbon-left-cap-art),
+    var(--maid-composer-ribbon-right-cap-art),
+    var(--maid-composer-ribbon-left-fill-art),
+    var(--maid-composer-ribbon-right-fill-art);
+  background-position:
+    center top,
+    left 54px top,
+    right 54px top,
+    left 156px top,
+    right 156px top;
   background-size:
-    auto 72px,
-    calc(50% + 1px) 39px,
-    calc(50% + 1px) 39px,
-    auto 33px;
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat-x;
+    auto 69px,
+    102px 32px,
+    102px 32px,
+    max(0px, calc(50% - 156px)) 32px,
+    max(0px, calc(50% - 156px)) 32px;
+  background-repeat: no-repeat;
   background-origin: border-box;
   background-clip: border-box;
   border-style: solid;
@@ -2229,6 +2241,74 @@ body[data-dsh-maid-atelier] [data-composer-card]::after {
 body[data-dsh-maid-atelier] [data-composer-card] > * {
   position: relative;
   z-index: 2;
+}
+
+/* The center strip stays continuous across the visible jewel. Its two joins sit
+   under fully opaque parts of the bow, while the outer strips keep the source
+   phase of their adjacent fixed corners. */
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace'] {
+  position: absolute;
+  inset: -20px -14px auto;
+  height: 63px;
+  z-index: 0;
+  opacity: 0.82;
+  filter: brightness(1.16);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::before,
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::after,
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']
+  > [data-maid-composer-lace-center] {
+  content: '';
+  position: absolute;
+  top: 30px;
+  height: 33px;
+  background-size: auto 33px;
+  background-repeat: repeat-x;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::before,
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::after {
+  width: calc(50% - 96px);
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::before {
+  left: 54px;
+  background-image: var(--maid-composer-lace-art);
+  background-position: left top;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::after {
+  right: 54px;
+  background-image: var(--maid-composer-lace-art);
+  background-position: right top;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']
+  > [data-maid-composer-lace-center] {
+  left: calc(50% - 42px);
+  width: 84px;
+  background-image: var(--maid-composer-lace-art);
+  background-position: left top;
 }
 
 /* The official attachments slot is a display: contents container: it emits no

@@ -22,7 +22,10 @@ import {
 import {
   MAID_ATELIER_COMPOSER_FRAME_SHELL,
   MAID_ATELIER_COMPOSER_LACE_TILE,
-  MAID_ATELIER_COMPOSER_RIBBON_STRETCH,
+  MAID_ATELIER_COMPOSER_RIBBON_LEFT_CAP,
+  MAID_ATELIER_COMPOSER_RIBBON_LEFT_FILL,
+  MAID_ATELIER_COMPOSER_RIBBON_RIGHT_CAP,
+  MAID_ATELIER_COMPOSER_RIBBON_RIGHT_FILL,
 } from './composer-art.generated.ts'
 import { MAID_ATELIER_MAID_RIGHT_VISION } from './vision-art.generated.ts'
 import {
@@ -154,7 +157,10 @@ const BACKDROP_PROPERTIES = [
   '--maid-sidebar-swag-art',
   '--maid-sidebar-corner-art',
   '--maid-composer-frame-art',
-  '--maid-composer-ribbon-art',
+  '--maid-composer-ribbon-left-cap-art',
+  '--maid-composer-ribbon-left-fill-art',
+  '--maid-composer-ribbon-right-fill-art',
+  '--maid-composer-ribbon-right-cap-art',
   '--maid-composer-lace-art',
   '--maid-settings-frame-art',
   '--maid-workspace-crest-art',
@@ -210,6 +216,29 @@ function ensureChatAreaChrome(...chrome: HTMLElement[]): boolean {
   for (const element of chrome) {
     if (element.parentElement !== chat) chat.append(element)
   }
+  return true
+}
+
+function createComposerLaceRail(): HTMLDivElement {
+  const rail = document.createElement('div')
+  const center = document.createElement('span')
+  rail.dataset.skinChrome = 'composer-lace'
+  rail.dataset.skinOwner = SKIN_OWNER
+  rail.setAttribute('aria-hidden', 'true')
+  center.dataset.maidComposerLaceCenter = ''
+  rail.append(center)
+  return rail
+}
+
+function ensureComposerLaceRail(rail: HTMLElement): boolean {
+  const card = document.querySelector<HTMLElement>(
+    "[data-composer-card]:not([class*='cardWorkspaceTrigger'])",
+  )
+  if (!card) {
+    rail.remove()
+    return false
+  }
+  if (rail.parentElement !== card) card.prepend(rail)
   return true
 }
 
@@ -415,6 +444,8 @@ export function apply(ctx: Context): void {
   const decoratedElements = new Set<HTMLElement>()
   const characterStage = createCharacterStage()
   ownedNodes.add(characterStage)
+  const composerLaceRail = createComposerLaceRail()
+  ownedNodes.add(composerLaceRail)
   let themeColorMeta: HTMLMetaElement | null = null
   let previousThemeColor: string | undefined
   let themeColorObserver: MutationObserver | undefined
@@ -521,7 +552,22 @@ export function apply(ctx: Context): void {
   body.style.setProperty('--maid-sidebar-swag-art', `url(${MAID_ATELIER_SIDEBAR_SWAG})`)
   body.style.setProperty('--maid-sidebar-corner-art', `url(${MAID_ATELIER_SIDEBAR_CORNER})`)
   body.style.setProperty('--maid-composer-frame-art', `url(${MAID_ATELIER_COMPOSER_FRAME_SHELL})`)
-  body.style.setProperty('--maid-composer-ribbon-art', `url(${MAID_ATELIER_COMPOSER_RIBBON_STRETCH})`)
+  body.style.setProperty(
+    '--maid-composer-ribbon-left-cap-art',
+    `url(${MAID_ATELIER_COMPOSER_RIBBON_LEFT_CAP})`,
+  )
+  body.style.setProperty(
+    '--maid-composer-ribbon-left-fill-art',
+    `url(${MAID_ATELIER_COMPOSER_RIBBON_LEFT_FILL})`,
+  )
+  body.style.setProperty(
+    '--maid-composer-ribbon-right-fill-art',
+    `url(${MAID_ATELIER_COMPOSER_RIBBON_RIGHT_FILL})`,
+  )
+  body.style.setProperty(
+    '--maid-composer-ribbon-right-cap-art',
+    `url(${MAID_ATELIER_COMPOSER_RIBBON_RIGHT_CAP})`,
+  )
   body.style.setProperty('--maid-composer-lace-art', `url(${MAID_ATELIER_COMPOSER_LACE_TILE})`)
   body.style.setProperty('--maid-settings-frame-art', `url(${MAID_ATELIER_SETTINGS_FRAME})`)
   body.style.setProperty('--maid-workspace-crest-art', `url(${MAID_ATELIER_WORKSPACE_SHIELD})`)
@@ -783,6 +829,7 @@ export function apply(ctx: Context): void {
   decorateWorkspaceTree(decoratedElements)
   ensureChatAreaStage(characterStage)
   ensureChatAreaChrome(topTrim, bottomTrim)
+  ensureComposerLaceRail(composerLaceRail)
   ensureResizeObserved()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
@@ -885,6 +932,7 @@ export function apply(ctx: Context): void {
     }
     if (backdropChanged) syncBackdrop()
     if (composerChanged) {
+      ensureComposerLaceRail(composerLaceRail)
       syncComposerMotion()
     }
     if (settingsStateChanged || projectedStateChanged) syncSettingsBackdropFrame()
