@@ -241,6 +241,11 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
     if (seat === null || !seat.hasAttribute(CAPSULE_ATTRIBUTE)) return
     const input = card.querySelector<HTMLElement>(INPUT_SELECTOR)
     if (input === null || card.contains(doc.activeElement)) return
+    // Alpha 1 keeps the Lexical root inside the scrollport that capsule CSS
+    // removes from layout. Reveal it before focus; focusin then performs the
+    // full transition while the previous capsule state is still known.
+    interacted.set(seat, true)
+    restoreAttribute(seat, CAPSULE_ATTRIBUTE)
     input.focus({ preventScroll: true })
   }
 

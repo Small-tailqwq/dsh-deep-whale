@@ -4255,12 +4255,16 @@ body[data-dsh-maid-atelier]
   display: none;
 }
 
-/* 金框装饰在胶囊态隐藏，胶囊内容由 ::after 呈现 */
+/* The full-size nine-slice frame extends beyond the card. Stop generating it
+   in capsule state so its clipped lace cannot remain inside the pill. */
 body[data-dsh-maid-atelier]
   [data-phase='active']
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]::before {
+  content: none;
   display: none;
+  border-image-source: none;
+  filter: none;
 }
 
 body[data-dsh-maid-atelier]
