@@ -56,15 +56,23 @@ describe('installMaidTableCards', () => {
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(true)
     expect(card.hasAttribute('data-maid-table-frame')).toBe(true)
     expect(card.parentElement).toBe(bubble)
-    expect(card.getAttribute('aria-label')).toBe('展开表格预览')
-    expect(card.querySelector('[data-maid-table-expand]')).toBeNull()
+    const button = card.querySelector<HTMLButtonElement>('[data-maid-table-expand]')
+    expect(button?.getAttribute('aria-label')).toBe('展开表格预览')
+    expect(button?.hidden).toBe(false)
 
     card.dispatchEvent(new Event('scroll'))
     expect(card.hasAttribute('data-maid-table-scroll-suppressed')).toBe(true)
     card.dispatchEvent(new Event('pointerleave'))
     expect(card.hasAttribute('data-maid-table-scroll-suppressed')).toBe(false)
 
-    card.click()
+    card.innerHTML = '<table><tbody><tr><td>complete</td></tr></tbody></table>'
+    const completedTable = card.querySelector('table')!
+    Object.defineProperty(completedTable, 'scrollWidth', { configurable: true, value: 960 })
+    await Promise.resolve()
+    expect(card.parentElement).toBe(bubble)
+    expect(button?.parentElement).toBe(card)
+
+    button?.click()
     const lightbox = document.querySelector('[data-maid-table-lightbox]')
     const panel = lightbox?.querySelector<HTMLElement>('[data-maid-table-panel]')
     expect(lightbox).not.toBeNull()
@@ -102,7 +110,7 @@ describe('installMaidTableCards', () => {
       document.body.append(bubble)
 
       const runtime = installMaidTableCards({} as never)
-      card.click()
+      card.querySelector<HTMLButtonElement>('[data-maid-table-expand]')?.click()
       expect(document.querySelector('[data-maid-table-lightbox]')).not.toBeNull()
 
       const timerBaseline = vi.getTimerCount()
@@ -152,6 +160,8 @@ describe('installMaidTableCards', () => {
     expect(card.getAttribute('tabindex')).toBe('-1')
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(false)
     expect(card.getAttribute('aria-label')).toBeNull()
+    const button = card.querySelector<HTMLButtonElement>('[data-maid-table-expand]')!
+    expect(button.hidden).toBe(true)
 
     const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
     expect(card.dispatchEvent(enter)).toBe(true)
@@ -160,9 +170,10 @@ describe('installMaidTableCards', () => {
 
     Object.defineProperty(card, 'scrollWidth', { configurable: true, value: 960 })
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
-    expect(card.getAttribute('tabindex')).toBe('0')
+    expect(card.getAttribute('tabindex')).toBe('-1')
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(true)
-    expect(card.getAttribute('aria-label')).toBe('展开表格预览')
+    expect(card.getAttribute('aria-label')).toBeNull()
+    expect(button.hidden).toBe(false)
 
     runtime.dispose()
     expect(card.getAttribute('tabindex')).toBe('-1')
@@ -218,7 +229,7 @@ describe('installMaidTableCards', () => {
     nativeModal.setAttribute('aria-modal', 'true')
     document.body.append(nativeModal)
 
-    card.click()
+    card.querySelector<HTMLButtonElement>('[data-maid-table-expand]')?.click()
 
     expect(document.querySelector('[data-maid-table-lightbox]')).toBeNull()
     expect(card.hasAttribute('data-maid-table-open')).toBe(false)
@@ -248,7 +259,7 @@ describe('installMaidTableCards', () => {
 
     const runtime = installMaidTableCards({} as never)
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
-    card.click()
+    card.querySelector<HTMLButtonElement>('[data-maid-table-expand]')?.click()
     expect(document.querySelector('[data-maid-table-lightbox]')).not.toBeNull()
 
     const nativeModal = document.createElement('div')

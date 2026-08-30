@@ -21,6 +21,7 @@ const SKIN_OWNER = 'maid-atelier'
 const EXPANDABLE_ATTRIBUTE = 'data-maid-table-expandable'
 const OPEN_ATTRIBUTE = 'data-maid-table-open'
 const FRAME_ATTRIBUTE = 'data-maid-table-frame'
+const CONTROL_ATTRIBUTE = 'data-maid-table-expand'
 const SCROLL_SUPPRESSED_ATTRIBUTE = 'data-maid-table-scroll-suppressed'
 const OVERLAY_ATTRIBUTE = 'data-maid-table-lightbox'
 const MODAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true']"
@@ -33,10 +34,8 @@ interface TableCardRuntime {
 }
 
 interface TableBinding {
-  originalTabIndex: string | null
-  originalAriaLabel: string | null
+  button: HTMLButtonElement
   onClick: (event: MouseEvent) => void
-  onKeyDown: (event: KeyboardEvent) => void
   onPointerLeave: () => void
   onScroll: () => void
 }
@@ -68,15 +67,11 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
   const release = (wrapper: HTMLElement): void => {
     const binding = bindings.get(wrapper)
     if (binding !== undefined) {
-      wrapper.removeEventListener('click', binding.onClick)
-      wrapper.removeEventListener('keydown', binding.onKeyDown)
+      binding.button.removeEventListener('click', binding.onClick)
       wrapper.removeEventListener('pointerleave', binding.onPointerLeave)
       wrapper.removeEventListener('scroll', binding.onScroll)
+      binding.button.remove()
       bindings.delete(wrapper)
-      if (binding.originalTabIndex === null) wrapper.removeAttribute('tabindex')
-      else wrapper.setAttribute('tabindex', binding.originalTabIndex)
-      if (binding.originalAriaLabel === null) wrapper.removeAttribute('aria-label')
-      else wrapper.setAttribute('aria-label', binding.originalAriaLabel)
     }
     resizeObserver?.unobserve(wrapper)
     wrapper.removeAttribute(FRAME_ATTRIBUTE)
@@ -156,6 +151,7 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     clone.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE)
     clone.removeAttribute('tabindex')
     clone.removeAttribute('aria-label')
+    clone.querySelector(`[${CONTROL_ATTRIBUTE}]`)?.remove()
     clone.dataset.maidTableExpanded = ''
     scroller.append(clone)
     panel.append(close, scroller)
@@ -190,32 +186,25 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     const natural = table?.scrollWidth ?? wrapper.scrollWidth
     if (viewport > 0 && natural > viewport + 1) {
       wrapper.setAttribute(EXPANDABLE_ATTRIBUTE, '')
-      wrapper.tabIndex = 0
-      wrapper.setAttribute('aria-label', '展开表格预览')
     } else {
       wrapper.removeAttribute(EXPANDABLE_ATTRIBUTE)
-      const binding = bindings.get(wrapper)
-      if (binding?.originalTabIndex === null) wrapper.removeAttribute('tabindex')
-      else if (binding !== undefined) wrapper.setAttribute('tabindex', binding.originalTabIndex)
-      if (binding?.originalAriaLabel === null) wrapper.removeAttribute('aria-label')
-      else if (binding !== undefined) wrapper.setAttribute('aria-label', binding.originalAriaLabel)
     }
+    const button = bindings.get(wrapper)?.button
+    if (button !== undefined) button.hidden = !wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)
   }
 
   const adopt = (wrapper: HTMLElement): void => {
     if (bindings.has(wrapper) || wrapper.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null) return
-    const originalTabIndex = wrapper.getAttribute('tabindex')
-    const originalAriaLabel = wrapper.getAttribute('aria-label')
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.hidden = true
+    button.setAttribute(CONTROL_ATTRIBUTE, '')
+    button.dataset.skinOwner = SKIN_OWNER
+    button.setAttribute('aria-label', '展开表格预览')
+    button.title = '展开表格预览'
     const onClick = (event: MouseEvent): void => {
-      if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE) || event.target !== wrapper) return
+      if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)) return
       event.stopPropagation()
-      openOverlay(wrapper)
-    }
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)
-        || (event.key !== 'Enter' && event.key !== ' ')
-        || event.target !== wrapper) return
-      event.preventDefault()
       openOverlay(wrapper)
     }
     const onScroll = (): void => {
@@ -225,19 +214,17 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
       wrapper.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE)
     }
     bindings.set(wrapper, {
-      originalTabIndex,
-      originalAriaLabel,
+      button,
       onClick,
-      onKeyDown,
       onPointerLeave,
       onScroll,
     })
     try {
       wrapper.setAttribute(FRAME_ATTRIBUTE, '')
-      wrapper.addEventListener('click', onClick)
-      wrapper.addEventListener('keydown', onKeyDown)
+      button.addEventListener('click', onClick)
       wrapper.addEventListener('pointerleave', onPointerLeave)
       wrapper.addEventListener('scroll', onScroll, { passive: true })
+      wrapper.append(button)
       resizeObserver?.observe(wrapper)
       measure(wrapper)
     } catch (error) {
@@ -270,6 +257,12 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     observer = new MutationObserver((records) => {
       let sawForeignModal = false
       for (const record of records) {
+        if (record.target instanceof HTMLElement) {
+          const binding = bindings.get(record.target)
+          if (binding !== undefined && binding.button.parentElement !== record.target) {
+            record.target.append(binding.button)
+          }
+        }
         for (const node of record.addedNodes) {
           if (!(node instanceof Element)) continue
           if (isForeignModalDialog(node) || Array.from(node.querySelectorAll(MODAL_DIALOG_SELECTOR)).some(isForeignModalDialog)) {

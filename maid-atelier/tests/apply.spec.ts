@@ -1172,7 +1172,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const expandRule = CSS.match(
-      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]::after\s*\{([^}]*)\}/s,
+      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\] > \[data-maid-table-expand\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const lightboxRule = CSS.match(/\[data-maid-table-lightbox\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const panelRule = CSS.match(/\[data-maid-table-panel\]\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -1194,20 +1194,20 @@ describe('Maid Atelier skin apply', () => {
     expect(frameRule).not.toContain('transform:')
     expect(frameRule).not.toContain('left: 50%')
     expect(CSS).not.toContain("[data-maid-table-frame] > :global(.md-table-wide)")
-    expect(CSS).not.toContain('[data-maid-table-expand]')
+    expect(CSS).toContain('[data-maid-table-expand]')
     expect(CSS).not.toContain('@keyframes maidAtelierTableLiquidBorder')
     expect(CSS).toContain('[data-maid-table-scroll-suppressed]')
-    expect(CSS).toContain('[data-maid-table-frame]:focus-visible')
+    expect(CSS).toContain('[data-maid-table-expand]:focus-visible')
     expect(CSS).not.toContain('[data-maid-table-frame]:focus-within')
-    expect(expandRule).toContain("content: '⤢'")
     expect(expandRule).toContain('position: absolute')
     expect(expandRule).toContain('right: 8px')
     expect(expandRule).toContain('width: 32px')
     expect(expandRule).toContain('border-radius: 7px')
     expect(expandRule).toContain('cursor: zoom-in')
-    expect(expandRule).toContain('pointer-events: none')
-    expect(CSS).toMatch(/\[data-maid-table-frame\]\[data-maid-table-expandable\][^,{]*:hover::after[\s\S]*?pointer-events: auto/)
-    expect(CSS).toMatch(/@media \(hover: none\)[\s\S]*?\[data-maid-table-frame\]\[data-maid-table-expandable\]::after[\s\S]*?pointer-events: auto/)
+    expect(CSS).toContain("[data-maid-table-expand]::before")
+    expect(CSS).toContain("content: '⤢'")
+    expect(CSS).toMatch(/\[data-maid-table-frame\]\[data-maid-table-expandable\][^,{]*:hover > \[data-maid-table-expand\]/)
+    expect(CSS).toMatch(/@media \(hover: none\)[\s\S]*?\[data-maid-table-frame\]\[data-maid-table-expandable\] > \[data-maid-table-expand\]/)
     expect(lightboxRule).toContain('position: fixed')
     expect(lightboxRule).toContain('z-index: 940')
     expect(panelRule).toContain('width: min(var(--maid-table-expanded-width, 1180px), 100%)')
@@ -1935,7 +1935,7 @@ describe('Maid Atelier skin apply', () => {
     expect(reducedMotionRule).toContain('transition: none')
     expect(reducedMotionRule).toContain('animation: none')
     expect(reducedMotionRule).toContain('[data-maid-workspace-active]::before')
-    expect(reducedMotionRule).toContain('[data-maid-table-frame]::after')
+    expect(reducedMotionRule).toContain('[data-maid-table-expand]')
   })
 
   it('keeps the skin chrome aligned to the live sidebar width and restores the prior value', async () => {
