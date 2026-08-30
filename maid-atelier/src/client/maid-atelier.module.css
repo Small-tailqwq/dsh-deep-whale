@@ -2691,6 +2691,15 @@ body[data-dsh-maid-atelier]
   transform: none;
 }
 
+@media (hover: none) {
+  body[data-dsh-maid-atelier]
+    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable]::after {
+    pointer-events: auto;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
   border-color: rgba(211, 180, 119, 0.28);

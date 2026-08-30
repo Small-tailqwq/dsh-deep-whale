@@ -1207,6 +1207,7 @@ describe('Maid Atelier skin apply', () => {
     expect(expandRule).toContain('cursor: zoom-in')
     expect(expandRule).toContain('pointer-events: none')
     expect(CSS).toMatch(/\[data-maid-table-frame\]\[data-maid-table-expandable\][^,{]*:hover::after[\s\S]*?pointer-events: auto/)
+    expect(CSS).toMatch(/@media \(hover: none\)[\s\S]*?\[data-maid-table-frame\]\[data-maid-table-expandable\]::after[\s\S]*?pointer-events: auto/)
     expect(lightboxRule).toContain('position: fixed')
     expect(lightboxRule).toContain('z-index: 940')
     expect(panelRule).toContain('width: min(var(--maid-table-expanded-width, 1180px), 100%)')
