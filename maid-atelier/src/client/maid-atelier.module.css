@@ -817,7 +817,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-slot='sidebar.settings']
     > :is(button, [role='button'])
     [data-slot='settings.trigger'] {
-  line-height: 1;
+  line-height: normal;
 }
 
 body[data-dsh-maid-atelier]

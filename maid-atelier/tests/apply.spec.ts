@@ -791,7 +791,7 @@ describe('Maid Atelier skin apply', () => {
     expect(centeredSettingsContentRule).toContain('gap: 8px')
     expect(centeredSettingsLabelRule).not.toContain('position: absolute')
     expect(centeredSettingsLabelRule).not.toContain('left: 50%')
-    expect(centeredSettingsLabelRule).toContain('line-height: 1')
+    expect(centeredSettingsLabelRule).toContain('line-height: normal')
   })
 
   it('hides the duplicated title-bar menu button in frameless surfaces', () => {
