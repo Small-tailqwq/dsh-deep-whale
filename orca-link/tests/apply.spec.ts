@@ -165,8 +165,10 @@ describe('Orca Link skin apply', () => {
         </div>
       </div>
       <div data-phase="hero">
-        <div data-conversation-scroll>
-          <div data-composer-seat><div data-composer-input contenteditable="true" data-phase="plain"></div></div>
+        <div class="fixture_conversationBody">
+          <div data-conversation-scroll>
+            <div data-composer-seat><div data-composer-input contenteditable="true" data-phase="plain"></div></div>
+          </div>
         </div>
       </div>
     `
@@ -491,12 +493,14 @@ describe('Orca Link skin apply', () => {
   it('crossfades the hero composer into the active dock without submitting itself', async () => {
     document.body.innerHTML = `
       <div data-phase="hero">
-        <div data-conversation-scroll>
-          <div data-chat-flow></div>
-          <div data-composer-seat>
-            <div data-composer-card>
-              <div data-composer-input contenteditable="true">launch</div>
-              <button type="button">send</button>
+        <div class="fixture_conversationBody">
+          <div data-conversation-scroll>
+            <div data-chat-flow></div>
+            <div data-composer-seat>
+              <div data-composer-card>
+                <div data-composer-input contenteditable="true">launch</div>
+                <button type="button">send</button>
+              </div>
             </div>
           </div>
         </div>
@@ -650,10 +654,12 @@ describe('Orca Link skin apply', () => {
     document.documentElement.lang = 'zh-CN'
     document.body.innerHTML = `
       <div data-phase="active">
-        <div data-conversation-scroll>
-          <div data-chat-flow></div>
-          <div data-composer-seat>
-            <div data-composer-card><div data-composer-input contenteditable="true">保留这段草稿</div></div>
+        <div class="fixture_conversationBody">
+          <div data-conversation-scroll>
+            <div data-chat-flow></div>
+            <div data-composer-seat>
+              <div data-composer-card><div data-composer-input contenteditable="true">保留这段草稿</div></div>
+            </div>
           </div>
         </div>
       </div>

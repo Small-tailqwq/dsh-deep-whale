@@ -74,16 +74,20 @@ describe('Maid Atelier skin apply', () => {
     document.body.innerHTML = `
       <div data-phase="active">
         <div>
-          <div class="turn-slot">
-            <nav aria-label="Turn navigation">
-              <div><div>
-                <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
-                <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
-                <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
-              </div></div>
-            </nav>
+          <div data-conversation-scroll>
+            <div class="turn-slot">
+              <nav aria-label="Turn navigation">
+                <div><div>
+                  <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
+                  <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
+                  <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
+                </div></div>
+              </nav>
+            </div>
+            <div data-chat-flow></div>
           </div>
-          <div data-chat-flow></div>
+          <div data-width-handle="left" data-side="left"></div>
+          <div data-width-handle="right" data-side="right"></div>
         </div>
       </div>
     `
@@ -93,6 +97,12 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain(TURN_MARK_SELECTOR)
     expect(CSS).not.toContain("nav[aria-label='轮次导航']")
     expect(CSS).not.toContain("[aria-label^='跳转到第']")
+    expect(CSS).toMatch(
+      /\[data-phase='active'\]\s*>\s*:has\(> \[data-conversation-scroll\]\)\s*>\s*\[data-width-handle='left'\]\[data-side='left'\]::after\s*,/s,
+    )
+    expect(CSS).not.toMatch(
+      /\[data-phase='active'\]\s*>\s*\[data-width-handle=(?:'left'|'right')\]/,
+    )
   })
 
   it('keeps every full-round Maid shape circular under the Alpha corner token', () => {
@@ -826,17 +836,17 @@ describe('Maid Atelier skin apply', () => {
       /button\[class\*='newSession'\] svg\s*\{([^}]*)\}/g,
     )].map(match => match[1] ?? '').find(rule => rule.includes('#efd7a1')) ?? ''
     const collapsedFootRule = [...CSS.matchAll(
-      /\[data-slot='sidebar\.settings'\][\s\S]*?> :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/g,
+      /\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/g,
     )].map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
     const collapsedSessionRule = [...CSS.matchAll(/button\[class\*='newSession'\]\s*\{([^}]*)\}/g)]
       .map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
     const collapsedFootAreaRule = [...CSS.matchAll(/\[data-maid-sidebar-footer\]\s*\{([^}]*)\}/g)]
       .map(match => match[1] ?? '').find(rule => rule.includes('display: flex')) ?? ''
     const sharedRailRule = CSS.match(
-      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] > :is\(button, \[role='button'\]\)\s*\)\s*\{([^}]*)\}/s,
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const sharedRailHoverRule = CSS.match(
-      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] > :is\(button, \[role='button'\]\)\s*\):is\(:hover, :focus-visible\)\s*\{([^}]*)\}/s,
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\):is\(:hover, :focus-visible\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(toggleRule).toContain('border-radius: 50%')
     expect(sharedRailRule).toContain('width: var(--maid-rail-control-size)')
@@ -862,10 +872,19 @@ describe('Maid Atelier skin apply', () => {
       /body\[data-dsh-maid-atelier\]\[data-maid-sidebar-size='rail'\][^{]+:is\(\[class\*='iconButton'\], \[class\*='searchButton'\]\)[^{]+\{/g,
     )].map(match => match[0] ?? '')
     const centeredSettingsContentRule = CSS.match(
-      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?> :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
+      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const centeredSettingsLabelRule = CSS.match(
       /\[data-slot='settings\.trigger'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const constrainedSettingsRule = [...CSS.matchAll(
+      /button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/g,
+    )].map(match => match[1] ?? '').find(rule => rule.includes('flex: 1 1 112px')) ?? ''
+    const connectionRule = CSS.match(
+      /> :is\(button\[data-phase\], \[role='status'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const connectionLabelRule = CSS.match(
+      /> :is\(button\[data-phase\], \[role='status'\]\)[\s\S]*?> span\[aria-hidden='true'\] \+ span > span\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(railIconSelectors.length).toBeGreaterThan(0)
     expect(railIconSelectors.every(selector => selector.includes(":not([role='dialog'] *)"))).toBe(true)
@@ -878,7 +897,17 @@ describe('Maid Atelier skin apply', () => {
     expect(centeredSettingsContentRule).toContain('gap: 8px')
     expect(centeredSettingsLabelRule).not.toContain('position: absolute')
     expect(centeredSettingsLabelRule).not.toContain('left: 50%')
-    expect(centeredSettingsLabelRule).toContain('line-height: 1')
+    expect(centeredSettingsLabelRule).toContain('line-height: normal')
+    expect(constrainedSettingsRule).toContain('width: auto')
+    expect(constrainedSettingsRule).toContain('padding-inline: 8px')
+    expect(constrainedSettingsRule).toContain('border-width: 0 28px')
+    expect(constrainedSettingsRule).toContain('gap: 4px')
+    expect(connectionRule).toContain('flex: 0 1 96px')
+    expect(connectionRule).toContain('grid-template-columns: 14px minmax(0, 1fr)')
+    expect(connectionRule).toContain('max-width: 96px')
+    expect(connectionRule).toContain('border: 1px solid rgba(225, 191, 124, 0.76)')
+    expect(connectionLabelRule).toContain('text-overflow: ellipsis')
+    expect(CSS).toMatch(/> \[role='status'\]\s*\{[^}]*color: #c8e4c7/s)
   })
 
   it('hides the duplicated title-bar menu button in frameless surfaces', () => {
@@ -1195,7 +1224,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('themes Cordis footer actions and approval panels without displacing settings', () => {
     expect(CSS).toMatch(
-      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?> :is\(button, \[role='button'\]\)\s*\{[^}]*margin-inline: 0/s,
+      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{[^}]*margin-inline: 0/s,
     )
     expect(CSS).toMatch(
       /\[data-maid-sidebar-footer\]\s*\{[^}]*flex: 0 0 auto[^}]*min-height: calc\(var\(--maid-sidebar-swag-height\) \+ 82px\)/s,
@@ -1392,8 +1421,15 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('marks only phase changes for composer motion', async () => {
-    document.body.innerHTML = '<div data-phase="hero"></div>'
+    document.body.innerHTML = `
+      <div data-phase="hero"><div><div data-conversation-scroll></div></div></div>
+      <button data-phase="disconnected">Retry</button>
+    `
     fiber = await mount()
+    expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
+
+    document.querySelector<HTMLElement>('button[data-phase]')!.dataset.phase = 'connecting'
+    await flushMutations()
     expect(document.body.hasAttribute('data-maid-composer-motion')).toBe(false)
 
     const phaseRoot = document.querySelector<HTMLElement>('[data-phase]')!
@@ -1511,7 +1547,7 @@ describe('Maid Atelier skin apply', () => {
       /\[class\*='sectionHeader'\]:has\(\[class\*='searchSlotExpanded'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const settingsRule = CSS.match(
-      /\[data-slot='sidebar\.settings'\]\s*> :is\(button, \[role='button'\]\)\s*\{([^}]*)\}/s,
+      /\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(headingRule).toContain('color: #d9bd83')
     expect(searchRule).toContain('border: 1px solid rgba(225, 191, 124, 0.72)')
@@ -1954,7 +1990,7 @@ describe('Maid Atelier skin apply', () => {
     expect(crestRule).toContain('background: var(--maid-bottom-crest-art) center / contain no-repeat')
   })
 
-  it('moves the bottom embroidery with the composer phase', () => {
+  it('moves and hides the bottom embroidery with the composer phase', () => {
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const activeTrimRule = CSS.match(
       /\[data-maid-conversation-active\] \[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s,
@@ -1964,9 +2000,13 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     expect(bottomTrimRule).not.toContain('--maid-sidebar-width')
     expect(bottomTrimRule).toContain('transform: translateY(0)')
-    expect(bottomTrimRule).toContain('transition: transform 520ms')
+    expect(bottomTrimRule).toContain('opacity: 1')
+    expect(bottomTrimRule).toContain('transition:')
+    expect(bottomTrimRule).toContain('transform 520ms')
+    expect(bottomTrimRule).toContain('opacity 160ms ease-out')
     expect(bottomTrimRule).not.toContain('transition: translate 520ms')
     expect(activeTrimRule).toContain('transform: translateY(100%)')
+    expect(activeTrimRule).toContain('opacity: 0')
     expect(activeTrimRule).not.toContain('--maid-sidebar-width')
     expect(movingTrimRule).toContain('will-change: transform')
   })

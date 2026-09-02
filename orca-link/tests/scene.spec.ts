@@ -9,7 +9,7 @@ afterEach(() => {
 
 describe('ORCA LINK scene controller', () => {
   it('mirrors the conversation phase onto a stable body attribute', async () => {
-    document.body.innerHTML = '<div data-phase="hero"><div data-conversation-scroll></div></div>'
+    document.body.innerHTML = '<div data-phase="hero"><div><div data-conversation-scroll></div></div></div>'
     const dispose = installOrcaScene(document.body)
 
     expect(document.body.dataset.orcaScene).toBe('hero')

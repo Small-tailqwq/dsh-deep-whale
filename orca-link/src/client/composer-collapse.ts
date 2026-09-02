@@ -62,11 +62,10 @@ function clamp(value: number, min: number, max: number): number {
 function phaseRootOf(element: Element): HTMLElement | null {
   let candidate: Element | null = element
   while (candidate !== null) {
-    if (
-      candidate instanceof HTMLElement
-      && candidate.hasAttribute('data-phase')
-      && candidate.querySelector(':scope > [data-conversation-scroll]') !== null
-    ) return candidate
+    if (candidate instanceof HTMLElement && candidate.hasAttribute('data-phase')) {
+      const scrollport = candidate.querySelector<HTMLElement>('[data-conversation-scroll]')
+      if (scrollport?.closest('[data-phase]') === candidate) return candidate
+    }
     candidate = candidate.parentElement
   }
   return null

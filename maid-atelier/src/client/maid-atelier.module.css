@@ -341,16 +341,20 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   position: absolute;
   inset: auto 0 0 0;
   transform: translateY(0);
+  opacity: 1;
   z-index: 20;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
   contain: paint;
-  transition: transform 520ms cubic-bezier(0.22, 0.78, 0.2, 1);
+  transition:
+    transform 520ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    opacity 160ms ease-out;
 }
 
 body[data-dsh-maid-atelier][data-maid-conversation-active] [data-skin-chrome='bottom-trim'] {
   transform: translateY(100%);
+  opacity: 0;
 }
 
 body[data-dsh-maid-atelier][data-maid-composer-motion]
@@ -772,7 +776,7 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
   position: relative;
   z-index: 1;
   width: 100%;
@@ -801,7 +805,7 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
@@ -813,22 +817,102 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button'])
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
     [data-slot='settings.trigger'] {
-  line-height: 1;
+  line-height: normal;
+}
+
+/* The wide settings row also owns the host connection state. Keep its
+   localized label visible, but cap the status pill so the framed settings
+   trigger retains a usable content box in narrow wide-mode sidebars. */
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger']):has(> :is(button[data-phase], [role='status']))
+    > button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
+  flex: 1 1 112px;
+  width: auto;
+  padding-inline: 8px;
+  border-width: 0 28px;
+  border-image-width: 0 28px;
+  gap: 4px;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > :is(button[data-phase], [role='status']) {
+  flex: 0 1 96px;
+  grid-template-columns: 14px minmax(0, 1fr);
+  box-sizing: border-box;
+  min-width: 72px;
+  max-width: 96px;
+  height: 36px;
+  padding-inline: 8px;
+  border: 1px solid rgba(225, 191, 124, 0.76);
+  border-radius: 10px;
+  color: #f2d59b;
+  background: linear-gradient(145deg, rgba(75, 101, 166, 0.74), rgba(7, 18, 52, 0.94));
+  box-shadow:
+    inset 0 0 0 2px rgba(5, 15, 45, 0.68),
+    0 3px 9px rgba(1, 7, 24, 0.24);
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > :is(button[data-phase], [role='status'])
+    > span[aria-hidden='true'] + span {
+  min-width: 0;
+  overflow: hidden;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > :is(button[data-phase], [role='status'])
+    > span[aria-hidden='true'] + span > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > button[data-phase]:is(:hover, :focus-visible) {
+  color: #fff1ce;
+  border-color: rgba(244, 218, 164, 0.94);
+  background: linear-gradient(145deg, rgba(98, 129, 205, 0.82), rgba(11, 27, 70, 0.98));
+  outline: 2px solid rgba(244, 218, 164, 0.72);
+  outline-offset: 2px;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > [role='status'] {
+  color: #c8e4c7;
+  border-color: rgba(167, 211, 167, 0.72);
+  background: linear-gradient(145deg, rgba(51, 105, 98, 0.78), rgba(7, 39, 48, 0.94));
 }
 
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button'])::before {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])::before {
   content: none;
 }
 
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']):is(:hover, :focus-visible) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']):is(:hover, :focus-visible) {
   color: #fff8e8;
   background: none;
   filter: brightness(1.1) drop-shadow(0 5px 12px rgba(2, 8, 28, 0.3));
@@ -839,7 +923,7 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) svg {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) svg {
   color: #e8c77f;
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.62));
 }
@@ -916,7 +1000,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-maid-sidebar-fo
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
   width: 38px;
   min-width: 38px;
   min-height: 38px;
@@ -935,7 +1019,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button'])::before {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])::before {
   display: none;
 }
 
@@ -1277,7 +1361,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] > :is(button, [role='button'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
     ) {
   box-sizing: border-box;
   width: var(--maid-rail-control-size);
@@ -1313,7 +1397,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] > :is(button, [role='button'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
     ):is(:hover, :focus-visible) {
   color: #fff1ce;
   border-color: rgba(244, 218, 164, 0.94);
@@ -4330,14 +4414,16 @@ body[data-dsh-maid-atelier]
   animation: maidAtelierCapsuleOut 260ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
 }
 
-/* Alpha 1 conversation chrome. Match the host's semantic resize handles and
-   turn rail only inside this skin; the generated class names are intentionally
-   excluded so another plugin's similarly named chrome cannot inherit it. */
+/* Match the host's semantic resize handles and turn rail only inside this skin;
+   the generated class names are intentionally excluded so another plugin's
+   similarly named chrome cannot inherit it. */
 body[data-dsh-maid-atelier]
   [data-phase='active']
+  > :has(> [data-conversation-scroll])
   > [data-width-handle='left'][data-side='left']::after,
 body[data-dsh-maid-atelier]
   [data-phase='active']
+  > :has(> [data-conversation-scroll])
   > [data-width-handle='right'][data-side='right']::after {
   width: 3px;
   background: linear-gradient(
@@ -4359,9 +4445,11 @@ body[data-dsh-maid-atelier]
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-phase='active']
+  > :has(> [data-conversation-scroll])
   > [data-width-handle='left'][data-side='left']::after,
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-phase='active']
+  > :has(> [data-conversation-scroll])
   > [data-width-handle='right'][data-side='right']::after {
   background: linear-gradient(
     to bottom,
@@ -4380,9 +4468,11 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 
 body[data-dsh-maid-atelier]
   [data-phase='active']
+  > :has(> [data-conversation-scroll])
   > [data-width-handle='left'][data-side='left']:is(:hover, [data-dragging])::after,
 body[data-dsh-maid-atelier]
   [data-phase='active']
+  > :has(> [data-conversation-scroll])
   > [data-width-handle='right'][data-side='right']:is(:hover, [data-dragging])::after {
   transform-origin: center;
   animation: maidAtelierWidthHandlePulse 1.15s ease-in-out infinite;
@@ -4436,9 +4526,11 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [da
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-maid-atelier]
     [data-phase='active']
+    > :has(> [data-conversation-scroll])
     > [data-width-handle='left'][data-side='left']::after,
   body[data-dsh-maid-atelier]
     [data-phase='active']
+    > :has(> [data-conversation-scroll])
     > [data-width-handle='right'][data-side='right']::after {
     animation: none;
   }

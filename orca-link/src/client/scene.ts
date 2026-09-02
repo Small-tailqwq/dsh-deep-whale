@@ -15,7 +15,8 @@ const CONVERSATION_SCROLL_SELECTOR = '[data-conversation-scroll]'
 
 function conversationRoot(body: HTMLElement): HTMLElement | null {
   for (const candidate of body.querySelectorAll<HTMLElement>('[data-phase]')) {
-    if (candidate.querySelector(':scope > [data-conversation-scroll]') !== null) return candidate
+    const scrollport = candidate.querySelector<HTMLElement>(CONVERSATION_SCROLL_SELECTOR)
+    if (scrollport?.closest('[data-phase]') === candidate) return candidate
   }
   return null
 }

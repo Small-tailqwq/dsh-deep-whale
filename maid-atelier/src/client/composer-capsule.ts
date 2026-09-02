@@ -50,14 +50,11 @@ interface CapsuleOwnership {
 const ownershipByDocument = new WeakMap<Document, CapsuleOwnership>()
 
 function phaseRootOf(element: Element): HTMLElement | null {
-  let candidate: Element | null = element
+  let candidate = element.closest<HTMLElement>('[data-phase]')
   while (candidate !== null) {
-    if (
-      candidate instanceof HTMLElement
-      && candidate.hasAttribute('data-phase')
-      && candidate.querySelector(':scope > [data-conversation-scroll]') !== null
-    ) return candidate
-    candidate = candidate.parentElement
+    const scrollport = candidate.querySelector<HTMLElement>(SCROLLPORT_SELECTOR)
+    if (scrollport?.closest('[data-phase]') === candidate) return candidate
+    candidate = candidate.parentElement?.closest<HTMLElement>('[data-phase]') ?? null
   }
   return null
 }
@@ -251,9 +248,11 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
 
   const touchComposerMutation = (record: MutationRecord): boolean => {
     if (record.type === 'attributes') {
-      // A phase flip (hero/active/settling) re-owns every seat seat-wide.
-      if (record.attributeName === 'data-phase') return true
       const element = record.target instanceof Element ? record.target : undefined
+      // A conversation phase flip (hero/active/settling) re-owns every seat seat-wide.
+      if (record.attributeName === 'data-phase') {
+        return element !== undefined && phaseRootOf(element) === element
+      }
       return element?.closest(SEAT_SELECTOR) !== null
     }
     if (belongsToHighChurnSubtree(record.target)) return false

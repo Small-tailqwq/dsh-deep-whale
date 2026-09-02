@@ -19,6 +19,7 @@ function mount(mode: string = 'capsule'): Fixture {
   root.dataset.phase = 'active'
   const scrollport = document.createElement('div')
   scrollport.dataset.conversationScroll = ''
+  const phaseBody = document.createElement('div')
   const flow = document.createElement('div')
   flow.dataset.chatFlow = ''
   const seat = document.createElement('div')
@@ -31,7 +32,8 @@ function mount(mode: string = 'capsule'): Fixture {
   card.append(input)
   seat.append(card)
   scrollport.append(flow, seat)
-  root.append(scrollport)
+  phaseBody.append(scrollport)
+  root.append(phaseBody)
   document.body.append(root)
   document.documentElement.setAttribute(MODE, mode)
   return { root, scrollport, seat, card, input, dispose: installMaidComposerCapsule(document.body) }

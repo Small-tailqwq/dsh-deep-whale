@@ -29,6 +29,7 @@ function mount(mode: string = 'scroll'): Fixture {
   root.dataset.phase = 'active'
   const scrollport = document.createElement('div')
   scrollport.dataset.conversationScroll = ''
+  const phaseBody = document.createElement('div')
   Object.defineProperties(scrollport, {
     clientHeight: { configurable: true, value: SCROLLPORT_HEIGHT },
     scrollHeight: { configurable: true, value: SCROLLPORT_CONTENT_HEIGHT },
@@ -42,7 +43,8 @@ function mount(mode: string = 'scroll'): Fixture {
   input.setAttribute('contenteditable', 'true')
   seat.append(input)
   scrollport.append(flow, seat)
-  root.append(scrollport)
+  phaseBody.append(scrollport)
+  root.append(phaseBody)
   document.body.append(root)
   document.documentElement.setAttribute(SWITCH, mode)
   return { root, scrollport, seat, input, dispose: installMaidComposerScroll(document.body) }

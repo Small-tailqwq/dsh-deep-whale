@@ -30,7 +30,8 @@ const SIGNAL_LABEL_SELECTOR = '[data-orca-link-signal-label]'
 
 function conversationRoot(body: HTMLElement): HTMLElement | null {
   for (const candidate of body.querySelectorAll<HTMLElement>('[data-phase]')) {
-    if (candidate.querySelector(':scope > [data-conversation-scroll]') !== null) return candidate
+    const scrollport = candidate.querySelector<HTMLElement>('[data-conversation-scroll]')
+    if (scrollport?.closest('[data-phase]') === candidate) return candidate
   }
   return null
 }

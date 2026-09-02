@@ -857,6 +857,11 @@ export function apply(ctx: Context): void {
   const nodeTouches = (node: Node, selector: string): boolean => (
     node instanceof Element && (node.matches(selector) || node.querySelector(selector) !== null)
   )
+  const isConversationPhaseRoot = (element: Element | undefined): boolean => {
+    if (!(element instanceof HTMLElement) || !element.hasAttribute('data-phase')) return false
+    const scrollport = element.querySelector<HTMLElement>('[data-conversation-scroll]')
+    return scrollport?.closest('[data-phase]') === element
+  }
   const sidebarChromeSelector = `${SIDEBAR_COLUMN_SELECTOR}, [class*='titlebar']`
   const composerSelector = "[data-phase='hero'], [data-phase='active']"
 
@@ -878,6 +883,8 @@ export function apply(ctx: Context): void {
       if (target?.closest(TERMINAL_SELECTOR) !== null) continue
 
       if (record.type === 'attributes') {
+        const conversationPhaseChanged = record.attributeName === 'data-phase'
+          && isConversationPhaseRoot(target)
         if (record.attributeName === 'aria-expanded'
           && target !== undefined
           && target.closest("[data-slot='sidebar.settings']") !== null) {
@@ -888,10 +895,10 @@ export function apply(ctx: Context): void {
           workspaceStateChanged = true
         } else if (record.attributeName === 'data-ds-dark-theme' && record.target === body) {
           backdropChanged = true
-        } else if (record.attributeName === 'data-phase') {
+        } else if (conversationPhaseChanged) {
           composerChanged = true
         }
-        if (record.attributeName === 'data-phase'
+        if (conversationPhaseChanged
           || record.attributeName === 'data-chat-flow'
           || record.attributeName === 'data-cordis-panel'
           || record.attributeName === 'data-slot'

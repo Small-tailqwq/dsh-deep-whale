@@ -3038,15 +3038,13 @@ body[data-dsh-orca-link][data-ds-dark-theme][data-orca-lamp='flicker'] [data-slo
   animation: orcaLampFlicker 1000ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-/* Alpha 1 conversation chrome. The semantic attributes and direct-child
-   relationship keep these rules on the host resize handles and turn rail,
-   without following generated class fragments into third-party plugins. */
+/* The semantic handles are siblings of the conversation scrollport inside the
+   host body wrapper. Anchor the rule to that relationship without depending
+   on generated class names. */
 body[data-dsh-orca-link]
   [data-phase='active']
-  > [data-width-handle='left'][data-side='left']::after,
-body[data-dsh-orca-link]
-  [data-phase='active']
-  > [data-width-handle='right'][data-side='right']::after {
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle][data-side]::after {
   width: 3px;
   background: linear-gradient(
     to bottom,
@@ -3066,10 +3064,8 @@ body[data-dsh-orca-link]
 
 body[data-dsh-orca-link][data-ds-dark-theme]
   [data-phase='active']
-  > [data-width-handle='left'][data-side='left']::after,
-body[data-dsh-orca-link][data-ds-dark-theme]
-  [data-phase='active']
-  > [data-width-handle='right'][data-side='right']::after {
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle][data-side]::after {
   background: linear-gradient(
     to bottom,
     transparent calc(var(--dsh-width-handle-pointer-y, 50%) - 52px),
@@ -3087,10 +3083,8 @@ body[data-dsh-orca-link][data-ds-dark-theme]
 
 body[data-dsh-orca-link]
   [data-phase='active']
-  > [data-width-handle='left'][data-side='left']:is(:hover, [data-dragging])::after,
-body[data-dsh-orca-link]
-  [data-phase='active']
-  > [data-width-handle='right'][data-side='right']:is(:hover, [data-dragging])::after {
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle][data-side]:is(:hover, [data-dragging])::after {
   transform-origin: center;
   animation: orcaLinkWidthHandleSignal 920ms steps(4, end) infinite;
 }
@@ -3144,10 +3138,8 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-orca-link]
     [data-phase='active']
-    > [data-width-handle='left'][data-side='left']::after,
-  body[data-dsh-orca-link]
-    [data-phase='active']
-    > [data-width-handle='right'][data-side='right']::after {
+    > :has(> [data-conversation-scroll])
+    > [data-width-handle][data-side]::after {
     animation: none;
   }
 }

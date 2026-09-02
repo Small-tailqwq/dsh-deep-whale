@@ -20,6 +20,10 @@ describe('ORCA LINK performance guards', () => {
   it('uses the stable scene attribute instead of a body-wide phase query', () => {
     expect(css).toContain("body[data-dsh-orca-link][data-orca-scene='hero'] .standby")
     expect(css).not.toContain("body[data-dsh-orca-link]:has([data-phase='hero'])")
+    const handleOwner = String.raw`\[data-phase='active'\]\s*>\s*:has\(> \[data-conversation-scroll\]\)\s*>\s*\[data-width-handle\]\[data-side\]`
+    expect(css).toMatch(new RegExp(`${handleOwner}::after\\s*\\{`))
+    expect(css).toMatch(new RegExp(`${handleOwner}:is\\(:hover, \\[data-dragging\\]\\)::after\\s*\\{`))
+    expect(css).not.toMatch(/\[data-phase='active'\]\s*>\s*\[data-width-handle\]/)
   })
 
   it('contains terminal paint and locks only its measured width during layout motion', () => {
