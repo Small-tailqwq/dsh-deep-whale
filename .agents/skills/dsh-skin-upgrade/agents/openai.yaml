@@ -1,0 +1,4 @@
+interface:
+  display_name: "DSH Skin Upgrade"
+  short_description: "审计、适配并验证 DSH Web 展示型皮肤的宿主版本升级"
+  default_prompt: "Use $dsh-skin-upgrade to audit and adapt this DSH Web skin for the target host release."
