@@ -12,6 +12,15 @@ import { resolve } from 'node:path'
 import { apply } from '../src/client/index.ts'
 
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
+const TURN_MARK_SELECTOR = "[data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]"
+
+function unpairedFullRoundRules(css: string): string[] {
+  const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, ' ')
+  return [...withoutComments.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, , declarations = '']) => /border-radius:\s*(?:50%|100%|(?:99\d|\d{4,})px)\s*;/.test(declarations))
+    .filter(([, , declarations = '']) => !/corner-shape:\s*round\b/.test(declarations))
+    .map(([, selectors = '']) => selectors.trim())
+}
 
 /**
  * Declarations of the settings-open rule governing the sidebar content root's
@@ -61,6 +70,35 @@ afterEach(async () => {
 })
 
 describe('Maid Atelier skin apply', () => {
+  it('targets the Alpha turn rail by its chat-flow relationship in every locale', async () => {
+    document.body.innerHTML = `
+      <div data-phase="active">
+        <div>
+          <div class="turn-slot">
+            <nav aria-label="Turn navigation">
+              <div><div>
+                <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
+                <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
+                <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
+              </div></div>
+            </nav>
+          </div>
+          <div data-chat-flow></div>
+        </div>
+      </div>
+    `
+
+    fiber = await mount()
+    expect(document.querySelectorAll(TURN_MARK_SELECTOR)).toHaveLength(3)
+    expect(CSS).toContain(TURN_MARK_SELECTOR)
+    expect(CSS).not.toContain("nav[aria-label='轮次导航']")
+    expect(CSS).not.toContain("[aria-label^='跳转到第']")
+  })
+
+  it('keeps every full-round Maid shape circular under the Alpha corner token', () => {
+    expect(unpairedFullRoundRules(CSS)).toEqual([])
+  })
+
   it('declares only the public rc.6 client manifest', () => {
     const manifest = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'))
     expect(manifest.dsh.client).toEqual({ inject: [], platform: 'web' })

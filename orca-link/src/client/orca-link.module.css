@@ -3095,57 +3095,33 @@ body[data-dsh-orca-link]
   animation: orcaLinkWidthHandleSignal 920ms steps(4, end) infinite;
 }
 
-body[data-dsh-orca-link]:not([data-ds-dark-theme])
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']::before {
+body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
   border-radius: 0;
   background: rgba(115, 88, 63, 0.56);
 }
 
-body[data-dsh-orca-link]:not([data-ds-dark-theme])
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']:is(:hover, :focus-visible)::before {
+body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
   background: #9b8061;
   box-shadow: 0 0 5px rgba(115, 88, 63, 0.46);
 }
 
-body[data-dsh-orca-link]:not([data-ds-dark-theme])
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮'][aria-current='true']::before {
+body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
   background: #73583f;
   box-shadow:
     0 0 0 1px rgba(255, 252, 246, 0.92),
     0 0 5px rgba(115, 88, 63, 0.38);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']::before {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
   background: color-mix(in srgb, var(--orca-muted) 74%, transparent);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']:is(:hover, :focus-visible)::before {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
   background: var(--orca-cyan);
   box-shadow: 0 0 6px color-mix(in srgb, var(--orca-cyan) 72%, transparent);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮'][aria-current='true']::before {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
   background: var(--orca-cyan);
   box-shadow:
     0 0 0 1px #f7fbff,

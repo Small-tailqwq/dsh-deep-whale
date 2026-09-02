@@ -697,6 +697,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='logoRow'] [c
   height: 38px;
   border: 1px solid rgba(225, 191, 124, 0.76);
   border-radius: 50%;
+  corner-shape: round;
   color: #ebd29e;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82));
   box-shadow:
@@ -861,6 +862,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] button[class*='newSes
   border: 1px solid rgba(225, 207, 170, 0.72);
   border-image: none;
   border-radius: 50%;
+  corner-shape: round;
   color: #ebd29e;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.4), rgba(7, 18, 52, 0.78));
   box-shadow: inset 0 0 0 2px rgba(5, 15, 45, 0.7);
@@ -882,6 +884,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   margin-inline: 0;
   border: 1px solid transparent;
   border-radius: 50%;
+  corner-shape: round;
   color: #dfbf7c;
   background: transparent;
 }
@@ -922,6 +925,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   border: 1px solid rgba(225, 191, 124, 0.76);
   border-image: none;
   border-radius: 50%;
+  corner-shape: round;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82));
   box-shadow:
     inset 0 0 0 2px rgba(5, 15, 45, 0.76),
@@ -1006,6 +1010,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-cordis-badge] {
   min-height: 36px;
   padding: 0;
   border-radius: 50%;
+  corner-shape: round;
 }
 
 /* The Cordis panel uses --dsw-alias-bg-base for both its shell and rows. The
@@ -1285,6 +1290,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   border: 1px solid rgba(225, 191, 124, 0.76);
   border-image: none;
   border-radius: 50%;
+  corner-shape: round;
   color: #ebd29e;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82));
   box-shadow:
@@ -1527,6 +1533,7 @@ body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] {
   overflow: visible;
   color: #e2bd6e;
   border-radius: 50%;
+  corner-shape: round;
   background:
     radial-gradient(circle at 44% 40%, rgba(255, 255, 255, 0.96) 0 0.55px, transparent 0.7px),
     radial-gradient(circle, #a9bce8 0 1.15px, #5e79b9 1.3px 2px, #1a356f 2.15px 3px, transparent 3.15px);
@@ -1683,6 +1690,7 @@ body[data-dsh-maid-atelier] [data-maid-session-flat][aria-selected='true']::befo
   display: block;
   width: 3px;
   border-radius: 999px;
+  corner-shape: round;
   background: linear-gradient(#fff0c5, #d4a951);
   box-shadow: 0 0 5px rgba(231, 199, 128, 0.72);
 }
@@ -1774,6 +1782,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   padding: 15px;
   border: 1px solid rgba(197, 164, 104, 0.92);
   border-radius: 50%;
+  corner-shape: round;
   outline: 1px solid rgba(226, 207, 170, 0.76);
   outline-offset: 4px;
   color: var(--maid-indigo);
@@ -1979,6 +1988,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   height: 42px;
   border: 1px solid rgba(197, 164, 104, 0.72);
   border-radius: 50%;
+  corner-shape: round;
   color: #405a99;
   background: rgba(255, 253, 248, 0.62);
   box-shadow:
@@ -1997,6 +2007,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   gap: 0;
   border: 1px solid rgba(197, 164, 104, 0.68);
   border-radius: 50%;
+  corner-shape: round;
   color: #405a99;
   background: rgba(255, 253, 248, 0.52);
   box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.4);
@@ -2110,6 +2121,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   height: 44px;
   border: 1px solid #d8bd82;
   border-radius: 50%;
+  corner-shape: round;
   color: #fffaf0;
   background: linear-gradient(145deg, #6079b5, #294587);
   box-shadow:
@@ -2438,6 +2450,7 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]
   padding: 0;
   border: 1px solid rgba(197, 164, 104, 0.68);
   border-radius: 50%;
+  corner-shape: round;
   color: #405a99;
   background: rgba(255, 253, 248, 0.68);
   box-shadow:
@@ -3014,6 +3027,7 @@ body[data-dsh-maid-atelier] [data-maid-table-close] {
   height: 30px;
   border: 1px solid rgba(197, 164, 104, 0.48);
   border-radius: 999px;
+  corner-shape: round;
   background: rgba(252, 250, 245, 0.94);
   box-shadow: 0 8px 20px rgba(19, 38, 87, 0.12);
   cursor: pointer;
@@ -4222,6 +4236,7 @@ body[data-dsh-maid-atelier]
   padding: 0;
   border: 1px solid rgba(197, 164, 104, 0.5);
   border-radius: 999px;
+  corner-shape: round;
   box-shadow:
     0 4px 14px rgba(15, 30, 72, 0.14),
     inset 0 1px rgba(255, 255, 255, 0.6);
@@ -4373,56 +4388,32 @@ body[data-dsh-maid-atelier]
   animation: maidAtelierWidthHandlePulse 1.15s ease-in-out infinite;
 }
 
-body[data-dsh-maid-atelier]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']::before {
+body[data-dsh-maid-atelier] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
   background: rgba(82, 106, 168, 0.72);
   box-shadow: 0 0 0 1px rgba(248, 246, 240, 0.54);
 }
 
-body[data-dsh-maid-atelier]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']:is(:hover, :focus-visible)::before {
+body[data-dsh-maid-atelier] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
   background: var(--maid-gold);
   box-shadow:
     0 0 0 1px var(--maid-porcelain),
     0 0 7px rgba(197, 164, 104, 0.72);
 }
 
-body[data-dsh-maid-atelier]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮'][aria-current='true']::before {
+body[data-dsh-maid-atelier] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
   background: var(--maid-ink);
   box-shadow:
     0 0 0 1px var(--maid-gold-soft),
     0 0 7px rgba(23, 35, 71, 0.5);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']::before {
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
   background: rgba(142, 165, 218, 0.72);
   box-shadow: 0 0 0 1px rgba(9, 19, 51, 0.9);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮']:is(:hover, :focus-visible)::before,
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  nav[aria-label='轮次导航']
-  > div
-  > div
-  > button[type='button'][aria-label^='跳转到第'][aria-label$='轮'][aria-current='true']::before {
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before,
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
   background: var(--maid-gold-soft);
   box-shadow:
     0 0 0 1px var(--maid-porcelain),
