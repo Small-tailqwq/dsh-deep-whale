@@ -47,14 +47,11 @@ interface ScrollOwnership {
 const ownershipByDocument = new WeakMap<Document, ScrollOwnership>()
 
 function phaseRootOf(element: Element): HTMLElement | null {
-  let candidate: Element | null = element
+  let candidate = element.closest<HTMLElement>('[data-phase]')
   while (candidate !== null) {
-    if (
-      candidate instanceof HTMLElement
-      && candidate.hasAttribute('data-phase')
-      && candidate.querySelector(':scope > [data-conversation-scroll]') !== null
-    ) return candidate
-    candidate = candidate.parentElement
+    const scrollport = candidate.querySelector<HTMLElement>(SCROLLPORT_SELECTOR)
+    if (scrollport?.closest('[data-phase]') === candidate) return candidate
+    candidate = candidate.parentElement?.closest<HTMLElement>('[data-phase]') ?? null
   }
   return null
 }

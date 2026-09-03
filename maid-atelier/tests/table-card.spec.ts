@@ -18,6 +18,8 @@ describe('installMaidTableCards', () => {
     card.className = 'md-table-wide'
     document.body.append(card)
     const runtime = installMaidTableCards({} as never)
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(false)
+    expect(card.querySelector('[data-maid-table-expand]')).toBeNull()
     runtime.dispose()
     // jsdom lacks ResizeObserver, so no inline geometry was written and the
     // disposer must not throw or leave the node modified.
@@ -54,10 +56,12 @@ describe('installMaidTableCards', () => {
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
 
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(true)
-    expect(card.hasAttribute('data-maid-table-frame')).toBe(true)
     expect(card.parentElement).toBe(bubble)
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(true)
     const button = card.querySelector<HTMLButtonElement>('[data-maid-table-expand]')
+    expect(button?.dataset.skinOwner).toBe('maid-atelier')
     expect(button?.getAttribute('aria-label')).toBe('展开表格预览')
+    expect(button?.title).toBe('展开表格预览')
     expect(button?.hidden).toBe(false)
 
     card.dispatchEvent(new Event('scroll'))
@@ -142,7 +146,7 @@ describe('installMaidTableCards', () => {
     }
   })
 
-  it('preserves a pre-existing table tabindex while toggling expandability', () => {
+  it('switches between native and enhanced layout as the bubble width changes', () => {
     let resize: ResizeObserverCallback | undefined
     vi.stubGlobal('ResizeObserver', class {
       constructor(callback: ResizeObserverCallback) {
@@ -160,30 +164,45 @@ describe('installMaidTableCards', () => {
     const card = document.createElement('div')
     card.className = 'md-table-wide'
     card.setAttribute('tabindex', '-1')
-    Object.defineProperty(card, 'clientWidth', { configurable: true, value: 680 })
-    Object.defineProperty(card, 'scrollWidth', { configurable: true, value: 640 })
+    card.innerHTML = '<table><tbody><tr><td>resizable</td></tr></tbody></table>'
+    const table = card.querySelector('table')!
+    Object.defineProperty(table, 'scrollWidth', { configurable: true, value: 640 })
     bubble.append(card)
     document.body.append(bubble)
 
     const runtime = installMaidTableCards({} as never)
-    resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
     expect(card.getAttribute('tabindex')).toBe('-1')
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(false)
-    expect(card.getAttribute('aria-label')).toBeNull()
-    const button = card.querySelector<HTMLButtonElement>('[data-maid-table-expand]')!
-    expect(button.hidden).toBe(true)
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(false)
+    expect(card.querySelector('[data-maid-table-expand]')).toBeNull()
 
-    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
-    expect(card.dispatchEvent(enter)).toBe(true)
-    expect(enter.defaultPrevented).toBe(false)
-    expect(document.querySelector('[data-maid-table-lightbox]')).toBeNull()
-
-    Object.defineProperty(card, 'scrollWidth', { configurable: true, value: 960 })
-    resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
+    resize?.([{
+      target: table,
+      borderBoxSize: [{ inlineSize: 960 }],
+      contentRect: { width: 960 },
+    } as unknown as ResizeObserverEntry], {} as ResizeObserver)
     expect(card.getAttribute('tabindex')).toBe('-1')
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(true)
+    expect(card.querySelector('[data-maid-table-expand]')).not.toBeNull()
+    expect(card.parentElement).toBe(bubble)
+
+    resize?.([{
+      target: bubble,
+      contentBoxSize: [{ inlineSize: 1000 }],
+      contentRect: { width: 1000 },
+    } as unknown as ResizeObserverEntry], {} as ResizeObserver)
+    expect(card.getAttribute('tabindex')).toBe('-1')
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(false)
+    expect(card.querySelector('[data-maid-table-expand]')).toBeNull()
+    expect(card.parentElement).toBe(bubble)
+
+    resize?.([{
+      target: bubble,
+      contentBoxSize: [{ inlineSize: 680 }],
+      contentRect: { width: 680 },
+    } as unknown as ResizeObserverEntry], {} as ResizeObserver)
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(true)
-    expect(card.getAttribute('aria-label')).toBeNull()
-    expect(button.hidden).toBe(false)
+    expect(card.querySelector('[data-maid-table-expand]')).not.toBeNull()
 
     runtime.dispose()
     expect(card.getAttribute('tabindex')).toBe('-1')
@@ -205,7 +224,7 @@ describe('installMaidTableCards', () => {
 
     expect(() => installMaidTableCards({} as never)).toThrow('observe failed')
     expect(card.parentElement).toBe(document.body)
-    expect(card.closest('[data-maid-table-frame]')).toBeNull()
+    expect(card.hasAttribute('data-maid-table-frame')).toBe(false)
     expect(card.getAttribute('tabindex')).toBe('-1')
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(false)
     expect(document.querySelector('[data-maid-table-expand]')).toBeNull()
@@ -223,13 +242,17 @@ describe('installMaidTableCards', () => {
       disconnect(): void {}
     })
 
+    const bubble = document.createElement('div')
+    bubble.className = 'fixture_markdown'
+    Object.defineProperty(bubble, 'clientWidth', { configurable: true, value: 680 })
     const card = document.createElement('div')
     card.className = 'md-table-wide'
     card.innerHTML = '<table><tbody><tr><td>wide</td></tr></tbody></table>'
     const table = card.querySelector('table')!
     Object.defineProperty(card, 'clientWidth', { configurable: true, value: 680 })
     Object.defineProperty(table, 'scrollWidth', { configurable: true, value: 960 })
-    document.body.append(card)
+    bubble.append(card)
+    document.body.append(bubble)
 
     const runtime = installMaidTableCards({} as never)
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
@@ -259,13 +282,17 @@ describe('installMaidTableCards', () => {
       disconnect(): void {}
     })
 
+    const bubble = document.createElement('div')
+    bubble.className = 'fixture_markdown'
+    Object.defineProperty(bubble, 'clientWidth', { configurable: true, value: 680 })
     const card = document.createElement('div')
     card.className = 'md-table-wide'
     card.innerHTML = '<table><tbody><tr><td>wide</td></tr></tbody></table>'
     const table = card.querySelector('table')!
     Object.defineProperty(card, 'clientWidth', { configurable: true, value: 680 })
     Object.defineProperty(table, 'scrollWidth', { configurable: true, value: 960 })
-    document.body.append(card)
+    bubble.append(card)
+    document.body.append(bubble)
 
     const runtime = installMaidTableCards({} as never)
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)

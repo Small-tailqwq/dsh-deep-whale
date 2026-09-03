@@ -10,7 +10,7 @@ interface Fixture {
   scrollport: HTMLElement
   seat: HTMLElement
   card: HTMLElement
-  textarea: HTMLTextAreaElement
+  input: HTMLElement
   dispose: () => void
 }
 
@@ -19,20 +19,24 @@ function mount(mode: string = 'capsule'): Fixture {
   root.dataset.phase = 'active'
   const scrollport = document.createElement('div')
   scrollport.dataset.conversationScroll = ''
+  const phaseBody = document.createElement('div')
   const flow = document.createElement('div')
   flow.dataset.chatFlow = ''
   const seat = document.createElement('div')
   seat.dataset.composerSeat = ''
   const card = document.createElement('div')
   card.dataset.composerCard = ''
-  const textarea = document.createElement('textarea')
-  card.append(textarea)
+  const input = document.createElement('div')
+  input.dataset.composerInput = ''
+  input.setAttribute('contenteditable', 'true')
+  card.append(input)
   seat.append(card)
   scrollport.append(flow, seat)
-  root.append(scrollport)
+  phaseBody.append(scrollport)
+  root.append(phaseBody)
   document.body.append(root)
   document.documentElement.setAttribute(MODE, mode)
-  return { root, scrollport, seat, card, textarea, dispose: installMaidComposerCapsule(document.body) }
+  return { root, scrollport, seat, card, input, dispose: installMaidComposerCapsule(document.body) }
 }
 
 function nextMicrotask(): Promise<void> {
@@ -57,12 +61,12 @@ describe('maid composer empty-state capsule', () => {
   })
 
   it('keeps the capsule away while typing and does not re-collapse after clearing', () => {
-    const { seat, textarea, dispose } = mount()
-    textarea.value = 'hello'
-    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    const { seat, input, dispose } = mount()
+    input.textContent = 'hello'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
-    textarea.value = ''
-    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    input.textContent = ''
+    input.dispatchEvent(new Event('input', { bubbles: true }))
     // Typing owns the composer: clearing the draft must not fold it behind
     // the user's cursor.
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
@@ -70,11 +74,11 @@ describe('maid composer empty-state capsule', () => {
   })
 
   it('expands on focus and stays expanded after a plain blur', async () => {
-    const { seat, textarea, dispose } = mount()
+    const { seat, input, dispose } = mount()
     expect(seat.hasAttribute(CAPSULE)).toBe(true)
-    textarea.focus()
+    input.focus()
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
-    textarea.blur()
+    input.blur()
     await nextMicrotask()
     // Interacting with the composer owns it; a plain blur (no click on
     // transcript/todo content) must not fold it.
@@ -83,23 +87,23 @@ describe('maid composer empty-state capsule', () => {
   })
 
   it('does not collapse when clicking the card chrome outside the text', async () => {
-    const { seat, card, textarea, dispose } = mount()
-    textarea.focus()
+    const { seat, card, input, dispose } = mount()
+    input.focus()
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
-    // Clicking a chrome control (or blank card area) blurs the textarea; the
+    // Clicking a chrome control (or blank card area) blurs the editor; the
     // pointerdown re-arms the interaction so the capsule must not fold.
     card.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
-    textarea.blur()
+    input.blur()
     await nextMicrotask()
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
     dispose()
   })
 
   it('re-arms the automatic collapse only after clicking outside the composer', async () => {
-    const { root, seat, card, textarea, dispose } = mount()
-    textarea.focus()
+    const { root, seat, card, input, dispose } = mount()
+    input.focus()
     card.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
-    textarea.blur()
+    input.blur()
     await nextMicrotask()
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
     // Clicking transcript/todo content (an open popover excepted) re-arms.
@@ -114,8 +118,8 @@ describe('maid composer empty-state capsule', () => {
   })
 
   it('does not re-arm when clicking inside an open popover', async () => {
-    const { root, seat, textarea, dispose } = mount()
-    textarea.focus()
+    const { root, seat, input, dispose } = mount()
+    input.focus()
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
     const menu = document.createElement('div')
     menu.setAttribute('role', 'menu')
@@ -142,10 +146,10 @@ describe('maid composer empty-state capsule', () => {
 
   it('expands when the collapsed capsule is clicked and ends its one-shot marker', async () => {
     vi.useFakeTimers()
-    const { seat, card, textarea, dispose } = mount()
+    const { seat, card, input, dispose } = mount()
     expect(seat.hasAttribute(CAPSULE)).toBe(true)
     card.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    expect(document.activeElement).toBe(textarea)
+    expect(document.activeElement).toBe(input)
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
     // The fold -> expand flip plays a single compositor-only keyframe.
     expect(seat.hasAttribute('data-maid-composer-expanding')).toBe(true)
@@ -155,7 +159,7 @@ describe('maid composer empty-state capsule', () => {
   })
 
   it('does not expand when clicking queue content bound inside the seat', () => {
-    const { seat, card, textarea, dispose } = mount()
+    const { seat, card, input, dispose } = mount()
     expect(seat.hasAttribute(CAPSULE)).toBe(true)
     // Todo/goal/queue panels are rendered near or even inside the seat; only
     // the pill card itself may steal focus.
@@ -164,27 +168,27 @@ describe('maid composer empty-state capsule', () => {
     queue.textContent = '展开队列消息'
     seat.append(queue)
     queue.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    expect(document.activeElement).not.toBe(textarea)
+    expect(document.activeElement).not.toBe(input)
     expect(seat.hasAttribute(CAPSULE)).toBe(true)
     // clicking the pill card still expands
     card.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    expect(document.activeElement).toBe(textarea)
+    expect(document.activeElement).toBe(input)
     dispose()
   })
 
   it('does not expand when clicking todo content outside the seat', () => {
-    const { root, scrollport, seat, textarea, dispose } = mount()
+    const { root, scrollport, seat, input, dispose } = mount()
     expect(seat.hasAttribute(CAPSULE)).toBe(true)
     const todo = document.createElement('button')
     todo.dataset.testid = 'todo-toggle'
     todo.textContent = '展开 TODO'
     scrollport.insertBefore(todo, seat)
     todo.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    expect(document.activeElement).not.toBe(textarea)
+    expect(document.activeElement).not.toBe(input)
     expect(seat.hasAttribute(CAPSULE)).toBe(true)
     root.append(todo)
     todo.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    expect(document.activeElement).not.toBe(textarea)
+    expect(document.activeElement).not.toBe(input)
     expect(seat.hasAttribute(CAPSULE)).toBe(true)
     dispose()
   })

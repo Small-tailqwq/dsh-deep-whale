@@ -1,7 +1,7 @@
 /**
  * Empty-state composer capsule: when the skin setting 'composerMode' is
  * 'capsule', an empty, unfocused active composer collapses into a compact
- * pill ("✎ 给智能体发消息"); clicking the pill focuses the textarea to
+ * pill ("✎ 给智能体发消息"); clicking the pill focuses the editor to
  * expand it, typing keeps it expanded, and any open popover (model picker,
  * mode list, attachments) keeps it expanded too. Ported from the PR #42 idea
  * but attribute-driven instead of document-level :has(): the module owns the
@@ -18,6 +18,7 @@ const SEAT_SELECTOR = '[data-composer-seat]'
 const SCROLLPORT_SELECTOR = '[data-conversation-scroll]'
 const CHAT_FLOW_SELECTOR = '[data-chat-flow]'
 const CARD_SELECTOR = "[data-composer-card]:not([class*='cardWorkspaceTrigger'])"
+const INPUT_SELECTOR = '[data-composer-input]'
 const MODE_ATTRIBUTE = 'data-maid-composer-mode'
 const CAPSULE_ATTRIBUTE = 'data-maid-composer-capsule'
 const EXPANDING_ATTRIBUTE = 'data-maid-composer-expanding'
@@ -34,7 +35,7 @@ const POPOVER_SELECTOR = [
 const EXPAND_LIFETIME_MS = 280
 // Excluded from the reconciliation path because none of their mutations can
 // affect the composer state (same stance as the other skin controllers).
-const HIGH_CHURN_SELECTOR = '.xterm, [data-input-backdrop]'
+const HIGH_CHURN_SELECTOR = '.xterm'
 
 interface SeatSnapshot {
   capsule: string | null
@@ -49,14 +50,11 @@ interface CapsuleOwnership {
 const ownershipByDocument = new WeakMap<Document, CapsuleOwnership>()
 
 function phaseRootOf(element: Element): HTMLElement | null {
-  let candidate: Element | null = element
+  let candidate = element.closest<HTMLElement>('[data-phase]')
   while (candidate !== null) {
-    if (
-      candidate instanceof HTMLElement
-      && candidate.hasAttribute('data-phase')
-      && candidate.querySelector(':scope > [data-conversation-scroll]') !== null
-    ) return candidate
-    candidate = candidate.parentElement
+    const scrollport = candidate.querySelector<HTMLElement>(SCROLLPORT_SELECTOR)
+    if (scrollport?.closest('[data-phase]') === candidate) return candidate
+    candidate = candidate.parentElement?.closest<HTMLElement>('[data-phase]') ?? null
   }
   return null
 }
@@ -110,7 +108,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
   const wasCapsule = new WeakMap<HTMLElement, boolean>()
   // Once the user touches the composer card (focus, typing, clicking its
   // chrome), the capsule must not collapse behind their cursor: clicking the
-  // card's non-text areas blurs the textarea, and an unconditional empty+
+  // card's non-text areas blur the editor, and an unconditional empty+
   // unfocused rule would fold it immediately. Only an explicit click outside
   // the card area (transcript, todo, sidebar - but not an open popover)
   // re-arms the automatic collapse.
@@ -148,13 +146,13 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
         return
       }
       const card = seat.querySelector<HTMLElement>(CARD_SELECTOR)
-      const textarea = card?.querySelector<HTMLTextAreaElement>('textarea') ?? null
-      if (card === null || textarea === null) {
+      const input = card?.querySelector<HTMLElement>(INPUT_SELECTOR) ?? null
+      if (card === null || input === null) {
         wasCapsule.set(seat, false)
         pending()
         return
       }
-      const empty = textarea.value === ''
+      const empty = (input.textContent ?? '').trim() === ''
       const focused = card.contains(doc.activeElement)
       const menuOpen = card.querySelector(MENU_OPEN_SELECTOR) !== null
       const next = empty && !focused && !menuOpen && interacted.get(seat) !== true
@@ -238,19 +236,27 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
     if (card === null) return
     const seat = card.closest<HTMLElement>(SEAT_SELECTOR)
     if (seat === null || !seat.hasAttribute(CAPSULE_ATTRIBUTE)) return
-    const textarea = card.querySelector<HTMLTextAreaElement>('textarea')
-    if (textarea === null || card.contains(doc.activeElement)) return
-    textarea.focus({ preventScroll: true })
+    const input = card.querySelector<HTMLElement>(INPUT_SELECTOR)
+    if (input === null || card.contains(doc.activeElement)) return
+    // Alpha 1 keeps the Lexical root inside the scrollport that capsule CSS
+    // removes from layout. Reveal it before focus; focusin then performs the
+    // full transition while the previous capsule state is still known.
+    interacted.set(seat, true)
+    restoreAttribute(seat, CAPSULE_ATTRIBUTE)
+    input.focus({ preventScroll: true })
   }
 
   const touchComposerMutation = (record: MutationRecord): boolean => {
     if (record.type === 'attributes') {
-      // A phase flip (hero/active/settling) re-owns every seat seat-wide.
-      if (record.attributeName === 'data-phase') return true
       const element = record.target instanceof Element ? record.target : undefined
+      // A conversation phase flip (hero/active/settling) re-owns every seat seat-wide.
+      if (record.attributeName === 'data-phase') {
+        return element !== undefined && phaseRootOf(element) === element
+      }
       return element?.closest(SEAT_SELECTOR) !== null
     }
     if (belongsToHighChurnSubtree(record.target)) return false
+    if (record.target instanceof Element && record.target.closest(INPUT_SELECTOR) !== null) return false
     const changed = [...record.addedNodes, ...record.removedNodes]
     if (changed.length === 0) {
       return record.target instanceof Element && record.target.closest(SEAT_SELECTOR) !== null
@@ -261,8 +267,8 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
       || (targetElement?.closest(SCROLLPORT_SELECTOR) ?? null) !== null
       || changed.some(node => (
         node instanceof Element
-        && (node.matches([SEAT_SELECTOR, CARD_SELECTOR, 'textarea'].join(', '))
-          || node.querySelector([SEAT_SELECTOR, CARD_SELECTOR, 'textarea'].join(', ')) !== null)
+        && (node.matches([SEAT_SELECTOR, CARD_SELECTOR, INPUT_SELECTOR].join(', '))
+          || node.querySelector([SEAT_SELECTOR, CARD_SELECTOR, INPUT_SELECTOR].join(', ')) !== null)
       ))
   }
 

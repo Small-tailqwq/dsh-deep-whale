@@ -19,15 +19,31 @@ describe('ORCA LINK customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installOrcaCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['character', 'background', 'pricingLight', 'sfwMode'])
+    expect(definition.settings.map(setting => setting.key)).toEqual([
+      'character',
+      'mirrorCharacter',
+      'background',
+      'pricingLight',
+      'centerSettings',
+      'sfwMode',
+    ])
     definition.apply({
-      values: { character: false, background: true, pricingLight: false, sfwMode: { enabled: true, outside: 'visible', ranges: [] } },
+      values: {
+        character: false,
+        mirrorCharacter: true,
+        background: true,
+        pricingLight: false,
+        centerSettings: true,
+        sfwMode: { enabled: true, outside: 'visible', ranges: [] },
+      },
       visibility: { sfwMode: false },
     })
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-character')).toBe('hidden')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-background')).toBe('visible')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-pricing')).toBe('hidden')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-art')).toBe('hidden')
+    expect(document.documentElement.getAttribute('data-dsh-whale-orca-character-mirror')).toBe('mirrored')
+    expect(document.documentElement.getAttribute('data-dsh-whale-orca-settings-layout')).toBe('centered')
     dispose()
     expect(document.documentElement.hasAttribute('data-dsh-whale-orca-art')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
@@ -39,7 +55,14 @@ describe('ORCA LINK customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installOrcaCustomization()
     const definition = registration!.definition
-    const values = { character: true, background: true, pricingLight: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] } }
+    const values = {
+      character: true,
+      mirrorCharacter: false,
+      background: true,
+      pricingLight: true,
+      centerSettings: false,
+      sfwMode: { enabled: true, outside: 'visible', ranges: [] },
+    }
 
     // SFW hidden window: the character switch is on, but the schedule wins.
     definition.apply({ values, visibility: { sfwMode: false } })

@@ -344,16 +344,20 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   position: absolute;
   inset: auto 0 0 0;
   transform: translateY(0);
+  opacity: 1;
   z-index: 1;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
   contain: paint;
-  transition: transform 520ms cubic-bezier(0.22, 0.78, 0.2, 1);
+  transition:
+    transform 520ms cubic-bezier(0.22, 0.78, 0.2, 1),
+    opacity 160ms ease-out;
 }
 
 body[data-dsh-maid-atelier][data-maid-conversation-active] [data-skin-chrome='bottom-trim'] {
   transform: translateY(100%);
+  opacity: 0;
 }
 
 body[data-dsh-maid-atelier][data-maid-composer-motion]
@@ -700,6 +704,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='logoRow'] [c
   height: 38px;
   border: 1px solid rgba(225, 191, 124, 0.76);
   border-radius: 50%;
+  corner-shape: round;
   color: #ebd29e;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82));
   box-shadow:
@@ -774,7 +779,7 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
   position: relative;
   z-index: 1;
   width: 100%;
@@ -803,7 +808,7 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
@@ -815,22 +820,102 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button'])
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
     [data-slot='settings.trigger'] {
   line-height: normal;
+}
+
+/* The wide settings row also owns the host connection state. Keep its
+   localized label visible, but cap the status pill so the framed settings
+   trigger retains a usable content box in narrow wide-mode sidebars. */
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger']):has(> :is(button[data-phase], [role='status']))
+    > button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
+  flex: 1 1 112px;
+  width: auto;
+  padding-inline: 8px;
+  border-width: 0 28px;
+  border-image-width: 0 28px;
+  gap: 4px;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > :is(button[data-phase], [role='status']) {
+  flex: 0 1 96px;
+  grid-template-columns: 14px minmax(0, 1fr);
+  box-sizing: border-box;
+  min-width: 72px;
+  max-width: 96px;
+  height: 36px;
+  padding-inline: 8px;
+  border: 1px solid rgba(225, 191, 124, 0.76);
+  border-radius: 10px;
+  color: #f2d59b;
+  background: linear-gradient(145deg, rgba(75, 101, 166, 0.74), rgba(7, 18, 52, 0.94));
+  box-shadow:
+    inset 0 0 0 2px rgba(5, 15, 45, 0.68),
+    0 3px 9px rgba(1, 7, 24, 0.24);
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > :is(button[data-phase], [role='status'])
+    > span[aria-hidden='true'] + span {
+  min-width: 0;
+  overflow: hidden;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > :is(button[data-phase], [role='status'])
+    > span[aria-hidden='true'] + span > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > button[data-phase]:is(:hover, :focus-visible) {
+  color: #fff1ce;
+  border-color: rgba(244, 218, 164, 0.94);
+  background: linear-gradient(145deg, rgba(98, 129, 205, 0.82), rgba(11, 27, 70, 0.98));
+  outline: 2px solid rgba(244, 218, 164, 0.72);
+  outline-offset: 2px;
+}
+
+body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.settings']
+    > :has(> button[aria-haspopup='dialog'] > [data-slot='settings.trigger'])
+    > [role='status'] {
+  color: #c8e4c7;
+  border-color: rgba(167, 211, 167, 0.72);
+  background: linear-gradient(145deg, rgba(51, 105, 98, 0.78), rgba(7, 39, 48, 0.94));
 }
 
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button'])::before {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])::before {
   content: none;
 }
 
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']):is(:hover, :focus-visible) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']):is(:hover, :focus-visible) {
   color: #fff8e8;
   background: none;
   filter: brightness(1.1) drop-shadow(0 5px 12px rgba(2, 8, 28, 0.3));
@@ -841,7 +926,7 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) svg {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) svg {
   color: #e8c77f;
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.62));
 }
@@ -864,6 +949,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] button[class*='newSes
   border: 1px solid rgba(225, 207, 170, 0.72);
   border-image: none;
   border-radius: 50%;
+  corner-shape: round;
   color: #ebd29e;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.4), rgba(7, 18, 52, 0.78));
   box-shadow: inset 0 0 0 2px rgba(5, 15, 45, 0.7);
@@ -885,6 +971,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   margin-inline: 0;
   border: 1px solid transparent;
   border-radius: 50%;
+  corner-shape: round;
   color: #dfbf7c;
   background: transparent;
 }
@@ -916,7 +1003,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-maid-sidebar-fo
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button']) {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
   width: 38px;
   min-width: 38px;
   min-height: 38px;
@@ -925,6 +1012,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   border: 1px solid rgba(225, 191, 124, 0.76);
   border-image: none;
   border-radius: 50%;
+  corner-shape: round;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82));
   box-shadow:
     inset 0 0 0 2px rgba(5, 15, 45, 0.76),
@@ -934,7 +1022,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :is(button, [role='button'])::before {
+    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])::before {
   display: none;
 }
 
@@ -1009,6 +1097,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-cordis-badge] {
   min-height: 36px;
   padding: 0;
   border-radius: 50%;
+  corner-shape: round;
 }
 
 /* The Cordis panel uses --dsw-alias-bg-base for both its shell and rows. The
@@ -1275,7 +1364,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] > :is(button, [role='button'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
     ) {
   box-sizing: border-box;
   width: var(--maid-rail-control-size);
@@ -1288,6 +1377,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   border: 1px solid rgba(225, 191, 124, 0.76);
   border-image: none;
   border-radius: 50%;
+  corner-shape: round;
   color: #ebd29e;
   background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82));
   box-shadow:
@@ -1310,7 +1400,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] > :is(button, [role='button'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
     ):is(:hover, :focus-visible) {
   color: #fff1ce;
   border-color: rgba(244, 218, 164, 0.94);
@@ -1530,6 +1620,7 @@ body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] {
   overflow: visible;
   color: #e2bd6e;
   border-radius: 50%;
+  corner-shape: round;
   background:
     radial-gradient(circle at 44% 40%, rgba(255, 255, 255, 0.96) 0 0.55px, transparent 0.7px),
     radial-gradient(circle, #a9bce8 0 1.15px, #5e79b9 1.3px 2px, #1a356f 2.15px 3px, transparent 3.15px);
@@ -1686,6 +1777,7 @@ body[data-dsh-maid-atelier] [data-maid-session-flat][aria-selected='true']::befo
   display: block;
   width: 3px;
   border-radius: 999px;
+  corner-shape: round;
   background: linear-gradient(#fff0c5, #d4a951);
   box-shadow: 0 0 5px rgba(231, 199, 128, 0.72);
 }
@@ -1777,6 +1869,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   padding: 15px;
   border: 1px solid rgba(197, 164, 104, 0.92);
   border-radius: 50%;
+  corner-shape: round;
   outline: 1px solid rgba(226, 207, 170, 0.76);
   outline-offset: 4px;
   color: var(--maid-indigo);
@@ -1879,8 +1972,9 @@ body[data-dsh-maid-atelier]
   pointer-events: none;
 }
 
-/* Composer card: live controls sit beneath one hollow raster plate that keeps
-   the reference frame, porcelain rim, continuous lace, and bow aligned. */
+/* Composer card: live controls sit beneath one hollow frame. Fixed ribbon
+   ends, independently stretchable ribbon bodies, repeating lace, and the
+   fixed bow keep the original composition at normal and ultrawide widths. */
 body[data-dsh-maid-atelier] [data-composer-card] {
   position: relative;
   z-index: 21;
@@ -1899,17 +1993,21 @@ body[data-dsh-maid-atelier] [data-composer-card] {
   box-shadow: var(--maid-shadow);
 }
 
+/* Preserve the calibrated conversation width by default, but follow a larger
+   host width when a wide workspace exposes one. */
+body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] {
+  max-width: min(100%, max(720px, var(--dsh-composer-card-max-width)));
+}
+
 /* Restore the generous landing-page composition without imposing its height
-   on the docked workspace composer. The hidden mirror is the one node that
-   already owns text measurement; growing it also grows the textarea and
-   backdrop, keeps the toolbar attached to the card edge, and limits the
-   transition to one layout-changing property. */
-body[data-dsh-maid-atelier] [data-input-mirror] {
+   on the docked workspace composer. The resident Lexical surface owns text
+   measurement, so its floor keeps the toolbar attached to the card edge. */
+body[data-dsh-maid-atelier] [data-composer-input] {
   min-height: 0;
   transition: min-height 520ms cubic-bezier(0.22, 0.78, 0.2, 1);
 }
 
-body[data-dsh-maid-atelier] [data-phase='hero'] [data-input-mirror] {
+body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-input] {
   min-height: clamp(72px, 9vh, 118px);
 }
 
@@ -1977,6 +2075,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   height: 42px;
   border: 1px solid rgba(197, 164, 104, 0.72);
   border-radius: 50%;
+  corner-shape: round;
   color: #405a99;
   background: rgba(255, 253, 248, 0.62);
   box-shadow:
@@ -1995,6 +2094,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   gap: 0;
   border: 1px solid rgba(197, 164, 104, 0.68);
   border-radius: 50%;
+  corner-shape: round;
   color: #405a99;
   background: rgba(255, 253, 248, 0.52);
   box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.4);
@@ -2108,6 +2208,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   height: 44px;
   border: 1px solid #d8bd82;
   border-radius: 50%;
+  corner-shape: round;
   color: #fffaf0;
   background: linear-gradient(145deg, #6079b5, #294587);
   box-shadow:
@@ -2143,6 +2244,29 @@ body[data-dsh-maid-atelier] [data-composer-card]::before {
   /* The frame stays above the backing plate, but below the live controls and
      their in-place menus. A higher layer traps both selectors under the bow. */
   z-index: 1;
+  /* The shell keeps the fixed corner lace. Rebuild only its transparent center
+     from ribbon slices; the clipped lace strips below join under the bow. */
+  background-image:
+    var(--maid-bow-art),
+    var(--maid-composer-ribbon-left-cap-art),
+    var(--maid-composer-ribbon-right-cap-art),
+    var(--maid-composer-ribbon-left-fill-art),
+    var(--maid-composer-ribbon-right-fill-art);
+  background-position:
+    center top,
+    left 54px top,
+    right 54px top,
+    left 156px top,
+    right 156px top;
+  background-size:
+    auto 69px,
+    102px 32px,
+    102px 32px,
+    max(0px, calc(50% - 156px)) 32px,
+    max(0px, calc(50% - 156px)) 32px;
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box;
   border-style: solid;
   border-width: 72px 54px 52px;
   border-image-source: var(--maid-composer-frame-art);
@@ -2218,10 +2342,78 @@ body[data-dsh-maid-atelier] [data-composer-card] > * {
   z-index: 2;
 }
 
+/* The center strip stays continuous across the visible jewel. Its two joins sit
+   under fully opaque parts of the bow, while the outer strips keep the source
+   phase of their adjacent fixed corners. */
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace'] {
+  position: absolute;
+  inset: -20px -14px auto;
+  height: 63px;
+  z-index: 0;
+  opacity: 0.82;
+  filter: brightness(1.16);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::before,
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::after,
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']
+  > [data-maid-composer-lace-center] {
+  content: '';
+  position: absolute;
+  top: 30px;
+  height: 33px;
+  background-size: auto 33px;
+  background-repeat: repeat-x;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::before,
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::after {
+  width: calc(50% - 96px);
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::before {
+  left: 54px;
+  background-image: var(--maid-composer-lace-art);
+  background-position: left top;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']::after {
+  right: 54px;
+  background-image: var(--maid-composer-lace-art);
+  background-position: right top;
+}
+
+body[data-dsh-maid-atelier]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace']
+  > [data-maid-composer-lace-center] {
+  left: calc(50% - 42px);
+  width: 84px;
+  background-image: var(--maid-composer-lace-art);
+  background-position: left top;
+}
+
 /* The official attachments slot is a display: contents container: it emits no
    box, so the child-lift rule above cannot reach its rail and the preview
    images fell back to in-flow paint order, under the porcelain plate. Lift
-   the slot's content boxes to the same tier as the textarea/toolbar row —
+   the slot's content boxes to the same tier as the editor/toolbar row —
    except the drag overlay, which is position: fixed and must keep its own
    coordinate system (its mask class is the only fixed surface in the slot). */
 body[data-dsh-maid-atelier]
@@ -2232,13 +2424,13 @@ body[data-dsh-maid-atelier]
   z-index: 2;
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] textarea {
+body[data-dsh-maid-atelier] [data-composer-card] [data-composer-input] {
   caret-color: #405a99;
 }
 
 /* The navy caret disappears against the dark composer card (≈2:1 contrast);
    the light periwinkle keeps the caret legible on the night palette. */
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] textarea {
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] [data-composer-input] {
   caret-color: #bcd2ff;
 }
 
@@ -2345,6 +2537,7 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]
   padding: 0;
   border: 1px solid rgba(197, 164, 104, 0.68);
   border-radius: 50%;
+  corner-shape: round;
   color: #405a99;
   background: rgba(255, 253, 248, 0.68);
   box-shadow:
@@ -2615,10 +2808,20 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
-/* DSH 0.1.1 marks >=4-column tables as `md-table-wide`. Keep them embedded
-   in the assistant bubble by default; the table-card enhancer adds an
-   explicit expand control only when the natural table width overflows the
-   bubble. */
+/* DSH marks >=4-column tables as `md-table-wide`, but the live content width
+   can now be resized. Fitting candidates keep the native breakout untouched;
+   table-card marks this renderer-owned wrapper only while its natural table
+   width exceeds the assistant bubble's current content box. */
+/* RC1 removes the host's reserved scrollbar padding on :hover/:focus-visible.
+   A fitting wide-table candidate has no scrollbar to replace that space, so
+   the box edge moves away from the pointer and enters a layout feedback loop.
+   Keep only that native branch's gutter stable; overflowing candidates receive
+   the frame attribute below and already own a constant scroll geometry. */
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] :global(.md-table-wide):not([data-maid-table-frame]) {
+  padding-bottom: var(--dsh-scrollbar-width, 8px);
+}
+
 body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
   position: relative;
@@ -2636,6 +2839,40 @@ body[data-dsh-maid-atelier]
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.58);
   scrollbar-color: rgba(71, 91, 145, 0.35) transparent;
   transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
+  border-color: rgba(197, 164, 104, 0.48);
+  box-shadow:
+    0 0 0 1px rgba(91, 214, 219, 0.22),
+    0 8px 26px rgba(19, 38, 87, 0.1),
+    inset 0 1px rgba(255, 255, 255, 0.74);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
+  border-color: rgba(211, 180, 119, 0.28);
+  background: rgba(18, 31, 67, 0.64);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
+  border-color: rgba(211, 180, 119, 0.54);
+  box-shadow:
+    0 0 0 1px rgba(91, 214, 219, 0.18),
+    0 8px 28px rgba(0, 0, 0, 0.22),
+    inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > table {
+  margin-inline: auto;
 }
 
 body[data-dsh-maid-atelier]
@@ -2704,24 +2941,6 @@ body[data-dsh-maid-atelier]
     opacity: 1;
     transform: none;
   }
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
-  border-color: rgba(211, 180, 119, 0.28);
-  background: rgba(18, 31, 67, 0.64);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
-  border-color: rgba(211, 180, 119, 0.54);
-  box-shadow:
-    0 0 0 1px rgba(91, 214, 219, 0.18),
-    0 8px 28px rgba(0, 0, 0, 0.22),
-    inset 0 1px rgba(255, 255, 255, 0.1);
 }
 
 body[data-dsh-maid-atelier]
@@ -2828,6 +3047,7 @@ body[data-dsh-maid-atelier] [data-maid-table-close] {
   height: 30px;
   border: 1px solid rgba(197, 164, 104, 0.48);
   border-radius: 999px;
+  corner-shape: round;
   background: rgba(252, 250, 245, 0.94);
   box-shadow: 0 8px 20px rgba(19, 38, 87, 0.12);
   cursor: pointer;
@@ -3885,8 +4105,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
 }
 
 /* Optional conversation typography from #22. Code keeps its existing
-   monospace contract. The textarea, visible backdrop, and hidden sizing
-   mirror must share exact font metrics or selection/caret geometry drifts. */
+   monospace contract. The Lexical editor is the sole draft text surface. */
 html[data-dsh-whale-maid-font='serif']
   body[data-dsh-maid-atelier]
   :is([data-chat-flow], [class*='userRow'] [class*='bubble']) {
@@ -3908,9 +4127,8 @@ html[data-dsh-whale-maid-font='serif']
   body[data-dsh-maid-atelier]
   [data-composer-card]
   :is(
+    [data-composer-input],
     textarea,
-    [data-input-backdrop],
-    [data-input-mirror],
     button,
     [class*='triggerLabel']
   ) {
@@ -3998,7 +4216,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame],
-  body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-expand],
+  body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand],
   body[data-dsh-maid-atelier] [data-maid-table-lightbox],
   body[data-dsh-maid-atelier] [data-maid-table-panel] {
     animation: none;
@@ -4006,7 +4224,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier] [data-composer-card],
-  body[data-dsh-maid-atelier] [data-input-mirror] {
+  body[data-dsh-maid-atelier] [data-composer-input] {
     animation: none;
     transition: none;
   }
@@ -4014,7 +4232,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
 
 /* 空态胶囊（设置「输入框显示方式」＝空态胶囊）：输入为空且未聚焦、无弹出
    菜单打开时，整卡收成一条轻量胶囊；点击胶囊（composer-capsule 的 click
-   委托聚焦 textarea）或输入后恢复。状态由 composer-capsule.ts 维护，避免
+   委托聚焦 Lexical editor）或输入后恢复。状态由 composer-capsule.ts 维护，避免
    body 级 :has() 在输入时反复重算。 */
 body[data-dsh-maid-atelier]
   [data-phase='active']
@@ -4026,6 +4244,7 @@ body[data-dsh-maid-atelier]
   padding: 0;
   border: 1px solid rgba(197, 164, 104, 0.5);
   border-radius: 999px;
+  corner-shape: round;
   box-shadow:
     0 4px 14px rgba(15, 30, 72, 0.14),
     inset 0 1px rgba(255, 255, 255, 0.6);
@@ -4047,18 +4266,8 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 body[data-dsh-maid-atelier]
   [data-phase='active']
   [data-composer-seat][data-maid-composer-capsule]
-  :is([data-input-mirror], [data-input-backdrop], [data-composer-card] > [class*='row']) {
+  :is([data-input-scroll], [data-composer-card] > [class*='row']) {
   display: none !important;
-}
-
-body[data-dsh-maid-atelier]
-  [data-phase='active']
-  [data-composer-seat][data-maid-composer-capsule]
-  [data-composer-card] textarea {
-  min-height: 0 !important;
-  height: 0 !important;
-  padding: 0 !important;
-  opacity: 0;
 }
 
 /* 统计行（stats / Session log）随卡片一起收起 */
@@ -4069,11 +4278,23 @@ body[data-dsh-maid-atelier]
   display: none;
 }
 
-/* 金框装饰在胶囊态隐藏，胶囊内容由 ::after 呈现 */
+/* The full-size nine-slice frame extends beyond the card. Stop generating it
+   in capsule state so its clipped lace cannot remain inside the pill. */
 body[data-dsh-maid-atelier]
   [data-phase='active']
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]::before {
+  content: none;
+  display: none;
+  border-image-source: none;
+  filter: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]
+  > [data-skin-chrome='composer-lace'] {
   display: none;
 }
 
@@ -4115,6 +4336,128 @@ body[data-dsh-maid-atelier]
   [data-composer-seat][data-maid-composer-expanding]
   [data-composer-card] {
   animation: maidAtelierCapsuleOut 260ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+}
+
+/* Match the host's semantic resize handles and turn rail only inside this skin;
+   the generated class names are intentionally excluded so another plugin's
+   similarly named chrome cannot inherit it. */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle='left'][data-side='left']::after,
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle='right'][data-side='right']::after {
+  width: 3px;
+  background: linear-gradient(
+    to bottom,
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) - 56px),
+    rgba(75, 149, 186, 0.22) calc(var(--dsh-width-handle-pointer-y, 50%) - 46px),
+    #4b95ba calc(var(--dsh-width-handle-pointer-y, 50%) - 30px),
+    #accfe0 calc(var(--dsh-width-handle-pointer-y, 50%) - 14px),
+    #fbfdff var(--dsh-width-handle-pointer-y, 50%),
+    #accfe0 calc(var(--dsh-width-handle-pointer-y, 50%) + 14px),
+    #4b95ba calc(var(--dsh-width-handle-pointer-y, 50%) + 30px),
+    rgba(75, 149, 186, 0.22) calc(var(--dsh-width-handle-pointer-y, 50%) + 46px),
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) + 56px)
+  );
+  filter:
+    drop-shadow(0 0 1px rgba(251, 253, 255, 0.96))
+    drop-shadow(0 0 4px rgba(75, 149, 186, 0.5));
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-phase='active']
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle='left'][data-side='left']::after,
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-phase='active']
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle='right'][data-side='right']::after {
+  background: linear-gradient(
+    to bottom,
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) - 54px),
+    var(--maid-periwinkle) calc(var(--dsh-width-handle-pointer-y, 50%) - 36px),
+    var(--maid-gold-soft) calc(var(--dsh-width-handle-pointer-y, 50%) - 12px),
+    var(--maid-porcelain) var(--dsh-width-handle-pointer-y, 50%),
+    var(--maid-gold-soft) calc(var(--dsh-width-handle-pointer-y, 50%) + 12px),
+    var(--maid-periwinkle) calc(var(--dsh-width-handle-pointer-y, 50%) + 36px),
+    transparent calc(var(--dsh-width-handle-pointer-y, 50%) + 54px)
+  );
+  filter:
+    drop-shadow(0 0 1px rgba(9, 19, 51, 0.98))
+    drop-shadow(0 0 6px rgba(226, 207, 170, 0.82));
+}
+
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle='left'][data-side='left']:is(:hover, [data-dragging])::after,
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  > :has(> [data-conversation-scroll])
+  > [data-width-handle='right'][data-side='right']:is(:hover, [data-dragging])::after {
+  transform-origin: center;
+  animation: maidAtelierWidthHandlePulse 1.15s ease-in-out infinite;
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
+  background: rgba(82, 106, 168, 0.72);
+  box-shadow: 0 0 0 1px rgba(248, 246, 240, 0.54);
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
+  background: var(--maid-gold);
+  box-shadow:
+    0 0 0 1px var(--maid-porcelain),
+    0 0 7px rgba(197, 164, 104, 0.72);
+}
+
+body[data-dsh-maid-atelier] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
+  background: var(--maid-ink);
+  box-shadow:
+    0 0 0 1px var(--maid-gold-soft),
+    0 0 7px rgba(23, 35, 71, 0.5);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
+  background: rgba(142, 165, 218, 0.72);
+  box-shadow: 0 0 0 1px rgba(9, 19, 51, 0.9);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before,
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
+  background: var(--maid-gold-soft);
+  box-shadow:
+    0 0 0 1px var(--maid-porcelain),
+    0 0 8px rgba(226, 207, 170, 0.76);
+}
+
+@keyframes maidAtelierWidthHandlePulse {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scaleX(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-maid-atelier]
+    [data-phase='active']
+    > :has(> [data-conversation-scroll])
+    > [data-width-handle='left'][data-side='left']::after,
+  body[data-dsh-maid-atelier]
+    [data-phase='active']
+    > :has(> [data-conversation-scroll])
+    > [data-width-handle='right'][data-side='right']::after {
+    animation: none;
+  }
 }
 
 @keyframes maidAtelierCapsuleIn {

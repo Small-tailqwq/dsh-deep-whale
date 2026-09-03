@@ -1,5 +1,5 @@
 /**
- * DSH 0.1.1 wide-markdown-table preview/expand treatment.
+ * DSH wide-markdown-table preview/expand treatment.
  *
  * The official renderer marks >=4-column tables with the bare `md-table-wide`
  * hook and expands them out of the message column. In the maid bubble that
@@ -7,11 +7,13 @@
  * rhythm. This module keeps the table embedded by default, marks genuinely
  * overflowing tables as expandable, and opens a skin-owned enlarged clone on
  * explicit user intent. The renderer owns the original table subtree, so the
- * enhancer decorates that wrapper in place and never reparents it.
+ * enhancer decorates that wrapper in place and never reparents it. The
+ * renderer's column-count hook is only a discovery hint: activation follows
+ * the live table and bubble geometry instead.
  *
- * Every observer, listener, overlay, and attribute write is owned here and
- * released by the returned disposer: application order, hot switching, and
- * partial failures cannot leave a wrapper decorated.
+ * Every observer, listener, injected button, overlay, and attribute write is
+ * owned here and released by the returned disposer: application order, hot
+ * switching, and partial failures cannot leave a wrapper decorated.
  */
 import type { Context } from '@deepseek-ai/cordis'
 
@@ -20,11 +22,13 @@ export const MAID_TABLE_FILL_SELECTOR = '.md-table-wide'
 const SKIN_OWNER = 'maid-atelier'
 const EXPANDABLE_ATTRIBUTE = 'data-maid-table-expandable'
 const OPEN_ATTRIBUTE = 'data-maid-table-open'
-const FRAME_ATTRIBUTE = 'data-maid-table-frame'
 const CONTROL_ATTRIBUTE = 'data-maid-table-expand'
+const FRAME_ATTRIBUTE = 'data-maid-table-frame'
 const SCROLL_SUPPRESSED_ATTRIBUTE = 'data-maid-table-scroll-suppressed'
 const OVERLAY_ATTRIBUTE = 'data-maid-table-lightbox'
 const MODAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true']"
+const ASSISTANT_STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']"
+const MARKDOWN_CONTAINER_SELECTOR = "div[class*='markdown']"
 const EXPANDED_HORIZONTAL_CHROME = 96
 const EXPANDED_MIN_WIDTH = 560
 const LIGHTBOX_EDGE_GAP = 56
@@ -78,7 +82,6 @@ function acquireControl(wrapper: HTMLElement, owner: symbol, activate: () => voi
   if (lease === undefined) {
     const button = document.createElement('button')
     button.type = 'button'
-    button.hidden = true
     button.setAttribute(CONTROL_ATTRIBUTE, '')
     button.dataset.skinOwner = SKIN_OWNER
     button.setAttribute('aria-label', '展开表格预览')
@@ -125,6 +128,13 @@ interface TableBinding {
   onScroll: () => void
 }
 
+interface TableCandidate {
+  bubble: HTMLElement | null
+  table: HTMLElement | null | undefined
+  availableWidth: number
+  naturalWidth: number
+}
+
 interface OverlayState {
   root: HTMLDivElement
   source: HTMLElement
@@ -138,6 +148,29 @@ function isForeignModalDialog(element: Element): boolean {
     && element.closest(`[${OVERLAY_ATTRIBUTE}]`) === null
 }
 
+function findBubble(wrapper: HTMLElement): HTMLElement | null {
+  const assistantStep = wrapper.closest<HTMLElement>(ASSISTANT_STEP_SELECTOR)
+  const markdown = wrapper.closest<HTMLElement>(MARKDOWN_CONTAINER_SELECTOR)
+  if (assistantStep !== null && markdown !== null && assistantStep.contains(markdown)) return markdown
+  return wrapper.parentElement
+}
+
+function contentWidth(element: HTMLElement | null): number {
+  if (element === null || element.clientWidth <= 0) return 0
+  const style = getComputedStyle(element)
+  const start = Number.parseFloat(style.paddingLeft) || 0
+  const end = Number.parseFloat(style.paddingRight) || 0
+  return Math.max(0, element.clientWidth - start - end)
+}
+
+function contentInlineSize(entry: ResizeObserverEntry): number {
+  return entry.contentBoxSize?.[0]?.inlineSize ?? entry.contentRect.width
+}
+
+function borderInlineSize(entry: ResizeObserverEntry): number {
+  return entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width
+}
+
 /**
  * Install the wide-table geometry pass on the current body. Idempotent per
  * call; every observer and mutation is torn down by the returned disposer.
@@ -145,25 +178,12 @@ function isForeignModalDialog(element: Element): boolean {
 export function installMaidTableCards(_ctx: Context): TableCardRuntime {
   const owner = Symbol('maid-table-card-activation')
   const bindings = new Map<HTMLElement, TableBinding>()
+  const candidates = new Map<HTMLElement, TableCandidate>()
+  const resizeTargets = new Map<Element, Set<HTMLElement>>()
   let observer: MutationObserver | undefined
   let resizeObserver: ResizeObserver | undefined
   let overlay: OverlayState | undefined
   const closingOverlays = new Map<HTMLDivElement, ReturnType<typeof setTimeout>>()
-
-  const release = (wrapper: HTMLElement): void => {
-    const binding = bindings.get(wrapper)
-    if (binding !== undefined) {
-      wrapper.removeEventListener('pointerleave', binding.onPointerLeave)
-      wrapper.removeEventListener('scroll', binding.onScroll)
-      releaseControl(wrapper, owner)
-      bindings.delete(wrapper)
-    }
-    resizeObserver?.unobserve(wrapper)
-    setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, false)
-    setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false)
-    setLeasedAttribute(wrapper, OPEN_ATTRIBUTE, owner, false)
-    setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false)
-  }
 
   const closeOverlay = (immediate = false): void => {
     if (overlay === undefined) return
@@ -182,6 +202,42 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
       root.remove()
     }, 180)
     closingOverlays.set(root, timer)
+  }
+
+  const deactivate = (wrapper: HTMLElement): void => {
+    if (overlay?.source === wrapper) closeOverlay(true)
+    const binding = bindings.get(wrapper)
+    if (binding !== undefined) {
+      wrapper.removeEventListener('pointerleave', binding.onPointerLeave)
+      wrapper.removeEventListener('scroll', binding.onScroll)
+      releaseControl(wrapper, owner)
+      bindings.delete(wrapper)
+    }
+    setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, false)
+    setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false)
+    setLeasedAttribute(wrapper, OPEN_ATTRIBUTE, owner, false)
+    setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false)
+  }
+
+  const watch = (wrapper: HTMLElement, target: Element | null): void => {
+    if (resizeObserver === undefined || target === null) return
+    let wrappers = resizeTargets.get(target)
+    if (wrappers === undefined) {
+      wrappers = new Set()
+      resizeTargets.set(target, wrappers)
+      resizeObserver.observe(target)
+    }
+    wrappers.add(wrapper)
+  }
+
+  const unwatch = (wrapper: HTMLElement, target: Element | null): void => {
+    if (target === null) return
+    const wrappers = resizeTargets.get(target)
+    if (wrappers === undefined) return
+    wrappers.delete(wrapper)
+    if (wrappers.size > 0) return
+    resizeTargets.delete(target)
+    resizeObserver?.unobserve(target)
   }
 
   const removeClosingOverlays = (): void => {
@@ -261,25 +317,12 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     close.focus({ preventScroll: true })
   }
 
-  const measure = (wrapper: HTMLElement): void => {
-    if (!wrapper.isConnected) {
-      release(wrapper)
+  const activate = (wrapper: HTMLElement): void => {
+    if (bindings.has(wrapper)) {
+      setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, true)
+      setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, true)
       return
     }
-    const table = wrapper.querySelector<HTMLElement>('table')
-    const viewport = wrapper.clientWidth
-    const natural = table?.scrollWidth ?? wrapper.scrollWidth
-    if (viewport > 0 && natural > viewport + 1) {
-      setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, true)
-    } else {
-      setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false)
-    }
-    const button = bindings.get(wrapper)?.button
-    if (button !== undefined) button.hidden = !wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)
-  }
-
-  const adopt = (wrapper: HTMLElement): void => {
-    if (bindings.has(wrapper) || wrapper.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null) return
     const button = acquireControl(wrapper, owner, () => openOverlay(wrapper))
     const onScroll = (): void => {
       setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, true)
@@ -287,19 +330,79 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     const onPointerLeave = (): void => {
       setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false)
     }
-    bindings.set(wrapper, {
-      button,
-      onPointerLeave,
-      onScroll,
-    })
+    bindings.set(wrapper, { button, onPointerLeave, onScroll })
     try {
       setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, true)
+      setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, true)
       wrapper.addEventListener('pointerleave', onPointerLeave)
       wrapper.addEventListener('scroll', onScroll, { passive: true })
-      resizeObserver?.observe(wrapper)
-      measure(wrapper)
     } catch (error) {
-      release(wrapper)
+      deactivate(wrapper)
+      throw error
+    }
+  }
+
+  const refreshCandidate = (wrapper: HTMLElement): TableCandidate | undefined => {
+    const candidate = candidates.get(wrapper)
+    if (candidate === undefined) return undefined
+    const bubble = findBubble(wrapper)
+    if (bubble !== candidate.bubble) {
+      unwatch(wrapper, candidate.bubble)
+      candidate.bubble = bubble
+      candidate.availableWidth = contentWidth(bubble)
+      watch(wrapper, bubble)
+    }
+    const table = wrapper.querySelector<HTMLElement>('table')
+    if (table !== candidate.table) {
+      unwatch(wrapper, candidate.table ?? null)
+      candidate.table = table
+      candidate.naturalWidth = table?.scrollWidth ?? wrapper.scrollWidth
+      watch(wrapper, table)
+    }
+    return candidate
+  }
+
+  const untrack = (wrapper: HTMLElement): void => {
+    const candidate = candidates.get(wrapper)
+    if (candidate === undefined) return
+    deactivate(wrapper)
+    unwatch(wrapper, candidate.bubble)
+    unwatch(wrapper, candidate.table ?? null)
+    candidates.delete(wrapper)
+  }
+
+  const reconcile = (wrapper: HTMLElement): void => {
+    if (!wrapper.isConnected) {
+      untrack(wrapper)
+      return
+    }
+    const candidate = candidates.get(wrapper)
+    if (candidate === undefined) return
+    if (candidate.availableWidth > 0 && candidate.naturalWidth > candidate.availableWidth + 1) {
+      activate(wrapper)
+    } else {
+      deactivate(wrapper)
+    }
+  }
+
+  const track = (wrapper: HTMLElement): void => {
+    if (wrapper.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null) return
+    if (candidates.has(wrapper)) {
+      refreshCandidate(wrapper)
+      reconcile(wrapper)
+      return
+    }
+    candidates.set(wrapper, {
+      bubble: null,
+      table: undefined,
+      availableWidth: 0,
+      naturalWidth: 0,
+    })
+    try {
+      refreshCandidate(wrapper)
+      reconcile(wrapper)
+    } catch (error) {
+      untrack(wrapper)
       throw error
     }
   }
@@ -310,28 +413,48 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
       removeClosingOverlays()
       observer?.disconnect()
       resizeObserver?.disconnect()
+      for (const wrapper of [...candidates.keys()]) untrack(wrapper)
+      resizeTargets.clear()
       resizeObserver = undefined
-      for (const wrapper of [...bindings.keys()]) release(wrapper)
       bindings.clear()
+      candidates.clear()
     },
   }
 
   try {
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver((entries) => {
+        const affected = new Set<HTMLElement>()
         for (const entry of entries) {
-          measure(entry.target as HTMLElement)
+          const wrappers = resizeTargets.get(entry.target)
+          if (wrappers === undefined) continue
+          for (const wrapper of wrappers) {
+            const candidate = candidates.get(wrapper)
+            if (candidate === undefined) continue
+            if (entry.target === candidate.bubble) candidate.availableWidth = contentInlineSize(entry)
+            if (entry.target === candidate.table) candidate.naturalWidth = borderInlineSize(entry)
+            affected.add(wrapper)
+          }
         }
+        affected.forEach(reconcile)
       })
     }
 
     observer = new MutationObserver((records) => {
       let sawForeignModal = false
+      const refresh = new Set<HTMLElement>()
+      const removed = new Set<HTMLElement>()
       for (const record of records) {
         if (record.target instanceof HTMLElement) {
-          const binding = bindings.get(record.target)
-          if (binding !== undefined && binding.button.parentElement !== record.target) {
-            record.target.append(binding.button)
+          const wrapper = record.target.matches(MAID_TABLE_SELECTOR)
+            ? record.target
+            : record.target.closest<HTMLElement>(MAID_TABLE_SELECTOR)
+          if (wrapper !== null && candidates.has(wrapper)) {
+            const binding = bindings.get(wrapper)
+            if (binding !== undefined && binding.button.parentElement !== wrapper) {
+              wrapper.append(binding.button)
+            }
+            refresh.add(wrapper)
           }
         }
         for (const node of record.addedNodes) {
@@ -339,16 +462,34 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
           if (isForeignModalDialog(node) || Array.from(node.querySelectorAll(MODAL_DIALOG_SELECTOR)).some(isForeignModalDialog)) {
             sawForeignModal = true
           }
-          if (node.matches(MAID_TABLE_SELECTOR)) adopt(node as HTMLElement)
+          if (node.matches(MAID_TABLE_SELECTOR)) track(node as HTMLElement)
           else if (node.querySelectorAll(MAID_TABLE_SELECTOR).length > 0) {
-            node.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(adopt)
+            node.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(track)
+          }
+        }
+        for (const node of record.removedNodes) {
+          if (!(node instanceof Element)) continue
+          if (node.matches(MAID_TABLE_SELECTOR)) removed.add(node as HTMLElement)
+          node.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(wrapper => removed.add(wrapper))
+        }
+      }
+      for (const wrapper of removed) {
+        if (!wrapper.isConnected) untrack(wrapper)
+      }
+      for (const wrapper of refresh) {
+        if (wrapper.isConnected) {
+          const candidate = candidates.get(wrapper)
+          const table = wrapper.querySelector<HTMLElement>('table')
+          if (candidate !== undefined && table !== candidate.table) {
+            refreshCandidate(wrapper)
+            reconcile(wrapper)
           }
         }
       }
       if (sawForeignModal && overlay !== undefined) closeOverlay(true)
     })
     observer.observe(document.body, { childList: true, subtree: true })
-    document.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(adopt)
+    document.querySelectorAll<HTMLElement>(MAID_TABLE_SELECTOR).forEach(track)
     return runtime
   } catch (error) {
     runtime.dispose()

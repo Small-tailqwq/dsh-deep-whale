@@ -39,12 +39,12 @@ describe('skin-manager stylesheet contract', () => {
     expect(css).not.toMatch(/\[data-composer-card\]\s*\{[^}]*transition:[^}]*max-width/s)
   })
 
-  it('keeps the composer input, backdrop, and sizing mirror on identical metrics', () => {
+  it('applies the optional typeface to the Lexical composer surface', () => {
     const composerTypography = css.match(
       /\[data-composer-card\]\s+:is\(([\s\S]*?)\)\s*\{\s*font-family: Georgia/,
     )?.[1] ?? ''
-    expect(composerTypography).toContain('textarea')
-    expect(composerTypography).toContain('[data-input-backdrop]')
-    expect(composerTypography).toContain('[data-input-mirror]')
+    expect(composerTypography).toContain('[data-composer-input]')
+    expect(composerTypography).not.toContain('[data-input-backdrop]')
+    expect(composerTypography).not.toContain('[data-input-mirror]')
   })
 })

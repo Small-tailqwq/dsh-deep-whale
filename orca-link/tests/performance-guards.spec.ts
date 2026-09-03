@@ -20,6 +20,10 @@ describe('ORCA LINK performance guards', () => {
   it('uses the stable scene attribute instead of a body-wide phase query', () => {
     expect(css).toContain("body[data-dsh-orca-link][data-orca-scene='hero'] .standby")
     expect(css).not.toContain("body[data-dsh-orca-link]:has([data-phase='hero'])")
+    const handleOwner = String.raw`\[data-phase='active'\]\s*>\s*:has\(> \[data-conversation-scroll\]\)\s*>\s*\[data-width-handle\]\[data-side\]`
+    expect(css).toMatch(new RegExp(`${handleOwner}::after\\s*\\{`))
+    expect(css).toMatch(new RegExp(`${handleOwner}:is\\(:hover, \\[data-dragging\\]\\)::after\\s*\\{`))
+    expect(css).not.toMatch(/\[data-phase='active'\]\s*>\s*\[data-width-handle\]/)
   })
 
   it('contains terminal paint and locks only its measured width during layout motion', () => {
@@ -60,27 +64,27 @@ describe('ORCA LINK performance guards', () => {
     observer.disconnect()
   })
 
-  it('filters both backdrop contents and whole backdrop replacements', async () => {
+  it('filters Lexical edits while retaining composer-root replacements', async () => {
     const composer = document.createElement('div')
-    const backdrop = document.createElement('div')
-    backdrop.setAttribute('data-input-backdrop', '')
-    composer.append(backdrop)
+    const input = document.createElement('div')
+    input.setAttribute('data-composer-input', '')
+    composer.append(input)
     document.body.append(composer)
 
     const batches: MutationRecord[][] = []
     const observer = new MutationObserver(records => { batches.push(records) })
     observer.observe(document.body, { childList: true, subtree: true })
 
-    backdrop.textContent = 'draft'
+    input.textContent = 'draft'
     await Promise.resolve()
     expect(hasMutationOutsideTerminal(batches.pop() ?? [])).toBe(false)
 
     const replacement = document.createElement('div')
-    replacement.setAttribute('data-input-backdrop', '')
+    replacement.setAttribute('data-composer-input', '')
     replacement.textContent = 'next draft'
-    backdrop.replaceWith(replacement)
+    input.replaceWith(replacement)
     await Promise.resolve()
-    expect(hasMutationOutsideTerminal(batches.pop() ?? [])).toBe(false)
+    expect(hasMutationOutsideTerminal(batches.pop() ?? [])).toBe(true)
 
     composer.append(document.createElement('button'))
     await Promise.resolve()
