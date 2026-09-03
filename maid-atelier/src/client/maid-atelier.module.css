@@ -273,11 +273,13 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-visio
 
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
    independently translated layers let the landing ornament leave upward
-   while the lace-free workspace band drops in from above. */
+   while the lace-free workspace band drops in from above. The decor stays
+   below the sidebar root's stacking context (z 2), so fixed overlays that
+   extension slots mount inside it (peak/cost alerts) are never covered. */
 body[data-dsh-maid-atelier] [data-skin-chrome='top-trim'] {
   position: absolute;
   inset: 0 0 auto 0;
-  z-index: 20;
+  z-index: 1;
   height: 76px;
   overflow: hidden;
   pointer-events: none;
@@ -336,13 +338,14 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
 }
 
 /* The bottom band repeats at its native height while the center crest remains
-   an independent fixed-size layer inside the conversation column. */
+   an independent fixed-size layer inside the conversation column. Same z
+   rationale as the top curtain: below the sidebar root's z 2 context. */
 body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim'] {
   position: absolute;
   inset: auto 0 0 0;
   transform: translateY(0);
   opacity: 1;
-  z-index: 20;
+  z-index: 1;
   height: 60px;
   pointer-events: none;
   background: var(--maid-bottom-trim-art) left bottom / auto 30px repeat-x;
@@ -2878,6 +2881,9 @@ body[data-dsh-maid-atelier]
   z-index: 3;
   top: 8px;
   right: 8px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
   width: 32px;
   height: 32px;
   border: 1px solid rgba(197, 164, 104, 0.62);
@@ -2888,6 +2894,8 @@ body[data-dsh-maid-atelier]
     0 0 0 1px rgba(91, 214, 219, 0.18),
     0 8px 22px rgba(19, 38, 87, 0.16),
     inset 0 1px rgba(255, 255, 255, 0.82);
+  font-size: 19px;
+  line-height: 1;
   cursor: zoom-in;
   opacity: 0;
   transform: translateY(-3px) scale(0.92);
@@ -2899,29 +2907,24 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand]::before,
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand]::after {
-  content: '';
-  position: absolute;
-  width: 7px;
-  height: 7px;
-}
-
-body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand]::before {
-  top: 8px;
-  left: 8px;
-  border-top: 2px solid currentColor;
-  border-left: 2px solid currentColor;
+  content: '⤢';
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand]::after {
-  right: 8px;
-  bottom: 8px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand][hidden] {
+  display: none;
+}
+
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
+  border-color: rgba(197, 164, 104, 0.48);
+  box-shadow:
+    0 0 0 1px rgba(91, 214, 219, 0.22),
+    0 8px 26px rgba(19, 38, 87, 0.1),
+    inset 0 1px rgba(255, 255, 255, 0.74);
 }
 
 body[data-dsh-maid-atelier]
@@ -2941,9 +2944,8 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand]:hover {
-  border-color: rgba(197, 164, 104, 0.78);
-  background: rgba(255, 252, 246, 0.98);
+  [data-chat-flow-kind='assistant-step'] :global(.md-table-wide table) {
+  margin-inline: auto;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
@@ -3023,8 +3025,7 @@ body[data-dsh-maid-atelier] [data-maid-table-expanded] {
   box-shadow: none;
 }
 
-body[data-dsh-maid-atelier] [data-maid-table-expanded]::after,
-body[data-dsh-maid-atelier] [data-maid-table-expanded] [data-maid-table-expand] {
+body[data-dsh-maid-atelier] [data-maid-table-expanded]::after {
   display: none;
 }
 

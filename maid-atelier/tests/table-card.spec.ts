@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * Wide-table preview/expand lifecycle: the installer measures embedded tables,
- * injects only skin-owned controls, opens a cloned large view, and restores
- * every touched attribute on dispose.
+ * decorates renderer-owned wrappers in place, opens a cloned large view, and
+ * restores every touched attribute on dispose.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { installMaidTableCards } from '../src/client/table-card.ts'
@@ -62,6 +62,7 @@ describe('installMaidTableCards', () => {
     expect(button?.dataset.skinOwner).toBe('maid-atelier')
     expect(button?.getAttribute('aria-label')).toBe('展开表格预览')
     expect(button?.title).toBe('展开表格预览')
+    expect(button?.hidden).toBe(false)
 
     card.dispatchEvent(new Event('scroll'))
     expect(card.hasAttribute('data-maid-table-scroll-suppressed')).toBe(true)
@@ -170,7 +171,6 @@ describe('installMaidTableCards', () => {
     document.body.append(bubble)
 
     const runtime = installMaidTableCards({} as never)
-
     expect(card.getAttribute('tabindex')).toBe('-1')
     expect(card.hasAttribute('data-maid-table-expandable')).toBe(false)
     expect(card.hasAttribute('data-maid-table-frame')).toBe(false)
