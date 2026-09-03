@@ -162,6 +162,15 @@ body[data-dsh-orca-link] [data-chat-flow] *::after {
   border-radius: 0 !important;
 }
 
+/* Temporary compatibility patch for upstream DSH issue #614. RC1 removes
+   the reserved scrollbar gutter on hover/focus even when a wide-table
+   candidate does not overflow, moving the hit-test edge into a layout loop.
+   Remove this after the host stops changing the wrapper's box geometry. */
+body[data-dsh-orca-link]
+  [data-chat-flow-kind='assistant-step'] :global(.md-table-wide) {
+  padding-bottom: var(--dsh-scrollbar-width, 8px);
+}
+
 /* Keep the plugin terminal's forced measurements and intermediate redraws
    inside the terminal boundary. Paint containment prevents a resize frame
    from spilling underneath the adjacent Explorer panel. */

@@ -32,6 +32,15 @@ afterEach(async () => {
 })
 
 describe('Orca Link skin apply', () => {
+  it('keeps the upstream RC1 wide-table gutter stable across interaction states', () => {
+    const rule = CSS.match(
+      /\[data-chat-flow-kind='assistant-step'\] :global\(\.md-table-wide\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+
+    expect(rule).toContain('padding-bottom: var(--dsh-scrollbar-width, 8px)')
+    expect(rule).not.toContain('overflow-x:')
+  })
+
   it('targets the Alpha turn rail by its chat-flow relationship in every locale', async () => {
     document.body.innerHTML = `
       <div data-phase="active">

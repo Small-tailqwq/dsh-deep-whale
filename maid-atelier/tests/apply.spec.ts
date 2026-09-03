@@ -1283,19 +1283,12 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("[data-variant='think']")
   })
 
-  it('keeps DSH 0.1.1 wide tables embedded with an explicit expand affordance', () => {
+  it('styles only genuinely overflowing wide tables with an explicit expand affordance', () => {
+    const nativeRule = CSS.match(
+      /\[data-chat-flow-kind='assistant-step'\] :global\(\.md-table-wide\):not\(\[data-maid-table-frame\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     const frameRule = CSS.match(
       /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const frameBorderRule = CSS.match(
-      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]::before\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const frameGlowRule = Array.from(
-      CSS.matchAll(/\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]::after\s*\{([^}]*)\}/g),
-      (match) => match[1],
-    ).find((rule) => rule.includes('filter: blur')) ?? ''
-    const wideRule = CSS.match(
-      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\] > :global\(\.md-table-wide\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const expandRule = CSS.match(
       /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\] > \[data-maid-table-expand\]\s*\{([^}]*)\}/s,
@@ -1303,33 +1296,26 @@ describe('Maid Atelier skin apply', () => {
     const lightboxRule = CSS.match(/\[data-maid-table-lightbox\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const panelRule = CSS.match(/\[data-maid-table-panel\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const expandedRule = CSS.match(/\[data-maid-table-expanded\]\s*\{([^}]*)\}/s)?.[1] ?? ''
-    // The table preview stays inside the bubble. Overflow remains readable by
-    // native horizontal scroll, while table-card.ts adds an explicit expand
-    // control and a skin-owned clone for the large view.
+    // Fitting .md-table-wide wrappers keep the host's layout. table-card.ts
+    // adds this attribute and control in place only after measured overflow;
+    // the native branch retains a stable gutter across host hover states.
+    expect(nativeRule).toContain('padding-bottom: var(--dsh-scrollbar-width, 8px)')
+    expect(nativeRule).not.toContain('overflow-x:')
     expect(frameRule).toContain('width: max-content')
     expect(frameRule).toContain('max-width: 100%')
     expect(frameRule).toContain('margin-inline: auto')
     expect(frameRule).toContain('border-radius: 8px')
     expect(frameRule).toContain('background:')
-    expect(frameRule).toContain('overflow: visible')
-    expect(frameRule).not.toContain('overflow-x: auto')
-    expect(frameRule).not.toContain('scrollbar-color')
+    expect(frameRule).toContain('overflow-x: auto')
+    expect(frameRule).toContain('box-sizing: border-box')
+    expect(frameRule).toContain('padding: 3px 4px 4px 8px')
+    expect(frameRule).toContain('scrollbar-color')
     expect(frameRule).not.toContain('background-size:')
-    expect(frameBorderRule).toContain('padding: 2px')
-    expect(frameBorderRule).toContain('background-size: 260% 260%')
-    expect(frameBorderRule).toContain('mask-composite: exclude')
-    expect(frameGlowRule).toContain('padding: 4px')
-    expect(frameGlowRule).toContain('filter: blur(4px)')
-    expect(frameGlowRule).toContain('mask-composite: exclude')
-    expect(frameGlowRule).not.toContain('radial-gradient')
-    expect(wideRule).toContain('overflow-x: auto')
-    expect(wideRule).toContain('box-sizing: border-box')
-    expect(wideRule).toContain('padding: 0 4px 0 8px')
     expect(frameRule).not.toContain('width: min(max-content')
     expect(frameRule).not.toContain('transform:')
     expect(frameRule).not.toContain('left: 50%')
-    expect(CSS).not.toContain("[data-chat-flow-kind='assistant-step'] :global(.md-table-wide)::after")
-    expect(CSS).toContain('@keyframes maidAtelierTableLiquidBorder')
+    expect(CSS).not.toContain('[data-maid-table-frame] > :global(.md-table-wide)')
+    expect(CSS).not.toContain('@keyframes maidAtelierTableLiquidBorder')
     expect(CSS).toContain('[data-maid-table-scroll-suppressed]')
     expect(CSS).toContain(':has(> [data-maid-table-expand]:focus-visible)')
     expect(CSS).not.toContain('[data-maid-table-frame]:focus-within')
@@ -1345,11 +1331,7 @@ describe('Maid Atelier skin apply', () => {
     expect(panelRule).toContain('width: min(var(--maid-table-expanded-width, 1180px), 100%)')
     expect(expandedRule).toContain('width: 100%')
     expect(expandedRule).toContain('min-width: 0')
-    // `md-table-wide` is a bare class the renderer emits through clsx; a CSS
-    // Modules build hashes selector classes, which silently disabled the rule
-    // (the breakout kept painting). The :global() guard is the contract.
-    expect(wideRule).not.toHaveLength(0)
-    expect(CSS).toContain(":global(.md-table-wide)")
+    expect(CSS).toContain('@media (hover: none)')
   })
 
   it('keeps reasoning and command-style assistant blocks outside Markdown bubbles', () => {
@@ -2079,8 +2061,8 @@ describe('Maid Atelier skin apply', () => {
     expect(reducedMotionRule).toContain('transition: none')
     expect(reducedMotionRule).toContain('animation: none')
     expect(reducedMotionRule).toContain('[data-maid-workspace-active]::before')
-    expect(reducedMotionRule).toContain('[data-maid-table-frame]::before')
-    expect(reducedMotionRule).toContain('[data-maid-table-frame]::after')
+    expect(reducedMotionRule).toContain('[data-maid-table-frame]')
+    expect(reducedMotionRule).toContain('[data-maid-table-expand]')
   })
 
   it('keeps the skin chrome aligned to the live sidebar width and restores the prior value', async () => {

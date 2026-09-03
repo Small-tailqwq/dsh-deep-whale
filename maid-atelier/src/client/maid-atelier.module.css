@@ -2805,10 +2805,20 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
-/* DSH 0.1.1 marks >=4-column tables as `md-table-wide`. Keep them embedded
-   in the assistant bubble by default; the table-card enhancer adds an
-   explicit expand control only when the natural table width overflows the
-   bubble. */
+/* DSH marks >=4-column tables as `md-table-wide`, but the live content width
+   can now be resized. Fitting candidates keep the native breakout untouched;
+   table-card marks this renderer-owned wrapper only while its natural table
+   width exceeds the assistant bubble's current content box. */
+/* RC1 removes the host's reserved scrollbar padding on :hover/:focus-visible.
+   A fitting wide-table candidate has no scrollbar to replace that space, so
+   the box edge moves away from the pointer and enters a layout feedback loop.
+   Keep only that native branch's gutter stable; overflowing candidates receive
+   the frame attribute below and already own a constant scroll geometry. */
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] :global(.md-table-wide):not([data-maid-table-frame]) {
+  padding-bottom: var(--dsh-scrollbar-width, 8px);
+}
+
 body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
   position: relative;
@@ -2817,81 +2827,26 @@ body[data-dsh-maid-atelier]
   max-width: 100%;
   margin-inline: auto;
   margin-block: 10px 14px;
-  padding: 3px 0 4px;
-  overflow: visible;
+  padding: 3px 4px 4px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid rgba(197, 164, 104, 0.26);
   border-radius: 8px;
   background: rgba(248, 250, 255, 0.58);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.58);
+  scrollbar-color: rgba(71, 91, 145, 0.35) transparent;
   transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]::before,
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]::after {
-  content: '';
-  pointer-events: none;
-  position: absolute;
-  border-radius: inherit;
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]::before {
-  z-index: 1;
-  inset: -1px;
-  padding: 2px;
-  background: linear-gradient(115deg, rgba(197, 164, 104, 0.2), rgba(103, 126, 183, 0.22), rgba(91, 214, 219, 0.5), rgba(197, 164, 104, 0.2));
-  background-size: 260% 260%;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-}
-
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]::after {
-  z-index: 0;
-  inset: -4px;
-  padding: 4px;
-  background: linear-gradient(115deg, rgba(91, 214, 219, 0.22), rgba(197, 164, 104, 0.08), rgba(103, 126, 183, 0.16), rgba(91, 214, 219, 0.22));
-  background-size: 260% 260%;
-  filter: blur(4px);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
 }
 
 body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible),
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(:global(.md-table-wide[tabindex]:focus-visible)) {
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
   border-color: rgba(197, 164, 104, 0.48);
   box-shadow:
     0 0 0 1px rgba(91, 214, 219, 0.22),
     0 8px 26px rgba(19, 38, 87, 0.1),
     inset 0 1px rgba(255, 255, 255, 0.74);
-}
-
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover::before,
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible)::before,
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(:global(.md-table-wide[tabindex]:focus-visible))::before,
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover::after,
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible)::after,
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(:global(.md-table-wide[tabindex]:focus-visible))::after {
-  opacity: 1;
-  animation: maidAtelierTableLiquidBorder 2.8s linear infinite;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
@@ -2902,17 +2857,9 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]::before {
-  background: linear-gradient(115deg, rgba(211, 180, 119, 0.22), rgba(143, 163, 211, 0.24), rgba(91, 214, 219, 0.42), rgba(211, 180, 119, 0.22));
-  background-size: 260% 260%;
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible),
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(:global(.md-table-wide[tabindex]:focus-visible)) {
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
   border-color: rgba(211, 180, 119, 0.54);
   box-shadow:
     0 0 0 1px rgba(91, 214, 219, 0.18),
@@ -2921,25 +2868,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > :global(.md-table-wide) {
-  position: relative;
-  z-index: 1;
-  width: max-content;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0 4px 0 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  border: 0;
-  border-radius: inherit;
-  background: transparent;
-  box-shadow: none;
-  scrollbar-color: rgba(71, 91, 145, 0.35) transparent;
-}
-
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] :global(.md-table-wide table) {
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > table {
   margin-inline: auto;
 }
 
@@ -2998,11 +2927,17 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable]:not([data-maid-table-scroll-suppressed]):hover > [data-maid-table-expand],
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable]:has(> [data-maid-table-expand]:focus-visible) > [data-maid-table-expand],
-body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable]:has(:global(.md-table-wide[tabindex]:focus-visible)) > [data-maid-table-expand] {
+  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable]:has(> [data-maid-table-expand]:focus-visible) > [data-maid-table-expand] {
   opacity: 1;
   transform: none;
+}
+
+@media (hover: none) {
+  body[data-dsh-maid-atelier]
+    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable] > [data-maid-table-expand] {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 body[data-dsh-maid-atelier]
@@ -3166,16 +3101,6 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
     opacity: 1;
     filter: none;
     transform: none;
-  }
-}
-
-@keyframes maidAtelierTableLiquidBorder {
-  from {
-    background-position: 0% 50%;
-  }
-
-  to {
-    background-position: 260% 50%;
   }
 }
 
@@ -4290,8 +4215,6 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame],
-  body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]::before,
-  body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]::after,
   body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand],
   body[data-dsh-maid-atelier] [data-maid-table-lightbox],
   body[data-dsh-maid-atelier] [data-maid-table-panel] {
