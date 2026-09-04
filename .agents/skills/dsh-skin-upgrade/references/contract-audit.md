@@ -22,9 +22,16 @@
 
 命令输出不是文件对象。`git show`、`git diff` 和日志可能在代理工具的输出预算处被静默截断；不得把显示文本回填为整文件。历史实现用于确认意图和行为，当前基线文件才是编辑底稿。每批 patch 后用 diff stat、行数和必要时的 blob/hash 做规模哨兵，异常大幅删除立即停下处理。
 
-## 2. 生成本轮升级数据卡
+## 2. Host Delta Card 与 Skin Adoption Matrix
 
-数据卡必须由本轮 raw evidence 逐步生成，不能作为预写答案输入。开始编辑前完成并冻结初版，推荐结构：
+日常工程允许复用脚手架持久化的 Host Delta Card，但必须先从当前皮肤源码冻结 dependency
+contract keys。宿主卡只记录官方 DSH 的 exact-SHA 事实；当前皮肤的调用点、影响结论、动作与验证
+边界另写 Skin Adoption Matrix。不能把 A 皮肤的补丁或“已适配”结论当成 B 皮肤的证据。
+
+独立技能评测使用更严格的盲测顺序：候选矩阵和补丁冻结前不向被测 agent 提供宿主卡，冻结后才把
+卡当 oracle。日常工程和盲测都不能先看现成皮肤补丁再反推证据。
+
+Skin Adoption Matrix 推荐结构：
 
 ```markdown
 # DSH skin upgrade data card
@@ -43,14 +50,14 @@
 按以下顺序填充：
 
 1. 先解析版本坐标，记录官方 remote、完整 SHA 和 dirty state；统计大 diff 只用于规划，不能直接生成兼容结论。
-2. 从皮肤源码、manifest 与 build 入口生成依赖清单；每个 import、selector、owner 关系、生命周期资源和提交型产物都是候选行。
-3. 对每个候选行分别读取 base 与 target 的文件对象、定义和调用者，记录可复核的路径、symbol、blob/hash 或调用链证据，再判断名称、语义、关系、生命周期中的哪一层变化。
-4. 反向检查宿主 changed files：凡是进入皮肤已接管展示面的新增控件、状态或 portal，即使皮肤原先没有 selector，也新增一行。
-5. 只有 base/target 与皮肤调用面证据闭合时标记 `受影响` 或 `无变化`；证据缺口、必须实机观察或缺失 artifact 时标记 `未证实`。
-6. 当依赖清单中的候选触点已经全部进入三态即可冻结；不要求遍历或解释宿主仓库每一项无关 diff。无法在本轮冷审计闭合的事实保留为 `未证实`，不得以继续扩大搜索面来推迟冻结。
-7. 冻结初版数据卡后记录 hash 或不可变快照，才实施补丁。独立评测中，在候选补丁也冻结前不得读取现成适配分支或 golden patch；事后比较和新增证据单独记录，不回填或静默改写成“当时已知”的事实。
-
-数据卡默认是临时工作产物，不写入发行包或 skill reference。用户要求长期留档时，把它放到用户指定的审计/评测位置，并明确它是某次版本比较结果，不能成为后续版本自动加载的前置知识。
+2. 从皮肤源码、manifest 与 build 入口生成依赖 key；每个 import、selector、owner 关系、生命周期资源和提交型产物都是候选。
+3. 冻结 dependency keys 后，查询 exact edge 或连续卡链。逐 edge 校验 revision/file/facts hash，并用官方对象库核对 merge-base、name-status digest、blob 与 locator。tag 或版本相同不能替代对象验证。
+4. 卡链中相关 key 全部 `checked-unchanged` 才能复用无变化事实；任一 `changed` 要求当前皮肤复核；缺 key、`unknown`、断链、反向或跨分支均为未证实。中途 changed 不能自动推出最终仍 changed，因为后续可能回滚。
+5. 对没有卡覆盖的候选分别读取 base 与 target 文件对象、定义和调用者，记录路径、symbol、blob/hash 或调用链，再判断变化层级。
+6. 反向检查宿主 changed files：凡是进入皮肤已接管展示面的新增控件、状态或 portal，即使皮肤原先没有 selector，也新增一行。
+7. 只有宿主事实与当前皮肤调用面证据闭合时标记 `受影响` 或 `无变化`；证据缺口、必须实机观察或缺失 artifact 时标记 `未证实`。
+8. 依赖清单全部进入三态后冻结 adoption 初版并记录 hash，才实施补丁；新发现另列增量记录，不静默回填成“当时已知”。
+9. 新的通用宿主事实写入下一张不可变 card revision；皮肤决定不进入宿主卡。中央不可写时写本地 proposal，并明确 deferred，不自动提交或推送。
 
 ## 3. 收集皮肤依赖面
 

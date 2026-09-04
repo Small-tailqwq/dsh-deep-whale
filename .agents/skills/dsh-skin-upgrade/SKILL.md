@@ -1,6 +1,6 @@
 ---
 name: dsh-skin-upgrade
-description: "审计并适配 DSH Web 展示型皮肤或主题插件的宿主版本升级，覆盖官方源码契约、DOM/CSS 结构、客户端模块表、生命周期与提交型构建产物。普通服务或工具插件升级、皮肤安装切换、以及没有升级差异的单纯性能优化不使用本技能。"
+description: "审计并适配 DSH Web 展示型皮肤或主题插件的宿主版本升级，复用并补充按 exact SHA 持久化的宿主差异卡，再为当前皮肤独立建立影响矩阵；覆盖官方源码契约、DOM/CSS 结构、客户端模块表、生命周期与提交型构建产物。普通服务或工具插件升级、皮肤安装切换、以及没有升级差异的单纯性能优化不使用本技能。"
 ---
 
 # DSH Web 皮肤升级
@@ -18,17 +18,45 @@ description: "审计并适配 DSH Web 展示型皮肤或主题插件的宿主版
 2. 使用官方 `deepseek-ai/deepseek-harness` 仓库中的精确 tag 或 commit；记录解析后的完整 SHA。发布说明用于确定调查方向，源码和调用者决定兼容结论。
 3. 在独立 clone 或 detached worktree 中比较和适配。不要切换正在使用的源码 checkout，也不要把测试包 link 到用户当前 profile，除非用户明确要求运行验证。
 4. 记录皮肤基线 commit、目标 DSH commit、dirty state，以及本次是“只支持目标版本”还是“同时支持一段版本走廊”。后者必须来自用户要求或仓库支持契约，不能仅因手边有旧版源码就自行扩大。
-5. 历史适配提交只作行为与回归证据。用户要求独立适配或技能前向评测时，先在不读取目标版本答案卡、golden patch 或现成适配分支的条件下冻结审计矩阵与候选补丁，再做事后比较；评测 oracle 必须留在被测 agent 的输入之外。不要把终端或工具返回的 `git show`/`git diff` 文本当成完整文件来源：输出可能被 token/字符上限截断。读取当前文件后只应用必要 hunk；确需整文件替换时必须从未截断的文件对象读取并先核对行数与 hash。
+5. 历史适配提交只作行为与回归证据。普通工程升级允许按下文复用 Host Delta Card，但必须先从当前皮肤冻结 dependency contract keys；用户要求独立适配或技能前向评测时，在候选矩阵与补丁冻结前隐藏历史卡、golden patch 和现成适配分支，冻结后才作为 oracle 对照。不要把终端或工具返回的 `git show`/`git diff` 文本当成完整文件来源：输出可能被 token/字符上限截断。读取当前文件后只应用必要 hunk；确需整文件替换时必须从未截断的文件对象读取并先核对行数与 hash。
 6. 宿主源码 checkout 的 HEAD 只证明源树版本，不证明正在服务的运行产物版本。源码启动器可能直接加载被 Git 忽略的 workspace `lib`；依赖安装也不等于构建。真实宿主验证前按官方源码仓库的构建入口生成宿主产物，并用页面暴露的版本信息及至少一个目标版本独有的 DOM/行为锚点证明实际运行版本。同包名本地 link 改指另一个工作树时，profile 路径和启动清单包名也不能证明旧进程已换用候选 client artifact；还要核对 served revision/hash 或一个只存在于候选构建中的编译后行为。证据仍指向旧产物时停止视觉归因，按已授权的精确测试进程重启流程处理。
 7. 无法固定任一版本、运行产物或支持范围时只给风险判断，不宣称已适配。
 
-## 先生成本轮数据卡
+## 双层差异资产
 
-在修改皮肤前，按照 `contract-audit.md` 从本轮官方 base/target 源码与皮肤真实调用面现场生成升级数据卡并冻结初版。数据卡是技能本次运行的派生审计产物，不是技能随附知识：不得预填版本结论、复制历史数据卡，或先看目标版本的现成补丁再反推证据。
+升级记录分成两层，不能混写：
 
-数据卡至少记录精确版本坐标、宿主触点的基线/目标证据、皮肤调用点、变化层级、三态结论、拟采取动作与验证边界。默认放在任务临时目录或工作记录中，不进入皮肤发行包；只有用户明确要求留档时才提交到指定位置。实施中出现新证据可以追加或纠正卡片，但不能为了迎合已经写出的补丁而改写原始比较事实。
+1. **Host Delta Card**：脚手架 `.agents/knowledge/dsh-host-deltas/` 的持久化宿主事实，只写官方
+   repository、base/target 完整 SHA、Git object/blob、contract key 与
+   `changed / checked-unchanged / unknown`；不含任何皮肤补丁或视觉选择。
+2. **Skin Adoption Matrix**：当前皮肤本轮产生的影响卡，写皮肤 import/selector/owner、拟采取动作、
+   验证边界与 `受影响 / 无变化 / 未证实`。默认放当前任务忽略目录，不进入皮肤发行包。
 
-冻结门槛是“皮肤依赖清单中的每个候选触点都已有可复核证据并被归入三态之一”，不是“穷尽宿主全部 diff”。证据暂时闭合不了的行立即标为 `未证实`，记录缺口与后续验证方式；不要为了填满结论无限延长审计。冻结后保存数据卡 hash 或不可变快照，后续新发现另列增量记录，不能静默改写初版。
+B 皮肤可以服用 A 升级时证明的宿主事实，但不能继承 A 的“已适配”结论。卡片 identity 只认官方
+仓库与 exact SHA；tag/version 仅展示。已 verified 的 revision 不改写，补证或纠错新增 revision 并
+绑定上一文件 SHA-256；draft 只在首次晋升前补全。共享 store 不可写或脚手架工作树存在冲突时，把完整 card proposal 放当前皮肤
+`.agents/bridge-state/host-delta-drafts/`，最终明确报告 deferred；不要静默丢弃、自动 commit/push，
+也不要覆盖中央脏工作树。
+
+## 读取与冻结顺序
+
+1. 固定官方 base/target SHA、皮肤 commit/dirty state 与支持范围。
+2. **读取历史卡之前**，只从当前皮肤源码冻结 dependency contract keys；这是防止卡片把调查面
+   变成预写答案的边界。
+3. 读取 `.agents/knowledge/dsh-host-deltas/INDEX.md`，再用
+   `pnpm host-deltas:query -- --base <sha> --target <sha> --keys <key,key>` 只取相关事实。
+4. 对命中的每条 edge 记录 revision、file SHA-256 与 facts SHA-256；在可用官方对象库上运行
+   `pnpm host-deltas:verify-source -- --source <checkout> --base <sha> --target <sha>`。对象不符、
+   卡链断裂、反向、跨分支、缺 key 或 `unknown` 一律现场重查，不能猜成 unchanged。
+5. 把已验证宿主事实映射到当前皮肤，生成 Skin Adoption Matrix。冻结门槛是皮肤依赖清单中的
+   每个候选触点都有证据并进入三态之一，不要求穷尽宿主全部 diff；暂时闭合不了的立即标未证实。
+6. 保存 adoption 初版 hash 后才改代码。新证据写增量附录；不能迎合补丁静默改写初版。
+7. 卡里没有的通用宿主事实，从官方对象补证并形成下一 revision；皮肤特定实现只留 adoption/note。
+
+没有现成 edge 时，先用 `pnpm host-deltas:init -- --source <checkout> ...` 固定 diff inventory 和
+坐标，再填 facts、重新计算 `factsSha256`，用 `host-deltas:verify-source -- --include-draft` 核验后把
+status 从 draft 提升为 verified。schema、三态、revision 和查询规则见
+`.agents/knowledge/dsh-host-deltas/README.md`。
 
 ## 数据卡推导方法
 
