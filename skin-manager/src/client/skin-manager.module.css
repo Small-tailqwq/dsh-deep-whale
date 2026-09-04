@@ -203,7 +203,8 @@
 
 .toggleRow,
 .selectRow,
-.sliderRow {
+.sliderRow,
+.colorRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -213,7 +214,8 @@
 
 .toggleRow > span,
 .selectRow > span,
-.sliderRow > span {
+.sliderRow > span,
+.colorRow > span {
   display: grid;
   gap: 2px;
 }
@@ -221,6 +223,8 @@
 .toggleRow small,
 .selectRow small,
 .sliderRow small,
+.colorRow small,
+.checkboxGroup small,
 .hint {
   color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
@@ -278,7 +282,107 @@
  * visually disabled but keep their value for when the dependency is toggled off. */
 .selectRow select:disabled,
 .sliderRow input:disabled,
+.colorRow input:disabled,
 .toggleRow input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.colorControl {
+  display: flex !important;
+  flex: none;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.colorControl code {
+  min-width: 7ch;
+  color: var(--dsw-alias-label-secondary);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.colorControl input[type='color'] {
+  appearance: none;
+  box-sizing: border-box;
+  width: 38px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.colorWell {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--dsw-alias-brand-primary);
+  border-radius: 2px;
+  background: var(--dsw-specific-input-major);
+  box-shadow:
+    inset 1px 1px 0 rgb(255 255 255 / 70%),
+    inset -1px -1px 0 rgb(0 0 0 / 24%),
+    2px 2px 0 rgb(81 39 255 / 28%);
+}
+
+.colorWell:focus-within {
+  outline: 1px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}
+
+.colorControl input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.colorControl input[type='color']::-webkit-color-swatch {
+  border: 1px solid rgb(0 0 0 / 42%);
+  border-radius: 0;
+}
+
+.colorControl input[type='color']::-moz-color-swatch {
+  border: 1px solid rgb(0 0 0 / 42%);
+  border-radius: 0;
+}
+
+.checkboxGroup {
+  display: grid;
+  gap: 8px;
+  margin-left: 12px;
+  padding: 10px 12px 12px;
+  border-left: 2px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.checkboxGroupHeading {
+  display: grid;
+  gap: 2px;
+}
+
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px 12px;
+}
+
+.checkboxOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  cursor: pointer;
+}
+
+.checkboxOption input {
+  inline-size: 16px;
+  block-size: 16px;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+  cursor: pointer;
+}
+
+.checkboxOption input:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
