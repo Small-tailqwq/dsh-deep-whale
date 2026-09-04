@@ -5,7 +5,7 @@
 - 从当前 Web profile 的依赖中发现所有带有效 `skin.json` 的皮肤；
 - 在官方默认与任意已安装皮肤之间互斥切换；
 - 启动时兜底检测 profile→home 两层的有效启停状态；若两套及以上皮肤会同时启用，原子回退到官方默认；
-- 渲染活动皮肤通过 v1 协议主动暴露的配置项；
+- 渲染活动皮肤通过 v1 协议主动暴露的开关、下拉、复选组、滑杆、颜色与可见时段配置项；
 - 通用的“不那么二次元模式”：按本机时间设置多个显示或隐藏时段。
 
 与皮肤一起，从仓库一行安装（需要 pnpm ≥ 9，`#path:` 子目录语法）：
@@ -31,6 +31,15 @@ const dispose = exposeSkinCustomization({
   title: 'Deepcel',
   settings: [
     { key: 'artwork', type: 'boolean', label: '显示立绘', defaultValue: true },
+    { key: 'accent', type: 'color', label: '强调色', defaultValue: '#ff536f' },
+    {
+      key: 'accentTargets',
+      type: 'checkbox-group',
+      label: '强调目标',
+      defaultValue: [],
+      visibleWhen: { key: 'artwork', values: [true] },
+      options: [{ value: 'title', label: '标题' }, { value: 'frame', label: '边框' }],
+    },
     {
       key: 'sfwMode',
       type: 'visibility-schedule',
@@ -44,5 +53,7 @@ const dispose = exposeSkinCustomization({
   },
 })
 ```
+
+`visibleWhen` 按另一设置的当前值决定是否渲染依赖项；`legacyValue` 可在新键尚未写入时把旧键值映射为新默认值，用于无损拆分已有设置。复选组的值按声明中的 option 顺序保存为字符串数组。
 
 皮肤必须持有并清理自己的 DOM、CSS、observer、listener 与 timer；管理器只处理声明、持久化和时间规则，不了解皮肤内部选择器。`exposeSkinCustomization()` 的返回值应注册到皮肤的 Cordis effect disposer。

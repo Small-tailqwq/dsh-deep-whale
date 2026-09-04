@@ -7,6 +7,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { basename, dirname, join as joinPath, relative as relativePath, resolve as resolvePath } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget, type SkinUpdateState, type SkinVersionCommit, type SkinVersionInfo, type SkinVersionSource } from './contract.ts'
 
@@ -57,10 +58,34 @@ export function resolveProfilePatch(env: NodeJS.ProcessEnv = process.env, cwd = 
   return joinPath(profilesDir, profile, 'cordis.patch.yml')
 }
 
+/** Resolve the running profile from the root Loader base before using process-level fallbacks. */
+export function resolveRuntimeProfilePatch(
+  baseUrl: string | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+  cwd = process.cwd(),
+): string {
+  if (baseUrl !== undefined) {
+    try {
+      const baseDir = resolvePath(fileURLToPath(baseUrl))
+      if (basename(dirname(baseDir)) === 'profiles') {
+        const profile = basename(baseDir)
+        if (!/^[a-zA-Z0-9._-]+$/.test(profile)) throw new Error('invalid-profile-name')
+        return joinPath(baseDir, 'cordis.patch.yml')
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === 'invalid-profile-name') throw error
+    }
+  }
+  return resolveProfilePatch(env, cwd)
+}
+
+function patchTargetsForProfile(profilePatch: string): string[] {
+  return [profilePatch, joinPath(dirname(dirname(dirname(profilePatch))), 'cordis.patch.yml')]
+}
+
 /** Both live user layers must agree because the home layer has higher priority. */
 export function resolvePatchTargets(env: NodeJS.ProcessEnv = process.env, cwd = process.cwd()): string[] {
-  const profilePatch = resolveProfilePatch(env, cwd)
-  return [profilePatch, joinPath(dirname(dirname(dirname(profilePatch))), 'cordis.patch.yml')]
+  return patchTargetsForProfile(resolveProfilePatch(env, cwd))
 }
 
 function packageNames(manifestPath: string): string[] {
@@ -861,12 +886,19 @@ export function makeSkinManagerRoute(
 
 /** Register the switching route with lifecycle-owned cleanup. */
 export function apply(ctx: HostContext): void {
+  const profilePatch = resolveRuntimeProfilePatch(ctx.baseUrl)
+  const patchPaths = patchTargetsForProfile(profilePatch)
+  const catalog = (): SkinCatalogEntry[] => discoverInstalledSkins(profilePatch)
   ctx.effect(() => {
     try {
-      ensureSafeInitialState()
+      ensureSafeInitialState(patchPaths, catalog())
     } catch (error) {
       console.error('[skin-manager] failed to enforce startup mutual exclusion', error)
     }
-    return ctx.webServer.register(makeSkinManagerRoute(undefined, undefined, () => discoverSkinDirectories()))
+    return ctx.webServer.register(makeSkinManagerRoute(
+      catalog,
+      (target, installed) => useSkin(target, patchPaths, installed),
+      () => discoverSkinDirectories(profilePatch),
+    ))
   }, 'ui-skin-manager: startup guard and catalog/activation route')
 }

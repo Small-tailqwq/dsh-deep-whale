@@ -1,5 +1,7 @@
 # Repository guidance
 
+<!-- dsh-agent-scaffold:v1 -->
+
 ## Code Review Rules
 
 ### Skin lifecycle
@@ -24,7 +26,8 @@
   - `skin.json`：皮肤清单（id/name/package/wiring/bodyAttr/preview/order）
   - `cordis.patch.yml`：bundle patch（`dsh.bundle.patch`，insert 皮肤行）
   - `NOTICE` / `LICENSE`：署名链与许可（CC BY-NC-SA 4.0）
-- `.agents/skills/`：`dsh-skin-install`（安装/切换/更新）、`dsh-plugin-verify`（三层验证）
+- `.agents/skills/`：仓库专属 `dsh-skin-install`；镜像的 `dsh-skin-upgrade`；本机桥接的
+  `dsh-note-maintainer` / `dsh-plugin-verify`。实际声明见 `.agents/dsh-scaffold.json`。
 - `AGENTS.md`：本文件
 
 ## Common issues & fixes（常见问题速查）
@@ -50,7 +53,7 @@
 
 ## Agent Notes
 
-- 皮肤开发/优化过程以 note 形式记录，规范与格式见脚手架仓库 `.agents/notes/README.md`（Problem/Decision/Alternatives considered/Consequences/Related 结构、闭集分类、生命周期）。
-- **权威副本与唯一维护地在脚手架仓库** `Small-tailqwq/dsh-skin-template`（`.agents/notes/implemented/<分类>/`），由 `dsh-note-maintainer` 技能在会话收尾时增/改；本仓库**不提交笔记**。
-- **共享方式**：本仓库 `.agents/notes/` 是指向脚手架 `.agents/notes/` 的目录 junction（Windows），已加入 `.gitignore`——clone 皮肤的用户不会拿到笔记，开发会话里两边经验实时互通（皮肤修复与皮肤创建的经验共通）。
-- 分类：compatibility（rc 适配）/ performance / stacking / install / process / skin。
+- 开始非平凡诊断前，先在 `.agents/notes/INDEX.md` 按症状/scope/contract key 渐进检索，只读命中的少量 note；宿主升级调用 `dsh-skin-upgrade`，先冻结当前皮肤依赖 key，再查 `.agents/knowledge/dsh-host-deltas/INDEX.md`。
+- **权威副本与唯一维护地在脚手架仓库** `Small-tailqwq/dsh-skin-template`；本仓库不提交共享 Note/Card。皮肤源码、`lib` 与 `skin.build.json` 作为本仓库发布提交，知识变更在脚手架另行提交，用 Related/commit SHA 互链。
+- 每次非平凡修复、结构/流程变化或宿主升级收尾，必须调用 `dsh-note-maintainer` 并明确输出 `Agent Notes: 增 / 改 / 不记 / deferred`。Junction 可读不等于中央可写；不可写或中央文件冲突时把完整草稿写入本地忽略的 `.agents/bridge-state/`，不能静默漏记。
+- `.agents/dsh-scaffold.json` 是 tracked bridge 清单；本机运行脚手架的 `pnpm agents:bridge -- connect/doctor --repo <本仓库>` 建立逐项链接。禁止链接整个 `.agents/skills`，以保留本仓库场景版 install。

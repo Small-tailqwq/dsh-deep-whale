@@ -19,6 +19,18 @@ export interface VisibilitySchedule {
   ranges: TimeRange[]
 }
 
+export type SkinConditionValue = boolean | string | number
+
+export interface SkinSettingCondition {
+  key: string
+  values: SkinConditionValue[]
+}
+
+export interface LegacySettingValue<T> {
+  key: string
+  map: Record<string, T>
+}
+
 /**
  * Every `*En` field is an optional English variant of its sibling: the
  * manager shows it while the host UI language is English and falls back to
@@ -34,6 +46,10 @@ interface SettingBase<T> {
   defaultValue: T
   /** When this boolean setting key is true, the control becomes disabled. */
   disabledWhen?: string
+  /** Only render this control while the referenced value matches one of these values. */
+  visibleWhen?: SkinSettingCondition
+  /** Use a mapped legacy key only while this setting has no stored value of its own. */
+  legacyValue?: LegacySettingValue<T>
 }
 
 export interface BooleanSetting extends SettingBase<boolean> {
@@ -59,12 +75,21 @@ export interface RangeSetting extends SettingBase<number> {
   unit?: string
 }
 
+export interface ColorSetting extends SettingBase<string> {
+  type: 'color'
+}
+
+export interface CheckboxGroupSetting extends SettingBase<string[]> {
+  type: 'checkbox-group'
+  options: SelectOption[]
+}
+
 export interface VisibilityScheduleSetting extends SettingBase<VisibilitySchedule> {
   type: 'visibility-schedule'
 }
 
-export type SkinSetting = BooleanSetting | SelectSetting | RangeSetting | VisibilityScheduleSetting
-export type SkinSettingValue = boolean | string | number | VisibilitySchedule
+export type SkinSetting = BooleanSetting | SelectSetting | RangeSetting | ColorSetting | CheckboxGroupSetting | VisibilityScheduleSetting
+export type SkinSettingValue = boolean | string | number | string[] | VisibilitySchedule
 export type SkinValues = Record<string, SkinSettingValue>
 
 export interface SkinCustomizationState {

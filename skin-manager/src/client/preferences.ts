@@ -55,7 +55,30 @@ function normalizeSetting(setting: SkinSetting, value: unknown): SkinSettingValu
     const max = setting.max
     return Math.min(max, Math.max(min, numeric))
   }
+  if (setting.type === 'color') {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+      ? value.toLowerCase()
+      : setting.defaultValue
+  }
+  if (setting.type === 'checkbox-group') {
+    const selected = new Set(Array.isArray(value) ? value : setting.defaultValue)
+    return setting.options
+      .map(option => option.value)
+      .filter(option => selected.has(option))
+  }
   return normalizeVisibilitySchedule(value, setting.defaultValue)
+}
+
+function settingSourceValue(setting: SkinSetting, source: Record<string, unknown>): unknown {
+  if (Object.hasOwn(source, setting.key)) return source[setting.key]
+  const legacy = setting.legacyValue
+  if (legacy === undefined) return undefined
+  const legacyValue = source[legacy.key]
+  if (typeof legacyValue !== 'boolean' && typeof legacyValue !== 'string' && typeof legacyValue !== 'number') {
+    return undefined
+  }
+  const key = String(legacyValue)
+  return Object.hasOwn(legacy.map, key) ? legacy.map[key] : undefined
 }
 
 export function normalizeSkinValues(
@@ -65,7 +88,7 @@ export function normalizeSkinValues(
   const source = object(value)
   return Object.fromEntries(definition.settings.map(setting => [
     setting.key,
-    normalizeSetting(setting, source[setting.key]),
+    normalizeSetting(setting, settingSourceValue(setting, source)),
   ]))
 }
 

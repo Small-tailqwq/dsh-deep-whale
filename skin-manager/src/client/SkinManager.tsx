@@ -220,6 +220,46 @@ function RangeEditor({ setting, label, description, value, disabled = false, onC
   )
 }
 
+function CheckboxGroupEditor({ setting, label, description, value, disabled = false, onChange }: {
+  setting: Extract<SkinSetting, { type: 'checkbox-group' }>
+  label: string
+  description?: string
+  value: string[]
+  disabled?: boolean
+  onChange(value: string[]): void
+}) {
+  const lang = useUiLang()
+  const selected = new Set(value)
+  const update = (option: string, checked: boolean): void => {
+    if (checked) selected.add(option)
+    else selected.delete(option)
+    onChange(setting.options
+      .map(item => item.value)
+      .filter(item => selected.has(item)))
+  }
+  return (
+    <div className={css.checkboxGroup}>
+      <span className={css.checkboxGroupHeading}>
+        <span>{label}</span>
+        {description && <small>{description}</small>}
+      </span>
+      <div className={css.checkboxGrid} role="group" aria-label={label}>
+        {setting.options.map(option => (
+          <label className={css.checkboxOption} key={option.value}>
+            <input
+              type="checkbox"
+              checked={selected.has(option.value)}
+              disabled={disabled}
+              onChange={event => update(option.value, event.currentTarget.checked)}
+            />
+            <span>{optionLabel(option, lang)}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function SettingEditor({ setting, value, disabled = false, onChange }: {
   setting: SkinSetting
   value: SkinSettingValue
@@ -248,7 +288,48 @@ function SettingEditor({ setting, value, disabled = false, onChange }: {
   if (setting.type === 'range') {
     return <RangeEditor setting={setting} label={label} description={description} value={value as number} disabled={disabled} onChange={onChange} />
   }
+  if (setting.type === 'color') {
+    return (
+      <label className={css.colorRow}>
+        <span>
+          <span>{label}</span>
+          {description && <small>{description}</small>}
+        </span>
+        <span className={css.colorControl}>
+          <code>{String(value).toUpperCase()}</code>
+          <span className={css.colorWell}>
+            <input
+              type="color"
+              value={value as string}
+              disabled={disabled}
+              aria-label={label}
+              onChange={event => onChange(event.currentTarget.value)}
+            />
+          </span>
+        </span>
+      </label>
+    )
+  }
+  if (setting.type === 'checkbox-group') {
+    return (
+      <CheckboxGroupEditor
+        setting={setting}
+        label={label}
+        description={description}
+        value={value as string[]}
+        disabled={disabled}
+        onChange={onChange}
+      />
+    )
+  }
   return <ScheduleEditor setting={setting} value={value as VisibilitySchedule} onChange={onChange} />
+}
+
+function settingVisible(setting: SkinSetting, values: Record<string, SkinSettingValue>): boolean {
+  const condition = setting.visibleWhen
+  if (condition === undefined) return true
+  const value = values[condition.key]
+  return condition.values.some(candidate => candidate === value)
 }
 
 function CustomizationCard({ definition, registry }: {
@@ -261,6 +342,7 @@ function CustomizationCard({ definition, registry }: {
     <section className={css.card} data-skin-customization={definition.skinId}>
       <h3>{definitionTitle(definition, lang)}</h3>
       {definition.settings.map(setting => {
+        if (!settingVisible(setting, values)) return null
         const disabled = setting.disabledWhen !== undefined && values[setting.disabledWhen] === true
         return (
           <SettingEditor

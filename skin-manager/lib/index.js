@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 //#region src/contract.ts
 /** Same-origin host route used for catalog discovery and activation. */
@@ -26,10 +27,26 @@ function resolveProfilePatch(env = process.env, cwd = process.cwd()) {
 	if (!/^[a-zA-Z0-9._-]+$/.test(profile)) throw new Error("invalid-profile-name");
 	return join(profilesDir, profile, "cordis.patch.yml");
 }
+/** Resolve the running profile from the root Loader base before using process-level fallbacks. */
+function resolveRuntimeProfilePatch(baseUrl, env = process.env, cwd = process.cwd()) {
+	if (baseUrl !== void 0) try {
+		const baseDir = resolve(fileURLToPath(baseUrl));
+		if (basename(dirname(baseDir)) === "profiles") {
+			const profile = basename(baseDir);
+			if (!/^[a-zA-Z0-9._-]+$/.test(profile)) throw new Error("invalid-profile-name");
+			return join(baseDir, "cordis.patch.yml");
+		}
+	} catch (error) {
+		if (error instanceof Error && error.message === "invalid-profile-name") throw error;
+	}
+	return resolveProfilePatch(env, cwd);
+}
+function patchTargetsForProfile(profilePatch) {
+	return [profilePatch, join(dirname(dirname(dirname(profilePatch))), "cordis.patch.yml")];
+}
 /** Both live user layers must agree because the home layer has higher priority. */
 function resolvePatchTargets(env = process.env, cwd = process.cwd()) {
-	const profilePatch = resolveProfilePatch(env, cwd);
-	return [profilePatch, join(dirname(dirname(dirname(profilePatch))), "cordis.patch.yml")];
+	return patchTargetsForProfile(resolveProfilePatch(env, cwd));
 }
 function packageNames(manifestPath) {
 	try {
@@ -738,14 +755,17 @@ function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), 
 }
 /** Register the switching route with lifecycle-owned cleanup. */
 function apply(ctx) {
+	const profilePatch = resolveRuntimeProfilePatch(ctx.baseUrl);
+	const patchPaths = patchTargetsForProfile(profilePatch);
+	const catalog = () => discoverInstalledSkins(profilePatch);
 	ctx.effect(() => {
 		try {
-			ensureSafeInitialState();
+			ensureSafeInitialState(patchPaths, catalog());
 		} catch (error) {
 			console.error("[skin-manager] failed to enforce startup mutual exclusion", error);
 		}
-		return ctx.webServer.register(makeSkinManagerRoute(void 0, void 0, () => discoverSkinDirectories()));
+		return ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch)));
 	}, "ui-skin-manager: startup guard and catalog/activation route");
 }
 //#endregion
-export { MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, apply, classifyUpdate, computeSkinFingerprint, discoverInstalledSkins, discoverSkinDirectories, enabledSkins, ensureSafeInitialState, exposeSkinCustomization, inject, inspectInstalledVersion, inspectSkinVersion, makeSkinManagerRoute, name, parseGitHubRemote, readSkinBuildMeta, readSkinStates, renderManagedBlock, repositoryRelativePath, resolvePatchTargets, resolveProfilePatch, stripManagedBlock, switchPatch, useSkin };
+export { MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, apply, classifyUpdate, computeSkinFingerprint, discoverInstalledSkins, discoverSkinDirectories, enabledSkins, ensureSafeInitialState, exposeSkinCustomization, inject, inspectInstalledVersion, inspectSkinVersion, makeSkinManagerRoute, name, parseGitHubRemote, readSkinBuildMeta, readSkinStates, renderManagedBlock, repositoryRelativePath, resolvePatchTargets, resolveProfilePatch, resolveRuntimeProfilePatch, stripManagedBlock, switchPatch, useSkin };
