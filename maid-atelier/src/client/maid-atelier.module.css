@@ -3632,9 +3632,40 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-question-key] footer > :la
   color: #e7ecf7;
 }
 
-/* Todo is a separate input-dock surface. Give it an explicit contrast pair
+/* The frame reaches 20px above the card. Reserve that space only when a
+   dock panel is present; the host queue's negative margin otherwise tucks
+   its last row under the bow. Capsule mode has no protruding ornament. */
+body[data-dsh-maid-atelier]
+  [data-composer-seat]:not([data-maid-composer-capsule]):has(
+    [data-goal-bar], [data-queue-dock], [data-testid='todo-panel']
+  ) [data-composer-card] {
+  margin-top: 20px;
+}
+
+body[data-dsh-maid-atelier] [data-queue-dock] {
+  margin-bottom: 0;
+}
+
+body[data-dsh-maid-atelier] [data-queue-dock] > div {
+  border: 0.5px solid;
+  border-radius: 12px;
+}
+
+/* The standalone queue has its own complete border. */
+body[data-dsh-maid-atelier] [data-queue-dock] > div::after {
+  border: none;
+}
+
+body[data-dsh-maid-atelier] :is([data-goal-bar], [data-queue-dock]) {
+  --dsw-alias-label-primary-dimmed: #344b78;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-goal-bar], [data-queue-dock]) {
+  --dsw-alias-label-primary-dimmed: #d7dfef;
+}
+/* Input-dock panels share the Todo palette. Give them an explicit contrast pair
    so its summary and expanded items stay readable over character artwork. */
-body[data-dsh-maid-atelier] [data-testid='todo-panel'] {
+body[data-dsh-maid-atelier] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) {
   --dsw-alias-label-primary: #172347;
   --dsw-alias-label-secondary: #344b78;
   --dsw-alias-label-tertiary: #52658c;
@@ -3646,25 +3677,25 @@ body[data-dsh-maid-atelier] [data-testid='todo-panel'] {
   backdrop-filter: blur(14px) saturate(0.9);
 }
 
-body[data-dsh-maid-atelier] [data-testid='todo-panel'] button {
+body[data-dsh-maid-atelier] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) button {
   color: #172347;
   text-shadow: none;
 }
 
-body[data-dsh-maid-atelier] [data-testid='todo-panel'] [class*='header'],
-body[data-dsh-maid-atelier] [data-testid='todo-panel'] [class*='header'] :is(span, button) {
+body[data-dsh-maid-atelier] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) [class*='header'],
+body[data-dsh-maid-atelier] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) [class*='header'] :is(span, button) {
   color: #172347;
   text-shadow: none;
 }
 
-body[data-dsh-maid-atelier] [data-testid='todo-panel'] [class*='header']:focus-visible {
+body[data-dsh-maid-atelier] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) [class*='header']:focus-visible {
   border-radius: 6px;
   outline: 1px solid rgba(190, 153, 82, 0.78);
   outline-offset: 2px;
   box-shadow: 0 0 0 2px rgba(255, 253, 248, 0.76);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-testid='todo-panel'] {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) {
   --dsw-alias-label-primary: #f4ead3;
   --dsw-alias-label-secondary: #d7dfef;
   --dsw-alias-label-tertiary: #afbddb;
@@ -3675,16 +3706,16 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-testid='todo-panel'] {
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.3), inset 0 1px rgba(255, 255, 255, 0.07);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-testid='todo-panel'] button {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) button {
   color: #f4ead3;
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-testid='todo-panel'] [class*='header'],
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-testid='todo-panel'] [class*='header'] :is(span, button) {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) [class*='header'],
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) [class*='header'] :is(span, button) {
   color: #f4ead3;
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-testid='todo-panel'] [class*='header']:focus-visible {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], [data-goal-bar] > div, [data-queue-dock] > div) [class*='header']:focus-visible {
   box-shadow: 0 0 0 2px rgba(7, 18, 48, 0.72);
 }
 
