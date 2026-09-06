@@ -303,47 +303,156 @@
   font-size: 12px;
 }
 
-.colorControl input[type='color'] {
-  appearance: none;
+.colorButton {
   box-sizing: border-box;
-  width: 38px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  width: 44px;
+  height: 30px;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-specific-input-major);
   cursor: pointer;
 }
 
-.colorWell {
-  display: inline-flex;
-  padding: 3px;
+.colorButton:hover:not(:disabled),
+.colorButton[aria-expanded='true'] {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.colorButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.colorSwatch {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgb(0 0 0 / 36%);
+}
+
+.colorPopover {
+  position: fixed;
+  inset: auto;
+  display: none;
+  box-sizing: border-box;
+  width: 264px;
+  margin: 0;
+  padding: 10px;
+  color: var(--dsw-alias-label-primary);
   border: 1px solid var(--dsw-alias-brand-primary);
-  border-radius: 2px;
-  background: var(--dsw-specific-input-major);
-  box-shadow:
-    inset 1px 1px 0 rgb(255 255 255 / 70%),
-    inset -1px -1px 0 rgb(0 0 0 / 24%),
-    2px 2px 0 rgb(81 39 255 / 28%);
-}
-
-.colorWell:focus-within {
-  outline: 1px solid var(--dsw-alias-brand-primary);
+  border-radius: 6px;
+  outline: 1px solid var(--dsw-alias-border-l2);
   outline-offset: 2px;
+  background: var(--dsw-alias-bg-layer-1);
 }
 
-.colorControl input[type='color']::-webkit-color-swatch-wrapper {
-  padding: 2px;
+.colorPopover:popover-open {
+  display: grid;
+  gap: 10px;
 }
 
-.colorControl input[type='color']::-webkit-color-swatch {
-  border: 1px solid rgb(0 0 0 / 42%);
-  border-radius: 0;
+.colorPopover::backdrop {
+  background: transparent;
 }
 
-.colorControl input[type='color']::-moz-color-swatch {
-  border: 1px solid rgb(0 0 0 / 42%);
-  border-radius: 0;
+.colorPalette {
+  position: relative;
+  height: 136px;
+  overflow: hidden;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background-image: linear-gradient(to bottom, transparent, #000);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.colorPalette::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, #fff, transparent);
+  content: '';
+}
+
+.colorPaletteMarker {
+  position: absolute;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 65%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.colorHueRow {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.colorPreview {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+}
+
+.colorHueRow input[type='range'] {
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  cursor: pointer;
+}
+
+.colorHueRow input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 45%);
+}
+
+.colorHueRow input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 45%);
+}
+
+.colorRgb {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.colorRgb label {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.colorRgb input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 30px;
+  padding-inline: 6px;
+  color: var(--dsw-alias-label-primary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  background: var(--dsw-specific-input-major);
+  text-align: center;
 }
 
 .checkboxGroup {

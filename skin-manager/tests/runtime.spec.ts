@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   exposeSkinCustomization,
+  SKIN_CUSTOMIZATION_EVENTS,
+  SKIN_CUSTOMIZATION_PROTOCOL,
   SkinAttributeProjector,
+  type SkinCustomizationRegistration,
   type SkinCustomizationState,
 } from '../src/protocol.ts'
 import { PreferencesStore } from '../src/client/preferences.ts'
@@ -38,6 +41,53 @@ describe('customization registry', () => {
     expect(registry.getSnapshot().definitions.map(item => item.skinId)).toEqual(['deepcel'])
     expect(applied.at(-1)?.visibility.sfw).toBe(false)
     disconnect()
+    expect(registry.getSnapshot().definitions).toEqual([])
+    expect(applied.at(-1)).toBeNull()
+    registry.dispose()
+  })
+
+  it('keeps v2 declarations invisible to a v1 manager while the current manager discovers them', () => {
+    let legacyRegistrations = 0
+    const legacyListener = (): void => { legacyRegistrations += 1 }
+    window.addEventListener(SKIN_CUSTOMIZATION_EVENTS[1].register, legacyListener)
+    const disconnect = exposeSkinCustomization({
+      protocol: SKIN_CUSTOMIZATION_PROTOCOL,
+      skinId: 'next-skin',
+      title: 'Next skin',
+      settings: [{ key: 'accent', type: 'color', label: 'Accent', defaultValue: '#123456' }],
+      apply() {},
+    })
+    const registry = new SkinCustomizationRegistry(new PreferencesStore(new MemoryStorage(), window), window)
+    expect(legacyRegistrations).toBe(0)
+    expect(registry.getSnapshot().definitions.map(item => item.skinId)).toEqual(['next-skin'])
+    disconnect()
+    registry.dispose()
+    window.removeEventListener(SKIN_CUSTOMIZATION_EVENTS[1].register, legacyListener)
+  })
+
+  it('accepts the complete published v1 schema and applies its values', () => {
+    const applied: Array<SkinCustomizationState | null> = []
+    const registry = new SkinCustomizationRegistry(new PreferencesStore(new MemoryStorage(), window), window)
+    const registration: SkinCustomizationRegistration = {
+      token: {},
+      definition: {
+        protocol: 1,
+        skinId: 'legacy-skin',
+        title: 'Legacy skin',
+        settings: [
+          { key: 'enabled', type: 'boolean', label: 'Enabled', defaultValue: true },
+          { key: 'accent', type: 'color', label: 'Accent', defaultValue: '#123456', visibleWhen: { key: 'enabled', values: [true] } },
+          { key: 'parts', type: 'checkbox-group', label: 'Parts', defaultValue: ['left'], options: [{ value: 'left', label: 'Left' }], legacyValue: { key: 'oldParts', map: { both: ['left'] } } },
+        ],
+        apply(state: SkinCustomizationState | null) { applied.push(state) },
+      },
+    }
+    window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[1].register, { detail: registration }))
+    expect(registry.getSnapshot().definitions).toEqual([registration.definition])
+    expect(applied.at(-1)?.values).toEqual({ enabled: true, accent: '#123456', parts: ['left'] })
+    registry.set(registration.definition, 'accent', '#abcdef')
+    expect(applied.at(-1)?.values.accent).toBe('#abcdef')
+    window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[1].unregister, { detail: registration }))
     expect(registry.getSnapshot().definitions).toEqual([])
     expect(applied.at(-1)).toBeNull()
     registry.dispose()

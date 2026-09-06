@@ -5,7 +5,7 @@
 - 从当前 Web profile 的依赖中发现所有带有效 `skin.json` 的皮肤；
 - 在官方默认与任意已安装皮肤之间互斥切换；
 - 启动时兜底检测 profile→home 两层的有效启停状态；若两套及以上皮肤会同时启用，原子回退到官方默认；
-- 渲染活动皮肤通过 v1 协议主动暴露的开关、下拉、复选组、滑杆、颜色与可见时段配置项；
+- 渲染活动皮肤通过版本化协议主动暴露的开关、下拉、复选组、滑杆、颜色与可见时段配置项；当前声明使用 v2，manager 仍兼容已发布的完整 v1 声明，包括颜色、复选组、条件显示与旧值映射；
 - 通用的“不那么二次元模式”：按本机时间设置多个显示或隐藏时段。
 
 与皮肤一起，从仓库一行安装（需要 pnpm ≥ 9，`#path:` 子目录语法）：
@@ -23,10 +23,13 @@ PowerShell 版本（`#` 是注释起始，spec 必须单引号包裹）见仓库
 激活管理只要求皮肤包导出有效的 `skin.json`，其中 `package` 必须等于实际包名，且包含 `id`、`bodyAttr` 和 `wiring.id`。需要详细配置的皮肤再从自己的 client 入口调用 `exposeSkinCustomization()`：
 
 ```ts
-import { exposeSkinCustomization } from '@dsh-external/dsh-client-ui-skin-deep-whale-manager/protocol'
+import {
+  exposeSkinCustomization,
+  SKIN_CUSTOMIZATION_PROTOCOL,
+} from '@dsh-external/dsh-client-ui-skin-deep-whale-manager/protocol'
 
 const dispose = exposeSkinCustomization({
-  protocol: 1,
+  protocol: SKIN_CUSTOMIZATION_PROTOCOL,
   skinId: 'deepcel',
   title: 'Deepcel',
   settings: [
@@ -54,6 +57,6 @@ const dispose = exposeSkinCustomization({
 })
 ```
 
-`visibleWhen` 按另一设置的当前值决定是否渲染依赖项；`legacyValue` 可在新键尚未写入时把旧键值映射为新默认值，用于无损拆分已有设置。复选组的值按声明中的 option 顺序保存为字符串数组。
+`visibleWhen` 按另一设置的当前值决定是否渲染依赖项；`legacyValue` 可在新键尚未写入时把旧键值映射为新默认值，用于无损拆分已有设置。复选组的值按声明中的 option 顺序保存为字符串数组。颜色设置由 manager 自绘带完整边框的色域、色相与 RGB 弹层，不依赖无法被页面样式控制的浏览器原生取色弹窗。
 
 皮肤必须持有并清理自己的 DOM、CSS、observer、listener 与 timer；管理器只处理声明、持久化和时间规则，不了解皮肤内部选择器。`exposeSkinCustomization()` 的返回值应注册到皮肤的 Cordis effect disposer。

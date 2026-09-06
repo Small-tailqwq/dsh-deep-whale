@@ -1,4 +1,4 @@
-import { SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SkinAttributeProjector, exposeSkinCustomization } from "./protocol.js";
+import { LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_EVENTS, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SkinAttributeProjector, exposeSkinCustomization } from "./protocol.js";
 import { createRequire } from "node:module";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -768,4 +768,4 @@ function apply(ctx) {
 	}, "ui-skin-manager: startup guard and catalog/activation route");
 }
 //#endregion
-export { MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, apply, classifyUpdate, computeSkinFingerprint, discoverInstalledSkins, discoverSkinDirectories, enabledSkins, ensureSafeInitialState, exposeSkinCustomization, inject, inspectInstalledVersion, inspectSkinVersion, makeSkinManagerRoute, name, parseGitHubRemote, readSkinBuildMeta, readSkinStates, renderManagedBlock, repositoryRelativePath, resolvePatchTargets, resolveProfilePatch, resolveRuntimeProfilePatch, stripManagedBlock, switchPatch, useSkin };
+export { LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_EVENTS, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, apply, classifyUpdate, computeSkinFingerprint, discoverInstalledSkins, discoverSkinDirectories, enabledSkins, ensureSafeInitialState, exposeSkinCustomization, inject, inspectInstalledVersion, inspectSkinVersion, makeSkinManagerRoute, name, parseGitHubRemote, readSkinBuildMeta, readSkinStates, renderManagedBlock, repositoryRelativePath, resolvePatchTargets, resolveProfilePatch, resolveRuntimeProfilePatch, stripManagedBlock, switchPatch, useSkin };

@@ -3,25 +3,41 @@
 * Stable browser seam between the built-in manager and independently bundled
 * skins. A skin declares controls and owns every side effect produced by apply().
 */
-const SKIN_CUSTOMIZATION_PROTOCOL = 1;
-const SKIN_CUSTOMIZATION_REGISTER_EVENT = "dsh:skin-customization-register-v1";
-const SKIN_CUSTOMIZATION_UNREGISTER_EVENT = "dsh:skin-customization-unregister-v1";
-const SKIN_CUSTOMIZATION_READY_EVENT = "dsh:skin-customization-ready-v1";
+const LEGACY_SKIN_CUSTOMIZATION_PROTOCOL = 1;
+const SKIN_CUSTOMIZATION_PROTOCOL = 2;
+const SKIN_CUSTOMIZATION_EVENTS = {
+	[1]: {
+		register: "dsh:skin-customization-register-v1",
+		unregister: "dsh:skin-customization-unregister-v1",
+		ready: "dsh:skin-customization-ready-v1"
+	},
+	[2]: {
+		register: "dsh:skin-customization-register-v2",
+		unregister: "dsh:skin-customization-unregister-v2",
+		ready: "dsh:skin-customization-ready-v2"
+	}
+};
+const SKIN_CUSTOMIZATION_REGISTER_EVENT = SKIN_CUSTOMIZATION_EVENTS[2].register;
+const SKIN_CUSTOMIZATION_UNREGISTER_EVENT = SKIN_CUSTOMIZATION_EVENTS[2].unregister;
+const SKIN_CUSTOMIZATION_READY_EVENT = SKIN_CUSTOMIZATION_EVENTS[2].ready;
 /**
 * Expose one skin definition without a runtime dependency on the manager.
 * The ready handshake makes load order and manager hot reload irrelevant.
 */
 function exposeSkinCustomization(definition, target = window) {
 	const token = {};
-	const register = () => target.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_REGISTER_EVENT, { detail: {
-		token,
-		definition
-	} }));
-	target.addEventListener(SKIN_CUSTOMIZATION_READY_EVENT, register);
+	const events = SKIN_CUSTOMIZATION_EVENTS[definition.protocol];
+	const register = () => {
+		target.dispatchEvent(new CustomEvent(events.register, { detail: {
+			token,
+			definition
+		} }));
+	};
+	target.addEventListener(events.ready, register);
 	register();
 	return () => {
-		target.removeEventListener(SKIN_CUSTOMIZATION_READY_EVENT, register);
-		target.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_UNREGISTER_EVENT, { detail: {
+		target.removeEventListener(events.ready, register);
+		target.dispatchEvent(new CustomEvent(events.unregister, { detail: {
 			token,
 			definition
 		} }));
@@ -61,4 +77,4 @@ var SkinAttributeProjector = class {
 	}
 };
 //#endregion
-export { SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SkinAttributeProjector, exposeSkinCustomization };
+export { LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_EVENTS, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SkinAttributeProjector, exposeSkinCustomization };

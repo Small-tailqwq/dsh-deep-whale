@@ -1,8 +1,9 @@
 import {
-  SKIN_CUSTOMIZATION_READY_EVENT,
-  SKIN_CUSTOMIZATION_REGISTER_EVENT,
-  SKIN_CUSTOMIZATION_UNREGISTER_EVENT,
+  LEGACY_SKIN_CUSTOMIZATION_PROTOCOL,
+  SKIN_CUSTOMIZATION_EVENTS,
+  SKIN_CUSTOMIZATION_PROTOCOL,
   type SkinCustomizationDefinition,
+  type SkinCustomizationProtocol,
   type SkinCustomizationRegistration,
   type SkinSettingValue,
   type VisibilitySchedule,
@@ -32,9 +33,11 @@ export class SkinCustomizationRegistry {
       this.applyAll()
       this.emit()
     })
-    target.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, this.onRegister)
-    target.addEventListener(SKIN_CUSTOMIZATION_UNREGISTER_EVENT, this.onUnregister)
-    target.dispatchEvent(new Event(SKIN_CUSTOMIZATION_READY_EVENT))
+    for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
+      target.addEventListener(events.register, this.onRegister)
+      target.addEventListener(events.unregister, this.onUnregister)
+      target.dispatchEvent(new Event(events.ready))
+    }
   }
 
   readonly getSnapshot = (): RegistrySnapshot => this.snapshot
@@ -53,8 +56,10 @@ export class SkinCustomizationRegistry {
   }
 
   dispose(): void {
-    this.target.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, this.onRegister)
-    this.target.removeEventListener(SKIN_CUSTOMIZATION_UNREGISTER_EVENT, this.onUnregister)
+    for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
+      this.target.removeEventListener(events.register, this.onRegister)
+      this.target.removeEventListener(events.unregister, this.onUnregister)
+    }
     this.unsubscribeStore()
     this.store.dispose()
     if (this.timer !== undefined) this.target.clearTimeout(this.timer)
@@ -66,7 +71,8 @@ export class SkinCustomizationRegistry {
     const detail = event instanceof CustomEvent
       ? event.detail as SkinCustomizationRegistration | undefined
       : undefined
-    if (!detail || !this.valid(detail.definition)) return
+    const protocol = this.eventProtocol(event.type, 'register')
+    if (!detail || protocol === undefined || !this.valid(detail.definition, protocol)) return
     this.definitions.set(detail.token, detail.definition)
     this.rebuildSnapshot()
     this.applyAll()
@@ -76,15 +82,24 @@ export class SkinCustomizationRegistry {
     const detail = event instanceof CustomEvent
       ? event.detail as SkinCustomizationRegistration | undefined
       : undefined
-    if (!detail || this.definitions.get(detail.token) !== detail.definition) return
+    const protocol = this.eventProtocol(event.type, 'unregister')
+    if (!detail || protocol !== detail.definition.protocol || this.definitions.get(detail.token) !== detail.definition) return
     detail.definition.apply(null)
     this.definitions.delete(detail.token)
     this.rebuildSnapshot()
     this.scheduleClock()
   }
 
-  private valid(definition: SkinCustomizationDefinition): boolean {
-    if (definition?.protocol !== 1 || typeof definition.skinId !== 'string' || typeof definition.apply !== 'function') return false
+  private eventProtocol(type: string, phase: 'register' | 'unregister'): SkinCustomizationProtocol | undefined {
+    if (type === SKIN_CUSTOMIZATION_EVENTS[LEGACY_SKIN_CUSTOMIZATION_PROTOCOL][phase]) return LEGACY_SKIN_CUSTOMIZATION_PROTOCOL
+    if (type === SKIN_CUSTOMIZATION_EVENTS[SKIN_CUSTOMIZATION_PROTOCOL][phase]) return SKIN_CUSTOMIZATION_PROTOCOL
+    return undefined
+  }
+
+  private valid(definition: SkinCustomizationDefinition, protocol: SkinCustomizationProtocol): boolean {
+    if (definition?.protocol !== protocol || typeof definition.skinId !== 'string' || typeof definition.apply !== 'function' || !Array.isArray(definition.settings)) return false
+    const settingTypes = new Set(['boolean', 'select', 'range', 'color', 'checkbox-group', 'visibility-schedule'])
+    if (!definition.settings.every(setting => setting !== null && typeof setting === 'object' && settingTypes.has(setting.type))) return false
     const keys = definition.settings.map(setting => setting.key)
     return keys.length === new Set(keys).size && keys.every(key => /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(key))
   }

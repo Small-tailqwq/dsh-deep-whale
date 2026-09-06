@@ -232,7 +232,7 @@ function createComposerLaceRail(): HTMLDivElement {
 
 function ensureComposerLaceRail(rail: HTMLElement): boolean {
   const card = document.querySelector<HTMLElement>(
-    "[data-composer-card]:not([class*='cardWorkspaceTrigger'])",
+    '[data-composer-card]',
   )
   if (!card) {
     rail.remove()
