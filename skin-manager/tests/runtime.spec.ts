@@ -65,20 +65,31 @@ describe('customization registry', () => {
     window.removeEventListener(SKIN_CUSTOMIZATION_EVENTS[1].register, legacyListener)
   })
 
-  it('rejects v2-only controls mislabeled as a v1 declaration', () => {
+  it('accepts the complete published v1 schema and applies its values', () => {
+    const applied: Array<SkinCustomizationState | null> = []
     const registry = new SkinCustomizationRegistry(new PreferencesStore(new MemoryStorage(), window), window)
     const registration = {
       token: {},
       definition: {
         protocol: 1,
-        skinId: 'unsafe-v1',
-        title: 'Unsafe v1',
-        settings: [{ key: 'accent', type: 'color', label: 'Accent', defaultValue: '#123456' }],
-        apply() {},
+        skinId: 'legacy-skin',
+        title: 'Legacy skin',
+        settings: [
+          { key: 'enabled', type: 'boolean', label: 'Enabled', defaultValue: true },
+          { key: 'accent', type: 'color', label: 'Accent', defaultValue: '#123456', visibleWhen: { key: 'enabled', values: [true] } },
+          { key: 'parts', type: 'checkbox-group', label: 'Parts', defaultValue: ['left'], options: [{ value: 'left', label: 'Left' }], legacyValue: { key: 'oldParts', map: { both: ['left'] } } },
+        ],
+        apply(state: SkinCustomizationState | null) { applied.push(state) },
       },
     } as unknown as SkinCustomizationRegistration
     window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[1].register, { detail: registration }))
+    expect(registry.getSnapshot().definitions).toEqual([registration.definition])
+    expect(applied.at(-1)?.values).toEqual({ enabled: true, accent: '#123456', parts: ['left'] })
+    registry.set(registration.definition, 'accent', '#abcdef')
+    expect(applied.at(-1)?.values.accent).toBe('#abcdef')
+    window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[1].unregister, { detail: registration }))
     expect(registry.getSnapshot().definitions).toEqual([])
+    expect(applied.at(-1)).toBeNull()
     registry.dispose()
   })
 

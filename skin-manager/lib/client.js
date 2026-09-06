@@ -1219,12 +1219,7 @@ window.__ModuleLoader__.load({
 			}
 			valid(definition, protocol) {
 				if (definition?.protocol !== protocol || typeof definition.skinId !== "string" || typeof definition.apply !== "function" || !Array.isArray(definition.settings)) return false;
-				const settingTypes = protocol === 1 ? /* @__PURE__ */ new Set([
-					"boolean",
-					"select",
-					"range",
-					"visibility-schedule"
-				]) : /* @__PURE__ */ new Set([
+				const settingTypes = /* @__PURE__ */ new Set([
 					"boolean",
 					"select",
 					"range",
@@ -1233,7 +1228,6 @@ window.__ModuleLoader__.load({
 					"visibility-schedule"
 				]);
 				if (!definition.settings.every((setting) => setting !== null && typeof setting === "object" && settingTypes.has(setting.type))) return false;
-				if (protocol === 1 && definition.settings.some((setting) => setting.visibleWhen !== void 0 || setting.legacyValue !== void 0)) return false;
 				const keys = definition.settings.map((setting) => setting.key);
 				return keys.length === new Set(keys).size && keys.every((key) => /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(key));
 			}

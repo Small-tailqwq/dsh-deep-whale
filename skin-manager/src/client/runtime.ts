@@ -98,12 +98,8 @@ export class SkinCustomizationRegistry {
 
   private valid(definition: SkinCustomizationDefinition, protocol: SkinCustomizationProtocol): boolean {
     if (definition?.protocol !== protocol || typeof definition.skinId !== 'string' || typeof definition.apply !== 'function' || !Array.isArray(definition.settings)) return false
-    const settingTypes = protocol === LEGACY_SKIN_CUSTOMIZATION_PROTOCOL
-      ? new Set(['boolean', 'select', 'range', 'visibility-schedule'])
-      : new Set(['boolean', 'select', 'range', 'color', 'checkbox-group', 'visibility-schedule'])
+    const settingTypes = new Set(['boolean', 'select', 'range', 'color', 'checkbox-group', 'visibility-schedule'])
     if (!definition.settings.every(setting => setting !== null && typeof setting === 'object' && settingTypes.has(setting.type))) return false
-    if (protocol === LEGACY_SKIN_CUSTOMIZATION_PROTOCOL
-      && definition.settings.some(setting => setting.visibleWhen !== undefined || setting.legacyValue !== undefined)) return false
     const keys = definition.settings.map(setting => setting.key)
     return keys.length === new Set(keys).size && keys.every(key => /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(key))
   }
