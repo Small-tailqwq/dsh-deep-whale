@@ -682,8 +682,8 @@ describe('Maid Atelier skin apply', () => {
       .map(match => match[1] ?? '')
       .find(rule => rule.includes("content: ''")) ?? ''
     expect(backingRule).toContain("content: ''")
-    expect(backingRule).toContain('inset: 0 -0.52% -2%')
-    expect(backingRule).toContain('background: inherit')
+    expect(backingRule).toContain('inset: 4px -8px -10px')
+    expect(backingRule).toContain('background: var(--maid-composer-surface)')
     expect(backingRule).toContain('pointer-events: none')
     // The plate must stay behind in-flow children: the attachments slot is
     // display: contents (no box to lift), so its rail only wins if the plate
@@ -1049,14 +1049,13 @@ describe('Maid Atelier skin apply', () => {
     const heroCardRule = CSS.match(
       /\[data-phase='hero'\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const heroBackingRule = CSS.match(
-      /\[data-phase='hero'\]\s*\[data-composer-card\]::after\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
+    const backingRule = CSS.match(/\[data-composer-card\]::after\s*\{([^}]*)\}/s)?.[1] ?? ''
     expect(heroRule).toContain('--dsh-chat-content-width: clamp(560px, 41vw, 740px)')
     expect(heroRule).toContain('--dsh-composer-card-max-width')
     expect(heroCardRule).toContain('rgba(255, 254, 250, 0.54)')
     expect(heroCardRule).toContain('backdrop-filter: blur(2.5px)')
-    expect(heroBackingRule).toContain('rgba(248, 250, 255, 0.2)')
+    expect(backingRule).toContain('background: var(--maid-composer-surface)')
+    expect(backingRule).toContain('backdrop-filter: var(--maid-composer-backdrop-filter)')
   })
 
   it('keeps hero workspace, permission, and model controls in the official composer flow', () => {

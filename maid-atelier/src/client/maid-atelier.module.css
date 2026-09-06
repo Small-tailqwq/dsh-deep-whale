@@ -1987,10 +1987,13 @@ body[data-dsh-maid-atelier] [data-composer-card] {
   padding-top: 34px;
   border: 0;
   border-radius: 34px;
-  background:
+  --maid-composer-surface:
     linear-gradient(180deg, rgba(255, 254, 250, 0.88), rgba(244, 247, 253, 0.76)),
     var(--dsw-specific-input-major);
-  box-shadow: var(--maid-shadow);
+  --maid-composer-shadow: var(--maid-shadow);
+  --maid-composer-backdrop-filter: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 /* Preserve the calibrated conversation width by default, but follow a larger
@@ -2013,25 +2016,25 @@ body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-input] {
 
 body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-card] {
   border-radius: clamp(26px, 2vw, 34px);
-  background:
+  --maid-composer-surface:
     linear-gradient(180deg, rgba(255, 254, 250, 0.54), rgba(241, 245, 253, 0.4)),
     rgba(255, 253, 248, 0.18);
-  box-shadow:
+  --maid-composer-shadow:
     0 18px 52px rgba(29, 48, 94, 0.18),
     inset 0 1px rgba(255, 255, 255, 0.76);
-  backdrop-filter: blur(2.5px) saturate(0.94);
+  --maid-composer-backdrop-filter: blur(2.5px) saturate(0.94);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-phase='hero'] [data-composer-card] {
-  background:
+  --maid-composer-surface:
     linear-gradient(180deg, rgba(27, 44, 84, 0.62), rgba(10, 23, 58, 0.52)),
     rgba(13, 25, 59, 0.22);
-  backdrop-filter: blur(3px) saturate(0.88);
+  --maid-composer-backdrop-filter: blur(3px) saturate(0.88);
 }
 
 /* The official model picker keeps its trigger and menu as adjacent children
-   of one CSS-module root. Drop only the hero card's composited blur while
+   of one CSS-module root. Drop only the hero backing plate's blur while
    that exact menu is mounted: provider switches can replace extension-slot
    content without repainting it through the filtered composer layer. The
    rules stay anchored to the native `conversation.input.model` seat so
@@ -2042,8 +2045,7 @@ body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-card]:has(
       > button[class$='_trigger'][aria-haspopup='menu'][aria-expanded='true']
       + [role='menu'][class$='_menu']
   ) {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  --maid-composer-backdrop-filter: none;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
@@ -2217,23 +2219,13 @@ body[data-dsh-maid-atelier] [data-phase='hero']
 }
 
 body[data-dsh-maid-atelier] [data-phase='hero']
-  [data-composer-card]::after {
-  background: rgba(248, 250, 255, 0.2);
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-phase='hero'] [data-composer-card]::after {
-  background: rgba(13, 25, 59, 0.22);
-}
-
-body[data-dsh-maid-atelier] [data-phase='hero']
   [data-composer-card] button[class*='primary']:disabled {
   opacity: 0.78;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] {
-  background: linear-gradient(180deg, rgba(25, 42, 83, 0.92), rgba(12, 25, 60, 0.9));
-  box-shadow: var(--maid-shadow), inset 0 1px rgba(255, 255, 255, 0.08);
+  --maid-composer-surface: linear-gradient(180deg, rgba(25, 42, 83, 0.92), rgba(12, 25, 60, 0.9));
+  --maid-composer-shadow: var(--maid-shadow), inset 0 1px rgba(255, 255, 255, 0.08);
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]::before {
@@ -2273,7 +2265,6 @@ body[data-dsh-maid-atelier] [data-composer-card]::before {
   border-image-slice: 170 120 115 120;
   border-image-width: 72px 54px 52px 54px;
   border-image-repeat: stretch;
-  filter: drop-shadow(0 9px 18px rgba(5, 13, 38, 0.22));
   pointer-events: none;
 }
 
@@ -2330,10 +2321,19 @@ body[data-dsh-maid-atelier][data-maid-composer-motion]
 body[data-dsh-maid-atelier] [data-composer-card]::after {
   content: '';
   position: absolute;
-  inset: 0 -0.52% -2%;
+  /* The 1800x588 shell's inner sides are at x=22/1777 and its bottom at
+     y=559. With the fixed nine-slice widths these sit about 4px outside
+     the card. One plate overlaps the gold, independent of card width. */
+  inset: 4px -8px -10px;
   z-index: -1;
-  border-radius: 38px;
-  background: inherit;
+  border-radius: 40px;
+  corner-shape: round;
+  background: var(--maid-composer-surface);
+  /* The workspace picker uses this pseudo-element for a masked dashed border. */
+  -webkit-mask: none;
+  mask: none;
+  box-shadow: var(--maid-composer-shadow);
+  backdrop-filter: var(--maid-composer-backdrop-filter);
   pointer-events: none;
 }
 
@@ -2352,8 +2352,6 @@ body[data-dsh-maid-atelier]
   inset: -20px -14px auto;
   height: 63px;
   z-index: 0;
-  opacity: 0.82;
-  filter: brightness(1.16);
   pointer-events: none;
 }
 
@@ -4276,6 +4274,7 @@ body[data-dsh-maid-atelier]
   border: 1px solid rgba(197, 164, 104, 0.5);
   border-radius: 999px;
   corner-shape: round;
+  background: var(--maid-composer-surface);
   box-shadow:
     0 4px 14px rgba(15, 30, 72, 0.14),
     inset 0 1px rgba(255, 255, 255, 0.6);
@@ -4341,6 +4340,8 @@ body[data-dsh-maid-atelier]
   z-index: 1;
   border-radius: inherit;
   background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
   color: var(--dsw-alias-label-caption);
   font-family: Georgia, 'Times New Roman', var(--dsw-font-family);
   font-size: 13px;
