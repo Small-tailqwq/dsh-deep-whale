@@ -105,14 +105,7 @@ export interface VisibilityScheduleSetting extends SettingBase<VisibilitySchedul
 }
 
 export type SkinSetting = BooleanSetting | SelectSetting | RangeSetting | ColorSetting | CheckboxGroupSetting | VisibilityScheduleSetting
-type LegacySetting<T extends SkinSetting> = Omit<T, 'visibleWhen' | 'legacyValue'> & {
-  visibleWhen?: never
-  legacyValue?: never
-}
-export type LegacySkinSetting = LegacySetting<BooleanSetting>
-  | LegacySetting<SelectSetting>
-  | LegacySetting<RangeSetting>
-  | LegacySetting<VisibilityScheduleSetting>
+export type LegacySkinSetting = SkinSetting
 export type SkinSettingValue = boolean | string | number | string[] | VisibilitySchedule
 export type SkinValues = Record<string, SkinSettingValue>
 
@@ -122,7 +115,7 @@ export interface SkinCustomizationState {
   visibility: Record<string, boolean>
 }
 
-interface SkinCustomizationDefinitionBase<P extends SkinCustomizationProtocol, S extends SkinSetting | LegacySkinSetting> {
+interface SkinCustomizationDefinitionBase<P extends SkinCustomizationProtocol, S extends SkinSetting> {
   protocol: P
   skinId: string
   title: string
@@ -151,10 +144,12 @@ export function exposeSkinCustomization(
 ): () => void {
   const token = {}
   const events = SKIN_CUSTOMIZATION_EVENTS[definition.protocol]
-  const register = (): void => target.dispatchEvent(new CustomEvent<SkinCustomizationRegistration>(
-    events.register,
-    { detail: { token, definition } },
-  ))
+  const register = (): void => {
+    target.dispatchEvent(new CustomEvent<SkinCustomizationRegistration>(
+      events.register,
+      { detail: { token, definition } },
+    ))
+  }
   target.addEventListener(events.ready, register)
   register()
   return () => {

@@ -68,7 +68,7 @@ describe('customization registry', () => {
   it('accepts the complete published v1 schema and applies its values', () => {
     const applied: Array<SkinCustomizationState | null> = []
     const registry = new SkinCustomizationRegistry(new PreferencesStore(new MemoryStorage(), window), window)
-    const registration = {
+    const registration: SkinCustomizationRegistration = {
       token: {},
       definition: {
         protocol: 1,
@@ -81,7 +81,7 @@ describe('customization registry', () => {
         ],
         apply(state: SkinCustomizationState | null) { applied.push(state) },
       },
-    } as unknown as SkinCustomizationRegistration
+    }
     window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[1].register, { detail: registration }))
     expect(registry.getSnapshot().definitions).toEqual([registration.definition])
     expect(applied.at(-1)?.values).toEqual({ enabled: true, accent: '#123456', parts: ['left'] })

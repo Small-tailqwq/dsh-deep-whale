@@ -27,10 +27,12 @@ const SKIN_CUSTOMIZATION_READY_EVENT = SKIN_CUSTOMIZATION_EVENTS[2].ready;
 function exposeSkinCustomization(definition, target = window) {
 	const token = {};
 	const events = SKIN_CUSTOMIZATION_EVENTS[definition.protocol];
-	const register = () => target.dispatchEvent(new CustomEvent(events.register, { detail: {
-		token,
-		definition
-	} }));
+	const register = () => {
+		target.dispatchEvent(new CustomEvent(events.register, { detail: {
+			token,
+			definition
+		} }));
+	};
 	target.addEventListener(events.ready, register);
 	register();
 	return () => {
