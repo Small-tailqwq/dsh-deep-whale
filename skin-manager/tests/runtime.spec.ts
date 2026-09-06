@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   exposeSkinCustomization,
+  SKIN_CUSTOMIZATION_EVENTS,
+  SKIN_CUSTOMIZATION_PROTOCOL,
   SkinAttributeProjector,
+  type SkinCustomizationRegistration,
   type SkinCustomizationState,
 } from '../src/protocol.ts'
 import { PreferencesStore } from '../src/client/preferences.ts'
@@ -40,6 +43,42 @@ describe('customization registry', () => {
     disconnect()
     expect(registry.getSnapshot().definitions).toEqual([])
     expect(applied.at(-1)).toBeNull()
+    registry.dispose()
+  })
+
+  it('keeps v2 declarations invisible to a v1 manager while the current manager discovers them', () => {
+    let legacyRegistrations = 0
+    const legacyListener = (): void => { legacyRegistrations += 1 }
+    window.addEventListener(SKIN_CUSTOMIZATION_EVENTS[1].register, legacyListener)
+    const disconnect = exposeSkinCustomization({
+      protocol: SKIN_CUSTOMIZATION_PROTOCOL,
+      skinId: 'next-skin',
+      title: 'Next skin',
+      settings: [{ key: 'accent', type: 'color', label: 'Accent', defaultValue: '#123456' }],
+      apply() {},
+    })
+    const registry = new SkinCustomizationRegistry(new PreferencesStore(new MemoryStorage(), window), window)
+    expect(legacyRegistrations).toBe(0)
+    expect(registry.getSnapshot().definitions.map(item => item.skinId)).toEqual(['next-skin'])
+    disconnect()
+    registry.dispose()
+    window.removeEventListener(SKIN_CUSTOMIZATION_EVENTS[1].register, legacyListener)
+  })
+
+  it('rejects v2-only controls mislabeled as a v1 declaration', () => {
+    const registry = new SkinCustomizationRegistry(new PreferencesStore(new MemoryStorage(), window), window)
+    const registration = {
+      token: {},
+      definition: {
+        protocol: 1,
+        skinId: 'unsafe-v1',
+        title: 'Unsafe v1',
+        settings: [{ key: 'accent', type: 'color', label: 'Accent', defaultValue: '#123456' }],
+        apply() {},
+      },
+    } as unknown as SkinCustomizationRegistration
+    window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[1].register, { detail: registration }))
+    expect(registry.getSnapshot().definitions).toEqual([])
     registry.dispose()
   })
 

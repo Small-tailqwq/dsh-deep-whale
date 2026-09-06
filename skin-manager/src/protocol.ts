@@ -2,10 +2,26 @@
  * Stable browser seam between the built-in manager and independently bundled
  * skins. A skin declares controls and owns every side effect produced by apply().
  */
-export const SKIN_CUSTOMIZATION_PROTOCOL = 1 as const
-export const SKIN_CUSTOMIZATION_REGISTER_EVENT = 'dsh:skin-customization-register-v1'
-export const SKIN_CUSTOMIZATION_UNREGISTER_EVENT = 'dsh:skin-customization-unregister-v1'
-export const SKIN_CUSTOMIZATION_READY_EVENT = 'dsh:skin-customization-ready-v1'
+export const LEGACY_SKIN_CUSTOMIZATION_PROTOCOL = 1 as const
+export const SKIN_CUSTOMIZATION_PROTOCOL = 2 as const
+export type SkinCustomizationProtocol = typeof LEGACY_SKIN_CUSTOMIZATION_PROTOCOL | typeof SKIN_CUSTOMIZATION_PROTOCOL
+
+export const SKIN_CUSTOMIZATION_EVENTS = {
+  [LEGACY_SKIN_CUSTOMIZATION_PROTOCOL]: {
+    register: 'dsh:skin-customization-register-v1',
+    unregister: 'dsh:skin-customization-unregister-v1',
+    ready: 'dsh:skin-customization-ready-v1',
+  },
+  [SKIN_CUSTOMIZATION_PROTOCOL]: {
+    register: 'dsh:skin-customization-register-v2',
+    unregister: 'dsh:skin-customization-unregister-v2',
+    ready: 'dsh:skin-customization-ready-v2',
+  },
+} as const
+
+export const SKIN_CUSTOMIZATION_REGISTER_EVENT = SKIN_CUSTOMIZATION_EVENTS[SKIN_CUSTOMIZATION_PROTOCOL].register
+export const SKIN_CUSTOMIZATION_UNREGISTER_EVENT = SKIN_CUSTOMIZATION_EVENTS[SKIN_CUSTOMIZATION_PROTOCOL].unregister
+export const SKIN_CUSTOMIZATION_READY_EVENT = SKIN_CUSTOMIZATION_EVENTS[SKIN_CUSTOMIZATION_PROTOCOL].ready
 
 export interface TimeRange {
   start: string
@@ -89,6 +105,14 @@ export interface VisibilityScheduleSetting extends SettingBase<VisibilitySchedul
 }
 
 export type SkinSetting = BooleanSetting | SelectSetting | RangeSetting | ColorSetting | CheckboxGroupSetting | VisibilityScheduleSetting
+type LegacySetting<T extends SkinSetting> = Omit<T, 'visibleWhen' | 'legacyValue'> & {
+  visibleWhen?: never
+  legacyValue?: never
+}
+export type LegacySkinSetting = LegacySetting<BooleanSetting>
+  | LegacySetting<SelectSetting>
+  | LegacySetting<RangeSetting>
+  | LegacySetting<VisibilityScheduleSetting>
 export type SkinSettingValue = boolean | string | number | string[] | VisibilitySchedule
 export type SkinValues = Record<string, SkinSettingValue>
 
@@ -98,15 +122,19 @@ export interface SkinCustomizationState {
   visibility: Record<string, boolean>
 }
 
-export interface SkinCustomizationDefinition {
-  protocol: typeof SKIN_CUSTOMIZATION_PROTOCOL
+interface SkinCustomizationDefinitionBase<P extends SkinCustomizationProtocol, S extends SkinSetting | LegacySkinSetting> {
+  protocol: P
   skinId: string
   title: string
   titleEn?: string
-  settings: SkinSetting[]
+  settings: S[]
   /** null means release all customization-owned state. Must be idempotent. */
   apply(state: SkinCustomizationState | null): void
 }
+
+export type LegacySkinCustomizationDefinition = SkinCustomizationDefinitionBase<typeof LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, LegacySkinSetting>
+export type CurrentSkinCustomizationDefinition = SkinCustomizationDefinitionBase<typeof SKIN_CUSTOMIZATION_PROTOCOL, SkinSetting>
+export type SkinCustomizationDefinition = LegacySkinCustomizationDefinition | CurrentSkinCustomizationDefinition
 
 export interface SkinCustomizationRegistration {
   token: object
@@ -122,16 +150,17 @@ export function exposeSkinCustomization(
   target: Window = window,
 ): () => void {
   const token = {}
+  const events = SKIN_CUSTOMIZATION_EVENTS[definition.protocol]
   const register = (): void => target.dispatchEvent(new CustomEvent<SkinCustomizationRegistration>(
-    SKIN_CUSTOMIZATION_REGISTER_EVENT,
+    events.register,
     { detail: { token, definition } },
   ))
-  target.addEventListener(SKIN_CUSTOMIZATION_READY_EVENT, register)
+  target.addEventListener(events.ready, register)
   register()
   return () => {
-    target.removeEventListener(SKIN_CUSTOMIZATION_READY_EVENT, register)
+    target.removeEventListener(events.ready, register)
     target.dispatchEvent(new CustomEvent<SkinCustomizationRegistration>(
-      SKIN_CUSTOMIZATION_UNREGISTER_EVENT,
+      events.unregister,
       { detail: { token, definition } },
     ))
     definition.apply(null)

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { type SkinCatalogEntry, type SkinTarget, type SkinVersionInfo, SKIN_MANAGER_ROUTE } from '../contract.ts'
 import type {
   SkinCustomizationDefinition,
@@ -220,6 +220,208 @@ function RangeEditor({ setting, label, description, value, disabled = false, onC
   )
 }
 
+interface RgbColor {
+  r: number
+  g: number
+  b: number
+}
+
+interface HsvColor {
+  h: number
+  s: number
+  v: number
+}
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value))
+
+function hexToRgb(value: string): RgbColor {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value)
+  return match === null
+    ? { r: 255, g: 83, b: 111 }
+    : { r: Number.parseInt(match[1]!, 16), g: Number.parseInt(match[2]!, 16), b: Number.parseInt(match[3]!, 16) }
+}
+
+function rgbToHex({ r, g, b }: RgbColor): string {
+  return `#${[r, g, b].map(part => Math.round(clamp(part, 0, 255)).toString(16).padStart(2, '0')).join('')}`
+}
+
+function rgbToHsv({ r, g, b }: RgbColor): HsvColor {
+  const red = r / 255
+  const green = g / 255
+  const blue = b / 255
+  const max = Math.max(red, green, blue)
+  const min = Math.min(red, green, blue)
+  const delta = max - min
+  let hue = 0
+  if (delta !== 0) {
+    if (max === red) hue = 60 * (((green - blue) / delta) % 6)
+    else if (max === green) hue = 60 * ((blue - red) / delta + 2)
+    else hue = 60 * ((red - green) / delta + 4)
+  }
+  return {
+    h: hue < 0 ? hue + 360 : hue,
+    s: max === 0 ? 0 : delta / max,
+    v: max,
+  }
+}
+
+function hsvToRgb({ h, s, v }: HsvColor): RgbColor {
+  const chroma = v * s
+  const sector = ((h % 360) + 360) % 360 / 60
+  const second = chroma * (1 - Math.abs(sector % 2 - 1))
+  const [red, green, blue] = sector < 1 ? [chroma, second, 0]
+    : sector < 2 ? [second, chroma, 0]
+      : sector < 3 ? [0, chroma, second]
+        : sector < 4 ? [0, second, chroma]
+          : sector < 5 ? [second, 0, chroma]
+            : [chroma, 0, second]
+  const match = v - chroma
+  return {
+    r: (red + match) * 255,
+    g: (green + match) * 255,
+    b: (blue + match) * 255,
+  }
+}
+
+function ColorEditor({ label, description, value, disabled = false, onChange }: {
+  label: string
+  description?: string
+  value: string
+  disabled?: boolean
+  onChange(value: string): void
+}) {
+  const button = useRef<HTMLButtonElement>(null)
+  const popover = useRef<HTMLDivElement>(null)
+  const color = rgbToHsv(hexToRgb(value))
+  const [hue, setHue] = useState(color.h)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (color.s > 0) setHue(color.h)
+  }, [color.h, color.s])
+
+  useEffect(() => {
+    const panel = popover.current
+    if (panel === null) return
+    panel.setAttribute('popover', 'auto')
+    const onToggle = (): void => setOpen(panel.matches(':popover-open'))
+    panel.addEventListener('toggle', onToggle)
+    return () => panel.removeEventListener('toggle', onToggle)
+  }, [])
+
+  const positionPopover = (): void => {
+    const trigger = button.current
+    const panel = popover.current
+    if (trigger === null || panel === null) return
+    const triggerRect = trigger.getBoundingClientRect()
+    const gap = 8
+    const edge = 8
+    const left = clamp(triggerRect.right - panel.offsetWidth, edge, window.innerWidth - panel.offsetWidth - edge)
+    const below = triggerRect.bottom + gap
+    const top = below + panel.offsetHeight <= window.innerHeight - edge
+      ? below
+      : Math.max(edge, triggerRect.top - panel.offsetHeight - gap)
+    panel.style.left = `${left}px`
+    panel.style.top = `${top}px`
+  }
+
+  const togglePopover = (): void => {
+    const panel = popover.current
+    if (panel === null) return
+    if (panel.matches(':popover-open')) panel.hidePopover()
+    else {
+      panel.showPopover()
+      positionPopover()
+    }
+  }
+
+  const updateSaturationValue = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    const target = event.currentTarget
+    const rect = target.getBoundingClientRect()
+    const saturation = clamp((event.clientX - rect.left) / rect.width, 0, 1)
+    const brightness = 1 - clamp((event.clientY - rect.top) / rect.height, 0, 1)
+    onChange(rgbToHex(hsvToRgb({ h: hue, s: saturation, v: brightness })))
+  }
+
+  const rgb = hexToRgb(value)
+  const updateRgb = (channel: keyof RgbColor, raw: string): void => {
+    const numeric = Number.parseInt(raw, 10)
+    onChange(rgbToHex({ ...rgb, [channel]: Number.isFinite(numeric) ? numeric : 0 }))
+  }
+
+  return (
+    <div className={css.colorRow}>
+      <span>
+        <span>{label}</span>
+        {description && <small>{description}</small>}
+      </span>
+      <div className={css.colorControl}>
+        <code>{value.toUpperCase()}</code>
+        <button
+          ref={button}
+          type="button"
+          className={css.colorButton}
+          disabled={disabled}
+          aria-label={label}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={togglePopover}
+        >
+          <span className={css.colorSwatch} style={{ backgroundColor: value }} />
+        </button>
+        <div ref={popover} className={css.colorPopover} role="group" aria-label={`${label}色盘`}>
+          <div
+            className={css.colorPalette}
+            style={{ backgroundColor: `hsl(${hue} 100% 50%)` }}
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId)
+              updateSaturationValue(event)
+            }}
+            onPointerMove={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) updateSaturationValue(event)
+            }}
+          >
+            <span
+              className={css.colorPaletteMarker}
+              style={{ left: `${color.s * 100}%`, top: `${(1 - color.v) * 100}%` }}
+            />
+          </div>
+          <div className={css.colorHueRow}>
+            <span className={css.colorPreview} style={{ backgroundColor: value }} />
+            <input
+              type="range"
+              min="0"
+              max="359"
+              value={Math.round(hue)}
+              aria-label={`${label}色相`}
+              onChange={(event) => {
+                const nextHue = Number(event.currentTarget.value)
+                setHue(nextHue)
+                onChange(rgbToHex(hsvToRgb({ ...color, h: nextHue })))
+              }}
+            />
+          </div>
+          <div className={css.colorRgb}>
+            {(['r', 'g', 'b'] as const).map(channel => (
+              <label key={channel}>
+                <input
+                  type="number"
+                  min="0"
+                  max="255"
+                  value={Math.round(rgb[channel])}
+                  aria-label={`${label} ${channel.toUpperCase()}`}
+                  onChange={event => updateRgb(channel, event.currentTarget.value)}
+                />
+                <span>{channel.toUpperCase()}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CheckboxGroupEditor({ setting, label, description, value, disabled = false, onChange }: {
   setting: Extract<SkinSetting, { type: 'checkbox-group' }>
   label: string
@@ -289,26 +491,7 @@ function SettingEditor({ setting, value, disabled = false, onChange }: {
     return <RangeEditor setting={setting} label={label} description={description} value={value as number} disabled={disabled} onChange={onChange} />
   }
   if (setting.type === 'color') {
-    return (
-      <label className={css.colorRow}>
-        <span>
-          <span>{label}</span>
-          {description && <small>{description}</small>}
-        </span>
-        <span className={css.colorControl}>
-          <code>{String(value).toUpperCase()}</code>
-          <span className={css.colorWell}>
-            <input
-              type="color"
-              value={value as string}
-              disabled={disabled}
-              aria-label={label}
-              onChange={event => onChange(event.currentTarget.value)}
-            />
-          </span>
-        </span>
-      </label>
-    )
+    return <ColorEditor label={label} description={description} value={value as string} disabled={disabled} onChange={onChange} />
   }
   if (setting.type === 'checkbox-group') {
     return (
