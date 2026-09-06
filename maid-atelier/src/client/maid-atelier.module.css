@@ -2807,7 +2807,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 /* DSH marks >=4-column tables as `md-table-wide`, but the live content width
-   can now be resized. Fitting candidates keep the native breakout untouched;
+   can now be resized. Fitting candidates stay inside the assistant bubble;
    table-card marks this renderer-owned wrapper only while its natural table
    width exceeds the assistant bubble's current content box. */
 /* RC1 removes the host's reserved scrollbar padding on :hover/:focus-visible.
@@ -2817,6 +2817,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
    the frame attribute below and already own a constant scroll geometry. */
 body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] :global(.md-table-wide):not([data-maid-table-frame]) {
+  /* The host's breakout includes asymmetric leading padding. Centering the
+     table inside it shifts even fitting tables beyond the bubble's edge. */
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  padding-inline: 0;
   padding-bottom: var(--dsh-scrollbar-width, 8px);
 }
 
