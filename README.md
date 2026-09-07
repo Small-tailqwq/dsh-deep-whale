@@ -17,8 +17,8 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 | 皮肤 | 包名 | 说明 | 许可 |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | CC BY-NC-SA 4.0 |
-| [orca-link](orca-link/) | `@dsh-external/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、虎鲸娘角色与电蓝链路信号 | CC BY-NC-SA 4.0 |
+| [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@dsh-external/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、虎鲸娘角色与电蓝链路信号 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
 | [skin-manager](skin-manager/) | `@dsh-external/dsh-client-ui-skin-deep-whale-manager` | 通用皮肤发现、切换与皮肤自声明配置面板 | MIT |
 
 ## 版权所有人
@@ -183,6 +183,6 @@ document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) 
 
 ## 许可
 
-本仓库各皮肤为**衍生创作**,整体以 CC BY-NC-SA 4.0(署名-非商业性使用-相同方式共享)发布,禁止商业性使用。署名链见各皮肤 `NOTICE`。
+项目自有代码采用 **MIT**，许可范围见 [LICENSE](LICENSE)。美术资源保留原作者版权与既有授权：两套皮肤的全部美术（包括 AI 生成及加工的图片）按 CC BY-NC-SA 4.0 使用，**禁止商业性使用**，署名链见各自 `NOTICE`，许可正文见 `LICENSE-ARTWORK`。图片即使嵌入源码、CSS 或构建产物，也不属于 MIT 授权范围。第三方材料保留其适用许可；历史版本已授出的权限不因本说明而撤销。
 
 皮肤工程脚手架来自 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)，本仓库仅分发皮肤成品,不包含脚手架。

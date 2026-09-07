@@ -23,5 +23,5 @@ Closes #
 - [ ] 浏览器与桌面壳布局均验证（涉及 Safari/WebKit 的改动请注明）
 - [ ] 无远程运行时资源依赖（素材以 data URI 内联）
 - [ ] `lib/` 构建产物已用本仓库管道重新生成并提交（`src` 与 `lib` 同步）
-- [ ] 涉及素材/作者信息时 `NOTICE` 署名链与 `LICENSE`（CC BY-NC-SA 4.0）已更新
+- [ ] 涉及素材/作者信息时 `NOTICE` 署名链与 `LICENSE-ARTWORK`（美术 CC BY-NC-SA 4.0）已更新
 - [ ] 测试已添加/更新（或说明不适用原因）

@@ -17,8 +17,8 @@ Click an image for the full size.
 
 | Skin | Package | Description | License |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | Abyssal Maid Atelier: twin-maid backdrop, deep-sea navy lace UI and a chibi sidebar | CC BY-NC-SA 4.0 |
-| [orca-link](orca-link/) | `@dsh-external/dsh-client-ui-skin-orca-link` | ORCA LINK: pearl-white mechanical bay, orca-girl character and electric-blue link signals | CC BY-NC-SA 4.0 |
+| [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | Abyssal Maid Atelier: twin-maid backdrop, deep-sea navy lace UI and a chibi sidebar | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@dsh-external/dsh-client-ui-skin-orca-link` | ORCA LINK: pearl-white mechanical bay, orca-girl character and electric-blue link signals | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
 | [skin-manager](skin-manager/) | `@dsh-external/dsh-client-ui-skin-deep-whale-manager` | Generic skin discovery, switching and skin-declared settings panel | MIT |
 
 ## Copyright Holders
@@ -184,6 +184,6 @@ These PRs conflicted with the existing upstream implementation and were not merg
 
 ## License
 
-The skins in this repository are **derivative works**, published as a whole under CC BY-NC-SA 4.0 (Attribution-NonCommercial-ShareAlike); commercial use is prohibited. See each skin's `NOTICE` for the attribution chain.
+Project-owned code is licensed under **MIT**; see [LICENSE](LICENSE) for scope. Artwork copyright and existing permissions remain with the original authors. All artwork in both skins, including AI-generated and AI-assisted images, remains under CC BY-NC-SA 4.0; **commercial use is prohibited**; see each skin's `NOTICE` and `LICENSE-ARTWORK`. Images embedded in source, CSS, or generated bundles remain outside MIT. Third-party materials retain their applicable licenses, and permissions already granted for earlier versions are not revoked.
 
 The skin scaffolding originates from [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui); this repository distributes finished skins only and does not include the scaffolding.

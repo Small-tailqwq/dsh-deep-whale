@@ -15,7 +15,7 @@
 
 ### Distribution and attribution
 
-- `maid-atelier/lib/` 与 `orca-link/lib/` are committed distribution output. Flag source or asset changes without matching built output, generated bundles containing absolute machine paths or remote asset dependencies, and asset or license changes that break the CC BY-NC-SA 4.0 terms or the `NOTICE` attribution chain. Safe path: regenerate bundles only from repository inputs and update `LICENSE` or `NOTICE` whenever provenance changes.
+- `maid-atelier/lib/` 与 `orca-link/lib/` are committed distribution output. Flag source or asset changes without matching built output, generated bundles containing absolute machine paths or remote asset dependencies, and asset or license changes that break the MIT code / CC BY-NC-SA 4.0 artwork boundary or the `NOTICE` attribution chain. Safe path: regenerate bundles only from repository inputs and update `LICENSE`, `LICENSE-ARTWORK` or `NOTICE` whenever provenance changes.
 
 ## Repository layout
 
@@ -25,7 +25,7 @@
   - `lib/`：提交的构建产物（`client.js` + `index.js`；`*.js.map` 不入库）
   - `skin.json`：皮肤清单（id/name/package/wiring/bodyAttr/preview/order）
   - `cordis.patch.yml`：bundle patch（`dsh.bundle.patch`，insert 皮肤行）
-  - `NOTICE` / `LICENSE`：署名链与许可（CC BY-NC-SA 4.0）
+  - `NOTICE` / `LICENSE` / `LICENSE-ARTWORK`：署名链、MIT 代码许可与 CC BY-NC-SA 4.0 美术许可
 - `.agents/skills/`：仓库专属 `dsh-skin-install`；镜像的 `dsh-skin-upgrade`；本机桥接的
   `dsh-note-maintainer` / `dsh-plugin-verify`。实际声明见 `.agents/dsh-scaffold.json`。
 - `AGENTS.md`：本文件
