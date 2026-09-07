@@ -302,7 +302,7 @@ describe('Maid Atelier skin apply', () => {
     const sheet = document.querySelector<HTMLStyleElement>(
       "style[data-skin-chrome='sidebar-width-rule']",
     )!.sheet!
-    const variables = sheet.cssRules[0] as CSSStyleRule
+    const variables = sheet.cssRules[1] as CSSStyleRule
     expect(variables.style.getPropertyValue('--maid-titlebar-height')).toBe('32px')
   })
 
@@ -741,8 +741,8 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-question-key\]\s*\{[^}]*--dsw-alias-label-primary: #edf1fa/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-question-key\] > section\s*\{[^}]*rgba\(19, 35, 76, 0\.98\)/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-question-key\] \[aria-checked='true'\]\s*\{[^}]*rgba\(74, 99, 163, 0\.5\)/s)
-    expect(CSS).toMatch(/\[data-testid='todo-panel'\]\s*\{[^}]*--dsw-alias-label-primary: #172347/s)
-    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-testid='todo-panel'\]\s*\{[^}]*--dsw-alias-label-primary: #f4ead3/s)
+    expect(CSS).toMatch(/:is\(\[data-testid='todo-panel'\], \[data-goal-bar\] > div, \[data-queue-dock\] > div\)\s*\{[^}]*--dsw-alias-label-primary: #172347/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] :is\(\[data-testid='todo-panel'\], \[data-goal-bar\] > div, \[data-queue-dock\] > div\)\s*\{[^}]*--dsw-alias-label-primary: #f4ead3/s)
   })
 
   it('aligns docked composer controls and paints context usage gold over blue', () => {
@@ -780,7 +780,7 @@ describe('Maid Atelier skin apply', () => {
     expect(frameRule).toContain('right 54px top')
     expect(frameRule).toContain('left 156px top')
     expect(frameRule).toContain('right 156px top')
-    expect(frameRule).toContain('max(0px, calc(50% - 156px)) 32px')
+    expect(frameRule).toContain('max(0px, calc(50% - 186px)) 32px')
     expect(frameRule).toContain('background-repeat: no-repeat')
     expect(frameRule).toContain('border-width: 72px 54px 52px')
     expect(frameRule).toContain('border-image-source: var(--maid-composer-frame-art)')
@@ -970,7 +970,7 @@ describe('Maid Atelier skin apply', () => {
   it('falls back to zero title-bar height when no sidebar column is laid out', async () => {
     fiber = await mount()
     const sheet = document.querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")
-    expect(sheet?.sheet?.cssRules[0]?.cssText ?? '').toMatch(/--maid-titlebar-height\s*:\s*0px/)
+    expect(sheet?.sheet?.cssRules[1]?.cssText ?? '').toMatch(/--maid-titlebar-height\s*:\s*0px/)
     await fiber.dispose()
     expect(document.querySelector("[data-skin-chrome='sidebar-width-rule']")).toBeNull()
   })
@@ -989,7 +989,7 @@ describe('Maid Atelier skin apply', () => {
     })
     fiber = await mount()
     const sheet = document.querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")
-    expect(sheet?.sheet?.cssRules[0]?.cssText ?? '').toContain('--maid-titlebar-height: 40px')
+    expect(sheet?.sheet?.cssRules[1]?.cssText ?? '').toContain('--maid-titlebar-height: 40px')
     await fiber.dispose()
   })
 
@@ -1229,7 +1229,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-sidebar-footer\]\s*\{[^}]*flex: 0 0 auto[^}]*min-height: calc\(var\(--maid-sidebar-swag-height\) \+ 82px\)/s,
     )
     expect(CSS).toMatch(
-      /\[data-maid-sidebar-size='rail'\][\s\S]*?\[data-maid-sidebar-footer\]:has\(\[data-cordis-badge\]\)\s*\{[^}]*flex-basis: 100px/s,
+      /\[data-maid-sidebar-size='rail'\] \[data-maid-sidebar-footer\]\s*\{[^}]*flex-basis: auto[^}]*padding: 5px 5px max\(12px, env\(safe-area-inset-bottom, 0px\)\)/s,
     )
     expect(CSS).toMatch(
       /\[data-maid-cordis-panel-open\][\s\S]*?> :has\(\[data-cordis-panel\]\)\s*\{[^}]*z-index: 40/s,

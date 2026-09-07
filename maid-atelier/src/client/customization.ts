@@ -25,6 +25,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
   const projector = new SkinAttributeProjector(root)
   let observer: MutationObserver | undefined
   let frame: number | undefined
+  let activeState: SkinCustomizationState | null = null
+  let mobile = window.innerWidth <= 700
 
   const synchronizeModel = (): void => {
     let family: ReturnType<typeof modelFamily> = null
@@ -76,20 +78,39 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     projector.release(ATTR_MODEL)
   }
 
+  const synchronizeModelMode = (): void => {
+    if (activeState === null) return
+    const modelExit = mobile
+      ? activeState.values.mobileModelExit !== false
+      : activeState.values.modelExit === true
+    projector.set(ATTR_MODEL_EXIT, modelExit ? 'enabled' : 'disabled')
+    if (modelExit) startModelObserver()
+    else stopModelObserver()
+  }
+
+  const onResize = (): void => {
+    const nextMobile = window.innerWidth <= 700
+    if (mobile === nextMobile) return
+    mobile = nextMobile
+    synchronizeModelMode()
+  }
+
   const apply = (state: SkinCustomizationState | null): void => {
     if (state === null) {
+      window.removeEventListener('resize', onResize)
+      activeState = null
       stopModelObserver()
       projector.release()
       return
     }
+    if (activeState === null) window.addEventListener('resize', onResize)
+    activeState = state
+    mobile = window.innerWidth <= 700
     const artwork = state.values.artwork === true
     const scheduleVisible = state.visibility.sfwMode !== false
     projector.set(ATTR_ART, artwork && scheduleVisible ? 'visible' : 'hidden')
     projector.set(ATTR_FONT, state.values.font === 'serif' ? 'serif' : 'system')
-    const modelExit = state.values.modelExit === true
-    projector.set(ATTR_MODEL_EXIT, modelExit ? 'enabled' : 'disabled')
-    if (modelExit) startModelObserver()
-    else stopModelObserver()
+    synchronizeModelMode()
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
   }
 
@@ -129,9 +150,16 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
       {
         key: 'modelExit',
         type: 'boolean',
-        label: '根据所选模型显示立绘',
-        labelEn: 'Show artwork based on the selected model',
+        label: '桌面端根据所选模型显示立绘',
+        labelEn: 'Show artwork based on the selected model on desktop',
         defaultValue: false,
+      },
+      {
+        key: 'mobileModelExit',
+        type: 'boolean',
+        label: '移动端根据所选模型显示立绘',
+        labelEn: 'Show artwork based on the selected model on mobile',
+        defaultValue: true,
       },
       {
         key: 'composerMode',
