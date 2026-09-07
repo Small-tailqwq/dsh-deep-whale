@@ -8,7 +8,6 @@ import type { Context } from '@deepseek-ai/cordis'
 import {
   MAID_ATELIER_BOW_CLEAN,
   MAID_ATELIER_CHIBI,
-  MAID_ATELIER_ICON,
   MAID_ATELIER_NEW_SESSION,
   MAID_ATELIER_SIDEBAR_SWAG,
   MAID_ATELIER_TOP_TRIM_TILE,
@@ -47,6 +46,7 @@ import { installMaidCustomization } from './customization.ts'
 import { installMaidBootError } from './boot-error.ts'
 import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.generated.ts'
 import { installMaidTableCards } from './table-card.ts'
+import { installMaidPageIcons } from './page-icons.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
@@ -969,14 +969,7 @@ export function apply(ctx: Context): void {
     subtree: true,
   })
 
-  const favicon = document.createElement('link')
-  favicon.rel = 'icon'
-  favicon.type = 'image/png'
-  favicon.href = MAID_ATELIER_ICON
-  favicon.dataset.skinChrome = 'favicon'
-  favicon.dataset.skinOwner = SKIN_OWNER
-  ownedNodes.add(favicon)
-  document.head.append(favicon)
+  installMaidPageIcons(ctx)
 
   document.title = SKIN_TITLE
 }

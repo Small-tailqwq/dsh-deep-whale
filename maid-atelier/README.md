@@ -23,6 +23,12 @@ PowerShell 版本（`#` 是注释起始，spec 必须单引号包裹）见仓库
 
 加载即生效、卸载即复原(与皮肤中心/dsh-skin 的互斥切换兼容,`wiring.id` 为 `ui-skin-maid-atelier`)。
 
+## 网页与应用图标
+
+标签页在每次加载皮肤模块时从三种表情中随机选择图标，本次加载内保持不变。安装为 Web App 时固定使用托腮图，任务栏图标由浏览器和系统据此生成；已安装或已固定的应用可能需要重新安装或固定才能更新。关闭女仆皮肤时恢复宿主的 favicon 和 manifest 声明。
+
+Windows 快捷方式可下载独立 ICO：[困困](assets/icons/sleepy.ico)、[托腮](assets/icons/delighted.ico)、[认真](assets/icons/determined.ico)。每份包含 16、24、32、48、64、128、256 像素尺寸。
+
 ## 素材来源与许可
 
 本皮肤整体以 **CC BY-NC-SA 4.0**(署名-非商业性使用-相同方式共享)发布,**禁止任何商业性使用**。
