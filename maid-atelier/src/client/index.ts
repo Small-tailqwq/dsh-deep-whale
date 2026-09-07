@@ -39,10 +39,13 @@ import {
   MAID_ATELIER_WORKSPACE_SHIELD,
 } from './workspace-art.generated.ts'
 import './maid-atelier.module.css'
+import './boot-error.module.css'
 import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 import { installMaidComposerCapsule } from './composer-capsule.ts'
 import { installMaidComposerScroll } from './composer-scroll.ts'
 import { installMaidCustomization } from './customization.ts'
+import { installMaidBootError } from './boot-error.ts'
+import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.generated.ts'
 import { installMaidTableCards } from './table-card.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
@@ -147,6 +150,8 @@ const WORKSPACE_FLAG_SELECTOR = WORKSPACE_FLAGS.map(flag => `[${flag}]`).join(',
 const SIDEBAR_FOOTER_FLAG = 'data-maid-sidebar-footer'
 
 const BACKDROP_PROPERTIES = [
+  '--maid-boot-error-left-art',
+  '--maid-boot-error-right-art',
   '--maid-palace-art',
   '--maid-sidebar-width',
   '--maid-top-trim-art',
@@ -428,6 +433,7 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
 export function apply(ctx: Context): void {
   const body = document.body
   ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
+  ctx.effect(() => installMaidBootError(), 'ui-skin-maid-atelier: boot failure presentation')
   const originalTitle = document.title
   const layoutResizeLease = createBodyAttributeLease(body, 'data-maid-layout-resizing')
   const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
@@ -545,6 +551,8 @@ export function apply(ctx: Context): void {
   const disposeMaidComposerScroll = installMaidComposerScroll(body)
   disposeMaidTableCards = installMaidTableCards(ctx).dispose
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
+  body.style.setProperty('--maid-boot-error-left-art', `url(${MAID_BOOT_ERROR_LEFT})`)
+  body.style.setProperty('--maid-boot-error-right-art', `url(${MAID_BOOT_ERROR_RIGHT})`)
   body.style.setProperty('--maid-bottom-trim-art', `url(${MAID_ATELIER_BOTTOM_TRIM_TILE})`)
   body.style.setProperty('--maid-bottom-crest-art', `url(${MAID_ATELIER_BOTTOM_CREST})`)
   body.style.setProperty('--maid-bow-art', `url(${MAID_ATELIER_BOW_CLEAN})`)

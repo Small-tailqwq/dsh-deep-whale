@@ -36,6 +36,10 @@
         "mode": "link"
       },
       {
+        "name": "dsh-boot-error-verify",
+        "mode": "link"
+      },
+      {
         "name": "dsh-skin-upgrade",
         "mode": "mirror"
       }
