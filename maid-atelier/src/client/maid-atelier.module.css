@@ -468,12 +468,17 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is(nav, span, button, a, div) {
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is(nav, span, button, a, div):not(:where([role='menu'], [role='menu'] *)) {
   color: inherit;
 }
 
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button {
   text-shadow: inherit;
+}
+
+/* In-place menus have their own surface and foreground palette. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [role='menu'] {
+  text-shadow: none;
 }
 
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'] {
@@ -495,7 +500,7 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
 }
 
 /* Header icon buttons and the reroll action keep the gold trim. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):hover {
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):not(:where([role='menu'] *)):hover {
   color: var(--maid-gold-soft);
 }
 
@@ -3995,6 +4000,16 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 /* Phones and narrow panes move the category rail above the content. */
+/* The category rail scrolls independently from the selected section. */
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > * {
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
@@ -4007,6 +4022,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
     flex-direction: row;
     align-items: center;
     width: 100%;
+    max-height: 40%;
     gap: 8px;
     padding: 10px 12px 8px;
     border-bottom: 1px solid rgba(197, 164, 104, 0.42);

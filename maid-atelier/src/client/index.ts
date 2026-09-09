@@ -918,22 +918,28 @@ export function apply(ctx: Context): void {
       }
       const appNodes = [...record.addedNodes, ...record.removedNodes]
         .filter(node => node instanceof Element && !isSkinChrome(node))
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, sidebarChromeSelector))
-        || (target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null))) {
+      if (!sidebarStructureChanged && appNodes.length > 0
+        && ((target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null)
+          || appNodes.some(node => nodeTouches(node, sidebarChromeSelector)))) {
         sidebarStructureChanged = true
       }
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, composerSelector))
-        || (target !== undefined && target.closest(composerSelector) !== null))) {
+      if (!composerChanged && appNodes.length > 0
+        && ((target !== undefined && target.closest(composerSelector) !== null)
+          || appNodes.some(node => nodeTouches(node, composerSelector)))) {
         composerChanged = true
       }
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR))
-        || (target !== undefined && target.closest(CONVERSATION_COLUMN_SELECTOR) !== null))) {
+      if (!chatStructureChanged && appNodes.length > 0
+        && ((target !== undefined && target.closest(CONVERSATION_COLUMN_SELECTOR) !== null)
+          || appNodes.some(node => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR)))) {
         chatStructureChanged = true
       }
-      if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
+      // The settings mask is owned by this slot. Chat subtree replacements
+      // cannot change it and must not scan their descendants for mask classes.
+      if (!settingsStateChanged && appNodes.length > 0 && target !== undefined
+        && target.closest("[data-slot='sidebar.settings']") !== null) {
         settingsStateChanged = true
       }
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))
+      if (!projectedStateChanged && appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))
         || target?.matches("header, [data-slot='sidebar.settings']") === true)) {
         projectedStateChanged = true
       }
