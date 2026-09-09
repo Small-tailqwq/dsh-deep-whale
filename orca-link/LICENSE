@@ -2,7 +2,7 @@
 
 Project-owned software code is licensed under the MIT License below. This includes source code, scripts, configuration, and the code portions of generated bundles.
 
-Artwork, character designs, images, icons, previews, and their embedded or transformed copies are excluded from MIT. Copyright remains with the respective rights holders, including original character artists and Small-tailqwq for their respective contributions. Artwork includes AI-generated and AI-assisted images. No commercial use of the artwork is licensed by this repository. Existing artwork permissions and attribution requirements remain in effect; see each skin's NOTICE and LICENSE-ARTWORK. Bundling artwork into source code, CSS, data URLs, or lib/ does not change its license.
+Artwork, character designs, backgrounds, button graphics, decorative assets, images, icons, previews, and their embedded or transformed copies are excluded from MIT. Copyright remains with the respective rights holders, including original character artists and Small-tailqwq for their respective contributions. Artwork includes AI-generated and AI-assisted images. No commercial use of the artwork is licensed by this repository. Existing artwork permissions and attribution requirements remain in effect; see each skin's NOTICE and LICENSE-ARTWORK. Bundling artwork into source code, CSS, data URLs, or lib/ does not change its license.
 
 Third-party materials and contributions retain their applicable notices and licenses unless their rights holders authorize MIT licensing. This notice does not revoke permissions already granted for previously distributed versions.
 
