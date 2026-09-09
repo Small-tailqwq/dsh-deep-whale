@@ -25,14 +25,14 @@ PowerShell 版本（`#` 是注释起始，spec 必须单引号包裹）见仓库
 
 ## 素材来源与许可
 
-本皮肤整体以 **CC BY-NC-SA 4.0**（署名-非商业性使用-相同方式共享）发布，**禁止任何商业性使用**。
+本皮肤代码采用 **MIT**；全部美术资源（包括 AI 生成及加工的图片）**禁止商业性使用**，保留相应权利人的版权及既有 **CC BY-NC-SA 4.0** 授权（署名、非商业、相同方式共享）。内嵌于代码或构建产物中的图片同样遵守美术许可。
 
 皮肤素材为衍生创作，署名链（详见 `NOTICE`）：
 
 1. **一创 上善**（[Pixiv](https://www.pixiv.net/users/62155430) · [Bilibili：上善无形](https://b23.tv/8h5L4xz)）—— 鲸鱼娘角色形象原作者
 2. **二创（本皮肤）Small-tailqwq** —— 基于上善原作角色身份的 ORCA LINK 皮肤场景、状态角色图集与 UI 素材衍生设计
 
-完整许可文本见 `LICENSE`；素材源文件在 `assets/`。
+许可范围与 MIT 正文见 [LICENSE](LICENSE)，美术许可正文见 [LICENSE-ARTWORK](LICENSE-ARTWORK)，署名链见 [NOTICE](NOTICE)。
 
 ## 开发与构建
 
@@ -48,4 +48,4 @@ pnpm test           # vitest 行为测试
 
 ## 许可
 
-CC BY-NC-SA 4.0。见 `LICENSE` 与 `NOTICE`。
+许可范围与 MIT 正文见 [LICENSE](LICENSE)，美术许可正文见 [LICENSE-ARTWORK](LICENSE-ARTWORK)，署名链见 [NOTICE](NOTICE)。
