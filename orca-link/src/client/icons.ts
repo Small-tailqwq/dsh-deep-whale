@@ -22,7 +22,6 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
 const SVG_NS = 'http://www.w3.org/2000/svg'
 const ICON_ATTRIBUTE = 'data-orca-link-icon'
 const ICON_ART_ATTRIBUTE = 'data-orca-link-icon-art'
-const USAGE_KEY = 'JObwrW_track'
 
 /**
  * Rectilinear icon art on a 16x16 design grid. Group defaults: stroke
@@ -185,7 +184,13 @@ const ICON_ART: Record<string, string> = {
     '<path d="M2.5 13.75v-2l1.75-2.5h7.5l1.75 2.5v2"/>',
   ].join(''),
   stop: ['<path d="M3.75 3.75h8.5v8.5h-8.5z" fill="currentColor" stroke="none"/>'].join(''),
-  paperclip: ['<path d="M4.75 13.75V4.25h6.5v7.5M7.25 13.75V6.75"/>'].join(''),
+  // Two nested loops with the inner wire between them, tilted 45° so the three
+  // parallel wires stay separated at the 14px button size. The previous
+  // stem-only drawing read as a bracket and was reported as a broken glyph on
+  // the 0.1.5 composer attach button.
+  paperclip: ['<path d="M12 4.25v6.5a2.75 2.75 0 0 1-5.5 0V4.25a1.5 1.5 0 0 1 3 0v6.5" transform="rotate(-45 8 8)"/>'].join(''),
+  // Composer command button: a prompt, distinct from the plus and the clip.
+  command: ['<path d="M4.5 4.5 8 8l-3.5 3.5M8.75 11.5h4"/>'].join(''),
   download: [
     '<path d="M8 2.25v7.5M5.25 7 8 9.75 10.75 7"/>',
     '<path d="M2.5 11.25v2.5h11v-2.5"/>',
@@ -257,17 +262,6 @@ const ICON_ART: Record<string, string> = {
     '<path d="M5.75 8h4.5v2.5h-4.5z"/>',
   ].join(''),
   usage: ['<rect x="2.5" y="2.5" width="11" height="11"/>'].join(''),
-  /**
-   * Busy spinner: replaces the host's orbiting-dot loader with a square
-   * outline whose four edges light up clockwise in hard steps (animated by
-   * the stylesheet via the sequence attributes).
-   */
-  spinner: [
-    '<rect data-orca-link-spinner-seq="0" x="2" y="2" width="12" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-spinner-seq="1" x="12" y="2" width="2" height="12" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-spinner-seq="2" x="2" y="12" width="12" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-spinner-seq="3" x="2" y="2" width="2" height="12" fill="currentColor" stroke="none"/>',
-  ].join(''),
 }
 
 /**
@@ -380,7 +374,10 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ['M11.5635 4.58984', 'check'],
   ['M4.5 6.25 6.75 8 4.5 9.75', 'terminal'],
   ['M11.4818 5.57813C11.4818 4.45301', 'terminal'],
+  // ic_ds_globe_outline_14: the 0.1.5 build draws a filled meridian globe; the
+  // ellipse-ring form is kept for hosts that still ship it.
   ['ellipse cx="8" cy="8" rx="2.8" ry="6.5"', 'globe'],
+  ['M7.00018 0.353516C10.6708', 'globe'],
   ['M8.19727 5.86969', 'link'],
   ['M9.94133 6.50173', 'link'],
   ['M7.95889 1.52285C7.95888 0.826234', 'share'],
@@ -392,8 +389,6 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ['M2.58875 12.3407L6.59167 8.33777', 'fullscreen'],
   ['M6.3002 3.32843L7.69986 3.32843', 'warning'],
   ['M11.0307 5.46369C11.0305 3.78995', 'user'],
-  [USAGE_KEY, 'usage'],
-  ['_cell_10orb', 'spinner'],
 ]
 
 function normalizeHtml(html: string): string {
@@ -412,6 +407,36 @@ function matchIcon(html: string): string | null {
     if (html.includes(key)) return name
   }
   return null
+}
+
+/**
+ * The composer's command button draws the generic plus, which reads as an
+ * add/attach affordance next to the paperclip. Redraw it as the command prompt;
+ * every other plus keeps its own meaning.
+ */
+function contextualName(svg: SVGElement, name: string): string {
+  if (name !== 'plus') return name
+  const trigger = svg.closest("button[aria-haspopup='listbox']")
+  return trigger !== null && trigger.closest('[data-composer-seat]') !== null ? 'command' : name
+}
+
+/**
+ * The context meter's ring: a track circle plus a dashed progress circle. Its
+ * class name is a CSS-module hash that moves with the host's build (path,
+ * toolchain and content all feed it), so the drawing — not the class — is the
+ * stable identity. The host draws a dashed ring in exactly two places, and the
+ * todo-pending glyph has one circle, so the pair is unambiguous.
+ */
+function isUsageRing(svg: SVGElement): boolean {
+  return svg.querySelectorAll('circle').length === 2
+    && svg.querySelector('circle[stroke-dasharray]') !== null
+}
+
+/** Resolve the ORCA art name for one host SVG, or null when nothing matches. */
+function resolveIconName(svg: SVGElement): string | null {
+  if (isUsageRing(svg)) return 'usage'
+  const matched = matchIcon(hostHtml(svg))
+  return matched === null ? null : contextualName(svg, matched)
 }
 
 /**
@@ -507,8 +532,8 @@ export function installOrcaIcons(body: HTMLElement): () => void {
   }
 
   const applyToSvg = (svg: SVGElement): boolean => {
-    const name = matchIcon(hostHtml(svg))
-    if (!name) return false
+    const name = resolveIconName(svg)
+    if (name === null) return false
     svg.setAttribute(ICON_ATTRIBUTE, name)
     const art = buildArt(name, svg)
     if (name === 'usage') observeUsage(svg, art)
@@ -529,7 +554,7 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     // element while React swaps only its owned children. Re-match that
     // drawing instead of treating our first marker as permanently final.
     const currentName = svg.getAttribute(ICON_ATTRIBUTE)
-    const nextName = matchIcon(hostHtml(svg))
+    const nextName = resolveIconName(svg)
     if (nextName !== null && nextName !== currentName) {
       if (currentName?.startsWith('permission-') && !nextName.startsWith('permission-')) {
         svg.closest('button, [role="menuitem"]')?.removeAttribute('data-orca-permission')

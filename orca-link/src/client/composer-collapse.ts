@@ -16,13 +16,11 @@ const BODY_DRAGGING_ATTRIBUTE = 'data-orca-composer-handle-dragging'
 const HANDLE_ATTRIBUTE = 'data-orca-composer-handle'
 const RESTORE_ATTRIBUTE = 'data-orca-composer-restore'
 const RESTORE_EXIT_ATTRIBUTE = 'data-orca-composer-restore-exiting'
-const TO_BOTTOM_SELECTOR = ".Md3f7G_toBottom, button[aria-label='回到底部'], button[aria-label='Back to bottom']"
-
 const ACTIVATION_DEAD_ZONE = 8
 const COMMIT_THRESHOLD = 0.56
-const REBOUND_LIFETIME_MS = 280
-const COLLAPSE_LIFETIME_MS = 300
-const RESTORE_LIFETIME_MS = 340
+const REBOUND_LIFETIME_MS = 420
+const COLLAPSE_LIFETIME_MS = 440
+const RESTORE_LIFETIME_MS = 520
 const RESTORE_SIZE = 28
 
 type Side = 'left' | 'right'
@@ -40,8 +38,8 @@ interface CollapseBinding {
   restore: HTMLButtonElement | null
   anchor: Anchor | null
   suppressClickUntil: number
-  dragFullWidth: number
-  dragMinWidth: number
+  cardRect: DOMRect | null
+  transitionVersion: number
 }
 
 interface ActiveDrag {
@@ -50,6 +48,7 @@ interface ActiveDrag {
   pointerId: number
   side: Side
   startX: number
+  startProgress: number
   distance: number
   progress: number
   activated: boolean
@@ -107,11 +106,12 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   }
 
   const clearDragProperties = (seat: HTMLElement): void => {
-    seat.style.removeProperty('--orca-composer-drag-width')
+    for (const property of ['scale', 'dock-x', 'dock-y', 'dock-scale']) {
+      seat.style.removeProperty(`--orca-composer-${property}`)
+    }
     const binding = bindings.get(seat)
     if (binding !== undefined) {
-      binding.dragFullWidth = 0
-      binding.dragMinWidth = 0
+      binding.cardRect = null
     }
   }
 
@@ -135,14 +135,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   }
 
   const applyDragProgress = (binding: CollapseBinding, progress: number): void => {
-    const seat = binding.seat
-    const rect = binding.card.getBoundingClientRect()
-    if (binding.dragFullWidth <= 0) binding.dragFullWidth = rect.width
-    if (binding.dragMinWidth <= 0) {
-      binding.dragMinWidth = Math.min(binding.dragFullWidth, clamp(rect.height, 96, 128))
-    }
-    const width = binding.dragFullWidth - (binding.dragFullWidth - binding.dragMinWidth) * progress
-    seat.style.setProperty('--orca-composer-drag-width', `${width}px`)
+    binding.seat.style.setProperty('--orca-composer-scale', `${1 - progress * 0.58}`)
   }
 
   const anchorRestore = (binding: CollapseBinding, cardRect?: DOMRect): void => {
@@ -165,35 +158,19 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     if (button === null || anchor === null) return
 
     const rootRect = binding.root.getBoundingClientRect()
-    const toBottom = binding.root.querySelector<HTMLElement>(TO_BOTTOM_SELECTOR)
-    const toBottomRect = toBottom?.getBoundingClientRect()
-    const belowToBottom = toBottomRect !== undefined && toBottomRect.width > 0 && toBottomRect.height > 0
-    const left = belowToBottom
-      ? clamp(
-          toBottomRect.left + (toBottomRect.width - RESTORE_SIZE) / 2,
-          rootRect.left + 8,
-          rootRect.right - RESTORE_SIZE - 8,
-        )
-      : clamp(
-          rootRect.left + rootRect.width * anchor.leftRatio,
-          rootRect.left + 8,
-          rootRect.right - RESTORE_SIZE - 8,
-        )
-    const top = belowToBottom
-      ? clamp(toBottomRect.bottom + 8, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
-      : clamp(
-          rootRect.top + rootRect.height * anchor.topRatio,
-          rootRect.top + 8,
-          rootRect.bottom - RESTORE_SIZE - 8,
-        )
+    const left = clamp(rootRect.left + rootRect.width * anchor.leftRatio,
+      rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
+    const top = clamp(rootRect.top + rootRect.height * anchor.topRatio,
+      rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
     button.style.left = `${left}px`
     button.style.top = `${top}px`
 
     if (sourceRect !== undefined) {
       const sourceX = sourceRect.left + sourceRect.width / 2
       const sourceY = sourceRect.top + sourceRect.height / 2
-      button.style.setProperty('--orca-composer-restore-from-x', `${sourceX - left - RESTORE_SIZE / 2}px`)
-      button.style.setProperty('--orca-composer-restore-from-y', `${sourceY - top - RESTORE_SIZE / 2}px`)
+      binding.seat.style.setProperty('--orca-composer-dock-x', `${left + RESTORE_SIZE / 2 - sourceX}px`)
+      binding.seat.style.setProperty('--orca-composer-dock-y', `${top + RESTORE_SIZE / 2 - sourceY}px`)
+      binding.seat.style.setProperty('--orca-composer-dock-scale', `${RESTORE_SIZE / sourceRect.width}`)
     }
   }
 
@@ -206,6 +183,11 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     const seat = binding.seat
     if (!seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) return
 
+    const version = ++binding.transitionVersion
+    const rect = seat.hasAttribute(COLLAPSING_ATTRIBUTE)
+      ? binding.cardRect ?? binding.card.getBoundingClientRect()
+      : binding.card.getBoundingClientRect()
+    positionRestore(binding, rect)
     binding.restore?.setAttribute(RESTORE_EXIT_ATTRIBUTE, '')
     seat.removeAttribute(MANUAL_HIDDEN_ATTRIBUTE)
     seat.removeAttribute('data-orca-composer-hidden')
@@ -215,6 +197,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     setOwnedInert(seat, false)
 
     schedule(() => {
+      if (version !== binding.transitionVersion) return
       seat.removeAttribute(RESTORING_ATTRIBUTE)
       clearDragProperties(seat)
       removeRestore(binding)
@@ -241,8 +224,9 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     const seat = binding.seat
     if (seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) return
 
-    const cardRect = binding.card.getBoundingClientRect()
-    applyDragProgress(binding, 1)
+    const version = ++binding.transitionVersion
+    const cardRect = binding.cardRect ?? binding.card.getBoundingClientRect()
+    binding.cardRect = cardRect
     blurSeat(seat)
     seat.removeAttribute(DRAGGING_ATTRIBUTE)
     seat.removeAttribute(REBOUNDING_ATTRIBUTE)
@@ -257,17 +241,20 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     mountRestore(binding, cardRect)
 
     schedule(() => {
+      if (version !== binding.transitionVersion) return
       seat.removeAttribute(COLLAPSING_ATTRIBUTE)
-      clearDragProperties(seat)
+      seat.style.removeProperty('--orca-composer-scale')
     }, COLLAPSE_LIFETIME_MS)
   }
 
   const reboundComposer = (binding: CollapseBinding): void => {
     const seat = binding.seat
     seat.removeAttribute(DRAGGING_ATTRIBUTE)
+    const version = ++binding.transitionVersion
     seat.setAttribute(REBOUNDING_ATTRIBUTE, '')
     body.removeAttribute(BODY_DRAGGING_ATTRIBUTE)
     schedule(() => {
+      if (version !== binding.transitionVersion) return
       seat.removeAttribute(REBOUNDING_ATTRIBUTE)
       clearDragProperties(seat)
     }, REBOUND_LIFETIME_MS)
@@ -304,11 +291,13 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
       if (inward <= ACTIVATION_DEAD_ZONE) return
       drag.activated = true
       drag.binding.seat.removeAttribute(REBOUNDING_ATTRIBUTE)
+      drag.binding.seat.removeAttribute('data-orca-composer-entering')
+      drag.binding.seat.removeAttribute('data-orca-composer-hidden')
       drag.binding.seat.setAttribute(DRAGGING_ATTRIBUTE, '')
       body.setAttribute(BODY_DRAGGING_ATTRIBUTE, drag.side)
     }
     drag.progress = clamp(
-      (inward - ACTIVATION_DEAD_ZONE) / (drag.distance - ACTIVATION_DEAD_ZONE),
+      drag.startProgress + (inward - ACTIVATION_DEAD_ZONE) / (drag.distance - ACTIVATION_DEAD_ZONE),
       0,
       1,
     )
@@ -342,23 +331,35 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     handle: HTMLButtonElement,
   ): void => {
     if (!isPrimaryPointer(event) || activeDrag !== null) return
-    if (binding.seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) return
+    if (binding.seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE) || binding.seat.hasAttribute(RESTORING_ATTRIBUTE)) return
     const phase = binding.root.dataset.phase ?? ''
     if (phase !== 'active' || binding.root.querySelector(CHAT_FLOW_SELECTOR) === null) return
 
-    const rect = binding.card.getBoundingClientRect()
+    const rebounding = binding.seat.hasAttribute(REBOUNDING_ATTRIBUTE)
+    const transform = rebounding ? view?.getComputedStyle(binding.card).transform : undefined
+    const scale = transform?.startsWith('matrix(') ? Number.parseFloat(transform.slice(7)) : 1
+    const startProgress = clamp((1 - (scale ?? 1)) / 0.58, 0, 1)
+    const rect = rebounding && binding.cardRect !== null ? binding.cardRect : binding.card.getBoundingClientRect()
+    ++binding.transitionVersion
+    binding.seat.removeAttribute(REBOUNDING_ATTRIBUTE)
+    clearDragProperties(binding.seat)
     const width = rect.width
-    binding.dragFullWidth = width
-    binding.dragMinWidth = Math.min(width, clamp(rect.height, 96, 128))
+    binding.cardRect = rect
+    if (rebounding) {
+      applyDragProgress(binding, startProgress)
+      binding.seat.setAttribute(DRAGGING_ATTRIBUTE, '')
+      body.setAttribute(BODY_DRAGGING_ATTRIBUTE, side)
+    }
     activeDrag = {
       binding,
       handle,
       pointerId: event.pointerId,
       side,
       startX: event.clientX,
+      startProgress,
       distance: clamp(width * 0.34, 88, 168),
-      progress: 0,
-      activated: false,
+      progress: startProgress,
+      activated: rebounding,
     }
     handle.setPointerCapture?.(event.pointerId)
     event.preventDefault()
@@ -404,8 +405,8 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
         restore: null,
         anchor: null,
         suppressClickUntil: 0,
-        dragFullWidth: 0,
-        dragMinWidth: 0,
+        cardRect: null,
+        transitionVersion: 0,
       }
       bindings.set(seat, binding)
     } else {
@@ -421,6 +422,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
       if (activeDrag?.binding === binding) {
         finishDrag(false)
       }
+      ++binding.transitionVersion
       binding.handles.forEach(handle => { handle.remove() })
       binding.handles = []
       removeRestore(binding)
@@ -447,6 +449,8 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   }
 
   const removeBinding = (binding: CollapseBinding): void => {
+    if (activeDrag?.binding === binding) finishDrag(false)
+    ++binding.transitionVersion
     binding.handles.forEach(handle => { handle.remove() })
     binding.handles = []
     removeRestore(binding)

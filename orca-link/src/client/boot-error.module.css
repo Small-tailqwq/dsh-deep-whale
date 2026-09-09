@@ -1,0 +1,128 @@
+body[data-dsh-orca-link] [data-dsh-boot][data-orca-boot-error] {
+  box-sizing: border-box;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 440px) minmax(0, 620px);
+  grid-template-areas: 'scene report';
+  justify-content: center;
+  align-content: safe center;
+  align-items: center;
+  gap: clamp(24px, 4vw, 72px);
+  min-height: 100dvh;
+  height: auto;
+  padding: clamp(24px, 5vw, 72px);
+  overflow: auto;
+  color: var(--orca-ink);
+  background: #f6f1e7;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-dsh-boot][data-orca-boot-error] {
+  background: #090f18;
+}
+
+body[data-dsh-orca-link] [data-orca-boot-error] > div {
+  grid-area: report;
+  box-sizing: border-box;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+  max-height: min(76dvh, 800px);
+  overflow: auto;
+  padding: clamp(22px, 3vw, 40px);
+  border: 1px solid var(--orca-line);
+  border-top: 3px solid var(--orca-blue);
+  border-radius: 0;
+  background: var(--dsw-input-solid);
+  box-shadow: 0 12px 40px #141d2b0c;
+  overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
+}
+
+body[data-dsh-orca-link] [data-orca-boot-error] > div > div {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+
+body[data-dsh-orca-link] [data-orca-boot-error] > div > div:first-child {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--orca-line);
+  color: var(--orca-muted);
+  letter-spacing: .16em;
+  font-size: 12px;
+}
+
+body[data-dsh-orca-link] [data-orca-boot-error] > div > div + div > div:first-child {
+  margin-bottom: 12px;
+  color: var(--orca-ink);
+  font-size: clamp(20px, 2.2vw, 26px);
+  line-height: 1.4;
+}
+
+body[data-dsh-orca-link] [data-orca-boot-scene] {
+  grid-area: scene;
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1;
+  margin: 0;
+  align-self: center;
+  justify-self: center;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+body[data-dsh-orca-link] [data-orca-boot-figure] {
+  position: absolute;
+  left: 3%;
+  bottom: 5%;
+  width: 94%;
+  height: 78%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-orca-boot-figure] {
+  filter: brightness(.77) saturate(.78);
+}
+
+body[data-dsh-orca-link] [data-orca-boot-scene] [data-orca-work-light='repair'] {
+  top: -10%;
+  bottom: 10%;
+}
+
+body[data-dsh-orca-link] [data-orca-boot-floor] {
+  position: absolute;
+  inset: auto 7% 1%;
+  height: 9%;
+  background: radial-gradient(ellipse, #50463522, transparent 70%);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-orca-boot-floor] {
+  background: radial-gradient(ellipse, #edc78818, transparent 70%);
+}
+
+html[data-dsh-whale-orca-art='hidden'] body[data-dsh-orca-link] [data-dsh-boot][data-orca-boot-error] {
+  grid-template-columns: minmax(0, 620px);
+  grid-template-areas: 'report';
+}
+
+html[data-dsh-whale-orca-art='hidden'] body[data-dsh-orca-link] [data-orca-boot-scene] {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  body[data-dsh-orca-link] [data-dsh-boot][data-orca-boot-error] {
+    grid-template-columns: minmax(0, 620px);
+    grid-template-areas: 'scene' 'report';
+    align-content: start;
+    gap: 16px;
+    padding: 20px;
+  }
+  body[data-dsh-orca-link] [data-orca-boot-scene] {
+    width: min(72vw, 300px);
+  }
+  body[data-dsh-orca-link] [data-orca-boot-error] > div {
+    max-height: none;
+  }
+}

@@ -17,6 +17,23 @@ describe('ORCA LINK performance guards', () => {
     expect(css).not.toContain('body[data-dsh-orca-link] *::after')
   })
 
+  it('promotes the composer seat only while one of its own transitions runs', () => {
+    expect(css).not.toMatch(/\[data-composer-seat\]\s*\{[^}]*will-change/)
+    expect(css).toContain('[data-composer-seat]:is(')
+    expect(css).toContain('[data-orca-composer-motion]')
+  })
+
+  it('leaves the interactive composer seat free of a fixed-position containing block', () => {
+    // The host tooltip bubble is position: fixed and not portaled, so any
+    // non-none transform on the seat re-homes it to the seat's box.
+    const interactiveSeat = css.match(
+      /\[data-composer-seat\]\[data-orca-composer-interactive\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(interactiveSeat).not.toBe('')
+    expect(interactiveSeat).toContain('transform: none')
+    expect(interactiveSeat).not.toMatch(/transform:\s*translate/)
+  })
+
   it('uses the stable scene attribute instead of a body-wide phase query', () => {
     expect(css).toContain("body[data-dsh-orca-link][data-orca-scene='hero'] .standby")
     expect(css).not.toContain("body[data-dsh-orca-link]:has([data-phase='hero'])")
@@ -119,6 +136,26 @@ describe('ORCA LINK performance guards', () => {
     Object.defineProperty(transitionEnd, 'propertyName', { value: 'grid-template-columns' })
     frame.dispatchEvent(transitionEnd)
     expect(host.hasAttribute('data-orca-terminal-width-locked')).toBe(false)
+    dispose()
+  })
+
+  it('freezes resize-sensitive rows when the right column collapses', async () => {
+    // 0.1.5-alpha.1 renamed the frame's details column to the right column; the
+    // observer must key off data-rightbar-collapsed for its track transitions.
+    document.body.innerHTML = `
+      <div id="root"><div data-slot="root"><div style="grid-template-columns: 280px 1fr 0px" data-rightbar-collapsed>
+        <div data-produced-files-row></div>
+      </div></div></div>
+    `
+    const frame = document.querySelector<HTMLElement>("[id='root'] > div[data-slot='root'] > div")!
+    const row = document.querySelector<HTMLElement>('[data-produced-files-row]')!
+    row.getBoundingClientRect = () => ({ width: 360 } as DOMRect)
+    const dispose = installOrcaTerminalPerformance(document.body)
+
+    frame.removeAttribute('data-rightbar-collapsed')
+    await Promise.resolve()
+    expect(row.hasAttribute('data-orca-responsive-width-locked')).toBe(true)
+    expect(row.style.getPropertyValue('--orca-responsive-locked-width')).toBe('360px')
     dispose()
   })
 

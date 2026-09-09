@@ -20,6 +20,8 @@ import { installOrcaSettingsOverlay } from './settings-overlay.ts'
 import { installOrcaStatusCharacter } from './status-character.ts'
 import { installOrcaTerminalPerformance } from './terminal-performance.ts'
 import { installOrcaWindowResume } from './window-resume.ts'
+import { installOrcaLightVisibility } from './work-light.ts'
+import { installOrcaBootError } from './boot-error.ts'
 import css from './orca-link.module.css'
 
 const SKIN_TITLE = 'ORCA LINK · DSH'
@@ -66,7 +68,8 @@ function mountDshWordmark(): boolean {
     return index === 0 && (buttons.length > 1 || !/sidebar|侧边栏/i.test(label))
   })
   if (brand) brand.dataset.orcaLinkBrand = ''
-  if (!row.querySelector(':scope > [data-orca-link-wordmark]')) {
+  const sidebar = row.parentElement!
+  if (!sidebar.querySelector(':scope > [data-orca-link-wordmark]')) {
     const wordmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     wordmark.classList.add(cls('dshWordmark'))
     wordmark.dataset.orcaLinkWordmark = ''
@@ -74,7 +77,7 @@ function mountDshWordmark(): boolean {
     wordmark.setAttribute('viewBox', '0 0 180 44')
     wordmark.setAttribute('aria-hidden', 'true')
     wordmark.innerHTML = DSH_WORDMARK
-    row.append(wordmark)
+    sidebar.append(wordmark)
   }
   if (!row.querySelector(':scope > [data-orca-link-signal]')) {
     const chip = document.createElement('span')
@@ -118,6 +121,8 @@ function syncSidebarWidth(body: HTMLElement, pane: Element): number {
 export function apply(ctx: Context): void {
   const body = document.body
   ctx.effect(() => installOrcaCustomization(), 'ui-skin-orca-link: customization declaration')
+  ctx.effect(() => installOrcaLightVisibility(body), 'ui-skin-orca-link: decorative light visibility')
+  ctx.effect(() => installOrcaBootError(), 'ui-skin-orca-link: boot failure presentation')
   const originalTitle = document.title
   const originalLightHeroArt = body.style.getPropertyValue(LIGHT_HERO_ART_PROPERTY)
   const originalLightActiveArt = body.style.getPropertyValue(LIGHT_ACTIVE_ART_PROPERTY)
@@ -141,11 +146,16 @@ export function apply(ctx: Context): void {
   const disposeTerminalPerformance = installOrcaTerminalPerformance(body)
   const disposeSettingsOverlay = installOrcaSettingsOverlay(body)
 
+  let wordmarkRow: Element | null = null
   const wordmarkObserver = new MutationObserver((records) => {
     if (!hasMutationOutsideTerminal(records)) return
+    // Conversation updates cannot replace chrome inside a connected logo row.
+    if (wordmarkRow?.isConnected && !records.some(record => wordmarkRow!.contains(record.target))) return
     mountDshWordmark()
+    wordmarkRow = document.querySelector(SIDEBAR_LOGO_ROW_SELECTOR)
   })
   mountDshWordmark()
+  wordmarkRow = document.querySelector(SIDEBAR_LOGO_ROW_SELECTOR)
   const disposeLinkStatus = installOrcaLinkStatus(body)
   const disposeStatusCharacter = installOrcaStatusCharacter(body, {
     character: cls('statusCharacter'),
@@ -180,9 +190,12 @@ export function apply(ctx: Context): void {
       body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${width}px`)
       return
     }
+    if (body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) === `${width}px`) return
     sidebarArtWidthTimer = setTimeout(() => {
       const stableWidth = Number.parseFloat(body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY))
-      if (stableWidth > 96) body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${stableWidth}px`)
+      if (stableWidth > 96 && body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) !== `${stableWidth}px`) {
+        body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${stableWidth}px`)
+      }
       sidebarArtWidthTimer = undefined
     }, 180)
   }

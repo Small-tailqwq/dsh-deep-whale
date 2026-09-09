@@ -31,7 +31,7 @@ describe('ORCA modal style boundaries', () => {
   })
 
   it('keeps non-settings animations disabled for reduced-motion users', () => {
-    expect(css).toContain("body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText']::after")
+    expect(css).toContain("body[data-dsh-orca-link] [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge'])::after")
     expect(css).toContain("body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering]")
     expect(css).not.toContain("[data-orca-settings-open] [data-phase='hero']")
     expect(css).not.toContain("[data-orca-settings-open] [data-composer-seat]")

@@ -18,13 +18,16 @@ const EXIT_ATTRIBUTE = 'data-orca-composer-exiting'
 const ENTER_ATTRIBUTE = 'data-orca-composer-entering'
 const HIDDEN_ATTRIBUTE = 'data-orca-composer-hidden'
 const INTERACTIVE_ATTRIBUTE = 'data-orca-composer-interactive'
+const MOTION_ATTRIBUTE = 'data-orca-composer-motion'
 const GHOST_ATTRIBUTE = 'data-orca-composer-ghost'
 const OUTSIDE_CHAT_ATTRIBUTE = 'data-orca-composer-outside-chat'
 
 const SCROLL_THRESHOLD = 10
 const BOTTOM_THRESHOLD = 24
 const GHOST_LIFETIME_MS = 260
-const ENTER_LIFETIME_MS = 560
+const ENTER_LIFETIME_MS = 820
+// The seat's own transition runs 300ms (opacity) / 340ms (transform).
+const MOTION_LIFETIME_MS = 360
 // A wheel gesture on the draft scroller may keep scrolling the transcript for
 // a short while afterwards: the host's InputBar forwards the delta once the
 // capped draft box reaches its own edge, so the transcript scroll that follows
@@ -127,12 +130,35 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     timers.add(timer)
   }
 
+  const motionTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>()
+
+  // Keep the promotion hint for the transition window only: a seat that stays
+  // promoted renders the composer dock (the goal banner inside it included) on
+  // the scaled compositor raster instead of the crisp 1:1 one.
+  const markMotion = (seat: HTMLElement): void => {
+    const previous = motionTimers.get(seat)
+    if (previous !== undefined) {
+      clearTimeout(previous)
+      timers.delete(previous)
+    }
+    seat.setAttribute(MOTION_ATTRIBUTE, '')
+    const timer = setTimeout(() => {
+      timers.delete(timer)
+      motionTimers.delete(seat)
+      seat.removeAttribute(MOTION_ATTRIBUTE)
+    }, MOTION_LIFETIME_MS)
+    timers.add(timer)
+    motionTimers.set(seat, timer)
+  }
+
   const removeMotionAttributes = (seat: HTMLElement): void => {
     seat.removeAttribute(EXIT_ATTRIBUTE)
     seat.removeAttribute(ENTER_ATTRIBUTE)
     seat.removeAttribute(HIDDEN_ATTRIBUTE)
     seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
+    seat.removeAttribute(MOTION_ATTRIBUTE)
     seat.removeAttribute(OUTSIDE_CHAT_ATTRIBUTE)
+    seat.style.removeProperty('--orca-composer-enter-distance')
   }
 
   const blurSeat = (seat: HTMLElement): void => {
@@ -140,32 +166,46 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     if (active instanceof HTMLElement && seat.contains(active)) active.blur()
   }
 
+  const isManualMotion = (seat: HTMLElement): boolean => seat.matches(
+    '[data-orca-composer-manual-hidden], [data-orca-composer-collapse-dragging], [data-orca-composer-collapse-rebounding], [data-orca-composer-restoring]',
+  )
+
   const showSeat = (seat: HTMLElement): void => {
-    if (seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) return
+    if (isManualMotion(seat)) return
+    if (!seat.hasAttribute(HIDDEN_ATTRIBUTE)) return
+    markMotion(seat)
     seat.removeAttribute(HIDDEN_ATTRIBUTE)
   }
 
   const hideSeat = (seat: HTMLElement): void => {
-    if (seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) return
+    if (isManualMotion(seat)) return
+    if (!seat.hasAttribute(HIDDEN_ATTRIBUTE)) markMotion(seat)
     seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
     blurSeat(seat)
     seat.removeAttribute(ENTER_ATTRIBUTE)
     seat.setAttribute(HIDDEN_ATTRIBUTE, '')
   }
 
-  const activateSeat = (seat: HTMLElement): void => {
-    if (seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) return
+  const activateSeat = (seat: HTMLElement, interruptEntry = false): void => {
+    if (isManualMotion(seat)) return
     showSeat(seat)
-    seat.removeAttribute(ENTER_ATTRIBUTE)
+    if (interruptEntry) seat.removeAttribute(ENTER_ATTRIBUTE)
     seat.setAttribute(INTERACTIVE_ATTRIBUTE, '')
   }
 
   const enterSeat = (seat: HTMLElement): void => {
-    if (seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) return
+    if (isManualMotion(seat)) return
     seat.removeAttribute(EXIT_ATTRIBUTE)
     seat.removeAttribute(HIDDEN_ATTRIBUTE)
+    const card = seat.querySelector<HTMLElement>(COMPOSER_CARD_SELECTOR)
+    if (card === null) return
+    const top = card.getBoundingClientRect().top
+    seat.style.setProperty('--orca-composer-enter-distance', `${Math.max(0, (doc.defaultView?.innerHeight ?? 0) - top) + 32}px`)
     seat.setAttribute(ENTER_ATTRIBUTE, '')
-    schedule(() => { seat.removeAttribute(ENTER_ATTRIBUTE) }, ENTER_LIFETIME_MS)
+    schedule(() => {
+      seat.removeAttribute(ENTER_ATTRIBUTE)
+      seat.style.removeProperty('--orca-composer-enter-distance')
+    }, ENTER_LIFETIME_MS)
   }
 
   const copyLiveFieldValues = (source: HTMLElement, clone: HTMLElement): void => {
@@ -222,7 +262,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     const root = phaseRootOf(input)
     if (root?.dataset.phase === 'active') {
       const seat = input.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
-      if (seat !== null) activateSeat(seat)
+      if (seat !== null) activateSeat(seat, true)
       return
     }
     if (root?.dataset.phase !== 'hero') return
