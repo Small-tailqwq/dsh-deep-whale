@@ -8,7 +8,6 @@ import type { Context } from '@deepseek-ai/cordis'
 import {
   MAID_ATELIER_BOW_CLEAN,
   MAID_ATELIER_CHIBI,
-  MAID_ATELIER_ICON,
   MAID_ATELIER_NEW_SESSION,
   MAID_ATELIER_SIDEBAR_SWAG,
   MAID_ATELIER_TOP_TRIM_TILE,
@@ -39,11 +38,17 @@ import {
   MAID_ATELIER_WORKSPACE_SHIELD,
 } from './workspace-art.generated.ts'
 import './maid-atelier.module.css'
+import './boot-error.module.css'
 import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 import { installMaidComposerCapsule } from './composer-capsule.ts'
+import { installMaidComposerDismiss } from './composer-dismiss.ts'
 import { installMaidComposerScroll } from './composer-scroll.ts'
+import { createMaidSettingsNavigation } from './settings-navigation.ts'
 import { installMaidCustomization } from './customization.ts'
+import { installMaidBootError } from './boot-error.ts'
+import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.generated.ts'
 import { installMaidTableCards } from './table-card.ts'
+import { installMaidPageIcons } from './page-icons.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
@@ -147,6 +152,8 @@ const WORKSPACE_FLAG_SELECTOR = WORKSPACE_FLAGS.map(flag => `[${flag}]`).join(',
 const SIDEBAR_FOOTER_FLAG = 'data-maid-sidebar-footer'
 
 const BACKDROP_PROPERTIES = [
+  '--maid-boot-error-left-art',
+  '--maid-boot-error-right-art',
   '--maid-palace-art',
   '--maid-sidebar-width',
   '--maid-top-trim-art',
@@ -428,6 +435,7 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
 export function apply(ctx: Context): void {
   const body = document.body
   ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
+  ctx.effect(() => installMaidBootError(), 'ui-skin-maid-atelier: boot failure presentation')
   const originalTitle = document.title
   const layoutResizeLease = createBodyAttributeLease(body, 'data-maid-layout-resizing')
   const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
@@ -541,10 +549,15 @@ export function apply(ctx: Context): void {
   body.dataset.dshMaidAtelier = ''
   // Composer presentation modes (skin setting 「输入框显示方式」):
   // capsule collapses the empty unfocused card, scroll fades it on scroll-up.
+  ctx.effect(() => installMaidComposerDismiss(body), 'ui-skin-maid-atelier: composer stats dismissal')
   const disposeMaidComposerCapsule = installMaidComposerCapsule(body)
   const disposeMaidComposerScroll = installMaidComposerScroll(body)
+  const settingsNavigation = createMaidSettingsNavigation(body)
+  ctx.effect(() => settingsNavigation.dispose, 'ui-skin-maid-atelier: settings navigation hint')
   disposeMaidTableCards = installMaidTableCards(ctx).dispose
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
+  body.style.setProperty('--maid-boot-error-left-art', `url(${MAID_BOOT_ERROR_LEFT})`)
+  body.style.setProperty('--maid-boot-error-right-art', `url(${MAID_BOOT_ERROR_RIGHT})`)
   body.style.setProperty('--maid-bottom-trim-art', `url(${MAID_ATELIER_BOTTOM_TRIM_TILE})`)
   body.style.setProperty('--maid-bottom-crest-art', `url(${MAID_ATELIER_BOTTOM_CREST})`)
   body.style.setProperty('--maid-bow-art', `url(${MAID_ATELIER_BOW_CLEAN})`)
@@ -589,13 +602,13 @@ export function apply(ctx: Context): void {
 
   // 宽度联动写入独立的 <style> 规则而非 body style：CSSOM 修改不产生
   // attribute mutation，Chrome autofill 的 MutationObserver 不会逐帧触发，
-  // 因此可以每帧跟随侧边栏宽度（幕布瞬移跟手）而无需防抖节流。
+  // 宽度变量只由侧栏及使用它的浮层继承，避免聊天树在每一帧重新计算样式。
   const widthSheet = document.createElement('style')
   widthSheet.dataset.skinChrome = 'sidebar-width-rule'
   widthSheet.dataset.skinOwner = SKIN_OWNER
   ownedNodes.add(widthSheet)
   document.head.append(widthSheet)
-  widthSheet.sheet!.insertRule('body { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; --maid-titlebar-height: 0px; }')
+  widthSheet.sheet!.insertRule(`body[data-dsh-maid-atelier] :is(${SIDEBAR_COLUMN_SELECTOR}, [data-cordis-panel], [data-maid-settings-backdrop-frame], [data-maid-table-lightbox]) { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; }`)
   // The official frame rules reference env(titlebar-area-height), but the
   // CSS-modules pipeline rewrites the env() identifier there too, so the
   // title-bar row silently falls back to an auto row: expanding the sidebar
@@ -604,17 +617,21 @@ export function apply(ctx: Context): void {
   // here through CSSOM, where env() survives verbatim (fallback 40px keeps
   // the headless/plain-tab mock sane), and pin the drag handles to the same
   // boundary.
-  // insertRule defaults to index 0, which would push the body rule aside and
-  // orphan the widthRule reference; append explicitly so cssRules[0] stays
-  // the body variable rule.
+  // Append explicitly: insertRule defaults to index 0 and would move the
+  // variable rules away from their retained indices.
   const appendRule = (rule: string): void => {
     widthSheet.sheet!.insertRule(rule, widthSheet.sheet!.cssRules.length)
   }
+  appendRule('body[data-dsh-maid-atelier] { --maid-titlebar-height: 0px; }')
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"][data-wco] { grid-template-rows: env(titlebar-area-height, 40px) 1fr; }')
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }')
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }')
 
   const widthRule = widthSheet.sheet!.cssRules[0] as CSSStyleRule
+  const titlebarRule = widthSheet.sheet!.cssRules[1] as CSSStyleRule
+  const setRuleProperty = (rule: CSSStyleRule, name: string, value: string): void => {
+    if (rule.style.getPropertyValue(name) !== value) rule.style.setProperty(name, value)
+  }
   // The curtain is position:fixed, so it needs the viewport-space top of
   // the frame's title-bar row. Measuring the sidebar column (the row below
   // it) is authoritative: whatever the title-bar height is — WCO env(), the
@@ -629,18 +646,16 @@ export function apply(ctx: Context): void {
         // dependent (curtain translate, ::after centering, handles) reads back;
         // during a resize storm this pass runs per structural mutation, so a
         // redundant write forces one extra full layout for every other reader.
-        if (widthRule.style.getPropertyValue('--maid-titlebar-height') !== `${top}px`) {
-          widthRule.style.setProperty('--maid-titlebar-height', `${top}px`)
-        }
+        setRuleProperty(titlebarRule, '--maid-titlebar-height', `${top}px`)
         return
       }
     }
     // Desktop shell: fixed 32px row (columns not laid out yet).
     if (document.querySelector("[class*='frame'][data-desktop]") !== null) {
-      widthRule.style.setProperty('--maid-titlebar-height', '32px')
+      setRuleProperty(titlebarRule, '--maid-titlebar-height', '32px')
       return
     }
-    widthRule.style.setProperty('--maid-titlebar-height', '0px')
+    setRuleProperty(titlebarRule, '--maid-titlebar-height', '0px')
   }
   titlebarOverlay = navigator.windowControlsOverlay
   titlebarOverlay?.addEventListener('geometrychange', syncTitlebarHeight)
@@ -660,20 +675,19 @@ export function apply(ctx: Context): void {
       && body.hasAttribute('data-maid-sidebar-compact') === compact) {
       return
     }
-    widthRule.style.setProperty('--maid-sidebar-width', roundPx(width))
-    widthRule.style.setProperty('--maid-sidebar-swag-height', roundPx(Math.min(94, Math.max(54, width * 0.2575))))
-    widthRule.style.setProperty('--maid-sidebar-mascot-width', roundPx(Math.min(320, width * 0.82)))
-    body.dataset.maidSidebarSize = nextSize
-    if (compact) body.dataset.maidSidebarCompact = ''
-    else delete body.dataset.maidSidebarCompact
+    setRuleProperty(widthRule, '--maid-sidebar-width', roundPx(width))
+    setRuleProperty(widthRule, '--maid-sidebar-swag-height', roundPx(Math.min(94, Math.max(54, width * 0.2575))))
+    setRuleProperty(widthRule, '--maid-sidebar-mascot-width', roundPx(Math.min(320, width * 0.82)))
+    if (body.dataset.maidSidebarSize !== nextSize) body.dataset.maidSidebarSize = nextSize
+    body.toggleAttribute('data-maid-sidebar-compact', compact)
   }
 
   const clearSidebarWidth = (): void => {
-    widthRule.style.setProperty('--maid-sidebar-width', '0px')
-    widthRule.style.setProperty('--maid-sidebar-swag-height', '54px')
-    widthRule.style.setProperty('--maid-sidebar-mascot-width', '0px')
-    body.dataset.maidSidebarSize = 'rail'
-    body.dataset.maidSidebarCompact = ''
+    setRuleProperty(widthRule, '--maid-sidebar-width', '0px')
+    setRuleProperty(widthRule, '--maid-sidebar-swag-height', '54px')
+    setRuleProperty(widthRule, '--maid-sidebar-mascot-width', '0px')
+    if (body.dataset.maidSidebarSize !== 'rail') body.dataset.maidSidebarSize = 'rail'
+    body.toggleAttribute('data-maid-sidebar-compact', true)
   }
 
   const syncProjectedState = (): void => {
@@ -787,6 +801,7 @@ export function apply(ctx: Context): void {
      can omit sibling composited layers from that backdrop sample, so seat a
      copy of the existing frame immediately before the mask while it is open. */
   const syncSettingsBackdropFrame = (): void => {
+    settingsNavigation.synchronize()
     const dialog = document.querySelector(SETTINGS_DIALOG_SELECTOR)
     const mask = dialog === null
       ? null
@@ -909,22 +924,28 @@ export function apply(ctx: Context): void {
       }
       const appNodes = [...record.addedNodes, ...record.removedNodes]
         .filter(node => node instanceof Element && !isSkinChrome(node))
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, sidebarChromeSelector))
-        || (target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null))) {
+      if (!sidebarStructureChanged && appNodes.length > 0
+        && ((target !== undefined && target.closest(SIDEBAR_COLUMN_SELECTOR) !== null)
+          || appNodes.some(node => nodeTouches(node, sidebarChromeSelector)))) {
         sidebarStructureChanged = true
       }
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, composerSelector))
-        || (target !== undefined && target.closest(composerSelector) !== null))) {
+      if (!composerChanged && appNodes.length > 0
+        && ((target !== undefined && target.closest(composerSelector) !== null)
+          || appNodes.some(node => nodeTouches(node, composerSelector)))) {
         composerChanged = true
       }
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR))
-        || (target !== undefined && target.closest(CONVERSATION_COLUMN_SELECTOR) !== null))) {
+      if (!chatStructureChanged && appNodes.length > 0
+        && ((target !== undefined && target.closest(CONVERSATION_COLUMN_SELECTOR) !== null)
+          || appNodes.some(node => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR)))) {
         chatStructureChanged = true
       }
-      if (appNodes.some(node => nodeTouches(node, SETTINGS_MASK_SELECTOR))) {
+      // The settings mask is owned by this slot. Chat subtree replacements
+      // cannot change it and must not scan their descendants for mask classes.
+      if (!settingsStateChanged && appNodes.length > 0 && target !== undefined
+        && target.closest("[data-slot='sidebar.settings']") !== null) {
         settingsStateChanged = true
       }
-      if (appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))
+      if (!projectedStateChanged && appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))
         || target?.matches("header, [data-slot='sidebar.settings']") === true)) {
         projectedStateChanged = true
       }
@@ -960,14 +981,7 @@ export function apply(ctx: Context): void {
     subtree: true,
   })
 
-  const favicon = document.createElement('link')
-  favicon.rel = 'icon'
-  favicon.type = 'image/png'
-  favicon.href = MAID_ATELIER_ICON
-  favicon.dataset.skinChrome = 'favicon'
-  favicon.dataset.skinOwner = SKIN_OWNER
-  ownedNodes.add(favicon)
-  document.head.append(favicon)
+  installMaidPageIcons(ctx)
 
   document.title = SKIN_TITLE
 }

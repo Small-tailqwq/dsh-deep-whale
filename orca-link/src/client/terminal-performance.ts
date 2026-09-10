@@ -135,7 +135,7 @@ export function installOrcaTerminalPerformance(body: HTMLElement): () => void {
         attributeFilter: [
           'style',
           'data-sidebar-collapsed',
-          'data-details-collapsed',
+          'data-rightbar-collapsed',
           'data-dragging',
         ],
       })

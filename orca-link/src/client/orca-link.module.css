@@ -162,6 +162,84 @@ body[data-dsh-orca-link] [data-chat-flow] *::after {
   border-radius: 0 !important;
 }
 
+/* Command shells own their rounded frame outside the listbox. Keep the
+   popupSelect relation local to the composer overlay, including empty lists. */
+body[data-dsh-orca-link] [data-trigger-menu],
+body[data-dsh-orca-link] [data-slot='conversation.input.overlay']
+  div[aria-label]:has(> input):has(> [role='listbox']) {
+  box-sizing: border-box;
+  border: 1px solid var(--orca-line);
+  border-radius: 0 !important;
+  background: var(--dsw-input-solid);
+  box-shadow: var(--orca-shadow);
+  color: var(--orca-ink);
+}
+
+body[data-dsh-orca-link] [data-slot='conversation.input.overlay']
+  [role='option'][aria-selected='true'] {
+  box-shadow: inset 2px 0 var(--orca-blue);
+}
+
+/* The open-in-app split frame is a div; its two native buttons retain their
+   launch/menu behavior, separator, disabled state and error feedback. */
+body[data-dsh-orca-link] [data-slot='conversation.session.header.utilities']
+  div[class$='_split']:has(> button[aria-haspopup='menu']) {
+  border-radius: 0 !important;
+  border-color: var(--orca-line);
+  background: var(--orca-surface-strong);
+}
+
+/* Reading panes need their own opaque floor: the page's translucent base
+   intentionally reveals the scene and is unsuitable for fullscreen content. */
+body[data-dsh-orca-link] [data-sidebar-right-panel],
+body[data-dsh-orca-link] [data-sidebar-right-float-host] [data-dockkit-float] {
+  background: var(--dsw-input-solid);
+  color: var(--orca-ink);
+  border-color: var(--orca-line);
+  border-radius: 0 !important;
+}
+
+body[data-dsh-orca-link] [data-sidebar-right-float-host] [data-dockkit-float] {
+  box-shadow: var(--orca-shadow);
+}
+
+body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-strip],
+body[data-dsh-orca-link] [data-sidebar-right-float-host] [data-dockkit-float-grip] {
+  background: color-mix(in srgb, var(--orca-blue) 5%, var(--dsw-input-solid));
+  border-bottom-color: var(--orca-line);
+}
+
+body[data-dsh-orca-link] [data-sidebar-right-panel]
+  [data-dockkit-tab][aria-selected='true'] {
+  box-shadow: inset 0 -2px var(--orca-blue);
+}
+
+body[data-dsh-orca-link] [data-dockkit-tab-menu] {
+  background: var(--dsw-input-solid);
+  border-color: var(--orca-line);
+  box-shadow: var(--orca-shadow);
+}
+
+/* Stats include noninteractive span pills as well as buttons. Their own
+   reading surface keeps small figures distinct from the scene behind them. */
+body[data-dsh-orca-link] [data-composer-stats] [class$='_pill'] {
+  border-radius: 0 !important;
+  background: var(--dsw-input-solid);
+  color: var(--orca-graphite);
+}
+
+body[data-dsh-orca-link] [data-composer-stats] button[class$='_pill']:is(:hover, [aria-expanded='true']) {
+  background: color-mix(in srgb, var(--orca-blue) 10%, var(--dsw-input-solid));
+  color: var(--orca-ink);
+}
+
+body[data-dsh-orca-link] [role='dialog']:has(> [data-session-stats-details]),
+body[data-dsh-orca-link] [role='dialog']:has(> [data-session-stats-usage]) {
+  background: var(--dsw-input-solid);
+  border-color: var(--orca-line);
+  box-shadow: var(--orca-shadow);
+}
+
 /* Temporary compatibility patch for upstream DSH issue #614. RC1 removes
    the reserved scrollbar gutter on hover/focus even when a wide-table
    candidate does not overflow, moving the hit-test edge into a layout loop.
@@ -449,6 +527,16 @@ html[data-dsh-whale-orca-pricing='hidden']
   display: none !important;
 }
 
+/* Both the manual switch and the schedule project the same character state. */
+html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link] {
+  --orca-stage: 120px;
+}
+
+html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link][data-orca-sidebar-wide]
+  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+  content: none;
+}
+
 /* Settings and menu surfaces must be fully opaque: the left nav and the row
    menus are the settings interface's secondary level, and a translucent card
    lets the conversation show through and reads as click-through.
@@ -643,6 +731,50 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
   }
 }
 
+/* The title and signal chevron stay outside the scrolling category list.
+   The footer reserves enough space for the chevron to clear every button. */
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+  position: relative;
+  min-height: 0;
+  padding-bottom: 24px;
+  overflow: hidden;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+  flex-shrink: 0;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+  /* Short docked lists keep the group's bottom alignment. */
+  flex: 0 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child > button {
+  flex-shrink: 0;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-orca-settings-more]::after {
+  content: '';
+  position: absolute;
+  bottom: 9px;
+  left: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: solid var(--orca-blue);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
 /* Large desktop: the panel opens immediately beside the sidebar trigger and
    grows from its lower-left corner. Navigation stays near the pointer. */
 @media (min-width: 1100px) and (min-height: 681px) {
@@ -668,7 +800,8 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
   }
 
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
-    justify-content: flex-end;
+    /* Keep short navigation bottom-aligned; overflow starts at the first item. */
+    justify-content: safe flex-end;
     padding-bottom: 24px;
     border-right: 1px solid var(--orca-line);
   }
@@ -711,7 +844,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
     body[data-dsh-orca-link][data-orca-settings-open]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
     justify-content: flex-start;
-    padding-bottom: 0;
+    padding-bottom: 24px;
   }
 }
 
@@ -755,13 +888,15 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
     box-sizing: border-box;
     width: 100%;
     gap: 8px;
-    padding: 10px 12px 8px;
+    padding: 10px 12px 24px;
+    max-height: 40%;
     border-bottom: 1px solid var(--orca-line);
   }
 
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
     gap: 4px;
   }
 
@@ -1194,30 +1329,26 @@ body[data-dsh-orca-link] .dshWordmark {
   display: block;
   position: absolute;
   z-index: 1;
-  top: 15px;
-  left: 4px;
+  top: 21px;
+  left: 0;
   width: 118px;
   height: 30px;
+  min-width: 118px;
+  max-width: none;
   color: #11151b;
   opacity: 0.82;
   pointer-events: none;
-  /* Collapse through one compositor transform. Resizing the SVG box while
-     its origin sat at center made the mark dip before returning to the rail. */
-  transform: scale(0.28);
-  transform-origin: left top;
-  filter: blur(0.18px);
+  /* The rail and wide logo share a 36px vertical center. Use the final
+     track width, independent of the host logo row's delayed layout switch. */
+  transform: translateX(calc((var(--orca-sidebar-width, 56px) - 118px) / 2)) scale(0.28);
+  transform-origin: center;
   transition:
-    opacity 130ms ease-in,
-    transform 160ms cubic-bezier(0.4, 0, 1, 1),
-    filter 130ms ease-in;
-  will-change: transform, opacity, filter;
+    opacity 220ms ease,
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 body[data-dsh-orca-link][data-orca-sidebar-wide] .dshWordmark {
   opacity: 1;
-  transform: scale(1);
-  filter: blur(0) drop-shadow(0 0 5px rgba(0, 108, 255, 0.16));
-  transition-duration: 180ms, 220ms, 180ms;
-  transition-timing-function: ease-out, cubic-bezier(0.16, 1, 0.3, 1), ease-out;
+  transform: translateX(16px) scale(1);
 }
 body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > :first-child::after {
   animation: orcaWordmarkScan 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -1225,14 +1356,6 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
 body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type > svg,
 body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type [data-slot='sidebar.brand.mark'] svg {
   opacity: 0;
-}
-/* The collapsed rail shrinks the logo row to ~35px while the wordmark's
-   scaled box is 33x8.4px. The wide-state anchor (left 4px / top 15px) then
-   lands the mark right of center and clips the H at the row's overflow
-   edge. Center the scaled box inside the live row instead. */
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) .dshWordmark {
-  left: calc((100% - 33px) / 2);
-  top: calc((100% - 8.4px) / 2);
 }
 body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
 
@@ -1286,7 +1409,7 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
   will-change: opacity;
 }
 
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) > :not([role='tooltip']) {
+body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) > :not([role='tooltip'], [data-orca-link-wordmark]) {
   position: relative;
   z-index: 1;
 }
@@ -1548,11 +1671,11 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='review'] [data-
 /* The stock wide New Session control keeps its layout slot and official
    click handler, but its hit plane expands over the portrait stage. The rail
    restores the visible control when collapsed. */
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-orca-link-brand] {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-orca-link-brand] {
   pointer-events: none;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) {
   position: relative;
   z-index: 2;
   overflow: visible;
@@ -1562,12 +1685,12 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
   color: transparent;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) > * {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) > * {
   opacity: 0;
   pointer-events: none;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
   position: absolute;
   top: -14px;
   right: -14px;
@@ -1589,7 +1712,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
   transition: opacity 160ms ease;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::after {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::after {
   position: absolute;
   top: calc(var(--orca-stage, 300px) - 86px);
   right: -10px;
@@ -1602,18 +1725,18 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::before,
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::before {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::before,
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::before {
   opacity: 0.62;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::after,
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::after {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::after,
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::after {
   opacity: 0.92;
   transform: translate(-2px, -2px);
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible {
   outline: none;
 }
 
@@ -2481,7 +2604,7 @@ body[data-dsh-orca-link] .spine {
 
 /* ---- Hero橱窗：空态是皮肤的展示窗口 -------------------------------------- */
 
-body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText'] {
+body[data-dsh-orca-link] [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge']) {
   display: inline-block;
   min-width: 8.2em;
   color: var(--orca-ink);
@@ -2491,7 +2614,7 @@ body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText'] {
   text-align: left;
   white-space: nowrap;
 }
-body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText']::after {
+body[data-dsh-orca-link] [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge'])::after {
   content: '';
   display: inline-block;
   width: 9px; height: 9px; margin-left: 10px;
@@ -2595,6 +2718,18 @@ body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat] {
   transition:
     opacity 300ms ease,
     transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Promote the seat only while one of its own transitions is in flight. A seat
+   that stays promoted keeps its subtree — the goal dock's 13px text included —
+   on the scaled compositor raster instead of the crisp 1:1 one. */
+body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat]:is(
+    [data-orca-composer-motion],
+    [data-orca-composer-exiting],
+    [data-orca-composer-collapsing],
+    [data-orca-composer-collapse-rebounding],
+    [data-orca-composer-restoring]
+  ) {
   will-change: opacity, transform;
 }
 
@@ -2607,58 +2742,58 @@ body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-draggi
   transition: none !important;
 }
 
-body[data-dsh-orca-link]
-  [data-composer-seat][data-orca-composer-collapse-dragging]
-  [data-composer-card] {
-  width: var(--orca-composer-drag-width);
-  margin-inline: auto;
-  overflow: hidden;
+/* Transform the intact card: its editor and container queries retain their
+   layout width throughout a drag, so the transcript keeps its original seat. */
+body[data-dsh-orca-link] [data-composer-seat]:is(
+  [data-orca-composer-collapse-dragging],
+  [data-orca-composer-collapse-rebounding],
+  [data-orca-composer-collapsing],
+  [data-orca-composer-restoring]
+) [data-composer-card] {
+  transform-origin: center;
+  will-change: transform, opacity;
   transition: none !important;
-  will-change: width;
 }
 
-body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-rebounding] {
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 220ms ease-out,
-    transform 280ms cubic-bezier(0.2, 1.28, 0.36, 1);
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-dragging] [data-composer-card] {
+  transform: scale(var(--orca-composer-scale, 1));
 }
 
-body[data-dsh-orca-link]
-  [data-composer-seat][data-orca-composer-collapse-rebounding]
-  [data-composer-card],
-body[data-dsh-orca-link]
-  [data-composer-seat][data-orca-composer-restoring]
-  [data-composer-card] {
-  width: 100%;
-  margin-inline: auto;
-  transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1);
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-rebounding] [data-composer-card] {
+  animation: orcaComposerRebound 400ms linear both;
 }
 
-body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden],
-body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing] {
-  opacity: 0;
-  transform: translateY(12px);
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden] {
   pointer-events: none;
 }
 
-body[data-dsh-orca-link]
-  [data-composer-seat]:is([data-orca-composer-manual-hidden], [data-orca-composer-collapsing])
-  [data-composer-card] {
-  width: var(--orca-composer-drag-width, 96px);
-  margin-inline: auto;
-  overflow: hidden;
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden]:not([data-orca-composer-collapsing]) {
+  opacity: 0;
+  transition: none;
 }
 
-body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing] {
-  transition:
-    opacity 190ms ease-out,
-    transform 280ms cubic-bezier(0.2, 0.82, 0.2, 1);
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing] [data-composer-card] {
+  animation: orcaComposerFold 420ms cubic-bezier(0.32, 0, 0.2, 1) both;
 }
 
-body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring] {
-  animation: orcaComposerManualRestore 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring] [data-composer-card] {
+  animation: orcaComposerManualRestore 500ms linear both;
+}
+
+@keyframes orcaComposerRebound {
+  0% { transform: scale(var(--orca-composer-scale, 1)); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  65% { transform: scale(1.018); }
+  82% { transform: scale(0.996); }
+  100% { transform: none; }
+}
+
+@keyframes orcaComposerFold {
+  0% { opacity: 1; transform: scale(var(--orca-composer-scale, 1)); }
+  75% { opacity: 0.85; }
+  100% {
+    opacity: 0;
+    transform: translate(var(--orca-composer-dock-x, 0px), var(--orca-composer-dock-y, 0px)) scale(var(--orca-composer-dock-scale, 0.05));
+  }
 }
 
 /* The host permission control starts hiding its label at a fairly generous
@@ -2707,7 +2842,7 @@ body[data-dsh-orca-link] [data-orca-composer-restore] {
   box-shadow: 5px 7px 0 rgba(27, 39, 58, 0.08), 0 10px 28px rgba(27, 39, 58, 0.14);
   color: var(--orca-graphite);
   cursor: pointer;
-  animation: orcaComposerRestoreControlIn 280ms cubic-bezier(0.16, 1, 0.3, 1) 45ms both;
+  animation: orcaComposerRestoreControlIn 240ms linear 260ms both;
 }
 
 body[data-dsh-orca-link] [data-orca-composer-restore][hidden] { display: none; }
@@ -2760,35 +2895,35 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-orca-composer-restore] {
 }
 
 @keyframes orcaComposerRestoreControlIn {
-  from {
-    opacity: 0;
-    transform:
-      translate(var(--orca-composer-restore-from-x, 0), var(--orca-composer-restore-from-y, 18px))
-      scale(0.16);
-  }
-  58% { opacity: 0.82; }
-  to { opacity: 1; transform: translate(0, 0) scale(1); }
+  0% { opacity: 0; transform: scale(0.65); }
+  65% { opacity: 1; transform: scale(1.12); }
+  82% { transform: scale(0.97); }
+  100% { opacity: 1; transform: none; }
 }
 
 @keyframes orcaComposerRestoreControlOut {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to { opacity: 0; transform: translateY(7px) scale(0.5); }
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.65); }
 }
 
 @keyframes orcaComposerManualRestore {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translate(var(--orca-composer-dock-x, 0px), var(--orca-composer-dock-y, 0px)) scale(var(--orca-composer-dock-scale, 0.05));
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  68% { opacity: 1; transform: translateY(-3px) scale(1.012); }
+  82% { transform: translateY(1.5px) scale(0.997); }
+  92% { transform: translateY(-0.6px) scale(1); }
+  100% { opacity: 1; transform: none; }
 }
 
 body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat][data-orca-composer-interactive] {
   opacity: 1;
-  transform: translateY(0);
+  /* `none`, not translateY(0): any non-none transform makes the seat the
+     containing block for fixed descendants, which re-homes the host tooltip
+     bubble (position: fixed, no portal) to the seat instead of the viewport. */
+  transform: none;
   transition: none;
 }
 
@@ -2819,8 +2954,16 @@ body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-exiting] {
   opacity: 0;
 }
 
+/* Clip the moving card inside its stationary seat so the transformed footer
+   cannot extend the transcript's scroll range and be chased by auto-follow. */
 body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] {
-  animation: orcaComposerDockIn 420ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+  overflow: clip;
+  overflow-clip-margin: 12px;
+}
+
+body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] [data-composer-card] {
+  will-change: transform, opacity;
+  animation: orcaComposerDockIn 700ms linear 100ms both;
 }
 
 body[data-dsh-orca-link] [data-orca-composer-ghost] {
@@ -2834,12 +2977,17 @@ body[data-dsh-orca-link] [data-orca-composer-ghost] {
 
 @keyframes orcaComposerGhostOut {
   from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(5px); }
+  to { opacity: 0; transform: translateY(0); }
 }
 
 @keyframes orcaComposerDockIn {
-  from { opacity: 0; transform: translateY(42px); }
-  to { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateY(var(--orca-composer-enter-distance, 100vh)); animation-timing-function: cubic-bezier(0.22, 0.78, 0.2, 1); }
+  18% { opacity: 1; }
+  74.286% { opacity: 1; transform: translateY(-6px); }
+  84% { transform: translateY(2.5px); }
+  92% { transform: translateY(-1px); }
+  96% { transform: translateY(0.4px); }
+  100% { opacity: 1; transform: none; }
 }
 
 /* Standby telemetry lives only under the hero橱窗 — an instrument reading,
@@ -2870,20 +3018,6 @@ body[data-dsh-orca-link] [data-gitgraph-dialog] {
    (see icons.ts) carries the visible rectilinear geometry instead. */
 body[data-dsh-orca-link] [data-orca-link-icon] > :not([data-orca-link-icon-art]) {
   display: none;
-}
-
-/* Busy spinner: the square outline's four edges light up clockwise in hard
-   steps, replacing the host's orbiting-dot loader. */
-body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq] {
-  animation: orcaSquareTrace 0.96s infinite;
-}
-body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq='1'] { animation-delay: -0.72s; }
-body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq='2'] { animation-delay: -0.48s; }
-body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq='3'] { animation-delay: -0.24s; }
-
-@keyframes orcaSquareTrace {
-  0%, 24.999% { opacity: 1; }
-  25%, 100% { opacity: 0.18; }
 }
 
 /* Todo progress borrows the context-usage pixel field: the frame stays still
@@ -2964,6 +3098,7 @@ body[data-dsh-orca-link] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden] { opacity: 0; }
   body[data-dsh-orca-link] button,
   body[data-dsh-orca-link] [role='button'],
   body[data-dsh-orca-link] .dshWordmark,
@@ -2975,16 +3110,17 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before { transition: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
   body[data-dsh-orca-link] .signalDot,
-  body[data-dsh-orca-link] [data-orca-link-icon='spinner'] [data-orca-link-spinner-seq],
   body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell],
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > :first-child,
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'],
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after,
-  body[data-dsh-orca-link] [data-phase='hero'] [class*='headlineText']::after,
-  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering],
+  body[data-dsh-orca-link] [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge'])::after,
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] [data-composer-card],
   body[data-dsh-orca-link] [data-orca-composer-ghost],
-  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring],
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring] [data-composer-card],
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-rebounding] [data-composer-card],
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapsing] [data-composer-card],
   body[data-dsh-orca-link] [data-orca-composer-restore] { animation: none; }
   body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat],
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-collapse-rebounding],
@@ -2999,7 +3135,6 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after { display: none; }
   body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
-  body[data-dsh-orca-link] .statusCharacter::after { animation: none; }
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
 }
 
@@ -3020,31 +3155,6 @@ body[data-dsh-orca-link] {
   50%  { transform: translate(-3%, 7%) rotate(0.02deg); }
   75%  { transform: translate(8%, 3%) rotate(-0.01deg); }
   100% { transform: translate(-7%, -8%) rotate(0.01deg); }
-}
-
-/* Warm lamp glow for the status character in dark mode: the lamp is simply
-   ON whenever dark mode is active. Closing the settings panel replays the
-   flicker-twice-then-steady turn-on animation; leaving dark mode fades it out
-   through the base transition. */
-body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter::after {
-  content: '';
-  position: absolute;
-  inset: -10% -6% -12% -6%;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(ellipse at 50% 32%, rgba(255, 244, 214, 0.42), rgba(255, 214, 150, 0.12) 45%, transparent 68%);
-  mix-blend-mode: screen;
-  filter: blur(2px);
-  transition: opacity 300ms ease;
-}
-
-body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] > :first-child > .statusCharacter::after {
-  opacity: 0.34;
-}
-
-body[data-dsh-orca-link][data-ds-dark-theme][data-orca-lamp='flicker'] [data-slot='sidebar'] > :first-child > .statusCharacter::after {
-  animation: orcaLampFlicker 1000ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 /* The semantic handles are siblings of the conversation scrollport inside the
@@ -3145,22 +3255,13 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden] { opacity: 0; }
   body[data-dsh-orca-link]
     [data-phase='active']
     > :has(> [data-conversation-scroll])
     > [data-width-handle][data-side]::after {
     animation: none;
   }
-}
-
-@keyframes orcaLampFlicker {
-  0%   { opacity: 0; }
-  16%  { opacity: 0.85; }
-  30%  { opacity: 0.12; }
-  46%  { opacity: 0.72; }
-  60%  { opacity: 0.18; }
-  78%  { opacity: 0.42; }
-  100% { opacity: 0.34; }
 }
 
 /* Agent preset id captions keep the official light caption colour, which the

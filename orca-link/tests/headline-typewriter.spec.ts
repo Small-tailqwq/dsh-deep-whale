@@ -12,13 +12,22 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
+// 0.1.5-alpha.1 hero markup: the title text and the preview badge share one
+// `.titleGroup` flex unit, and only the text span is the typewriter's target.
 function mountHeadline(): HTMLElement {
   document.body.innerHTML = `
     <div data-phase="hero">
-      <span class="headlineText">探索未至之境</span>
+      <span class="titleGroup">
+        <span>探索未至之境</span>
+        <span class="previewBadge">预览</span>
+      </span>
     </div>
   `
-  return document.querySelector<HTMLElement>('.headlineText')!
+  return document.querySelector<HTMLElement>('.titleGroup > span:first-child')!
+}
+
+function badgeText(): string | null | undefined {
+  return document.querySelector<HTMLElement>('.previewBadge')?.textContent
 }
 
 describe('Orca Link headline typewriter', () => {
@@ -33,6 +42,9 @@ describe('Orca Link headline typewriter', () => {
 
     await vi.advanceTimersByTimeAsync(1_500)
     expect(headline.textContent).toBe(FIRST_GROUP)
+    // The badge is a sibling inside the shared title group: it must survive the
+    // typewriter's writes and its dispose-time restore.
+    expect(badgeText()).toBe('预览')
 
     await vi.advanceTimersByTimeAsync(19_500)
     expect(headline.textContent).toBe(FIRST_GROUP)
@@ -42,6 +54,7 @@ describe('Orca Link headline typewriter', () => {
     dispose()
     expect(headline.textContent).toBe('探索未至之境')
     expect(headline.hasAttribute('data-orca-headline-typewriter')).toBe(false)
+    expect(badgeText()).toBe('预览')
   })
 
   it('keeps the linked pair together and displays it in two stages', async () => {

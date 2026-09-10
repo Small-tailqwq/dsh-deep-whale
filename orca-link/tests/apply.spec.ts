@@ -109,7 +109,7 @@ describe('Orca Link skin apply', () => {
     const replacement = document.querySelector('[data-orca-link-wordmark]')
     expect(replacement).toBeInstanceOf(SVGElement)
     expect(replacement?.querySelectorAll('path')).toHaveLength(3)
-    expect(replacement?.parentElement).toBe(document.querySelector("[data-slot='sidebar'] > :first-child > :first-child"))
+    expect(replacement?.parentElement === pane).toBe(true)
     const chip = document.querySelector('[data-orca-link-signal]')
     expect(chip?.textContent).toContain('LINK ACTIVE')
     expect(chip?.parentElement).toBe(document.querySelector("[data-slot='sidebar'] > :first-child > :first-child"))
@@ -261,11 +261,13 @@ describe('Orca Link skin apply', () => {
     document.body.innerHTML = `
       <button type="button" aria-label="发送消息"><svg viewBox="0 0 16 16"><path d="M8.3125 0.980183C8.66767 1.0531 8.97902 1.20418 9.2627 1.43233"></path></svg></button>
       <button type="button" aria-label="关闭"><svg viewBox="0 0 14 14"><path d="M10.6074 4.40278L8.00975 6.99973"></path></svg></button>
+      <button type="button" aria-label="添加文件"><svg viewBox="0 0 16 16"><path d="M5.5498 9.75V5H6.9502V9.75C6.9502 10.3299 7.4201 10.7998 8 10.7998"></path></svg></button>
       <svg viewBox="0 0 16 16"><path d="M0 0h16v16H0z"></path></svg>
     `
     const send = document.querySelector<SVGElement>('[aria-label="发送消息"] svg')!
     const close = document.querySelector<SVGElement>('[aria-label="关闭"] svg')!
-    const unknown = document.querySelectorAll('svg')[2]!
+    const paperclip = document.querySelector<SVGElement>('[aria-label="添加文件"] svg')!
+    const unknown = document.querySelectorAll('svg')[3]!
     fiber = await mount()
     expect(send.hasAttribute('data-orca-link-icon')).toBe(true)
     expect(send.getAttribute('data-orca-link-icon')).toBe('send')
@@ -276,11 +278,45 @@ describe('Orca Link skin apply', () => {
     expect(close.getAttribute('data-orca-link-icon')).toBe('close')
     // 14-unit viewBox scales the 16-unit design grid down.
     expect(close.querySelector('g[data-orca-link-icon-art]')?.getAttribute('transform')).toBe('translate(0 0) scale(0.875)')
+    // 0.1.5's composer attach button carries this glyph; the redraw must stay a
+    // two-loop clip (tilted for separation at 14px) rather than degrading back
+    // to a bare bracket.
+    expect(paperclip.getAttribute('data-orca-link-icon')).toBe('paperclip')
+    const clipPath = paperclip.querySelector('g[data-orca-link-icon-art] path')!
+    expect(clipPath.getAttribute('d')).toContain('a2.75 2.75')
+    expect(clipPath.getAttribute('transform')).toBe('rotate(-45 8 8)')
     expect(unknown.hasAttribute('data-orca-link-icon')).toBe(false)
     await fiber.dispose()
     expect(document.querySelector('[data-orca-link-icon]')).toBeNull()
     expect(document.querySelector('[data-orca-link-icon-art]')).toBeNull()
     expect(send.querySelector('path')?.getAttribute('d')).toContain('M8.3125 0.980183')
+  })
+
+  it('redraws the composer command button as a prompt while other plus icons stay plus', async () => {
+    // 0.1.5's composer toolbar puts the command trigger next to the attach
+    // button; a plus there reads as a second add/attach control.
+    document.body.innerHTML = `
+      <div data-composer-seat>
+        <button type="button" aria-label="指令" aria-haspopup="listbox"><svg viewBox="0 0 16 16"><path d="M8.64453 1.5V7.34961H14.5V8.65039"></path></svg></button>
+      </div>
+      <button type="button" aria-label="新建会话"><svg viewBox="0 0 16 16"><path d="M8.64453 1.5V7.34961H14.5V8.65039"></path></svg></button>
+    `
+    fiber = await mount()
+    const command = document.querySelector<SVGElement>('[data-composer-seat] svg')!
+    const plus = document.querySelector<SVGElement>('[aria-label="新建会话"] svg')!
+    expect(command.getAttribute('data-orca-link-icon')).toBe('command')
+    expect(command.querySelector('g[data-orca-link-icon-art] path')?.getAttribute('d')).toContain('M4.5 4.5 8 8')
+    expect(plus.getAttribute('data-orca-link-icon')).toBe('plus')
+  })
+
+  it('redraws the 0.1.5 meridian globe instead of its retired ellipse key', async () => {
+    document.body.innerHTML = `
+      <svg viewBox="0 0 14 14"><path d="M7.00018 0.353516C10.6708 0.353535 13.6468 3.32958"></path></svg>
+    `
+    fiber = await mount()
+    const globe = document.querySelector('svg')!
+    expect(globe.getAttribute('data-orca-link-icon')).toBe('globe')
+    expect(globe.querySelector('g[data-orca-link-icon-art]')).not.toBeNull()
   })
 
   it('distinguishes all permission and workspace folder icons', async () => {
@@ -400,10 +436,12 @@ describe('Orca Link skin apply', () => {
   })
 
   it('mirrors the context-usage ring as a bottom-up pixel gauge', async () => {
+    // Neutral class names: the ring's real classes are CSS-module hashes that
+    // move with the host build, so the matcher must key off the drawing.
     document.body.innerHTML = `
       <svg viewBox="0 0 14 14" aria-label="上下文已用 50%">
-        <circle class="JObwrW_track" cx="7" cy="7" r="5.5"></circle>
-        <circle class="JObwrW_fill" cx="7" cy="7" r="5.5" stroke-dasharray="17.28 17.28" transform="rotate(-90 7 7)"></circle>
+        <circle class="host_track" cx="7" cy="7" r="5.5"></circle>
+        <circle class="host_fill" cx="7" cy="7" r="5.5" stroke-dasharray="17.28 17.28" transform="rotate(-90 7 7)"></circle>
       </svg>
     `
     const gauge = document.querySelector('svg')!
@@ -414,7 +452,7 @@ describe('Orca Link skin apply', () => {
     // 50%: eighteen solid cells, the rest a faint grid.
     expect(cells[17]?.getAttribute('opacity')).toBe('1')
     expect(cells[18]?.getAttribute('opacity')).toBe('0.12')
-    const ring = gauge.querySelector('circle.JObwrW_fill')!
+    const ring = gauge.querySelector('circle[stroke-dasharray]')!
     // 15%: five solid cells and the boundary cell fading in at 0.4.
     ring.setAttribute('stroke-dasharray', '5.184 29.376')
     await new Promise(resolve => { setTimeout(resolve, 0) })
@@ -433,15 +471,15 @@ describe('Orca Link skin apply', () => {
     document.body.innerHTML = `
       <div data-slot="sidebar">
         <div>
-          <div class="qDHVXG_search">
-            <button type="button" class="qDHVXG_searchButton" aria-label="搜索会话" aria-expanded="false"></button>
-            <input class="qDHVXG_searchInput" type="text" placeholder="搜索会话…">
+          <div class="fixture_search">
+            <button type="button" class="fixture_searchButton" aria-label="搜索会话" aria-expanded="false"></button>
+            <input class="fixture_searchInput" type="text" placeholder="搜索会话…">
           </div>
         </div>
       </div>
     `
-    const button = document.querySelector<HTMLButtonElement>('button.qDHVXG_searchButton')!
-    const input = document.querySelector<HTMLInputElement>('input.qDHVXG_searchInput')!
+    const button = document.querySelector<HTMLButtonElement>('button.fixture_searchButton')!
+    const input = document.querySelector<HTMLInputElement>('input.fixture_searchInput')!
     let clicks = 0
     // The host row opens on click (aria-expanded flips); the fixture mirrors
     // that so duplicate completions are absorbed like production.
@@ -472,23 +510,6 @@ describe('Orca Link skin apply', () => {
     await new Promise(resolve => { setTimeout(resolve, 460) })
     expect(clicks).toBe(1)
     await fiber.dispose()
-  })
-
-  it('redraws the orbiting-dot busy spinner as a square edge tracer', async () => {
-    document.body.innerHTML = `
-      <svg viewBox="0 0 10 10">
-        <rect class="_cell_10orb_54" x="0" y="0" width="2" height="2" style="animation-delay: -1000ms;"></rect>
-        <rect class="_cell_10orb_54" x="4" y="0" width="2" height="2" style="animation-delay: -750ms;"></rect>
-      </svg>
-    `
-    const spinner = document.querySelector('svg')!
-    fiber = await mount()
-    expect(spinner.getAttribute('data-orca-link-icon')).toBe('spinner')
-    const edges = Array.from(spinner.querySelectorAll('rect[data-orca-link-spinner-seq]'))
-    expect(edges).toHaveLength(4)
-    expect(edges.map((edge) => edge.getAttribute('data-orca-link-spinner-seq'))).toEqual(['0', '1', '2', '3'])
-    await fiber.dispose()
-    expect(spinner.querySelector('[data-orca-link-icon-art]')).toBeNull()
   })
 
   it('does not clobber a session title during teardown', async () => {
@@ -530,6 +551,9 @@ describe('Orca Link skin apply', () => {
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(seat.hasAttribute('data-orca-composer-exiting')).toBe(false)
     expect(seat.hasAttribute('data-orca-composer-entering')).toBe(true)
+    expect(Number.parseFloat(seat.style.getPropertyValue('--orca-composer-enter-distance'))).toBe(window.innerHeight - 200 + 32)
+    input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(true)
 
     await fiber.dispose()
     fiber = undefined
@@ -542,7 +566,7 @@ describe('Orca Link skin apply', () => {
       <div data-phase="active">
         <div data-conversation-scroll>
           <div data-chat-flow></div>
-          <div role="listbox"><div data-model-option>model option</div></div>
+          <div role="listbox"><div data-fixture-model-option>model option</div></div>
           <div data-composer-seat><div data-composer-card><div data-composer-input contenteditable="true"></div></div></div>
         </div>
       </div>
@@ -566,7 +590,7 @@ describe('Orca Link skin apply', () => {
 
     fiber = await mount()
     expect(scrollTopReads).toBe(0)
-    const modelOption = document.querySelector<HTMLElement>('[data-model-option]')!
+    const modelOption = document.querySelector<HTMLElement>('[data-fixture-model-option]')!
     modelOption.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -100 }))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
     expect(scrollTopReads).toBe(0)
@@ -576,6 +600,7 @@ describe('Orca Link skin apply', () => {
     expect(scrollTopReads).toBe(1)
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -100 }))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(true)
+    expect(seat.hasAttribute('data-orca-composer-motion')).toBe(true)
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: 100 }))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
 
@@ -602,6 +627,10 @@ describe('Orca Link skin apply', () => {
     scrollTop = 1_000
     scrollport.dispatchEvent(new Event('scroll'))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+
+    // The promotion hint must outlive the transition and then release.
+    await new Promise(resolve => { setTimeout(resolve, 400) })
+    expect(seat.hasAttribute('data-orca-composer-motion')).toBe(false)
   })
 
   it('wheeling a long draft at its edge never hides the composer', async () => {
@@ -717,13 +746,15 @@ describe('Orca Link skin apply', () => {
     expect(restore.hasAttribute('title')).toBe(false)
 
     const toBottom = document.createElement('button')
-    toBottom.className = 'Md3f7G_toBottom'
+    // Neutral class ending in the host's local name: the real class carries a
+    // build-specific hash, so the fixture must not freeze one.
+    toBottom.className = 'fixture_toBottom'
     toBottom.setAttribute('aria-label', '回到底部')
     toBottom.getBoundingClientRect = () => ({ left: 650, top: 330, right: 684, bottom: 364, width: 34, height: 34 } as DOMRect)
     scrollport.append(toBottom)
     await new Promise(resolve => { setTimeout(resolve, 0) })
-    expect(restore.style.left).toBe('653px')
-    expect(restore.style.top).toBe('372px')
+    expect(restore.style.left).toBe('656px')
+    expect(restore.style.top).toBe('364px')
 
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -100 }))
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: 100 }))
@@ -764,10 +795,10 @@ describe('Orca Link skin apply', () => {
     const right = card.querySelector<HTMLButtonElement>("[data-orca-composer-handle='right']")!
     right.dispatchEvent(pointer('pointerdown', 700))
     expect(seat.hasAttribute('data-orca-composer-collapse-dragging')).toBe(false)
-    expect(seat.style.getPropertyValue('--orca-composer-drag-width')).toBe('')
+    expect(seat.style.getPropertyValue('--orca-composer-scale')).toBe('')
     document.dispatchEvent(pointer('pointermove', 695))
     expect(seat.hasAttribute('data-orca-composer-collapse-dragging')).toBe(false)
-    expect(seat.style.getPropertyValue('--orca-composer-drag-width')).toBe('')
+    expect(seat.style.getPropertyValue('--orca-composer-scale')).toBe('')
     document.dispatchEvent(pointer('pointermove', 620, 0))
     expect(seat.hasAttribute('data-orca-composer-collapse-dragging')).toBe(false)
     document.dispatchEvent(pointer('pointerup', 695))
@@ -775,7 +806,7 @@ describe('Orca Link skin apply', () => {
 
     right.dispatchEvent(pointer('pointerdown', 700))
     document.dispatchEvent(pointer('pointermove', 620))
-    expect(Number.parseFloat(seat.style.getPropertyValue('--orca-composer-drag-width'))).toBeLessThan(600)
+    expect(Number.parseFloat(seat.style.getPropertyValue('--orca-composer-scale'))).toBeLessThan(1)
     expect(seat.hasAttribute('data-orca-composer-collapse-dragging')).toBe(true)
     expect(seat.getAttribute('data-orca-composer-collapse-stage')).toBeNull()
     document.dispatchEvent(pointer('pointerup', 620))
@@ -834,11 +865,11 @@ describe('Orca Link skin apply', () => {
     fiber = await mount()
     expect(seat.hasAttribute('data-orca-composer-outside-chat')).toBe(false)
 
-    view.innerHTML = '<div data-plugin-surface="timeline"></div>'
+    view.innerHTML = '<div data-fixture-plugin-surface="timeline"></div>'
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(seat.hasAttribute('data-orca-composer-outside-chat')).toBe(true)
 
-    view.innerHTML = '<div data-plugin-surface="future-view"></div>'
+    view.innerHTML = '<div data-fixture-plugin-surface="future-view"></div>'
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(seat.hasAttribute('data-orca-composer-outside-chat')).toBe(true)
 

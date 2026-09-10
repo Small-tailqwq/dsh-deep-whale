@@ -204,6 +204,13 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
 }
 
 @media (max-width: 700px) {
+  /* Height-sized portrait art can be wider than the phone's conversation
+     pane. Fit the whole figure inside its side anchor with room opposite it. */
+  html[data-dsh-whale-maid-model-exit='enabled']
+    body[data-dsh-maid-atelier] [data-maid-character] {
+    max-width: calc(100% - 48px);
+  }
+
   body[data-dsh-maid-atelier][data-maid-chat-active]
     [data-maid-character='left'] {
     height: 46%;
@@ -269,6 +276,36 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-visio
   [data-maid-character='vision'] {
   opacity: 1;
   visibility: visible;
+}
+
+@media (max-width: 700px) {
+  /* Keep both sides fitted while the model changes; visibility waits for the
+     outgoing fade so all three characters share the same stationary handoff. */
+  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model]
+    body[data-dsh-maid-atelier] [data-maid-character] {
+    translate: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 240ms ease, visibility 0s linear 240ms;
+  }
+
+  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='pro']
+    body[data-dsh-maid-atelier] [data-maid-character='left'],
+  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
+    body[data-dsh-maid-atelier] [data-maid-character='right'],
+  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+    body[data-dsh-maid-atelier] [data-maid-character='vision'] {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+}
+
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model]
+    body[data-dsh-maid-atelier] [data-maid-character] {
+    transition: none;
+  }
 }
 
 /* The top curtain belongs to the main pane, not to the sidebar. Its two
@@ -431,12 +468,17 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is(nav, span, button, a, div) {
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is(nav, span, button, a, div):not(:where([role='menu'], [role='menu'] *)) {
   color: inherit;
 }
 
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button {
   text-shadow: inherit;
+}
+
+/* In-place menus have their own surface and foreground palette. */
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [role='menu'] {
+  text-shadow: none;
 }
 
 body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'] {
@@ -458,7 +500,7 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
 }
 
 /* Header icon buttons and the reroll action keep the gold trim. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):hover {
+body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):not(:where([role='menu'] *)):hover {
   color: var(--maid-gold-soft);
 }
 
@@ -487,6 +529,8 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) {
   --dsw-alias-border-l2: rgba(225, 207, 170, 0.32);
   --dsw-alias-button-elevated-fill: rgba(255, 252, 243, 0.13);
   --dsw-alias-button-floating-hover: rgba(255, 252, 243, 0.18);
+  --dsw-alias-scrollbar-bg-l2: rgba(205, 174, 111, 0.58);
+  --dsw-alias-scrollbar-hover-l2: #e8c77f;
   --dsw-alias-interactive-bg-hover: rgba(255, 252, 243, 0.1);
   --dsw-alias-interactive-bg-active: rgba(197, 164, 104, 0.3);
   position: relative;
@@ -595,6 +639,21 @@ body[data-dsh-maid-atelier] [data-skin-corner='bottom-left'] {
 
 body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='fade'] {
   background: none;
+}
+
+/* The lower ellipse follows the swag's U-shaped edge as the sidebar scales.
+   End padding lets the final row scroll fully above the curved fade. */
+body[data-dsh-maid-atelier] [data-slot='sidebar.workspaces']
+  [class*='treeBody'] > [class*='list'] {
+  padding-bottom: var(--maid-sidebar-swag-height);
+  mask-image:
+    linear-gradient(#000, #000),
+    radial-gradient(ellipse 75% 100% at 50% 0, #000 70%, transparent 100%);
+  mask-size:
+    100% max(0px, calc(100% - var(--maid-sidebar-swag-height))),
+    100% min(100%, var(--maid-sidebar-swag-height));
+  mask-position: top, bottom;
+  mask-repeat: no-repeat;
 }
 
 body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
@@ -987,11 +1046,13 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-maid-sidebar-footer] {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-basis: 54px;
+  flex-basis: auto;
   min-height: 54px;
-  padding: 5px;
+  gap: 2px;
+  padding: 5px 5px max(12px, env(safe-area-inset-bottom, 0px));
   background: none;
   box-shadow: none;
 }
@@ -1024,16 +1085,6 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-slot='sidebar.settings']
     button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])::before {
   display: none;
-}
-
-/* Cordis contributes a second footer action. The wide footer grows from its
-   content; the fixed-height rail needs explicit room for both circles. */
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    [data-maid-sidebar-footer]:has([data-cordis-badge]) {
-  flex-basis: 100px;
-  min-height: 100px;
-  flex-direction: column;
-  gap: 2px;
 }
 
 /* Cordis mounts its fixed panel inside the sidebar content root instead of a
@@ -1431,6 +1482,15 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 /* Workspace groups receive skin-owned semantic hooks from the client entry.
    This keeps the ornamental tree independent from generated CSS-module names
    while leaving the official rows and their interactions intact. */
+/* Inset the thumb within the host's reserved gutter; its tokens retain the
+   sidebar's pointer-driven reveal and hover behavior. */
+body[data-dsh-maid-atelier] [data-slot='sidebar.workspaces'] ::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+  corner-shape: round;
+}
+
 body[data-dsh-maid-atelier] [data-maid-workspace-row] {
   isolation: isolate;
   position: relative;
@@ -1484,6 +1544,20 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row] [class*='title'] {
 body[data-dsh-maid-atelier] [data-maid-workspace-row] [class*='meta'] {
   color: #d9bd83;
   font-size: 12px;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-row][aria-expanded='true']:not([data-maid-workspace-active]) {
+  border-radius: 6px;
+  background: linear-gradient(100deg, rgba(72, 98, 161, 0.32), rgba(25, 46, 95, 0.16));
+  box-shadow:
+    inset 2px 0 rgba(216, 184, 119, 0.78),
+    inset 0 1px rgba(225, 207, 170, 0.18),
+    inset 0 -1px rgba(225, 207, 170, 0.12);
+  color: #f6e5c1;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-row][aria-expanded='true']:not([data-maid-workspace-active]):hover {
+  background: linear-gradient(100deg, rgba(83, 111, 178, 0.42), rgba(32, 55, 108, 0.24));
 }
 
 body[data-dsh-maid-atelier] [data-maid-workspace-active] {
@@ -2254,8 +2328,8 @@ body[data-dsh-maid-atelier] [data-composer-card]::before {
     auto 69px,
     102px 32px,
     102px 32px,
-    max(0px, calc(50% - 156px)) 32px,
-    max(0px, calc(50% - 156px)) 32px;
+    max(0px, calc(50% - 186px)) 32px,
+    max(0px, calc(50% - 186px)) 32px;
   background-repeat: no-repeat;
   background-origin: border-box;
   background-clip: border-box;
@@ -2728,6 +2802,101 @@ body[data-dsh-maid-atelier] [data-composer-card]
 
   body[data-dsh-maid-atelier] [data-composer-card] [class*='trailing']
     button[aria-haspopup='menu'] [class*='triggerEffort'] {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] [data-composer-card] {
+    padding-top: 26px;
+    gap: 8px;
+  }
+
+  body[data-dsh-maid-atelier] [data-phase='hero'] [data-composer-input] {
+    min-height: 52px;
+  }
+
+  /* Keep the corner slices at their calibrated size. Only the independent
+     bow and ribbon shrink; the gap under the jewel leaves its alpha clear. */
+  body[data-dsh-maid-atelier] [data-composer-card]::before {
+    background-position:
+      center top 4px,
+      left 54px top 8px,
+      right 54px top 8px,
+      left 118px top 8px,
+      right 118px top 8px;
+    background-size:
+      auto 54px,
+      64px 20px,
+      64px 20px,
+      max(0px, calc(50% - 148px)) 20px,
+      max(0px, calc(50% - 148px)) 20px;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] > [class*='row'] {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    min-height: 40px;
+    padding: 0 8px 6px;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] :is([class*='tools'], [class*='modes'], [class*='trailing']) {
+    gap: 4px;
+  }
+
+  body[data-dsh-maid-atelier] [data-composer-card] > [class*='row'] > [class*='tools'] {
+    flex: 0 0 auto;
+  }
+
+  body[data-dsh-maid-atelier] [data-composer-card] > [class*='row'] > [class*='trailing'] {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] :is(button[class*='add'], button[class*='primary'], [class*='modes'] button[class*='trigger']) {
+    box-sizing: border-box;
+    flex: 0 0 32px;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    transform: none;
+  }
+
+  /* The model seat is display: contents. Its native picker root is the flex
+     item that must shrink, while context/send retain their control boxes. */
+  body[data-dsh-maid-atelier] [data-composer-card]
+    [data-slot='conversation.input.model'] > [class$='_root'] {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] [data-slot='conversation.input.model'] > [class$='_root']
+    > button[aria-haspopup='menu'] {
+    width: 100%;
+    max-width: 100%;
+    padding: 0 2px;
+    gap: 2px;
+    font-size: 11px;
+  }
+
+  body[data-dsh-maid-atelier] [data-composer-card]
+    [data-slot='conversation.input.model'] > [class$='_root']
+    > button[aria-haspopup='menu'] > [class*='triggerLabel'] {
+    flex: 1 1 auto;
+    overflow-x: auto;
+    text-overflow: clip;
+    scrollbar-width: none;
+  }
+
+  body[data-dsh-maid-atelier] [data-composer-card]
+    [data-slot='conversation.input.model'] > [class$='_root']
+    > button[aria-haspopup='menu'] > [class*='triggerLabel']::-webkit-scrollbar {
     display: none;
   }
 }
@@ -3830,6 +3999,76 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   }
 }
 
+/* Only the category list scrolls; its title and the reserved hint footer stay
+   outside the scrollport. The glass hint never covers a navigation button. */
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+  position: relative;
+  min-height: 0;
+  padding-bottom: 28px;
+  overflow: hidden;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+  flex-shrink: 0;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child > button {
+  flex-shrink: 0;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::before {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: calc(50% - 17px);
+  width: 34px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1px solid rgba(197, 164, 104, 0.48);
+  border-radius: 10px;
+  background: rgba(247, 249, 255, 0.58);
+  box-shadow: 0 2px 6px rgba(15, 30, 72, 0.12), inset 0 1px rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: solid #52699c;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::before {
+  border-color: rgba(211, 180, 119, 0.48);
+  background: rgba(24, 40, 80, 0.65);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::after {
+  border-color: #d3b477;
+}
+
 /* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
@@ -3841,10 +4080,11 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
     box-sizing: border-box;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     width: 100%;
+    max-height: 40%;
     gap: 8px;
-    padding: 10px 12px 8px;
+    padding: 10px 12px 28px;
     border-bottom: 1px solid rgba(197, 164, 104, 0.42);
   }
 
@@ -3852,6 +4092,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
     gap: 4px;
     flex: 1;
     width: auto;
@@ -3860,6 +4101,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   body[data-dsh-maid-atelier][data-maid-settings-open]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
+    align-self: flex-start;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
@@ -4513,7 +4755,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [da
 @keyframes maidAtelierCapsuleOut {
   from {
     opacity: 0.35;
-    transform: translateY(8px) scale(0.965);
+    transform: translateY(8px);
   }
 
   to {

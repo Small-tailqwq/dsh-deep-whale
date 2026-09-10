@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   SKIN_CUSTOMIZATION_REGISTER_EVENT,
   type SkinCustomizationRegistration,
 } from '../../skin-manager/src/protocol.ts'
 import { installMaidCustomization, modelFamily } from '../src/client/customization.ts'
+import { normalizeSkinValues } from '../../skin-manager/src/client/preferences.ts'
 
 afterEach(() => {
+  vi.restoreAllMocks()
+  document.body.innerHTML = ''
   for (const attribute of [...document.documentElement.attributes]) {
     if (attribute.name.startsWith('data-dsh-whale-') || attribute.name.startsWith('data-maid-composer-')) {
       document.documentElement.removeAttribute(attribute.name)
@@ -21,15 +24,35 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'modelExit', 'composerMode'])
-    definition.apply({
-      values: { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, composerMode: 'scroll' },
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'modelExit', 'mobileModelExit', 'composerMode'])
+    const state = {
+      values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, composerMode: 'scroll' }),
       visibility: { sfwMode: false },
-    })
+    }
+    document.body.innerHTML = '<div data-composer-card><button aria-haspopup="menu" title="DeepSeek-V4-Flash-Vision-Exp">DeepSeek-V4-Flash-Vision-Ex</button></div>'
+    const width = vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024)
+    definition.apply(state)
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-art')).toBe('hidden')
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-font')).toBe('serif')
     expect(document.documentElement.getAttribute('data-maid-composer-mode')).toBe('scroll')
+    expect(document.documentElement.getAttribute('data-dsh-whale-maid-model-exit')).toBe('disabled')
+    width.mockReturnValue(420)
+    window.dispatchEvent(new Event('resize'))
+    expect(document.documentElement.getAttribute('data-dsh-whale-maid-model-exit')).toBe('enabled')
+    expect(document.documentElement.getAttribute('data-dsh-whale-model')).toBe('flash-vision')
+    definition.apply({ ...state, values: { ...state.values, mobileModelExit: false } })
+    expect(document.documentElement.getAttribute('data-dsh-whale-maid-model-exit')).toBe('disabled')
+    expect(document.documentElement.hasAttribute('data-dsh-whale-model')).toBe(false)
+    definition.apply(state)
+    expect(document.documentElement.getAttribute('data-dsh-whale-model')).toBe('flash-vision')
+    width.mockReturnValue(1024)
+    window.dispatchEvent(new Event('resize'))
+    expect(document.documentElement.getAttribute('data-dsh-whale-maid-model-exit')).toBe('disabled')
     dispose()
+    width.mockReturnValue(420)
+    window.dispatchEvent(new Event('resize'))
+    expect(document.documentElement.hasAttribute('data-dsh-whale-maid-model-exit')).toBe(false)
+    expect(document.documentElement.hasAttribute('data-dsh-whale-model')).toBe(false)
     expect(document.documentElement.hasAttribute('data-dsh-whale-maid-art')).toBe(false)
     expect(document.documentElement.hasAttribute('data-maid-composer-mode')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)

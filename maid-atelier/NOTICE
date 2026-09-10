@@ -21,6 +21,14 @@ chain is credited:
    使用的素材为该形象的 DeepSeek 元素再设计。
    The DeepSeek-element secondary design used in this skin.
 
+   启动错误页立绘（assets/boot-error/，2026-09-06）：根据用户提供的上述
+   双角色参考图，使用 OpenAI imagegen 重新生成，采用本地洋红抠图制作透明层。
+   角色设计沿用以上署名链；生成提示词与处理方式见该目录 PROMPTS.md。
+
+   网页与应用图标（assets/icons/，2026-09-07）：由 Small-tailqwq 提供三张
+   鲸鱼娘表情原图；保留原图，通过本地脚本抠除浅色背景并处理边缘，等比缩放及
+   透明留边生成 PNG / ICO，沿用以上署名链。处理脚本为 scripts/build-maid-icons.py。
+
 Artwork usage terms (LICENSE-ARTWORK): CC BY-NC-SA 4.0 —— 署名 (attribution) 必须保留以上完整创作链；
 非商业性使用 (non-commercial only)；衍生作品必须以相同方式共享 (share-alike)。
 

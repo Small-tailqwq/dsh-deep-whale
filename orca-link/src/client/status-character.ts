@@ -1,6 +1,7 @@
 import { ORCA_LINK_STATUS_ATLAS } from './art.ts'
 import type { LinkStatus } from './link-status.ts'
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { createOrcaWorkLight } from './work-light.ts'
 
 const CHARACTER_SELECTOR = '[data-orca-link-character]'
 const SIDEBAR_PANE_SELECTOR = "[data-slot='sidebar'] > :first-child"
@@ -252,7 +253,7 @@ function createCharacter(classes: {
   character.style.setProperty('--orca-link-status-atlas', `url("${ORCA_LINK_STATUS_ATLAS}")`)
   sprite.style.setProperty('--orca-link-status-atlas', `url("${ORCA_LINK_STATUS_ATLAS}")`)
   frame.append(sprite)
-  character.append(frame, createBubble(classes.characterBubble))
+  character.append(frame, createOrcaWorkLight('sidebar'), createBubble(classes.characterBubble))
   return character
 }
 

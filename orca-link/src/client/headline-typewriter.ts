@@ -1,6 +1,9 @@
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
 
-const HEADLINE_SELECTOR = "[data-phase='hero'] [class*='headlineText']"
+// 0.1.5-alpha.1 replaced the hero's `.headlineText` span with a `.titleGroup`
+// flex unit holding the title text plus the preview badge; the typewriter owns
+// only the text span, so it is picked out by the badge it must not overwrite.
+const HEADLINE_SELECTOR = "[data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge'])"
 const TYPE_DELAY_MS = 105
 const DELETE_DELAY_MS = 55
 const OPEN_DELAY_MS = 320

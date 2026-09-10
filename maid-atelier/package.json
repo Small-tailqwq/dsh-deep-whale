@@ -42,6 +42,7 @@
     "skin.json",
     "skin.build.json",
     "preview",
+    "assets/icons",
     "src",
     "tests",
     "LICENSE",

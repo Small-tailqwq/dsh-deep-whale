@@ -10,6 +10,7 @@ description: "审计并适配 DSH Web 展示型皮肤或主题插件的宿主版
 ## 必读通用审计
 
 - 每次升级都读取 [references/contract-audit.md](references/contract-audit.md)，按其中的关系级审计检查构建、DOM、生命周期与产物。
+- 对每个受影响展示面填写该参考中的可见表面与交互状态表：分别追踪亮暗主题、hover/focus/选中等可达状态的前景与实际背景，以及展开后才出现的面板。静态检查与视觉验收分别记录，不能由默认状态或构建通过推断整项可读。
 - 安装、切换、重新 link 或指定提交运行验证改用 `dsh-skin-install`。只有提供了 Performance Trace 并要求定位瓶颈时才使用 `dsh-performance-investigation`。
 
 ## 权威来源与隔离
