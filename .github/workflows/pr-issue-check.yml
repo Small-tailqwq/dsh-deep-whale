@@ -1,7 +1,7 @@
 name: PR 描述提示
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize]
+    types: [opened, edited, reopened]
 
 permissions:
   contents: read
