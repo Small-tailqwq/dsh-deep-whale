@@ -41,7 +41,9 @@ import './maid-atelier.module.css'
 import './boot-error.module.css'
 import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 import { installMaidComposerCapsule } from './composer-capsule.ts'
+import { installMaidComposerDismiss } from './composer-dismiss.ts'
 import { installMaidComposerScroll } from './composer-scroll.ts'
+import { createMaidSettingsNavigation } from './settings-navigation.ts'
 import { installMaidCustomization } from './customization.ts'
 import { installMaidBootError } from './boot-error.ts'
 import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.generated.ts'
@@ -547,8 +549,11 @@ export function apply(ctx: Context): void {
   body.dataset.dshMaidAtelier = ''
   // Composer presentation modes (skin setting 「输入框显示方式」):
   // capsule collapses the empty unfocused card, scroll fades it on scroll-up.
+  ctx.effect(() => installMaidComposerDismiss(body), 'ui-skin-maid-atelier: composer stats dismissal')
   const disposeMaidComposerCapsule = installMaidComposerCapsule(body)
   const disposeMaidComposerScroll = installMaidComposerScroll(body)
+  const settingsNavigation = createMaidSettingsNavigation(body)
+  ctx.effect(() => settingsNavigation.dispose, 'ui-skin-maid-atelier: settings navigation hint')
   disposeMaidTableCards = installMaidTableCards(ctx).dispose
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
   body.style.setProperty('--maid-boot-error-left-art', `url(${MAID_BOOT_ERROR_LEFT})`)
@@ -796,6 +801,7 @@ export function apply(ctx: Context): void {
      can omit sibling composited layers from that backdrop sample, so seat a
      copy of the existing frame immediately before the mask while it is open. */
   const syncSettingsBackdropFrame = (): void => {
+    settingsNavigation.synchronize()
     const dialog = document.querySelector(SETTINGS_DIALOG_SELECTOR)
     const mask = dialog === null
       ? null

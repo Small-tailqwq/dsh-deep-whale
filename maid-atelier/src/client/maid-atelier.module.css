@@ -3999,17 +3999,77 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   }
 }
 
-/* Phones and narrow panes move the category rail above the content. */
-/* The category rail scrolls independently from the selected section. */
+/* Only the category list scrolls; its title and the reserved hint footer stay
+   outside the scrollport. The glass hint never covers a navigation button. */
 body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+  position: relative;
   min-height: 0;
-  overflow-y: auto;
+  padding-bottom: 28px;
+  overflow: hidden;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > * {
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
   flex-shrink: 0;
 }
 
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child > button {
+  flex-shrink: 0;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::before {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: calc(50% - 17px);
+  width: 34px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1px solid rgba(197, 164, 104, 0.48);
+  border-radius: 10px;
+  background: rgba(247, 249, 255, 0.58);
+  box-shadow: 0 2px 6px rgba(15, 30, 72, 0.12), inset 0 1px rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: solid #52699c;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::before {
+  border-color: rgba(211, 180, 119, 0.48);
+  background: rgba(24, 40, 80, 0.65);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::after {
+  border-color: #d3b477;
+}
+
+/* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
@@ -4020,11 +4080,11 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
     box-sizing: border-box;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     width: 100%;
     max-height: 40%;
     gap: 8px;
-    padding: 10px 12px 8px;
+    padding: 10px 12px 28px;
     border-bottom: 1px solid rgba(197, 164, 104, 0.42);
   }
 
@@ -4032,6 +4092,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
     gap: 4px;
     flex: 1;
     width: auto;
@@ -4040,6 +4101,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation
   body[data-dsh-maid-atelier][data-maid-settings-open]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
+    align-self: flex-start;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
@@ -4693,7 +4755,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [da
 @keyframes maidAtelierCapsuleOut {
   from {
     opacity: 0.35;
-    transform: translateY(8px) scale(0.965);
+    transform: translateY(8px);
   }
 
   to {

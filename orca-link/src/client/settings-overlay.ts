@@ -1,4 +1,5 @@
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { createOrcaSettingsNavigation } from './settings-navigation.ts'
 
 const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog']"
 const SETTINGS_OPEN_ATTRIBUTE = 'data-orca-settings-open'
@@ -14,6 +15,7 @@ export function installOrcaSettingsOverlay(body: HTMLElement): () => void {
   const originalLamp = body.getAttribute(LAMP_ATTRIBUTE)
   let lampTimer: ReturnType<typeof setTimeout> | undefined
   let wasDark = body.hasAttribute('data-ds-dark-theme')
+  const navigation = createOrcaSettingsNavigation(body)
 
   const triggerLamp = (): void => {
     if (body.hasAttribute('data-ds-dark-theme') !== true) return
@@ -33,10 +35,11 @@ export function installOrcaSettingsOverlay(body: HTMLElement): () => void {
     wasDark = isDark
   }
 
-  const synchronize = (): void => {
+  const synchronize = (navigationChanged: boolean): void => {
     const wasOpen = body.hasAttribute(SETTINGS_OPEN_ATTRIBUTE)
     body.toggleAttribute(SETTINGS_OPEN_ATTRIBUTE, body.querySelector(SETTINGS_DIALOG_SELECTOR) !== null)
     const isOpen = body.hasAttribute(SETTINGS_OPEN_ATTRIBUTE)
+    if (navigationChanged || wasOpen !== isOpen) navigation.synchronize()
     if (wasOpen && !isOpen) triggerLamp()
     // The cordis plugin panel has no state attribute of its own; keep the
     // body-level `:has()`-free rules driven by a JS-maintained flag instead of
@@ -44,24 +47,35 @@ export function installOrcaSettingsOverlay(body: HTMLElement): () => void {
     body.toggleAttribute(CORDIS_OPEN_ATTRIBUTE, body.querySelector(CORDIS_PANEL_SELECTOR) !== null)
   }
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) synchronize()
+    if (hasMutationOutsideTerminal(records)) {
+      synchronize(records.some(record => record.type === 'childList'
+        && record.target instanceof Element
+        && record.target.closest("[data-slot='sidebar.settings']") !== null))
+    }
     synchronizeTheme()
   })
-  observer.observe(body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['data-ds-dark-theme'],
-  })
-  synchronize()
-  synchronizeTheme()
 
-  return () => {
+  const dispose = (): void => {
     observer.disconnect()
+    navigation.dispose()
     if (lampTimer !== undefined) clearTimeout(lampTimer)
     body.toggleAttribute(SETTINGS_OPEN_ATTRIBUTE, originallyOpen)
     body.toggleAttribute(CORDIS_OPEN_ATTRIBUTE, originallyCordisOpen)
     if (originalLamp === null) body.removeAttribute(LAMP_ATTRIBUTE)
     else body.setAttribute(LAMP_ATTRIBUTE, originalLamp)
   }
+  try {
+    observer.observe(body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-ds-dark-theme'],
+    })
+    synchronize(true)
+    synchronizeTheme()
+  } catch (error) {
+    dispose()
+    throw error
+  }
+  return dispose
 }

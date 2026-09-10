@@ -731,14 +731,48 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
   }
 }
 
-/* The category rail scrolls independently from the selected section. */
+/* The title and signal chevron stay outside the scrolling category list.
+   The footer reserves enough space for the chevron to clear every button. */
 body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+  position: relative;
   min-height: 0;
-  overflow-y: auto;
+  padding-bottom: 24px;
+  overflow: hidden;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > * {
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
   flex-shrink: 0;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+  /* Short docked lists keep the group's bottom alignment. */
+  flex: 0 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child > button {
+  flex-shrink: 0;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-orca-settings-more]::after {
+  content: '';
+  position: absolute;
+  bottom: 9px;
+  left: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: solid var(--orca-blue);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
 }
 
 /* Large desktop: the panel opens immediately beside the sidebar trigger and
@@ -810,7 +844,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] 
     body[data-dsh-orca-link][data-orca-settings-open]
     [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
     justify-content: flex-start;
-    padding-bottom: 0;
+    padding-bottom: 24px;
   }
 }
 
@@ -854,7 +888,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
     box-sizing: border-box;
     width: 100%;
     gap: 8px;
-    padding: 10px 12px 8px;
+    padding: 10px 12px 24px;
     max-height: 40%;
     border-bottom: 1px solid var(--orca-line);
   }
@@ -862,6 +896,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
     gap: 4px;
   }
 
