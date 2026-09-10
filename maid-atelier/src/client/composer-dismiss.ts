@@ -6,7 +6,7 @@ const HIDING_ATTRIBUTES = [
   'data-maid-composer-hidden',
   'data-maid-composer-capsule',
 ] as const
-const installations = new WeakMap<Document, () => void>()
+const installations = new WeakMap<Document, { users: number, dispose: () => void }>()
 
 /**
  * @param body - skin owning element (document.body) used to reach the
@@ -14,7 +14,24 @@ const installations = new WeakMap<Document, () => void>()
  */
 export function installMaidComposerDismiss(body: HTMLElement): () => void {
   const doc = body.ownerDocument
-  installations.get(doc)?.()
+  let installation = installations.get(doc)
+  if (installation === undefined) {
+    installation = { users: 0, dispose: observeComposer(body) }
+    installations.set(doc, installation)
+  }
+  const current = installation
+  current.users += 1
+  let active = true
+  return () => {
+    if (!active) return
+    active = false
+    if (--current.users > 0) return
+    current.dispose()
+    installations.delete(doc)
+  }
+}
+
+function observeComposer(body: HTMLElement): () => void {
   const hidden = new WeakMap<HTMLElement, boolean>()
 
   const synchronize = (seat: HTMLElement): void => {
@@ -35,9 +52,7 @@ export function installMaidComposerDismiss(body: HTMLElement): () => void {
   })
   const dispose = (): void => {
     observer.disconnect()
-    if (installations.get(doc) === dispose) installations.delete(doc)
   }
-  installations.set(doc, dispose)
 
   try {
     observer.observe(body, {

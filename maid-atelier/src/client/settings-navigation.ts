@@ -1,11 +1,36 @@
 const NAV_SELECTOR = "[data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav"
 const MORE_ATTRIBUTE = 'data-maid-settings-more'
-const installations = new WeakMap<Document, () => void>()
+interface SettingsNavigation {
+  synchronize: () => void
+  dispose: () => void
+}
+
+const installations = new WeakMap<Document, { users: number, controller: SettingsNavigation }>()
 
 /** The existing settings observer calls synchronize when the host replaces its navigation. */
-export function createMaidSettingsNavigation(body: HTMLElement): { synchronize: () => void, dispose: () => void } {
+export function createMaidSettingsNavigation(body: HTMLElement): SettingsNavigation {
   const doc = body.ownerDocument
-  installations.get(doc)?.()
+  let installation = installations.get(doc)
+  if (installation === undefined) {
+    installation = { users: 0, controller: createNavigation(body) }
+    installations.set(doc, installation)
+  }
+  const current = installation
+  current.users += 1
+  let active = true
+  return {
+    synchronize: () => { if (active) current.controller.synchronize() },
+    dispose: () => {
+      if (!active) return
+      active = false
+      if (--current.users > 0) return
+      current.controller.dispose()
+      installations.delete(doc)
+    },
+  }
+}
+
+function createNavigation(body: HTMLElement): SettingsNavigation {
   let active = true
   let nav: HTMLElement | null = null
   let list: HTMLElement | null = null
@@ -64,8 +89,6 @@ export function createMaidSettingsNavigation(body: HTMLElement): { synchronize: 
     if (!active) return
     active = false
     detach()
-    if (installations.get(doc) === dispose) installations.delete(doc)
   }
-  installations.set(doc, dispose)
   return { synchronize, dispose }
 }

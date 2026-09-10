@@ -374,7 +374,26 @@ window.__ModuleLoader__.load({
 		*/
 		function installMaidComposerDismiss(body) {
 			const doc = body.ownerDocument;
-			installations$2.get(doc)?.();
+			let installation = installations$2.get(doc);
+			if (installation === void 0) {
+				installation = {
+					users: 0,
+					dispose: observeComposer(body)
+				};
+				installations$2.set(doc, installation);
+			}
+			const current = installation;
+			current.users += 1;
+			let active = true;
+			return () => {
+				if (!active) return;
+				active = false;
+				if (--current.users > 0) return;
+				current.dispose();
+				installations$2.delete(doc);
+			};
+		}
+		function observeComposer(body) {
 			const hidden = /* @__PURE__ */ new WeakMap();
 			const synchronize = (seat) => {
 				const hiding = HIDING_ATTRIBUTES.some((attribute) => seat.hasAttribute(attribute));
@@ -392,9 +411,7 @@ window.__ModuleLoader__.load({
 			});
 			const dispose = () => {
 				observer.disconnect();
-				if (installations$2.get(doc) === dispose) installations$2.delete(doc);
 			};
-			installations$2.set(doc, dispose);
 			try {
 				observer.observe(body, {
 					attributes: true,
@@ -641,7 +658,31 @@ window.__ModuleLoader__.load({
 		/** The existing settings observer calls synchronize when the host replaces its navigation. */
 		function createMaidSettingsNavigation(body) {
 			const doc = body.ownerDocument;
-			installations$1.get(doc)?.();
+			let installation = installations$1.get(doc);
+			if (installation === void 0) {
+				installation = {
+					users: 0,
+					controller: createNavigation(body)
+				};
+				installations$1.set(doc, installation);
+			}
+			const current = installation;
+			current.users += 1;
+			let active = true;
+			return {
+				synchronize: () => {
+					if (active) current.controller.synchronize();
+				},
+				dispose: () => {
+					if (!active) return;
+					active = false;
+					if (--current.users > 0) return;
+					current.controller.dispose();
+					installations$1.delete(doc);
+				}
+			};
+		}
+		function createNavigation(body) {
 			let active = true;
 			let nav = null;
 			let list = null;
@@ -693,9 +734,7 @@ window.__ModuleLoader__.load({
 				if (!active) return;
 				active = false;
 				detach();
-				if (installations$1.get(doc) === dispose) installations$1.delete(doc);
 			};
-			installations$1.set(doc, dispose);
 			return {
 				synchronize,
 				dispose

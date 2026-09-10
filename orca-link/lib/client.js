@@ -2156,7 +2156,31 @@ window.__ModuleLoader__.load({
 		/** The existing settings observer calls synchronize when the host replaces its navigation. */
 		function createOrcaSettingsNavigation(body) {
 			const doc = body.ownerDocument;
-			installations.get(doc)?.();
+			let installation = installations.get(doc);
+			if (installation === void 0) {
+				installation = {
+					users: 0,
+					controller: createNavigation(body)
+				};
+				installations.set(doc, installation);
+			}
+			const current = installation;
+			current.users += 1;
+			let active = true;
+			return {
+				synchronize: () => {
+					if (active) current.controller.synchronize();
+				},
+				dispose: () => {
+					if (!active) return;
+					active = false;
+					if (--current.users > 0) return;
+					current.controller.dispose();
+					installations.delete(doc);
+				}
+			};
+		}
+		function createNavigation(body) {
 			let active = true;
 			let nav = null;
 			let list = null;
@@ -2208,9 +2232,7 @@ window.__ModuleLoader__.load({
 				if (!active) return;
 				active = false;
 				detach();
-				if (installations.get(doc) === dispose) installations.delete(doc);
 			};
-			installations.set(doc, dispose);
 			return {
 				synchronize,
 				dispose
