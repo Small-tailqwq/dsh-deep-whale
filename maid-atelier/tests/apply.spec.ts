@@ -124,10 +124,10 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('registers cleanup before a later CSSOM initialization failure', () => {
-    let dispose: (() => void) | undefined
+    const disposers: Array<() => void> = []
     const ctx = {
       effect(factory: () => () => void): void {
-        dispose = factory()
+        disposers.push(factory())
       },
     } as unknown as Context
     const insertRule = vi.spyOn(CSSStyleSheet.prototype, 'insertRule')
@@ -136,8 +136,8 @@ describe('Maid Atelier skin apply', () => {
       })
 
     expect(() => apply(ctx)).toThrow('fixture CSSOM failure')
-    expect(dispose).toBeTypeOf('function')
-    dispose?.()
+    expect(disposers.length).toBeGreaterThan(0)
+    for (const dispose of disposers.reverse()) dispose()
 
     expect(document.body.hasAttribute('data-dsh-maid-atelier')).toBe(false)
     expect(document.querySelector("[data-skin-owner='maid-atelier']")).toBeNull()

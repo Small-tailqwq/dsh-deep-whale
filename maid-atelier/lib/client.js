@@ -367,14 +367,14 @@ window.__ModuleLoader__.load({
 		const SEAT_SELECTOR = "[data-composer-seat]";
 		const OPEN_PILL_SELECTOR = "[data-composer-stats] button[aria-expanded='true'][aria-haspopup='dialog']";
 		const HIDING_ATTRIBUTES = ["data-maid-composer-hidden", "data-maid-composer-capsule"];
-		const installations$1 = /* @__PURE__ */ new WeakMap();
+		const installations$2 = /* @__PURE__ */ new WeakMap();
 		/**
 		* @param body - skin owning element (document.body) used to reach the
 		* document; the hide states live on the composer seats.
 		*/
 		function installMaidComposerDismiss(body) {
 			const doc = body.ownerDocument;
-			installations$1.get(doc)?.();
+			installations$2.get(doc)?.();
 			const hidden = /* @__PURE__ */ new WeakMap();
 			const synchronize = (seat) => {
 				const hiding = HIDING_ATTRIBUTES.some((attribute) => seat.hasAttribute(attribute));
@@ -392,9 +392,9 @@ window.__ModuleLoader__.load({
 			});
 			const dispose = () => {
 				observer.disconnect();
-				if (installations$1.get(doc) === dispose) installations$1.delete(doc);
+				if (installations$2.get(doc) === dispose) installations$2.delete(doc);
 			};
-			installations$1.set(doc, dispose);
+			installations$2.set(doc, dispose);
 			try {
 				observer.observe(body, {
 					attributes: true,
@@ -637,11 +637,11 @@ window.__ModuleLoader__.load({
 		//#region src/client/settings-navigation.ts
 		const NAV_SELECTOR = "[data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav";
 		const MORE_ATTRIBUTE = "data-maid-settings-more";
-		const installations = /* @__PURE__ */ new WeakMap();
+		const installations$1 = /* @__PURE__ */ new WeakMap();
 		/** The existing settings observer calls synchronize when the host replaces its navigation. */
 		function createMaidSettingsNavigation(body) {
 			const doc = body.ownerDocument;
-			installations.get(doc)?.();
+			installations$1.get(doc)?.();
 			let active = true;
 			let nav = null;
 			let list = null;
@@ -693,9 +693,9 @@ window.__ModuleLoader__.load({
 				if (!active) return;
 				active = false;
 				detach();
-				if (installations.get(doc) === dispose) installations.delete(doc);
+				if (installations$1.get(doc) === dispose) installations$1.delete(doc);
 			};
-			installations.set(doc, dispose);
+			installations$1.set(doc, dispose);
 			return {
 				synchronize,
 				dispose
@@ -1435,55 +1435,85 @@ window.__ModuleLoader__.load({
 			DELIGHTED_32,
 			"data:image/png;base64,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"
 		][Math.floor(Math.random() * 3)];
+		const installations = /* @__PURE__ */ new WeakMap();
 		function installMaidPageIcons(ctx) {
+			ctx.effect(() => {
+				const doc = document;
+				let installation = installations.get(doc);
+				if (installation === void 0) {
+					installation = {
+						users: 0,
+						restore: mountPageIcons(doc)
+					};
+					installations.set(doc, installation);
+				}
+				const current = installation;
+				current.users += 1;
+				let active = true;
+				return () => {
+					if (!active) return;
+					active = false;
+					if (--current.users > 0) return;
+					current.restore();
+					installations.delete(doc);
+				};
+			}, "ui-skin-maid-atelier: page icons");
+		}
+		function mountPageIcons(doc) {
 			const replaced = [];
 			const owned = [];
-			ctx.effect(() => () => {
+			const restore = () => {
 				for (const node of owned) node.remove();
 				for (const { node, anchor } of replaced) if (anchor.parentNode !== null && !node.isConnected) anchor.replaceWith(node);
 				else anchor.remove();
-			}, "ui-skin-maid-atelier: page icons");
-			for (const node of document.head.querySelectorAll("link[rel~=\"icon\"], link[rel=\"manifest\"]")) {
-				const anchor = document.createComment("maid-atelier: host icon");
-				replaced.push({
-					node,
-					anchor
-				});
-				node.before(anchor);
-				node.remove();
-			}
-			const append = (rel, href, type) => {
-				const node = document.createElement("link");
-				owned.push(node);
-				node.rel = rel;
-				node.href = href;
-				node.type = type;
-				node.dataset.skinChrome = rel === "icon" ? "favicon" : "manifest";
-				node.dataset.skinOwner = "maid-atelier";
-				document.head.append(node);
-				return node;
 			};
-			append("icon", PAGE_ICON, "image/png").setAttribute("sizes", "32x32");
-			const root = new URL("/", window.location.href).href;
-			append("manifest", `data:application/manifest+json,${encodeURIComponent(JSON.stringify({
-				id: root,
-				name: "DeepSeek Harness",
-				short_name: "DSH",
-				start_url: root,
-				scope: root,
-				display: "fullscreen",
-				icons: [{
-					src: DELIGHTED_192,
-					sizes: "192x192",
-					type: "image/png",
-					purpose: "any"
-				}, {
-					src: DELIGHTED_512,
-					sizes: "512x512",
-					type: "image/png",
-					purpose: "any"
-				}]
-			}))}`, "application/manifest+json");
+			try {
+				for (const node of doc.head.querySelectorAll("link[rel~=\"icon\"], link[rel=\"manifest\"]")) {
+					const anchor = doc.createComment("maid-atelier: host icon");
+					replaced.push({
+						node,
+						anchor
+					});
+					node.before(anchor);
+					node.remove();
+				}
+				const append = (rel, href, type) => {
+					const node = doc.createElement("link");
+					owned.push(node);
+					node.rel = rel;
+					node.href = href;
+					node.type = type;
+					node.dataset.skinChrome = rel === "icon" ? "favicon" : "manifest";
+					node.dataset.skinOwner = "maid-atelier";
+					doc.head.append(node);
+					return node;
+				};
+				append("icon", PAGE_ICON, "image/png").setAttribute("sizes", "32x32");
+				const root = new URL("/", doc.location.href).href;
+				append("manifest", `data:application/manifest+json,${encodeURIComponent(JSON.stringify({
+					id: root,
+					name: "DeepSeek Harness",
+					short_name: "DSH",
+					start_url: root,
+					scope: root,
+					display: "fullscreen",
+					icons: [{
+						src: DELIGHTED_192,
+						sizes: "192x192",
+						type: "image/png",
+						purpose: "any"
+					}, {
+						src: DELIGHTED_512,
+						sizes: "512x512",
+						type: "image/png",
+						purpose: "any"
+					}]
+				}))}`, "application/manifest+json");
+			} catch (error) {
+				restore();
+				throw error;
+			}
+			return restore;
 		}
 		//#endregion
 		//#region src/client/index.ts

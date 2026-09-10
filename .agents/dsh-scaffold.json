@@ -8,18 +8,18 @@
       "id": "maid-atelier",
       "host": {
         "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
-        "version": "0.1.2-rc.1",
-        "ref": "refs/tags/dsh-v0.1.2-rc.1",
-        "sha": "a66e4702047846cdaa10c66c9d3df3951f5ea70d"
+        "version": "0.1.5-rc.1",
+        "ref": "refs/tags/dsh-v0.1.5-rc.1",
+        "sha": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e"
       }
     },
     {
       "id": "orca-link",
       "host": {
         "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
-        "version": "0.1.5-alpha.1",
-        "ref": "refs/tags/dsh-v0.1.5-alpha.1",
-        "sha": "5dda764ed3aa172535a7967b06ff95d9cbfe536a"
+        "version": "0.1.5-rc.1",
+        "ref": "refs/tags/dsh-v0.1.5-rc.1",
+        "sha": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e"
       }
     }
   ],
