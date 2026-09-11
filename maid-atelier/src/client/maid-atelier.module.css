@@ -1500,6 +1500,441 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   box-shadow: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Phone navigation layout — one skin customization value, three modes.
+
+   The host pins its collapsed rail to the left edge as a 56px column, so at
+   390x844 the conversation column measures 334px: 14% of the viewport spent on
+   a strip whose only always-useful control is the toggle that opens the column.
+   `data-maid-nav-mode` (owned by installMaidCustomization) picks what phone
+   portrait does instead:
+
+     corner  (skin default) the toggle becomes a 48px brand button in the
+             top-left corner, clear of the host's own header row; the rest of
+             the column's chrome stays one tap away in the drawer.
+     topbar  the same chrome spread as a 48px bar across the top.
+     rail    no rule below matches, so the host's own column is untouched.
+
+   The mode travels on `data-maid-nav-mode` on the document element, which is
+   where `SkinAttributeProjector` writes and where the manager may not have
+   pushed a value yet — on a fresh load, or on an install without the manager.
+   So `corner` is what the selectors below mean by *absence*: only `topbar` and
+   `rail` need an explicit value, and a missing attribute still gives a phone the
+   skin's default layout.
+
+   Hooks are the host's own: `data-sidebar-collapsed` on the AppFrame is its
+   marker for "the column is the rail", `sidebarCol` is the class the rest of
+   this file already matches on, and `logoRow` / `toggle` / `panelList` /
+   `newSession` / `settingsArea` are its names. The `@supports` arm covers
+   engines without relational selectors. Everything the expanded column already
+   offers is hidden by matching *siblings of `logoRow`* rather than a list of
+   class names, so a later build cannot re-introduce a row into the corner
+   button. `z-index: 40` stays inside the host's layer contract (menu 100 /
+   modal 1000).
+
+   Portrait only: in landscape the scarce axis is height, so the rail's 56px of
+   width is the cheaper trade and every mode below leaves the host alone. */
+@media (max-width: 700px) and (orientation: portrait) {
+  /* Frame: one column, conversation only. The column is out of flow in both
+     states — collapsed it is the dock or the bar, expanded it is the overlay
+     drawer — so the frame must never keep the track it vacated, or the host grid
+     would place the conversation in that track and leave an empty strip beside
+     the drawer. `:has` identifies the expanded frame; the collapsed frame keeps
+     the host's own `data-sidebar-collapsed` marker, which needs no support arm. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed],
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    > :is([class*='centerCol'], [data-pane='conversation']),
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    > :is([class*='centerCol'], [data-pane='conversation']) {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* -- corner ------------------------------------------------------------- */
+  /* A fixed 48px brand button in the top-left. The box itself stays inert so it
+     never eats a tap meant for the header behind it; only the toggle inside it
+     is interactive. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 10px !important;
+    order: 0 !important;
+    box-sizing: border-box !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+    z-index: 40 !important;
+  }
+
+  /* One centred row inside the button: the logo row and nothing else. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is(div:has(> [class*='logoRow']), [class*='logoRow']) {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    width: 48px !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    flex: none !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+  }
+
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    div:has(> [class*='logoRow']) > :not([class*='logoRow']) {
+    display: none !important;
+  }
+
+  @supports not (selector(:has(*))) {
+    html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+      div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+      box-sizing: border-box !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 48px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      max-height: 48px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      pointer-events: none !important;
+    }
+
+    html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+      div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol'])
+      > div > :not([class*='logoRow']) {
+      display: none !important;
+    }
+  }
+
+  /* The toggle is the whole target and the only interactive thing left. The rail
+     variant already paints it as a gold-ringed navy medallion, so this only
+     sizes it and hands it the pointer. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='logoRow'] button[class*='toggle'] {
+    box-sizing: border-box !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    place-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
+  /* The host header keeps its own row, its own order and its own behaviour; it
+     only starts after the button. The host pads it `10px 28px 0 20px`, so 64px
+     clears the 48px button (10px + 48px) and leaves the title row intact. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='conversation'], [class*='centerCol'])
+    header[class*='header'] {
+    padding-left: 64px !important;
+  }
+
+  /* -- topbar ------------------------------------------------------------- */
+  /* The collapsed column becomes a 48px bar across the top, above the
+     conversation. The column is full width now, so the width-based
+     `data-maid-sidebar-size` heuristic reports `wide` and the framed wide
+     trigger/plaque styling would be squeezed into the bar; it therefore gets its
+     own compact round targets (36px), matching the rail variant below. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    order: -1 !important;
+    width: 100% !important;
+    height: calc(48px + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(48px + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(48px + env(safe-area-inset-top, 0px)) !important;
+    flex: none !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    border-right: none !important;
+    border-bottom: 0.5px solid var(--dsw-alias-border-l3) !important;
+    overflow: visible !important;
+  }
+
+  /* The sidebar root below the host's slot anchor: one horizontal row. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    div:has(> [class*='logoRow']) {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 0 8px !important;
+    overflow: visible !important;
+  }
+
+  @supports not (selector(:has(*))) {
+    html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+      div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 4px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      padding: 0 8px !important;
+      overflow: visible !important;
+    }
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='logoRow'] {
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: none !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelList'] {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 2px !important;
+    margin: 0 !important;
+    flex: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelRow'] {
+    width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+
+  /* New Session is a framed plaque in the column; in the bar it is a round icon
+     target with the rail variant's ink so the glyph stays legible. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) button[class*='newSession'] {
+    box-sizing: border-box !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-self: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(225, 207, 170, 0.72) !important;
+    border-image: none !important;
+    border-radius: 50% !important;
+    color: #ebd29e !important;
+    background: linear-gradient(145deg, rgba(77, 103, 169, 0.4), rgba(7, 18, 52, 0.78)) !important;
+    box-shadow: inset 0 0 0 2px rgba(5, 15, 45, 0.7) !important;
+    filter: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) button[class*='newSession'] svg {
+    color: #f4dfa8 !important;
+    stroke-width: 1.9;
+    filter: drop-shadow(0 1px 2px rgba(1, 7, 24, 0.5));
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='newSessionLabel'],
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelTitle'] {
+    display: none !important;
+  }
+
+  /* Same compact treatment for the settings trigger. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    [class*='settingsArea'] button[aria-haspopup='dialog'] {
+    box-sizing: border-box !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid rgba(225, 191, 124, 0.76) !important;
+    border-image: none !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0 !important;
+    color: #dfbf7c !important;
+    background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82)) !important;
+    box-shadow:
+      inset 0 0 0 2px rgba(5, 15, 45, 0.76),
+      0 3px 9px rgba(1, 7, 24, 0.24) !important;
+    filter: none !important;
+    overflow: visible !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    [class*='settingsArea'] button[aria-haspopup='dialog'] [class*='triggerLabel'] {
+    display: none !important;
+  }
+
+  /* Rows that only make sense in the tall rail. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is(
+      [class*='regionArea'],
+      [class*='searchExpanded'],
+      [class*='sectionHeader'],
+      [data-skin-chrome='sidebar-mascot'],
+      [data-skin-chrome='sidebar-corners']
+    ) {
+    display: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is([class*='footArea'], [class*='settingsArea'], [class*='footerActions']) {
+    flex-direction: row !important;
+    align-items: center !important;
+    margin: 0 0 0 auto !important;
+    padding: 0 !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [data-maid-sidebar-footer] {
+    flex-direction: row !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [data-maid-sidebar-footer]::before {
+    display: none !important;
+  }
+
+  /* -- shared: expanded column floats over the conversation ---------------- */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: min(300px, 84vw) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    z-index: 60 !important;
+    border-right: 0.5px solid var(--dsw-alias-border-l3) !important;
+    box-shadow: 24px 0 64px rgba(8, 17, 48, 0.35) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) > [class*='handle'] {
+    display: none !important;
+  }
+
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol']):has([class*='regionArea']:not([style*='display: none'])) {
+    overscroll-behavior: contain !important;
+  }
+}
+
+/* Very narrow top bars keep the mark only. */
+@media (max-width: 420px) and (orientation: portrait) {
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is(
+      [class*='brandName'],
+      [class*='fallbackBrandName'],
+      [class*='localBuildBrand'],
+      [class*='buildVersion']
+    ) {
+    display: none !important;
+  }
+}
+
 /* Workspace groups receive skin-owned semantic hooks from the client entry.
    This keeps the ornamental tree independent from generated CSS-module names
    while leaving the official rows and their interactions intact. */
