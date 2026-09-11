@@ -136,7 +136,30 @@ window.__ModuleLoader__.load({
 					case "no-matching-skins": return "备份中没有匹配当前已安装皮肤的配置";
 					case "too-large": return "文件过大，超过 256 KiB 限制";
 				}
-			}
+			},
+			presetsTitle: "预设",
+			presetsIntro: "将当前所有皮肤的配置保存为一个命名预设，可一键切换。内置「默认配置」预设会清空所有自定义，恢复每个皮肤的出厂设置。",
+			presetNamePlaceholder: "预设名称",
+			savePresetButton: "保存当前配置为预设",
+			presetApply: "应用",
+			presetRename: "重命名",
+			presetDelete: "删除",
+			presetApplyOk: (name) => `已应用预设「${name}」。`,
+			presetSaveOk: (name) => `已保存预设「${name}」。`,
+			presetDeleteOk: (name) => `已删除预设「${name}」。`,
+			presetRenameOk: (name) => `已重命名为「${name}」。`,
+			presetEmpty: "还没有保存的预设；在上方调整好配置后点击「保存当前配置为预设」即可。",
+			presetNameError: (code) => {
+				switch (code) {
+					case "empty": return "名称不能为空";
+					case "too-long": return `名称不能超过 32 个字符`;
+					case "duplicate": return "已有同名预设";
+				}
+			},
+			presetRenamePrompt: (current) => `输入新的预设名称（当前：${current}）`,
+			presetDeleteConfirm: (name) => `确认删除预设「${name}」？此操作不可撤销。`,
+			presetLimitReached: "已达预设数量上限，请先删除不再需要的预设。",
+			presetNameMaxLength: 32
 		};
 		const enCopy = {
 			headerTitle: "Skin Management",
@@ -206,7 +229,30 @@ window.__ModuleLoader__.load({
 					case "no-matching-skins": return "The backup contains no configuration matching the currently installed skins";
 					case "too-large": return "The file exceeds the 256 KiB limit";
 				}
-			}
+			},
+			presetsTitle: "Presets",
+			presetsIntro: "Save the current configuration of every skin as a named preset and switch between them in one click. The built-in \"Defaults\" preset clears every custom option and restores each skin's factory settings.",
+			presetNamePlaceholder: "Preset name",
+			savePresetButton: "Save current as preset",
+			presetApply: "Apply",
+			presetRename: "Rename",
+			presetDelete: "Delete",
+			presetApplyOk: (name) => `Applied preset "${name}".`,
+			presetSaveOk: (name) => `Saved preset "${name}".`,
+			presetDeleteOk: (name) => `Deleted preset "${name}".`,
+			presetRenameOk: (name) => `Renamed to "${name}".`,
+			presetEmpty: "No saved presets yet; adjust the options above and click \"Save current as preset\" to create one.",
+			presetNameError: (code) => {
+				switch (code) {
+					case "empty": return "The name cannot be empty";
+					case "too-long": return `The name cannot exceed 32 characters`;
+					case "duplicate": return "A preset with this name already exists";
+				}
+			},
+			presetRenamePrompt: (current) => `Enter a new preset name (current: ${current})`,
+			presetDeleteConfirm: (name) => `Delete preset "${name}"? This cannot be undone.`,
+			presetLimitReached: "Preset limit reached; remove a preset you no longer need first.",
+			presetNameMaxLength: 32
 		};
 		function skinManagerCopy(lang) {
 			return lang === "zh" ? zhCopy : enCopy;
@@ -279,7 +325,7 @@ window.__ModuleLoader__.load({
 		function object(value) {
 			return typeof value === "object" && value !== null ? value : {};
 		}
-		function readJson(storage, key) {
+		function readJson$1(storage, key) {
 			try {
 				const raw = storage.getItem(key);
 				return raw === null ? void 0 : JSON.parse(raw);
@@ -305,9 +351,9 @@ window.__ModuleLoader__.load({
 			};
 		}
 		function readPreferences(storage = localStorage) {
-			const current = readJson(storage, PREFERENCES_KEY);
+			const current = readJson$1(storage, PREFERENCES_KEY);
 			if (typeof current === "object" && current !== null) return object(current);
-			return migrateLegacy(readJson(storage, LEGACY_PREFERENCES_KEY));
+			return migrateLegacy(readJson$1(storage, LEGACY_PREFERENCES_KEY));
 		}
 		function normalizeSetting(setting, value) {
 			if (setting.type === "boolean") return typeof value === "boolean" ? value : setting.defaultValue;
@@ -422,14 +468,14 @@ window.__ModuleLoader__.load({
 				this.name = "PreferencesImportError";
 			}
 		};
-		function isObject(value) {
+		function isObject$1(value) {
 			return typeof value === "object" && value !== null && !Array.isArray(value);
 		}
-		function isPreferences(value) {
-			if (!isObject(value)) return false;
+		function isPreferences$1(value) {
+			if (!isObject$1(value)) return false;
 			for (const block of Object.values(value)) {
 				if (block === void 0) continue;
-				if (!isObject(block)) return false;
+				if (!isObject$1(block)) return false;
 			}
 			return true;
 		}
@@ -438,7 +484,7 @@ window.__ModuleLoader__.load({
 			const clean = {};
 			for (const [skinId, block] of Object.entries(prefs)) {
 				if (block === void 0) continue;
-				clean[skinId] = isObject(block) ? { ...block } : {};
+				clean[skinId] = isObject$1(block) ? { ...block } : {};
 			}
 			return {
 				schema: 1,
@@ -477,11 +523,11 @@ window.__ModuleLoader__.load({
 			} catch {
 				throw new PreferencesImportError("invalid-json", "invalid-json-syntax");
 			}
-			if (!isObject(parsed)) throw new PreferencesImportError("invalid-envelope", "envelope-not-object");
+			if (!isObject$1(parsed)) throw new PreferencesImportError("invalid-envelope", "envelope-not-object");
 			if (parsed.schema !== 1) throw new PreferencesImportError("invalid-envelope", "unsupported-schema");
 			if (parsed.source !== "dsh-skin-manager") throw new PreferencesImportError("invalid-envelope", "unknown-source");
 			if (typeof parsed.exportedAt !== "string" || parsed.exportedAt === "") throw new PreferencesImportError("invalid-envelope", "missing-exported-at");
-			if (!isPreferences(parsed.preferences)) throw new PreferencesImportError("invalid-envelope", "preferences-not-object");
+			if (!isPreferences$1(parsed.preferences)) throw new PreferencesImportError("invalid-envelope", "preferences-not-object");
 			return {
 				schema: 1,
 				source: PREFERENCES_EXPORT_SOURCE,
@@ -529,8 +575,167 @@ window.__ModuleLoader__.load({
 			return `dsh-skin-preferences-${now.toISOString().slice(0, 10)}.json`;
 		}
 		//#endregion
+		//#region src/client/presets.ts
+		const PRESETS_KEY = "dsh.skin-manager.presets.v1";
+		const DEFAULT_PRESET_ID = "__defaults__";
+		const DEFAULT_PRESET_NAME_ZH = "默认配置";
+		const DEFAULT_PRESET_NAME_EN = "Defaults";
+		function isObject(value) {
+			return typeof value === "object" && value !== null && !Array.isArray(value);
+		}
+		function isPreferences(value) {
+			if (!isObject(value)) return false;
+			for (const block of Object.values(value)) {
+				if (block === void 0) continue;
+				if (!isObject(block)) return false;
+			}
+			return true;
+		}
+		function isPreset(value) {
+			if (!isObject(value)) return false;
+			if (typeof value.id !== "string" || value.id === "") return false;
+			if (typeof value.name !== "string" || value.name === "") return false;
+			if (typeof value.createdAt !== "string" || value.createdAt === "") return false;
+			if (!isPreferences(value.preferences)) return false;
+			return true;
+		}
+		function readJson(storage, key) {
+			try {
+				const raw = storage.getItem(key);
+				return raw === null ? void 0 : JSON.parse(raw);
+			} catch {
+				return;
+			}
+		}
+		/** Parse the persisted preset roster defensively; bad rows are dropped. */
+		function parsePresetSnapshot(value) {
+			if (!isObject(value)) return { presets: [] };
+			const list = value.presets;
+			if (!Array.isArray(list)) return { presets: [] };
+			const presets = [];
+			const ids = /* @__PURE__ */ new Set();
+			for (const entry of list) {
+				if (!isPreset(entry)) continue;
+				if (entry.id === "__defaults__") continue;
+				if (ids.has(entry.id)) continue;
+				ids.add(entry.id);
+				presets.push({
+					id: entry.id,
+					name: entry.name.slice(0, 32),
+					createdAt: entry.createdAt,
+					preferences: entry.preferences
+				});
+			}
+			return { presets: presets.slice(0, 24) };
+		}
+		function readPresets(storage = localStorage) {
+			return parsePresetSnapshot(readJson(storage, PRESETS_KEY));
+		}
+		/** Generate a short, sortable, collision-resistant id without crypto deps. */
+		function generatePresetId(now = /* @__PURE__ */ new Date()) {
+			return `p-${now.getTime().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+		}
+		/** The virtual Defaults preset, always rendered first in the roster. */
+		function defaultPreset(lang = "zh") {
+			return {
+				id: DEFAULT_PRESET_ID,
+				name: lang === "zh" ? DEFAULT_PRESET_NAME_ZH : DEFAULT_PRESET_NAME_EN,
+				createdAt: "",
+				preferences: {}
+			};
+		}
+		/** Validate a candidate preset name against the existing roster. */
+		function validatePresetName(name, existing) {
+			const trimmed = name.trim();
+			if (trimmed === "") return {
+				ok: false,
+				error: "empty"
+			};
+			if (trimmed.length > 32) return {
+				ok: false,
+				error: "too-long"
+			};
+			if (existing.some((preset) => preset.name === trimmed)) return {
+				ok: false,
+				error: "duplicate"
+			};
+			return { ok: true };
+		}
+		/**
+		* Presets store: CRUD over named preference snapshots. Notifications fire on
+		* every mutating operation so React subscribers can re-render through the
+		* same useSyncExternalStore pattern the preferences store uses.
+		*/
+		var PresetsStore = class {
+			storage;
+			snapshot;
+			listeners = /* @__PURE__ */ new Set();
+			onStorage = (event) => {
+				if (event.key !== "dsh.skin-manager.presets.v1") return;
+				this.snapshot = readPresets(this.storage);
+				this.listeners.forEach((listener) => listener());
+			};
+			dispose;
+			constructor(storage = localStorage, target = window) {
+				this.storage = storage;
+				this.snapshot = readPresets(storage);
+				target.addEventListener("storage", this.onStorage);
+				this.dispose = () => target.removeEventListener("storage", this.onStorage);
+			}
+			subscribe = (listener) => {
+				this.listeners.add(listener);
+				return () => this.listeners.delete(listener);
+			};
+			/** Current preset roster, oldest first; the Defaults preset is NOT included. */
+			list() {
+				return this.snapshot.presets;
+			}
+			persist(next) {
+				this.snapshot = next;
+				this.storage.setItem(PRESETS_KEY, JSON.stringify(next));
+				this.listeners.forEach((listener) => listener());
+			}
+			/** Save the given preferences under a new name; returns the new preset or throws. */
+			save(name, preferences, now = /* @__PURE__ */ new Date()) {
+				const trimmed = name.trim();
+				const validation = validatePresetName(trimmed, this.snapshot.presets);
+				if (!validation.ok) throw new Error(`preset-name-${validation.error}`);
+				if (this.snapshot.presets.length >= 24) throw new Error("preset-limit-reached");
+				const preset = {
+					id: generatePresetId(now),
+					name: trimmed,
+					createdAt: now.toISOString(),
+					preferences
+				};
+				this.persist({ presets: [...this.snapshot.presets, preset] });
+				return preset;
+			}
+			/** Rename an existing preset; id and preferences are preserved. */
+			rename(id, name) {
+				const trimmed = name.trim();
+				if (this.snapshot.presets.find((item) => item.id === id) === void 0) return false;
+				const validation = validatePresetName(trimmed, this.snapshot.presets.filter((item) => item.id !== id));
+				if (!validation.ok) throw new Error(`preset-name-${validation.error}`);
+				this.persist({ presets: this.snapshot.presets.map((item) => item.id === id ? {
+					...item,
+					name: trimmed
+				} : item) });
+				return true;
+			}
+			/** Remove a preset by id; returns false if the id was not found. */
+			delete(id) {
+				if (!this.snapshot.presets.some((item) => item.id === id)) return false;
+				this.persist({ presets: this.snapshot.presets.filter((item) => item.id !== id) });
+				return true;
+			}
+			/** Fetch one preset by id (excluding the virtual Defaults preset). */
+			get(id) {
+				return this.snapshot.presets.find((item) => item.id === id);
+			}
+		};
+		//#endregion
 		//#region \0dsh-css:../skin-manager/src/client/skin-manager.module.css.mjs
-		const css = ".orL4ja_section{color:var(--dsw-alias-label-primary);gap:14px;display:grid}.orL4ja_header h2,.orL4ja_card h3,.orL4ja_header p,.orL4ja_error{margin:0}.orL4ja_header{gap:6px;display:grid}.orL4ja_header p{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6}.orL4ja_card{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:10px;gap:10px;padding:14px;display:grid}.orL4ja_card h3{font-size:14px}.orL4ja_cardHeader{justify-content:space-between;align-items:center;gap:10px;display:flex}.orL4ja_checkButton{min-height:28px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 12px;font-size:12px}.orL4ja_checkButton:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}.orL4ja_checkButton:disabled{opacity:.55;cursor:default}.orL4ja_skinTile{align-self:start;gap:4px;min-width:0;display:grid}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));align-items:start;gap:8px;display:grid}.orL4ja_skinButton{width:100%}.orL4ja_defaultButton,.orL4ja_defaultActive{width:100%;min-height:44px;color:var(--dsw-alias-label-primary);border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;display:flex}.orL4ja_defaultButton>span,.orL4ja_defaultActive>span{text-align:left;gap:2px;display:grid}.orL4ja_defaultButton small,.orL4ja_defaultActive small{color:var(--dsw-alias-label-tertiary)}.orL4ja_defaultButton:disabled,.orL4ja_defaultActive:disabled{opacity:.75;cursor:default}.orL4ja_defaultActive{border-style:solid;border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_defaultState{flex:none;color:var(--dsw-alias-label-secondary)!important}.orL4ja_skinButton,.orL4ja_activeSkin{min-height:58px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-items:start;gap:3px;padding:10px;display:grid}.orL4ja_activeSkin{border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_skinButton small,.orL4ja_activeSkin small{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionRow{flex-wrap:wrap;align-items:center;gap:3px 8px;min-height:16px;padding-inline:2px;font-size:11px;line-height:1.5;display:flex}.orL4ja_compatibility{color:var(--dsw-alias-label-tertiary);padding-inline:2px;font-size:11px}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:inherit;line-height:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;padding:0}.orL4ja_versionHash:hover{color:var(--dsw-alias-brand-primary)}.orL4ja_versionMuted{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary,#12a150)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-primary,#e08700)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow{justify-content:space-between;align-items:center;gap:12px;min-height:34px;display:flex}.orL4ja_toggleRow>span,.orL4ja_selectRow>span,.orL4ja_sliderRow>span,.orL4ja_colorRow>span{gap:2px;display:grid}.orL4ja_toggleRow small,.orL4ja_selectRow small,.orL4ja_sliderRow small,.orL4ja_colorRow small,.orL4ja_checkboxGroup small,.orL4ja_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}.orL4ja_toggleRow input{block-size:18px;inline-size:34px;accent-color:var(--dsw-alias-brand-primary)}.orL4ja_toggleSwitch{cursor:pointer;border-radius:999px;flex:none;justify-content:center;align-items:center;margin:-4px;padding:4px;display:inline-flex}.orL4ja_toggleSwitch input,.orL4ja_selectRow select,.orL4ja_rangeRow select{cursor:pointer}.orL4ja_selectRow select,.orL4ja_rangeRow input,.orL4ja_rangeRow select{box-sizing:border-box;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);border-radius:6px}.orL4ja_selectRow select{max-width:240px;padding-inline:8px}.orL4ja_selectRow select:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled,.orL4ja_toggleRow input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorControl{flex:none;grid-auto-flow:column;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;border-radius:6px;width:44px;height:30px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-brand-primary)}.orL4ja_colorButton:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorSwatch{border:1px solid #0000005c;width:100%;height:100%;display:block}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-brand-primary);outline:1px solid var(--dsw-alias-border-l2);outline-offset:2px;background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:0;padding:10px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border:1px solid var(--dsw-alias-border-l2);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:30px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border:1px solid var(--dsw-alias-border-l2);border-radius:50%;width:28px;height:28px}.orL4ja_colorHueRow input[type=range]{appearance:none;border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-secondary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);text-align:center;border-radius:4px;padding-inline:6px}.orL4ja_checkboxGroup{border-left:2px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);gap:8px;margin-left:12px;padding:10px 12px 12px;display:grid}.orL4ja_checkboxGroupHeading{gap:2px;display:grid}.orL4ja_checkboxGrid{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px 12px;display:grid}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_sliderRow{grid-template-columns:minmax(0,1fr) auto minmax(120px,220px);align-items:center;gap:10px;min-height:40px;display:grid}.orL4ja_sliderValue{min-width:3ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right}.orL4ja_sliderRow input[type=range]{-webkit-appearance:none;appearance:none;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;width:100%;height:20px;image-rendering:pixelated;border-radius:0;margin:0;padding:0}.orL4ja_sliderRow input[type=range]::-webkit-slider-runnable-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:14px;height:22px;margin-top:-8px;box-shadow:2px 2px #5127ff59}.orL4ja_sliderRow input[type=range]::-moz-range-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-moz-range-thumb{border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:10px;height:18px;box-shadow:2px 2px #5127ff59}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect select{text-align:center;width:100%;min-width:0;max-width:none;padding-inline:6px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{gap:8px;display:grid}.orL4ja_scheduleDetails{border-left:2px solid var(--dsw-alias-border-l2);gap:8px;margin-left:12px;padding:10px;display:grid}.orL4ja_rangeList{gap:6px;display:grid}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_rangeRow input{width:100%;padding-inline:7px}.orL4ja_rangeRow button,.orL4ja_addRange{min-height:30px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 9px}.orL4ja_addRange{justify-self:start}.orL4ja_error{color:var(--dsw-alias-state-danger,#c43d3d);font-size:12px}.orL4ja_backupActions{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.orL4ja_backupButton{min-height:32px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:6px 14px;font-size:12px}.orL4ja_backupButton:hover:not(:disabled){border-color:var(--dsw-alias-brand-primary)}.orL4ja_backupButton:disabled{opacity:.55;cursor:default}.orL4ja_dropZone{border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);text-align:center;border-radius:8px;gap:4px;padding:14px;font-size:12px;line-height:1.5;transition:border-color .12s,color .12s,background .12s;display:grid}.orL4ja_dropZoneActive{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}.orL4ja_cardHeaderActions{align-items:center;gap:8px;display:flex}.orL4ja_resetButton{min-height:26px;color:var(--dsw-alias-label-tertiary);border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:0 0;border-radius:6px;padding:3px 10px;font-size:11px}.orL4ja_resetButton:hover:not(:disabled){color:var(--dsw-alias-state-danger,#c43d3d);border-color:var(--dsw-alias-state-danger,#c43d3d)}.orL4ja_fileInput{clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}@media (width<=720px){.orL4ja_skinGrid{grid-template-columns:1fr}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
+		const css = ".orL4ja_section{color:var(--dsw-alias-label-primary);gap:14px;display:grid}.orL4ja_header h2,.orL4ja_card h3,.orL4ja_header p,.orL4ja_error{margin:0}.orL4ja_header{gap:6px;display:grid}.orL4ja_header p{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6}.orL4ja_card{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:10px;gap:10px;padding:14px;display:grid}.orL4ja_card h3{font-size:14px}.orL4ja_cardHeader{justify-content:space-between;align-items:center;gap:10px;display:flex}.orL4ja_checkButton{min-height:28px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 12px;font-size:12px}.orL4ja_checkButton:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}.orL4ja_checkButton:disabled{opacity:.55;cursor:default}.orL4ja_skinTile{align-self:start;gap:4px;min-width:0;display:grid}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));align-items:start;gap:8px;display:grid}.orL4ja_skinButton{width:100%}.orL4ja_defaultButton,.orL4ja_defaultActive{width:100%;min-height:44px;color:var(--dsw-alias-label-primary);border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;display:flex}.orL4ja_defaultButton>span,.orL4ja_defaultActive>span{text-align:left;gap:2px;display:grid}.orL4ja_defaultButton small,.orL4ja_defaultActive small{color:var(--dsw-alias-label-tertiary)}.orL4ja_defaultButton:disabled,.orL4ja_defaultActive:disabled{opacity:.75;cursor:default}.orL4ja_defaultActive{border-style:solid;border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_defaultState{flex:none;color:var(--dsw-alias-label-secondary)!important}.orL4ja_skinButton,.orL4ja_activeSkin{min-height:58px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-items:start;gap:3px;padding:10px;display:grid}.orL4ja_activeSkin{border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_skinButton small,.orL4ja_activeSkin small{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionRow{flex-wrap:wrap;align-items:center;gap:3px 8px;min-height:16px;padding-inline:2px;font-size:11px;line-height:1.5;display:flex}.orL4ja_compatibility{color:var(--dsw-alias-label-tertiary);padding-inline:2px;font-size:11px}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:inherit;line-height:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;padding:0}.orL4ja_versionHash:hover{color:var(--dsw-alias-brand-primary)}.orL4ja_versionMuted{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary,#12a150)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-primary,#e08700)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow{justify-content:space-between;align-items:center;gap:12px;min-height:34px;display:flex}.orL4ja_toggleRow>span,.orL4ja_selectRow>span,.orL4ja_sliderRow>span,.orL4ja_colorRow>span{gap:2px;display:grid}.orL4ja_toggleRow small,.orL4ja_selectRow small,.orL4ja_sliderRow small,.orL4ja_colorRow small,.orL4ja_checkboxGroup small,.orL4ja_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}.orL4ja_toggleRow input{block-size:18px;inline-size:34px;accent-color:var(--dsw-alias-brand-primary)}.orL4ja_toggleSwitch{cursor:pointer;border-radius:999px;flex:none;justify-content:center;align-items:center;margin:-4px;padding:4px;display:inline-flex}.orL4ja_toggleSwitch input,.orL4ja_selectRow select,.orL4ja_rangeRow select{cursor:pointer}.orL4ja_selectRow select,.orL4ja_rangeRow input,.orL4ja_rangeRow select{box-sizing:border-box;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);border-radius:6px}.orL4ja_selectRow select{max-width:240px;padding-inline:8px}.orL4ja_selectRow select:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled,.orL4ja_toggleRow input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorControl{flex:none;grid-auto-flow:column;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;border-radius:6px;width:44px;height:30px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-brand-primary)}.orL4ja_colorButton:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorSwatch{border:1px solid #0000005c;width:100%;height:100%;display:block}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-brand-primary);outline:1px solid var(--dsw-alias-border-l2);outline-offset:2px;background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:0;padding:10px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border:1px solid var(--dsw-alias-border-l2);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:30px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border:1px solid var(--dsw-alias-border-l2);border-radius:50%;width:28px;height:28px}.orL4ja_colorHueRow input[type=range]{appearance:none;border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-secondary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);text-align:center;border-radius:4px;padding-inline:6px}.orL4ja_checkboxGroup{border-left:2px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);gap:8px;margin-left:12px;padding:10px 12px 12px;display:grid}.orL4ja_checkboxGroupHeading{gap:2px;display:grid}.orL4ja_checkboxGrid{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px 12px;display:grid}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_sliderRow{grid-template-columns:minmax(0,1fr) auto minmax(120px,220px);align-items:center;gap:10px;min-height:40px;display:grid}.orL4ja_sliderValue{min-width:3ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right}.orL4ja_sliderRow input[type=range]{-webkit-appearance:none;appearance:none;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;width:100%;height:20px;image-rendering:pixelated;border-radius:0;margin:0;padding:0}.orL4ja_sliderRow input[type=range]::-webkit-slider-runnable-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:14px;height:22px;margin-top:-8px;box-shadow:2px 2px #5127ff59}.orL4ja_sliderRow input[type=range]::-moz-range-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-moz-range-thumb{border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:10px;height:18px;box-shadow:2px 2px #5127ff59}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect select{text-align:center;width:100%;min-width:0;max-width:none;padding-inline:6px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{gap:8px;display:grid}.orL4ja_scheduleDetails{border-left:2px solid var(--dsw-alias-border-l2);gap:8px;margin-left:12px;padding:10px;display:grid}.orL4ja_rangeList{gap:6px;display:grid}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_rangeRow input{width:100%;padding-inline:7px}.orL4ja_rangeRow button,.orL4ja_addRange{min-height:30px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 9px}.orL4ja_addRange{justify-self:start}.orL4ja_error{color:var(--dsw-alias-state-danger,#c43d3d);font-size:12px}.orL4ja_backupActions{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.orL4ja_backupButton{min-height:32px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:6px 14px;font-size:12px}.orL4ja_backupButton:hover:not(:disabled){border-color:var(--dsw-alias-brand-primary)}.orL4ja_backupButton:disabled{opacity:.55;cursor:default}.orL4ja_dropZone{border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);text-align:center;border-radius:8px;gap:4px;padding:14px;font-size:12px;line-height:1.5;transition:border-color .12s,color .12s,background .12s;display:grid}.orL4ja_dropZoneActive{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}.orL4ja_cardHeaderActions{align-items:center;gap:8px;display:flex}.orL4ja_resetButton{min-height:26px;color:var(--dsw-alias-label-tertiary);border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:0 0;border-radius:6px;padding:3px 10px;font-size:11px}.orL4ja_resetButton:hover:not(:disabled){color:var(--dsw-alias-state-danger,#c43d3d);border-color:var(--dsw-alias-state-danger,#c43d3d)}.orL4ja_fileInput{clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.orL4ja_presetSaveRow{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.orL4ja_presetNameInput{min-width:0;min-height:32px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);border-radius:6px;flex:160px;padding:6px 10px;font-size:12px}.orL4ja_presetNameInput:focus{border-color:var(--dsw-alias-brand-primary);outline:none}.orL4ja_presetList{gap:6px;display:grid}.orL4ja_presetRow{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);border-radius:8px;align-items:center;gap:8px;padding:8px 10px;display:flex}.orL4ja_presetRowName{flex:auto;gap:1px;min-width:0;display:grid}.orL4ja_presetRowName span{color:var(--dsw-alias-label-primary);text-overflow:ellipsis;white-space:nowrap;font-size:13px;overflow:hidden}.orL4ja_presetRowName small{color:var(--dsw-alias-label-tertiary);font-size:11px}.orL4ja_presetRowActions{flex:none;gap:4px;display:flex}.orL4ja_presetActionButton{min-height:26px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:0 0;border-radius:6px;padding:3px 10px;font-size:11px}.orL4ja_presetActionButton:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}.orL4ja_presetActionButton:disabled{opacity:.55;cursor:default}.orL4ja_presetDeleteButton:hover:not(:disabled){color:var(--dsw-alias-state-danger,#c43d3d);border-color:var(--dsw-alias-state-danger,#c43d3d)}.orL4ja_presetRowDefault{border-style:dashed}@media (width<=720px){.orL4ja_skinGrid{grid-template-columns:1fr}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
 		const tagId = "@dsh-external/dsh-client-ui-skin-deep-whale-manager/skin-manager.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -572,6 +777,15 @@ window.__ModuleLoader__.load({
 			"fileInput": "orL4ja_fileInput",
 			"header": "orL4ja_header",
 			"hint": "orL4ja_hint",
+			"presetActionButton": "orL4ja_presetActionButton",
+			"presetDeleteButton": "orL4ja_presetDeleteButton",
+			"presetList": "orL4ja_presetList",
+			"presetNameInput": "orL4ja_presetNameInput",
+			"presetRow": "orL4ja_presetRow",
+			"presetRowActions": "orL4ja_presetRowActions",
+			"presetRowDefault": "orL4ja_presetRowDefault",
+			"presetRowName": "orL4ja_presetRowName",
+			"presetSaveRow": "orL4ja_presetSaveRow",
 			"rangeList": "orL4ja_rangeList",
 			"rangeRow": "orL4ja_rangeRow",
 			"resetButton": "orL4ja_resetButton",
@@ -1147,7 +1361,7 @@ window.__ModuleLoader__.load({
 			});
 		}
 		/** Generic settings surface: host-discovered activation plus skin-owned declarations. */
-		function SkinManager({ registry, active, switchSkin }) {
+		function SkinManager({ registry, presets, active, switchSkin }) {
 			const { definitions } = (0, react.useSyncExternalStore)(registry.subscribe, registry.getSnapshot);
 			const [catalog, setCatalog] = (0, react.useState)([]);
 			const [versions, setVersions] = (0, react.useState)(/* @__PURE__ */ new Map());
@@ -1309,7 +1523,159 @@ window.__ModuleLoader__.load({
 							children: copy.noSettings
 						})]
 					}),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BackupCard, { registry })
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BackupCard, { registry }),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(PresetsCard, {
+						registry,
+						presets
+					})
+				]
+			});
+		}
+		/**
+		* Presets card: save the current preferences snapshot as a named preset, and
+		* re-apply any preset (including the built-in Defaults) in one click. Each
+		* user preset can be renamed or deleted inline.
+		*/
+		function PresetsCard({ registry, presets }) {
+			const lang = useUiLang();
+			const copy = skinManagerCopy(lang);
+			const roster = (0, react.useSyncExternalStore)(presets.subscribe, () => presets.list());
+			const [name, setName] = (0, react.useState)("");
+			const [notice, setNotice] = (0, react.useState)(null);
+			const live = (0, react.useRef)(true);
+			const noticeTimer = (0, react.useRef)(void 0);
+			(0, react.useEffect)(() => {
+				live.current = true;
+				return () => {
+					live.current = false;
+					if (noticeTimer.current !== void 0) window.clearTimeout(noticeTimer.current);
+				};
+			}, []);
+			const announce = (kind, text) => {
+				if (!live.current) return;
+				setNotice({
+					kind,
+					text
+				});
+				if (noticeTimer.current !== void 0) window.clearTimeout(noticeTimer.current);
+				noticeTimer.current = window.setTimeout(() => {
+					if (live.current) setNotice(null);
+				}, 4e3);
+			};
+			const fullRoster = [defaultPreset(lang), ...roster];
+			const onSave = () => {
+				const trimmed = name.trim();
+				const validation = validatePresetName(trimmed, roster);
+				if (!validation.ok) {
+					announce("fail", copy.presetNameError(validation.error));
+					return;
+				}
+				try {
+					presets.save(trimmed, registry.exportPreferences());
+					setName("");
+					announce("ok", copy.presetSaveOk(trimmed));
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error);
+					announce("fail", message.startsWith("preset-") ? copy.presetLimitReached : message);
+				}
+			};
+			const onApply = (preset) => {
+				try {
+					registry.applyPreset(preset);
+					announce("ok", copy.presetApplyOk(preset.name));
+				} catch (error) {
+					announce("fail", error instanceof Error ? error.message : String(error));
+				}
+			};
+			const onRename = (preset) => {
+				const next = window.prompt(copy.presetRenamePrompt(preset.name), preset.name);
+				if (next === null) return;
+				const trimmed = next.trim();
+				if (trimmed === preset.name) return;
+				const validation = validatePresetName(trimmed, roster.filter((item) => item.id !== preset.id));
+				if (!validation.ok) {
+					announce("fail", copy.presetNameError(validation.error));
+					return;
+				}
+				try {
+					presets.rename(preset.id, trimmed);
+					announce("ok", copy.presetRenameOk(trimmed));
+				} catch (error) {
+					announce("fail", error instanceof Error ? error.message : String(error));
+				}
+			};
+			const onDelete = (preset) => {
+				if (!window.confirm(copy.presetDeleteConfirm(preset.name))) return;
+				presets.delete(preset.id);
+				announce("ok", copy.presetDeleteOk(preset.name));
+			};
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+				className: skin_manager_module_css_default.card,
+				"data-dsh-skin-presets": true,
+				children: [
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: skin_manager_module_css_default.cardHeader,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.presetsTitle })
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: skin_manager_module_css_default.hint,
+						children: copy.presetsIntro
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: skin_manager_module_css_default.presetSaveRow,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
+							type: "text",
+							className: skin_manager_module_css_default.presetNameInput,
+							placeholder: copy.presetNamePlaceholder,
+							value: name,
+							maxLength: copy.presetNameMaxLength,
+							onChange: (event) => setName(event.currentTarget.value),
+							onKeyDown: (event) => {
+								if (event.key === "Enter") onSave();
+							}
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: skin_manager_module_css_default.backupButton,
+							onClick: onSave,
+							children: copy.savePresetButton
+						})]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: skin_manager_module_css_default.presetList,
+						children: fullRoster.map((preset) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: `${skin_manager_module_css_default.presetRow} ${preset.id === "__defaults__" ? skin_manager_module_css_default.presetRowDefault : ""}`,
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: skin_manager_module_css_default.presetRowName,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: preset.name }), preset.createdAt !== "" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: preset.createdAt.slice(0, 10) })]
+							}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: skin_manager_module_css_default.presetRowActions,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: skin_manager_module_css_default.presetActionButton,
+									onClick: () => onApply(preset),
+									children: copy.presetApply
+								}), preset.id !== "__defaults__" && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: skin_manager_module_css_default.presetActionButton,
+									onClick: () => onRename(preset),
+									children: copy.presetRename
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: `${skin_manager_module_css_default.presetActionButton} ${skin_manager_module_css_default.presetDeleteButton}`,
+									onClick: () => onDelete(preset),
+									children: copy.presetDelete
+								})] })]
+							})]
+						}, preset.id))
+					}),
+					roster.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: skin_manager_module_css_default.hint,
+						children: copy.presetEmpty
+					}),
+					notice !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: notice.kind === "ok" ? skin_manager_module_css_default.hint : skin_manager_module_css_default.error,
+						children: notice.text
+					})
 				]
 			});
 		}
@@ -1574,6 +1940,22 @@ window.__ModuleLoader__.load({
 				if (cleared) this.applyAll();
 				return cleared;
 			}
+			/**
+			* Apply a named preset. The built-in Defaults preset clears every known
+			* skin's stored block so each setting reverts to its declared default;
+			* any other preset is projected through the store's replace path, which
+			* normalizes every value against the live skin definitions. Returns the
+			* number of skin blocks actually written.
+			*/
+			applyPreset(preset) {
+				if (preset.id === "__defaults__") {
+					let cleared = 0;
+					for (const definition of this.snapshot.definitions) if (this.store.clearSkin(definition.skinId)) cleared += 1;
+					if (cleared > 0) this.applyAll();
+					return cleared;
+				}
+				return this.importPreferences(preset.preferences);
+			}
 			dispose() {
 				for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
 					this.target.removeEventListener(events.register, this.onRegister);
@@ -1669,8 +2051,13 @@ window.__ModuleLoader__.load({
 		}
 		/** Register settings and the generic customization registry with owned cleanup. */
 		function apply(ctx) {
-			const registry = new SkinCustomizationRegistry(new PreferencesStore());
-			ctx.effect(() => () => registry.dispose(), "ui-skin-manager: customization registry");
+			const store = new PreferencesStore();
+			const presets = new PresetsStore();
+			const registry = new SkinCustomizationRegistry(store);
+			ctx.effect(() => () => {
+				registry.dispose();
+				presets.dispose();
+			}, "ui-skin-manager: customization registry and presets store");
 			ctx.slots.inject("settings.section", () => ctx.slots.register({
 				name: "settings.section",
 				id: "dsh-skins",
@@ -1678,6 +2065,7 @@ window.__ModuleLoader__.load({
 				label: "皮肤管理",
 				inject: () => ({
 					registry,
+					presets,
 					active: activeSkin,
 					switchSkin: requestSkinSwitch
 				})

@@ -721,6 +721,102 @@
   border: 0;
 }
 
+/* Presets: named configuration snapshots. */
+.presetSaveRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.presetNameInput {
+  flex: 1 1 160px;
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 10px;
+  color: var(--dsw-alias-label-primary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 12px;
+}
+
+.presetNameInput:focus {
+  outline: none;
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.presetList {
+  display: grid;
+  gap: 6px;
+}
+
+.presetRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.presetRowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.presetRowName span {
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presetRowName small {
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.presetRowActions {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.presetActionButton {
+  min-height: 26px;
+  padding: 3px 10px;
+  color: var(--dsw-alias-label-secondary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.presetActionButton:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.presetActionButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.presetDeleteButton:hover:not(:disabled) {
+  color: var(--dsw-alias-state-danger, #c43d3d);
+  border-color: var(--dsw-alias-state-danger, #c43d3d);
+}
+
+.presetRowDefault {
+  border-style: dashed;
+}
+
 @media (max-width: 720px) {
   .skinGrid {
     grid-template-columns: 1fr;

@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SkinCatalogEntry } from '../contract.ts'
 import { SkinManager, requestSkinSwitch } from './SkinManager.tsx'
 import { PreferencesStore } from './preferences.ts'
+import { PresetsStore } from './presets.ts'
 import { SkinCustomizationRegistry } from './runtime.ts'
 import './skin-manager.module.css'
 
@@ -24,13 +25,17 @@ function activeSkin(catalog: SkinCatalogEntry[]): string {
 /** Register settings and the generic customization registry with owned cleanup. */
 export function apply(ctx: SlotsContext): void {
   const store = new PreferencesStore()
+  const presets = new PresetsStore()
   const registry = new SkinCustomizationRegistry(store)
-  ctx.effect(() => () => registry.dispose(), 'ui-skin-manager: customization registry')
+  ctx.effect(() => () => {
+    registry.dispose()
+    presets.dispose()
+  }, 'ui-skin-manager: customization registry and presets store')
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'dsh-skins',
     order: 115,
     label: '皮肤管理',
-    inject: () => ({ registry, active: activeSkin, switchSkin: requestSkinSwitch }),
+    inject: () => ({ registry, presets, active: activeSkin, switchSkin: requestSkinSwitch }),
   }, SkinManager))
 }

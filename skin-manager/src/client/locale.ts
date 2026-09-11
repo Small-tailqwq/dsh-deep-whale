@@ -139,6 +139,29 @@ const zhCopy = {
       case 'too-large': return '文件过大，超过 256 KiB 限制'
     }
   },
+  presetsTitle: '预设',
+  presetsIntro: '将当前所有皮肤的配置保存为一个命名预设，可一键切换。内置「默认配置」预设会清空所有自定义，恢复每个皮肤的出厂设置。',
+  presetNamePlaceholder: '预设名称',
+  savePresetButton: '保存当前配置为预设',
+  presetApply: '应用',
+  presetRename: '重命名',
+  presetDelete: '删除',
+  presetApplyOk: (name: string) => `已应用预设「${name}」。`,
+  presetSaveOk: (name: string) => `已保存预设「${name}」。`,
+  presetDeleteOk: (name: string) => `已删除预设「${name}」。`,
+  presetRenameOk: (name: string) => `已重命名为「${name}」。`,
+  presetEmpty: '还没有保存的预设；在上方调整好配置后点击「保存当前配置为预设」即可。',
+  presetNameError: (code: 'empty' | 'too-long' | 'duplicate') => {
+    switch (code) {
+      case 'empty': return '名称不能为空'
+      case 'too-long': return `名称不能超过 ${'32'} 个字符`
+      case 'duplicate': return '已有同名预设'
+    }
+  },
+  presetRenamePrompt: (current: string) => `输入新的预设名称（当前：${current}）`,
+  presetDeleteConfirm: (name: string) => `确认删除预设「${name}」？此操作不可撤销。`,
+  presetLimitReached: '已达预设数量上限，请先删除不再需要的预设。',
+  presetNameMaxLength: 32,
 }
 
 const enCopy: typeof zhCopy = {
@@ -210,6 +233,29 @@ const enCopy: typeof zhCopy = {
       case 'too-large': return 'The file exceeds the 256 KiB limit'
     }
   },
+  presetsTitle: 'Presets',
+  presetsIntro: 'Save the current configuration of every skin as a named preset and switch between them in one click. The built-in "Defaults" preset clears every custom option and restores each skin\'s factory settings.',
+  presetNamePlaceholder: 'Preset name',
+  savePresetButton: 'Save current as preset',
+  presetApply: 'Apply',
+  presetRename: 'Rename',
+  presetDelete: 'Delete',
+  presetApplyOk: (name: string) => `Applied preset "${name}".`,
+  presetSaveOk: (name: string) => `Saved preset "${name}".`,
+  presetDeleteOk: (name: string) => `Deleted preset "${name}".`,
+  presetRenameOk: (name: string) => `Renamed to "${name}".`,
+  presetEmpty: 'No saved presets yet; adjust the options above and click "Save current as preset" to create one.',
+  presetNameError: (code: 'empty' | 'too-long' | 'duplicate') => {
+    switch (code) {
+      case 'empty': return 'The name cannot be empty'
+      case 'too-long': return `The name cannot exceed ${'32'} characters`
+      case 'duplicate': return 'A preset with this name already exists'
+    }
+  },
+  presetRenamePrompt: (current: string) => `Enter a new preset name (current: ${current})`,
+  presetDeleteConfirm: (name: string) => `Delete preset "${name}"? This cannot be undone.`,
+  presetLimitReached: 'Preset limit reached; remove a preset you no longer need first.',
+  presetNameMaxLength: 32,
 }
 
 export function skinManagerCopy(lang: UiLang): typeof zhCopy {
