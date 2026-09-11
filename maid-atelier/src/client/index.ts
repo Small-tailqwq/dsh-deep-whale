@@ -43,6 +43,7 @@ import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 import { installMaidComposerCapsule } from './composer-capsule.ts'
 import { installMaidComposerDismiss } from './composer-dismiss.ts'
 import { installMaidComposerScroll } from './composer-scroll.ts'
+import { installMaidMobileDrawerAutoClose } from './mobile-drawer.ts'
 import { createMaidSettingsNavigation } from './settings-navigation.ts'
 import { installMaidCustomization } from './customization.ts'
 import { installMaidBootError } from './boot-error.ts'
@@ -554,6 +555,7 @@ export function apply(ctx: Context): void {
   const disposeMaidComposerScroll = installMaidComposerScroll(body)
   const settingsNavigation = createMaidSettingsNavigation(body)
   ctx.effect(() => settingsNavigation.dispose, 'ui-skin-maid-atelier: settings navigation hint')
+  ctx.effect(() => installMaidMobileDrawerAutoClose(body), 'ui-skin-maid-atelier: mobile drawer auto-close')
   disposeMaidTableCards = installMaidTableCards(ctx).dispose
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
   body.style.setProperty('--maid-boot-error-left-art', `url(${MAID_BOOT_ERROR_LEFT})`)
