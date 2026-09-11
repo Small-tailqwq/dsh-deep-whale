@@ -66,6 +66,27 @@ function setColumnWidth(column: HTMLElement, width: number): void {
   } as DOMRect)
 }
 
+/** A control that sits behind the open drawer, where a phone puts the composer. */
+function mountOutside(): HTMLElement {
+  const outside = document.createElement('div')
+  outside.id = 'outside-the-drawer'
+  document.body.append(outside)
+  return outside
+}
+
+/** jsdom ships no PointerEvent; the installer only reads `isPrimary`/`button`. */
+function pointerDown(target: Element, init: MouseEventInit = {}): MouseEvent {
+  const event = new MouseEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, ...init })
+  target.dispatchEvent(event)
+  return event
+}
+
+function click(target: Element): MouseEvent {
+  const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+  target.dispatchEvent(event)
+  return event
+}
+
 function settle(): Promise<void> {
   return new Promise(resolve => { setTimeout(resolve, 20) })
 }
@@ -133,6 +154,127 @@ describe('Maid Atelier mobile drawer auto-close', () => {
 
     expect(toggleClick).not.toHaveBeenCalled()
     fixture.dispose()
+  })
+
+  it('closes the drawer when the tap lands outside the column', async () => {
+    const fixture = mount()
+    const outside = mountOutside()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    pointerDown(outside)
+
+    expect(toggleClick).toHaveBeenCalledTimes(1)
+    fixture.dispose()
+  })
+
+  it('swallows the click a dismissing tap produced', async () => {
+    const fixture = mount()
+    const outside = mountOutside()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+    let reachedTarget = false
+    outside.addEventListener('click', () => { reachedTarget = true })
+
+    pointerDown(outside)
+    const mouse = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    outside.dispatchEvent(mouse)
+    const tapped = click(outside)
+
+    expect(toggleClick).toHaveBeenCalledTimes(1)
+    expect(mouse.defaultPrevented).toBe(true)
+    expect(tapped.defaultPrevented).toBe(true)
+    expect(reachedTarget).toBe(false)
+    fixture.dispose()
+  })
+
+  it('still dismisses for a click with no pointerdown in front of it', async () => {
+    const fixture = mount()
+    const outside = mountOutside()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    click(outside)
+
+    expect(toggleClick).toHaveBeenCalledTimes(1)
+    fixture.dispose()
+  })
+
+  it('keeps the drawer open for a tap inside the column', async () => {
+    const fixture = mount()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    pointerDown(fixture.toggle)
+    pointerDown(fixture.row)
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('lets an open popup own the tap that dismisses it', async () => {
+    const fixture = mount()
+    const outside = mountOutside()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+    const menu = document.createElement('div')
+    menu.setAttribute('role', 'menu')
+    document.body.append(menu)
+
+    pointerDown(outside)
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('ignores the host resize handle and secondary buttons', async () => {
+    const fixture = mount()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+    const handle = document.createElement('div')
+    handle.className = 'pI_x6G_handle'
+    document.body.append(handle)
+
+    pointerDown(handle)
+    pointerDown(handle, { button: 2 })
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('does not dismiss the docked column on a desktop viewport', async () => {
+    const fixture = mount()
+    const outside = mountOutside()
+    setColumnWidth(fixture.column, 280)
+    setViewportWidth(1280)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    pointerDown(outside)
+    click(outside)
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('stops dismissing outside taps once disposed', async () => {
+    const fixture = mount()
+    const outside = mountOutside()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    fixture.dispose()
+    pointerDown(outside)
+    click(outside)
+
+    expect(toggleClick).not.toHaveBeenCalled()
   })
 
   it('stops listening once disposed', async () => {
