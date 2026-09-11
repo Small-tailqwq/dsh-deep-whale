@@ -1728,6 +1728,35 @@ body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > 
   }
 }
 
+/* The chase animates eight child `rect`s. Chrome does not composite opacity
+   animations on SVG children, so every frame invalidates style for the whole
+   sidebar: measured 76 of the 116 style recalculations performed while the
+   phone drawer opens, plus roughly one recalculation per frame for as long as
+   any session row is 'ongoing' (dead battery while idle). Narrow viewports
+   keep the same meaning with one pulse on the glyph element, which the
+   compositor handles on its own; wide viewports keep the eight-dot chase. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > rect {
+    animation: none;
+    opacity: 0.9;
+  }
+
+  body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] {
+    animation: maidAtelierSessionJewelPulse 1.6s ease-in-out infinite;
+    will-change: opacity;
+  }
+}
+
+@keyframes maidAtelierSessionJewelPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
 body[data-dsh-maid-atelier] [data-maid-session-row]::before {
   content: '';
   position: absolute;
