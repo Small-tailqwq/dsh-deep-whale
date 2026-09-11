@@ -221,14 +221,12 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
     height: 44%;
   }
 
-  /* The landing figures keep their 96%/92% height, which on a 390x844 phone
-     measures 450x810: wider than the viewport (the left figure is cropped at
-     both edges) and tall enough that the composer covers everything below the
-     collarbone. A portrait art is anchored by its height, so cap the landing
-     state on phone widths: both figures then fit the viewport, their faces
-     stay clear of the composer, and the headline keeps its own band. Chat,
-     landscape and desktop states are untouched. */
-  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
+}
+
+/* Keep portrait-phone landing figures below the headline and clear of the
+   composer. Active conversations include inspection views as well as chat. */
+@media (max-width: 700px) and (orientation: portrait) {
+  body[data-dsh-maid-atelier]:not([data-maid-conversation-active])
     [data-maid-character] {
     height: 62%;
     opacity: 0.66;
@@ -4391,14 +4389,8 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
   filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.62));
 }
 
-/* Phone widths: the conversation scroller is 2px narrower than its parent
-   (`margin-right: 2px`, the host's scrollbar compensation) and a classic
-   scrollbar then takes another 8px off the right edge. Measured at 390x844 the
-   transcript therefore sat 20px from the left edge but 30px from the right —
-   visibly off-centre — and the host's own layout shows the same 10px skew
-   (32px vs 42px inside the column at 56px rail width). A touch layout has no
-   scrollbar affordance to lose, so hide it and drop the compensation: both
-   gutters are then equal and the content regains the 10px. */
+/* Pair the hidden phone scrollbar with removal of its outer margin and the
+   overlay composer's width compensation, keeping both views on one axis. */
 @media (max-width: 700px) {
   body[data-dsh-maid-atelier] [data-conversation-scroll] {
     margin-right: 0;
@@ -4408,6 +4400,11 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
   body[data-dsh-maid-atelier]
     [data-conversation-scroll]::-webkit-scrollbar {
     display: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-conversation-scroll]:has([data-conversation-composer-overlay]) > [data-composer-seat] {
+    right: 0;
   }
 }
 
