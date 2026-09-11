@@ -1,6 +1,6 @@
 # dsh-deep-whale · 鲸鱼娘皮肤系列
 
-**[简体中文](README.md)** · [English](README.en.md)
+**[简体中文](README.md)** · [English](README.en.md) · [Tiếng Việt](README.vi.md)
 
 DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 

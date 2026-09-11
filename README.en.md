@@ -1,6 +1,6 @@
 # dsh-deep-whale · Whale-Girl Skin Series
 
-[简体中文](README.md) · **[English](README.en.md)**
+[简体中文](README.md) · **[English](README.en.md)** · [Tiếng Việt](README.vi.md)
 
 Whale-girl themed skin series for the DeepSeek Harness Web GUI (standalone distribution repository).
 
