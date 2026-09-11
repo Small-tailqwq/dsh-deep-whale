@@ -1500,6 +1500,73 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   box-shadow: none;
 }
 
+/* The window prompt (ask_user_question) and the plan review take the composer
+   seat over. Their desktop footer is one non-wrapping row — pager, status text
+   and the two action buttons — which measures 349px inside a 318px card on a
+   390px phone: the primary button is pushed past the card's right edge and
+   clipped by its own `overflow: hidden`, and at 360px its centre falls outside
+   the card so the tap misses it entirely. Reflow the footer, give the actions a
+   full-width row of touch-sized buttons, and cap the card against the visual
+   viewport rather than the layout viewport the keyboard does not shrink. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] :is([data-question-key], [data-plan-review-key]) {
+    padding: 6px 10px 10px !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section {
+    max-height: min(calc(var(--maid-vv-height, 100dvh) - 96px), 520px) !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section
+    > :is(footer, div:last-child) {
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 0 10px !important;
+  }
+
+  /* Actions own the last row; the pager and the status text share the one above. */
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section
+    > :is(footer, div:last-child) > :last-child {
+    flex: 1 1 100% !important;
+    flex-wrap: wrap !important;
+    justify-content: stretch !important;
+    gap: 8px !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section
+    > :is(footer, div:last-child) > :last-child > button {
+    flex: 1 1 0 !important;
+    min-height: 44px !important;
+  }
+
+  /* Icon-only affordances (collapse, dismiss, previous, next) meet the touch
+     minimum; the option rows grow with them. */
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) button[aria-label] {
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key])
+    :is([role='radio'], [role='checkbox']) {
+    min-height: 44px !important;
+  }
+
+  @media (pointer: coarse) {
+    body[data-dsh-maid-atelier]
+      :is([data-question-key], [data-plan-review-key]) button[aria-label] {
+      min-width: 44px !important;
+      min-height: 44px !important;
+    }
+  }
+}
+
 /* Workspace groups receive skin-owned semantic hooks from the client entry.
    This keeps the ornamental tree independent from generated CSS-module names
    while leaving the official rows and their interactions intact. */
