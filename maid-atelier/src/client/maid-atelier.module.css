@@ -3046,6 +3046,32 @@ body[data-dsh-maid-atelier] [data-composer-card]
   }
 }
 
+/* The host drops the model name in a narrow composer — its own stylesheet hides
+   the label and shows the icon inside `@container (width<=360px)`. The phone
+   rules above still stretch the picker across the whole seat, so with the name
+   gone the chip keeps a text-sized box and its icon is stranded at the left of
+   it. Once the name is hidden the picker is an icon chip: let it size to its
+   content, and hold it against send on the trailing edge. */
+@container (width<=360px) {
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] [data-slot='conversation.input.model'] > [class$='_root'] {
+    flex: 0 1 auto;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] [data-slot='conversation.input.model'] > [class$='_root']
+    > button[aria-haspopup='menu'] {
+    width: auto;
+    max-width: 100%;
+    padding: 0 4px 0 8px;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] > [class*='row'] > [class*='trailing'] {
+    justify-content: flex-end;
+  }
+}
+
 /* Conversation surfaces stay transparent so the character backdrop shows
    through (including the new-session workspace); only message-carrying
    surfaces (bubbles, think blocks) get a translucent porcelain base. */
