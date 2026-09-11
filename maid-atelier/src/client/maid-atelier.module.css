@@ -1500,6 +1500,182 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   box-shadow: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Phone chrome: the collapsed column becomes a floating brand dock.
+
+   The host pins its collapsed rail to the left edge as a 56px column, so on a
+   390x844 phone the conversation column measures 334px and loses 14% of the
+   width to a strip whose only always-useful control is the toggle that opens
+   the column. Under 700px portrait that column leaves the layout entirely: the
+   conversation owns the whole viewport and the toggle — drawn as the product's
+   own brand mark — floats above the composer's top-left corner, inside thumb
+   reach. New Session, the panel buttons and Settings stay one tap away in the
+   drawer the dock opens.
+
+   Hooks: `data-sidebar-collapsed` on the AppFrame is the host's own marker for
+   "the column is the rail", `sidebarCol` is the class the rest of this file
+   already matches on, and `logoRow` / `toggle` are the host's names. The
+   `@supports` arm covers engines without relational selectors. The client entry
+   publishes `--maid-dock-offset` from the composer's measured top edge, so the
+   dock tracks a composer that grows and a software keyboard that shrinks the
+   viewport; the fallback clears the home indicator without it. An expanded
+   column (no `data-sidebar-collapsed`) keeps the overlay drawer below.
+
+   Landscape is untouched: there the scarce axis is height, so the rail's 56px
+   of width is the cheaper trade. */
+@media (max-width: 700px) and (orientation: portrait) {
+  /* Frame: the conversation is the only in-flow child. */
+  body[data-dsh-maid-atelier] div[data-sidebar-collapsed] {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  body[data-dsh-maid-atelier] div[data-sidebar-collapsed]
+    > :is([class*='centerCol'], [data-pane='conversation']) {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* The dock: a fixed 48px target above the composer. The box itself stays
+     inert so it never eats a tap meant for the transcript behind it; only the
+     toggle inside it is interactive. */
+  body[data-dsh-maid-atelier] div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    position: fixed !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: var(--maid-dock-offset, calc(env(safe-area-inset-bottom, 0px) + 84px)) !important;
+    left: 10px !important;
+    order: 0 !important;
+    box-sizing: border-box !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+    z-index: 40 !important;
+  }
+
+  /* One centred row inside the dock: the logo row and nothing else. Hiding
+     every sibling of `logoRow` keeps this independent of the host's row order
+     and of rows a later build may add. */
+  body[data-dsh-maid-atelier] div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is(div:has(> [class*='logoRow']), [class*='logoRow']) {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    width: 48px !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    flex: none !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+  }
+
+  body[data-dsh-maid-atelier] div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    div:has(> [class*='logoRow']) > :not([class*='logoRow']) {
+    display: none !important;
+  }
+
+  @supports not (selector(:has(*))) {
+    body[data-dsh-maid-atelier] div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+      box-sizing: border-box !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 48px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      max-height: 48px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      pointer-events: none !important;
+    }
+
+    body[data-dsh-maid-atelier] div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol'])
+      > div > :not([class*='logoRow']) {
+      display: none !important;
+    }
+  }
+
+  /* The toggle is the whole target and the only interactive thing left. The
+     rail variant already paints it as a gold-ringed navy medallion, so this
+     only sizes it and hands it the pointer. */
+  body[data-dsh-maid-atelier] div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='logoRow'] button[class*='toggle'] {
+    box-sizing: border-box !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    place-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
+  /* Expanded: the column floats over the conversation instead of squeezing it. */
+  body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: min(300px, 84vw) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    z-index: 60 !important;
+    border-right: 0.5px solid var(--dsw-alias-border-l3) !important;
+    box-shadow: 24px 0 64px rgba(8, 17, 48, 0.35) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    div:has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) > [class*='handle'] {
+    display: none !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol']):has([class*='regionArea']:not([style*='display: none'])) {
+    overscroll-behavior: contain !important;
+  }
+}
+
 /* Workspace groups receive skin-owned semantic hooks from the client entry.
    This keeps the ornamental tree independent from generated CSS-module names
    while leaving the official rows and their interactions intact. */
