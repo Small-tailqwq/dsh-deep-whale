@@ -16,12 +16,10 @@ import {
   PreferencesImportError,
   serializePreferencesExport,
 } from './transfer.ts'
-import { DEFAULT_PRESET_ID, defaultPreset, PresetsStore, validatePresetName, type SkinPreset } from './presets.ts'
 import css from './skin-manager.module.css'
 
 export interface SkinManagerInjected {
   registry: SkinCustomizationRegistry
-  presets: PresetsStore
   active(catalog: SkinCatalogEntry[]): SkinTarget | 'unknown'
   switchSkin(target: SkinTarget): Promise<void>
 }
@@ -564,7 +562,7 @@ function CustomizationCard({ definition, registry }: {
 }
 
 /** Generic settings surface: host-discovered activation plus skin-owned declarations. */
-export function SkinManager({ registry, presets, active, switchSkin }: SkinManagerInjected) {
+export function SkinManager({ registry, active, switchSkin }: SkinManagerInjected) {
   const { definitions } = useSyncExternalStore(registry.subscribe, registry.getSnapshot)
   const [catalog, setCatalog] = useState<SkinCatalogEntry[]>([])
   const [versions, setVersions] = useState<Map<string, SkinVersionInfo>>(new Map())
@@ -715,138 +713,7 @@ export function SkinManager({ registry, presets, active, switchSkin }: SkinManag
         </section>
       )}
       <BackupCard registry={registry} />
-      <PresetsCard registry={registry} presets={presets} />
     </div>
-  )
-}
-
-/**
- * Presets card: save the current preferences snapshot as a named preset, and
- * re-apply any preset (including the built-in Defaults) in one click. Each
- * user preset can be renamed or deleted inline.
- */
-function PresetsCard({ registry, presets }: { registry: SkinCustomizationRegistry, presets: PresetsStore }) {
-  const lang = useUiLang()
-  const copy = skinManagerCopy(lang)
-  const roster = useSyncExternalStore(presets.subscribe, () => presets.list())
-  const [name, setName] = useState('')
-  const [notice, setNotice] = useState<{ kind: 'ok' | 'fail', text: string } | null>(null)
-  const live = useRef(true)
-  const noticeTimer = useRef<number | undefined>(undefined)
-
-  useEffect(() => {
-    live.current = true
-    return () => {
-      live.current = false
-      if (noticeTimer.current !== undefined) window.clearTimeout(noticeTimer.current)
-    }
-  }, [])
-
-  const announce = (kind: 'ok' | 'fail', text: string): void => {
-    if (!live.current) return
-    setNotice({ kind, text })
-    if (noticeTimer.current !== undefined) window.clearTimeout(noticeTimer.current)
-    noticeTimer.current = window.setTimeout(() => {
-      if (live.current) setNotice(null)
-    }, 4_000)
-  }
-
-  const fullRoster: SkinPreset[] = [defaultPreset(lang), ...roster]
-
-  const onSave = (): void => {
-    const trimmed = name.trim()
-    const validation = validatePresetName(trimmed, roster)
-    if (!validation.ok) {
-      announce('fail', copy.presetNameError(validation.error!))
-      return
-    }
-    try {
-      presets.save(trimmed, registry.exportPreferences())
-      setName('')
-      announce('ok', copy.presetSaveOk(trimmed))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      announce('fail', message.startsWith('preset-') ? copy.presetLimitReached : message)
-    }
-  }
-
-  const onApply = (preset: SkinPreset): void => {
-    try {
-      registry.applyPreset(preset)
-      announce('ok', copy.presetApplyOk(preset.name))
-    } catch (error) {
-      announce('fail', error instanceof Error ? error.message : String(error))
-    }
-  }
-
-  const onRename = (preset: SkinPreset): void => {
-    const next = window.prompt(copy.presetRenamePrompt(preset.name), preset.name)
-    if (next === null) return
-    const trimmed = next.trim()
-    if (trimmed === preset.name) return
-    const validation = validatePresetName(trimmed, roster.filter(item => item.id !== preset.id))
-    if (!validation.ok) {
-      announce('fail', copy.presetNameError(validation.error!))
-      return
-    }
-    try {
-      presets.rename(preset.id, trimmed)
-      announce('ok', copy.presetRenameOk(trimmed))
-    } catch (error) {
-      announce('fail', error instanceof Error ? error.message : String(error))
-    }
-  }
-
-  const onDelete = (preset: SkinPreset): void => {
-    if (!window.confirm(copy.presetDeleteConfirm(preset.name))) return
-    presets.delete(preset.id)
-    announce('ok', copy.presetDeleteOk(preset.name))
-  }
-
-  return (
-    <section className={css.card} data-dsh-skin-presets>
-      <div className={css.cardHeader}>
-        <h3>{copy.presetsTitle}</h3>
-      </div>
-      <p className={css.hint}>{copy.presetsIntro}</p>
-      <div className={css.presetSaveRow}>
-        <input
-          type="text"
-          className={css.presetNameInput}
-          placeholder={copy.presetNamePlaceholder}
-          value={name}
-          maxLength={copy.presetNameMaxLength}
-          onChange={event => setName(event.currentTarget.value)}
-          onKeyDown={event => { if (event.key === 'Enter') onSave() }}
-        />
-        <button type="button" className={css.backupButton} onClick={onSave}>{copy.savePresetButton}</button>
-      </div>
-      <div className={css.presetList}>
-        {fullRoster.map(preset => (
-          <div key={preset.id} className={`${css.presetRow} ${preset.id === DEFAULT_PRESET_ID ? css.presetRowDefault : ''}`}>
-            <div className={css.presetRowName}>
-              <span>{preset.name}</span>
-              {preset.createdAt !== '' && <small>{preset.createdAt.slice(0, 10)}</small>}
-            </div>
-            <div className={css.presetRowActions}>
-              <button type="button" className={css.presetActionButton} onClick={() => onApply(preset)}>{copy.presetApply}</button>
-              {preset.id !== DEFAULT_PRESET_ID && (
-                <>
-                  <button type="button" className={css.presetActionButton} onClick={() => onRename(preset)}>{copy.presetRename}</button>
-                  <button type="button" className={`${css.presetActionButton} ${css.presetDeleteButton}`} onClick={() => onDelete(preset)}>{copy.presetDelete}</button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      {roster.length === 0 && (
-        <p className={css.hint}>{copy.presetEmpty}</p>
-      )}
-      {notice !== null && (
-        <p className={notice.kind === 'ok' ? css.hint : css.error}>{notice.text}</p>
-      )}
-    </section>
   )
 }
 

@@ -9,7 +9,6 @@ import {
   type VisibilitySchedule,
 } from '../protocol.ts'
 import { PreferencesStore, type Preferences } from './preferences.ts'
-import { DEFAULT_PRESET_ID } from './presets.ts'
 import { millisecondsToNextMinute, scheduleVisibility } from './schedule.ts'
 
 export interface RegistrySnapshot {
@@ -78,25 +77,6 @@ export class SkinCustomizationRegistry {
     const cleared = this.store.clearSkin(skinId)
     if (cleared) this.applyAll()
     return cleared
-  }
-
-  /**
-   * Apply a named preset. The built-in Defaults preset clears every known
-   * skin's stored block so each setting reverts to its declared default;
-   * any other preset is projected through the store's replace path, which
-   * normalizes every value against the live skin definitions. Returns the
-   * number of skin blocks actually written.
-   */
-  applyPreset(preset: { id: string, preferences: Preferences }): number {
-    if (preset.id === DEFAULT_PRESET_ID) {
-      let cleared = 0
-      for (const definition of this.snapshot.definitions) {
-        if (this.store.clearSkin(definition.skinId)) cleared += 1
-      }
-      if (cleared > 0) this.applyAll()
-      return cleared
-    }
-    return this.importPreferences(preset.preferences)
   }
 
   dispose(): void {

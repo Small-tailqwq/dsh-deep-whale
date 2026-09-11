@@ -108,7 +108,7 @@ describe('customization registry', () => {
   })
 })
 
-describe('registry export / import / reset / preset apply', () => {
+describe('registry export / import / reset', () => {
   const definition: SkinCustomizationDefinition = {
     protocol: 2,
     skinId: 'example',
@@ -157,23 +157,6 @@ describe('registry export / import / reset / preset apply', () => {
     expect(registry.exportPreferences().example).toBeUndefined()
     expect(registry.values(definition).artwork).toBe(true)
     expect(registry.resetSkin('example')).toBe(false)
-    registry.dispose()
-  })
-
-  it('applyPreset with Defaults clears every skin block', () => {
-    const registry = makeRegistry()
-    registry.set(definition, 'artwork', false)
-    const cleared = registry.applyPreset({ id: '__defaults__', preferences: {} })
-    expect(cleared).toBe(1)
-    expect(registry.exportPreferences().example).toBeUndefined()
-    registry.dispose()
-  })
-
-  it('applyPreset with a named preset imports its preferences', () => {
-    const registry = makeRegistry()
-    const written = registry.applyPreset({ id: 'p1', preferences: { example: { artwork: false, font: 'serif' } } })
-    expect(written).toBe(1)
-    expect(registry.values(definition)).toEqual({ artwork: false, font: 'serif' })
     registry.dispose()
   })
 })
