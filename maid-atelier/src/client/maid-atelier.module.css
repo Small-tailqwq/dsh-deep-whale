@@ -220,6 +220,17 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
     :is([data-maid-character='right'], [data-maid-character='vision']) {
     height: 44%;
   }
+
+}
+
+/* Keep portrait-phone landing figures below the headline and clear of the
+   composer. Active conversations include inspection views as well as chat. */
+@media (max-width: 700px) and (orientation: portrait) {
+  body[data-dsh-maid-atelier]:not([data-maid-conversation-active])
+    [data-maid-character] {
+    height: 62%;
+    opacity: 0.66;
+  }
 }
 
 /* A continuously changing layout — a viewport resize or a right/bottom
@@ -4411,6 +4422,25 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
   width: auto;
   flex: none;
   filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.62));
+}
+
+/* Pair the hidden phone scrollbar with removal of its outer margin and the
+   overlay composer's width compensation, keeping both views on one axis. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] [data-conversation-scroll] {
+    margin-right: 0;
+    scrollbar-width: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-conversation-scroll]::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-conversation-scroll]:has([data-conversation-composer-overlay]) > [data-composer-seat] {
+    right: 0;
+  }
 }
 
 /* Optional conversation typography from #22. Code keeps its existing
