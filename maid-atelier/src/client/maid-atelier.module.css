@@ -220,6 +220,19 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
     :is([data-maid-character='right'], [data-maid-character='vision']) {
     height: 44%;
   }
+
+  /* The landing figures keep their 96%/92% height, which on a 390x844 phone
+     measures 450x810: wider than the viewport (the left figure is cropped at
+     both edges) and tall enough that the composer covers everything below the
+     collarbone. A portrait art is anchored by its height, so cap the landing
+     state on phone widths: both figures then fit the viewport, their faces
+     stay clear of the composer, and the headline keeps its own band. Chat,
+     landscape and desktop states are untouched. */
+  body[data-dsh-maid-atelier]:not([data-maid-chat-active])
+    [data-maid-character] {
+    height: 62%;
+    opacity: 0.66;
+  }
 }
 
 /* A continuously changing layout — a viewport resize or a right/bottom
