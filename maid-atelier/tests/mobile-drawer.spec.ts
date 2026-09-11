@@ -86,7 +86,9 @@ describe('Maid Atelier mobile drawer auto-close', () => {
     fixture.frame.removeAttribute('data-sidebar-collapsed')
     const toggleClick = vi.spyOn(fixture.toggle, 'click')
 
-    fixture.row.click()
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    fixture.row.prepend(icon)
+    icon.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await settle()
 
     expect(toggleClick).toHaveBeenCalledTimes(1)
@@ -139,6 +141,7 @@ describe('Maid Atelier mobile drawer auto-close', () => {
     fixture.frame.removeAttribute('data-sidebar-collapsed')
     const toggleClick = vi.spyOn(fixture.toggle, 'click')
 
+    fixture.row.click()
     fixture.dispose()
     fixture.row.click()
     await settle()

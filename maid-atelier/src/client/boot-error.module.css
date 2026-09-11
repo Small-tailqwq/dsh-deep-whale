@@ -81,8 +81,7 @@ html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-m
   html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] {
     --maid-boot-figure-height: min(34dvh, 260px);
     grid-template-areas: 'left right' 'report report';
-    /* Two fixed 240px tracks plus the gap need 504px, so every phone either
-       clipped the report or scrolled it sideways. Share the row instead. */
+    /* Share the available width between the figure tracks on narrow screens. */
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
     column-gap: 24px;
@@ -101,8 +100,7 @@ html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-m
   }
 }
 
-/* Phones: stop sharing the row between the two figures, so the report keeps a
-   readable measure instead of three squeezed columns. */
+/* Keep the report first and give each figure its own row on phones. */
 @media (max-width: 420px) {
   html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] {
     --maid-boot-figure-height: min(22dvh, 150px);

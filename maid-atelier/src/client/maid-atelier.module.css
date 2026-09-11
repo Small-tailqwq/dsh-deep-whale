@@ -1223,17 +1223,14 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-panel] > header {
   background: rgba(16, 34, 75, 0.9);
 }
 
-/* The palette keeps `--dsw-alias-bg-base` transparent so the palace art reads
-   through page-level surfaces. `ui-sidebar-right` paints its panel with that
-   same token (`.P3OORG_panel { background: var(--dsw-alias-bg-base) }`), so the
-   fullscreen variant — `position: fixed; inset: 0`, drawn straight over the
-   transcript — ends up with no surface at all and its cards float on top of
-   the conversation. Give that variant a surface of its own; the docked
-   (`push`) column deliberately keeps the art-facing transparent fill. */
+/* Fullscreen panels cover the transcript and need an opaque reading surface.
+   Keep the panel free of filters so nested fixed overlays retain the viewport. */
 body[data-dsh-maid-atelier] [data-sidebar-right-panel='fullscreen'] {
-  background: var(--dsw-alias-bg-layer-2);
-  backdrop-filter: blur(18px) saturate(1.05);
-  -webkit-backdrop-filter: blur(18px) saturate(1.05);
+  background: #ebf0fa;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-sidebar-right-panel='fullscreen'] {
+  background: #182850;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-row] {
@@ -1741,13 +1738,8 @@ body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > 
   }
 }
 
-/* The chase animates eight child `rect`s. Chrome does not composite opacity
-   animations on SVG children, so every frame invalidates style for the whole
-   sidebar: measured 76 of the 116 style recalculations performed while the
-   phone drawer opens, plus roughly one recalculation per frame for as long as
-   any session row is 'ongoing' (dead battery while idle). Narrow viewports
-   keep the same meaning with one pulse on the glyph element, which the
-   compositor handles on its own; wide viewports keep the eight-dot chase. */
+/* Pulse the whole glyph on phones to avoid per-frame style work for eight
+   SVG children while preserving the ongoing-session indicator. */
 @media (max-width: 700px) {
   body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > rect {
     animation: none;
@@ -4509,14 +4501,8 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   background: rgba(87, 117, 190, 0.28);
 }
 
-/* The conversation view reserves `--dsh-composer-side-clearance + 16px` on each
-   side for the composer dock. On a 390px phone that is 32px per side — a sixth
-   of the width — charged twice for the same inset, because the composer is
-   already inset by the clearance itself. Drop the clearance inside the
-   conversation view only: the transcript runs out to the composer's own edge
-   while the composer, queue dock and todo pill keep their insets. Measured on
-   390x844: message column 292 -> 324px (+11%), and the transcript edges line up
-   with the composer card. */
+/* Let phone transcripts use the composer's outer edge. The sibling composer
+   seat retains its own clearance and the dock cards retain their insets. */
 @media (max-width: 700px) {
   body[data-dsh-maid-atelier] [data-conversation-scroll] [class*='viewArea'] {
     --dsh-composer-side-clearance: 0px;
@@ -4560,18 +4546,22 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
     left: 12px;
     width: 20px;
   }
-}
+  body[data-dsh-maid-atelier] [data-composer-seat] {
+    padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
+  }
 
-body[data-dsh-maid-atelier] [data-composer-seat] {
-  padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
-}
-
-body[data-dsh-maid-atelier][data-maid-settings-open]
-  [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
-  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] {
+    animation: none;
+    will-change: auto;
+  }
+
   body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > rect {
     animation: none;
     opacity: 0.2;

@@ -24,6 +24,7 @@ export function installMaidMobileDrawerAutoClose(body: HTMLElement): () => void 
   const doc = body.ownerDocument
   const view = doc.defaultView
   if (view === null) return () => {}
+  let pendingFrame: number | null = null
 
   const drawerOpen = (): boolean => view.innerWidth < DRAWER_AUTO_COLLAPSE
     && doc.querySelector('div[data-sidebar-collapsed]') === null
@@ -38,27 +39,30 @@ export function installMaidMobileDrawerAutoClose(body: HTMLElement): () => void 
 
   const onClick = (event: MouseEvent): void => {
     const target = event.target
-    if (!(target instanceof HTMLElement)) return
-    if (!drawerOpen()) return
+    if (!(target instanceof Element)) return
     // Row-internal affordances (overflow menu, inline rename, popovers) own the
     // gesture and keep the drawer open.
     if (target.closest(ROW_AFFORDANCE_SELECTOR) !== null) return
     const row = target.closest(SESSION_ROW_SELECTOR)
     const newSession = target.closest<HTMLElement>("button[class*='newSession']")
     if (row === null && newSession === null) return
-    if (newSession !== null && newSession.closest(SIDEBAR_COLUMN_SELECTOR) === null) return
+    if (target.closest(SIDEBAR_COLUMN_SELECTOR) === null) return
     // A row carries a nested "Session actions" control that has no aria-haspopup,
     // so it is recognised structurally instead.
     const control = target.closest('button, [role="button"], a')
     if (control !== null && row !== null && control !== row && row.contains(control)) return
+    if (!drawerOpen() || pendingFrame !== null) return
     // Let the host apply the selection first, then close the overlay.
-    if (typeof view.requestAnimationFrame === 'function') {
-      view.requestAnimationFrame(() => { closeDrawer() })
-    } else {
-      view.setTimeout(() => { closeDrawer() }, 0)
-    }
+    pendingFrame = view.requestAnimationFrame(() => {
+      pendingFrame = null
+      closeDrawer()
+    })
   }
 
   doc.addEventListener('click', onClick, true)
-  return () => { doc.removeEventListener('click', onClick, true) }
+  return () => {
+    doc.removeEventListener('click', onClick, true)
+    if (pendingFrame !== null) view.cancelAnimationFrame(pendingFrame)
+    pendingFrame = null
+  }
 }
