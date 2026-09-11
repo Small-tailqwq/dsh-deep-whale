@@ -4508,6 +4508,55 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   color: #f3e3c0;
   background: rgba(87, 117, 190, 0.28);
 }
+
+/* Phone ergonomics. The category rail drops to 36px tall at <=640px, the
+   dialog close affordance is a 28px glyph and the lightbox close is 30px —
+   all below the comfortable touch minimum — and the composer keeps its last
+   row flush with the home indicator. */
+@media (pointer: coarse) {
+  body[data-dsh-maid-atelier] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body[data-dsh-maid-atelier] :is(button, [role='button'], select, input) {
+    touch-action: manipulation;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav button {
+    min-height: 44px;
+    height: auto;
+  }
+
+  body[data-dsh-maid-atelier][data-maid-settings-open]
+    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :first-child > :last-child {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  body[data-dsh-maid-atelier] [data-maid-table-close] {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* The 30px glyph offsets no longer centre the cross in the grown target. */
+  body[data-dsh-maid-atelier] [data-maid-table-close]::before,
+  body[data-dsh-maid-atelier] [data-maid-table-close]::after {
+    top: 21px;
+    left: 12px;
+    width: 20px;
+  }
+}
+
+body[data-dsh-maid-atelier] [data-composer-seat] {
+  padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
+}
+
+body[data-dsh-maid-atelier][data-maid-settings-open]
+  [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] > rect {
     animation: none;
