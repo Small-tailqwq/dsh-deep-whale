@@ -2203,22 +2203,19 @@ body[data-dsh-maid-atelier]
   z-index: auto;
 }
 
-/* The sidebar content root normally sits at layer 2 above the mascot (the
-   `> div > :not(...)` rule above gives it position: relative + z-index: 2),
-   which makes it a stacking context that traps the SettingsPanel's native
-   modal layer (1000): under WebKit the fixed panel cannot paint out of it at
-   all (#40), and under Blink it loses to the conversation header and trims
-   (#37). Anchor on the live dialog instead of the trigger's aria-expanded
-   (#37: that attribute does not move with the DOM in every build), and drop
-   the row's z-index back to auto while the dialog is open: position stays
-   relative, but relative + z-index auto creates no stacking context, so the
-   panel's own z-index competes at page level again, exactly like a portaled
-   dialog. Deliberately NOT using position: static (it re-homes the mask's
-   containing block and trips Chromium's compositor into painting the
-   mascot's filter layer over the mask's backdrop-filter layer), and NOT
-   promoting the sidebar column (that lifted the mascot out of its layer).
-   The rule is :has()-scoped to the open dialog and self-restores on
-   unmount. */
+/* Release the content root's layer 2 while settings owns the viewport. The
+   projected body state updates when the dialog mounts; Firefox can defer
+   invalidating the descendant :has() until the sidebar's own class changes.
+   Keep relative positioning so fixed descendants retain their coordinates.
+   The relational selector also covers other modal dialogs in the sidebar. */
+body[data-dsh-maid-atelier][data-maid-settings-open]
+  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  > div
+  > :not(
+    [data-skin-chrome='sidebar-mascot'],
+    [data-skin-chrome='sidebar-corners'],
+    [role='tooltip']
+  ),
 body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
