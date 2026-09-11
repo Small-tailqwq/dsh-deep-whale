@@ -4509,6 +4509,20 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   background: rgba(87, 117, 190, 0.28);
 }
 
+/* The conversation view reserves `--dsh-composer-side-clearance + 16px` on each
+   side for the composer dock. On a 390px phone that is 32px per side — a sixth
+   of the width — charged twice for the same inset, because the composer is
+   already inset by the clearance itself. Drop the clearance inside the
+   conversation view only: the transcript runs out to the composer's own edge
+   while the composer, queue dock and todo pill keep their insets. Measured on
+   390x844: message column 292 -> 324px (+11%), and the transcript edges line up
+   with the composer card. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] [data-conversation-scroll] [class*='viewArea'] {
+    --dsh-composer-side-clearance: 0px;
+  }
+}
+
 /* Phone ergonomics. The category rail drops to 36px tall at <=640px, the
    dialog close affordance is a 28px glyph and the lightbox close is 30px —
    all below the comfortable touch minimum — and the composer keeps its last
