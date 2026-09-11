@@ -81,7 +81,8 @@ html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-m
   html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] {
     --maid-boot-figure-height: min(34dvh, 260px);
     grid-template-areas: 'left right' 'report report';
-    grid-template-columns: repeat(2, minmax(0, 240px));
+    /* Share the available width between the figure tracks on narrow screens. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
     column-gap: 24px;
     row-gap: 12px;
@@ -96,5 +97,22 @@ html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-m
   html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] > div {
     margin-top: 0;
     max-height: none;
+  }
+}
+
+/* Keep the report first and give each figure its own row on phones. */
+@media (max-width: 420px) {
+  html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] {
+    --maid-boot-figure-height: min(22dvh, 150px);
+    grid-template-areas: 'report' 'left' 'right';
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error]::before,
+  html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error]::after {
+    width: min(100%, 200px);
+    height: var(--maid-boot-figure-height);
+    justify-self: center;
   }
 }

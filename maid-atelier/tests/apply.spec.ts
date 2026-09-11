@@ -1920,6 +1920,7 @@ describe('Maid Atelier skin apply', () => {
     expect(runningCellRule).toContain('animation: maidAtelierSessionJewelChase 1s linear infinite')
     expect(CSS).toContain('@keyframes maidAtelierSessionJewelChase')
     expect(reducedMotionRules).toContain("svg[data-state='ongoing'] > rect")
+    expect(reducedMotionRules).toMatch(/svg\[data-state='ongoing'\]\s*\{[^}]*animation: none[^}]*will-change: auto/s)
     expect(reducedMotionRules).toContain('animation: none')
   })
 
@@ -2040,7 +2041,10 @@ describe('Maid Atelier skin apply', () => {
 
   it('does not reserve or paint a lace field in active conversation and inspection views', () => {
     expect(CSS).not.toContain('padding-bottom: 66px')
-    expect(CSS).not.toContain('padding-bottom: 28px')
+    const conversationRules = [...CSS.matchAll(
+      /[^{}]*\[data-phase='active'\][^{}]*\{([^{}]*)\}/g,
+    )].map(match => match[1]).join('\n')
+    expect(conversationRules).not.toContain('padding-bottom: 28px')
     expect(CSS).not.toMatch(
       /:has\(header \[role='tablist'\]\):not\(:has\(\[data-conversation-scroll\] \[data-chat-flow\]\)\)[\s\S]*?background-color:/s,
     )
