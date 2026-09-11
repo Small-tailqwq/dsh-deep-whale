@@ -1567,6 +1567,26 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 }
 
+/* The software keyboard does not resize the layout viewport, and this shell is
+   `height: 100%` of it, so a focused composer stays behind the keyboard and the
+   height-locked page cannot scroll it into view. While the keyboard is up the
+   client entry pins the application root to the band VisualViewport reports;
+   on engines that honour the `interactive-widget=resizes-content` viewport hint
+   the layout viewport resizes on its own and this block never engages. */
+@media (pointer: coarse) {
+  html[data-maid-keyboard='open'] body[data-dsh-maid-atelier] [id='root'] {
+    position: fixed !important;
+    top: var(--maid-vv-top, 0px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: var(--maid-vv-height, 100dvh) !important;
+    max-height: none !important;
+    overscroll-behavior: none !important;
+  }
+}
+
 /* Workspace groups receive skin-owned semantic hooks from the client entry.
    This keeps the ornamental tree independent from generated CSS-module names
    while leaving the official rows and their interactions intact. */
