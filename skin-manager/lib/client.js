@@ -110,7 +110,33 @@ window.__ModuleLoader__.load({
 			rangeTo: "至",
 			removeRange: "删除",
 			addRange: "添加时间段",
-			scheduleHint: "使用本机时间；支持跨午夜，例如 22:00 至 07:00。时间段按“开始包含、结束不包含”计算。"
+			scheduleHint: "使用本机时间；支持跨午夜，例如 22:00 至 07:00。时间段按“开始包含、结束不包含”计算。",
+			backupTitle: "备份与恢复",
+			backupIntro: "将当前所有皮肤的配置导出为一个 JSON 文件，方便备份、迁移到其他浏览器或与他人分享。导入时会按当前已安装的皮肤自动校验，未知字段会被丢弃。",
+			exportButton: "导出配置",
+			importButton: "导入配置",
+			dropHint: "将 JSON 文件拖放到此处，或点击上方按钮选择文件。",
+			dropActive: "松开以导入",
+			exportOk: "配置已导出为 JSON 文件。",
+			importOk: (count) => `已导入 ${count} 个皮肤的配置。`,
+			importFail: (message) => `导入失败：${message}`,
+			importErrorEmpty: "文件为空",
+			importErrorInvalidJson: "文件不是有效的 JSON",
+			importErrorInvalidEnvelope: "文件不是有效的皮肤配置备份",
+			importErrorNoMatchingSkins: "备份中没有匹配当前已安装皮肤的配置",
+			importErrorTooLarge: "文件过大，超过 256 KiB 限制",
+			resetSkinButton: "恢复默认",
+			resetSkinConfirm: "清空当前皮肤的所有自定义配置？",
+			resetSkinOk: "已恢复当前皮肤的默认配置。",
+			importErrorMessage: (code) => {
+				switch (code) {
+					case "empty": return "文件为空";
+					case "invalid-json": return "文件不是有效的 JSON";
+					case "invalid-envelope": return "文件不是有效的皮肤配置备份";
+					case "no-matching-skins": return "备份中没有匹配当前已安装皮肤的配置";
+					case "too-large": return "文件过大，超过 256 KiB 限制";
+				}
+			}
 		};
 		const enCopy = {
 			headerTitle: "Skin Management",
@@ -154,7 +180,33 @@ window.__ModuleLoader__.load({
 			rangeTo: "to",
 			removeRange: "Remove",
 			addRange: "Add period",
-			scheduleHint: "Uses local time; crossing midnight is supported, e.g. 22:00 to 07:00. Periods are start-inclusive and end-exclusive."
+			scheduleHint: "Uses local time; crossing midnight is supported, e.g. 22:00 to 07:00. Periods are start-inclusive and end-exclusive.",
+			backupTitle: "Backup & Restore",
+			backupIntro: "Export every skin's current configuration as a JSON file for backup, migration to another browser, or sharing. Imports are validated against the skins currently installed; unknown fields are dropped automatically.",
+			exportButton: "Export configuration",
+			importButton: "Import configuration",
+			dropHint: "Drop a JSON file here, or use the buttons above to pick one.",
+			dropActive: "Release to import",
+			exportOk: "Configuration exported as a JSON file.",
+			importOk: (count) => `Imported configuration for ${count} skin${count === 1 ? "" : "s"}.`,
+			importFail: (message) => `Import failed: ${message}`,
+			importErrorEmpty: "The file is empty",
+			importErrorInvalidJson: "The file is not valid JSON",
+			importErrorInvalidEnvelope: "The file is not a valid skin configuration backup",
+			importErrorNoMatchingSkins: "The backup contains no configuration matching the currently installed skins",
+			importErrorTooLarge: "The file exceeds the 256 KiB limit",
+			resetSkinButton: "Reset to defaults",
+			resetSkinConfirm: "Clear every custom option for the current skin?",
+			resetSkinOk: "The current skin was reset to its default configuration.",
+			importErrorMessage: (code) => {
+				switch (code) {
+					case "empty": return "The file is empty";
+					case "invalid-json": return "The file is not valid JSON";
+					case "invalid-envelope": return "The file is not a valid skin configuration backup";
+					case "no-matching-skins": return "The backup contains no configuration matching the currently installed skins";
+					case "too-large": return "The file exceeds the 256 KiB limit";
+				}
+			}
 		};
 		function skinManagerCopy(lang) {
 			return lang === "zh" ? zhCopy : enCopy;
@@ -173,8 +225,312 @@ window.__ModuleLoader__.load({
 			return lang === "en" ? option.labelEn ?? option.label : option.label;
 		}
 		//#endregion
+		//#region src/client/schedule.ts
+		const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+		const DEFAULT_VISIBILITY_SCHEDULE = {
+			enabled: false,
+			outside: "visible",
+			ranges: []
+		};
+		function normalizeTimeRange(value) {
+			if (typeof value !== "object" || value === null) return null;
+			const { start, end } = value;
+			if (typeof start !== "string" || typeof end !== "string") return null;
+			if (!TIME.test(start) || !TIME.test(end) || start === end) return null;
+			return {
+				start,
+				end
+			};
+		}
+		function normalizeVisibilitySchedule(value, fallback = DEFAULT_VISIBILITY_SCHEDULE) {
+			const source = typeof value === "object" && value !== null ? value : {};
+			const ranges = Array.isArray(source.ranges) ? source.ranges.map(normalizeTimeRange).filter((range) => range !== null).slice(0, 24) : fallback.ranges;
+			return {
+				enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
+				outside: source.outside === "hidden" ? "hidden" : source.outside === "visible" ? "visible" : fallback.outside,
+				ranges
+			};
+		}
+		const minutes = (time) => {
+			const [hour = 0, minute = 0] = time.split(":").map(Number);
+			return hour * 60 + minute;
+		};
+		function isInTimeRange(range, minuteOfDay) {
+			const start = minutes(range.start);
+			const end = minutes(range.end);
+			return start < end ? minuteOfDay >= start && minuteOfDay < end : minuteOfDay >= start || minuteOfDay < end;
+		}
+		/** Resolve local-time visibility; ranges always invert the outside policy. */
+		function scheduleVisibility(schedule, now = /* @__PURE__ */ new Date()) {
+			if (!schedule.enabled) return true;
+			const minuteOfDay = now.getHours() * 60 + now.getMinutes();
+			const inside = schedule.ranges.some((range) => isInTimeRange(range, minuteOfDay));
+			const outsideVisible = schedule.outside === "visible";
+			return inside ? !outsideVisible : outsideVisible;
+		}
+		/** Wake at the next minute boundary; exact enough for minute-resolution rules. */
+		function millisecondsToNextMinute(now = /* @__PURE__ */ new Date()) {
+			return Math.max(50, 6e4 - now.getSeconds() * 1e3 - now.getMilliseconds() + 25);
+		}
+		//#endregion
+		//#region src/client/preferences.ts
+		const PREFERENCES_KEY = "dsh.skin-manager.preferences.v2";
+		const LEGACY_PREFERENCES_KEY = "dsh-deep-whale.skin-manager.v1";
+		function object(value) {
+			return typeof value === "object" && value !== null ? value : {};
+		}
+		function readJson(storage, key) {
+			try {
+				const raw = storage.getItem(key);
+				return raw === null ? void 0 : JSON.parse(raw);
+			} catch {
+				return;
+			}
+		}
+		function migrateLegacy(value) {
+			const root = object(value);
+			const maid = object(root.maid);
+			const orca = object(root.orca);
+			return {
+				"maid-atelier": {
+					artwork: maid.artwork,
+					font: maid.font,
+					modelExit: maid.modelExit
+				},
+				"orca-link": {
+					character: orca.character,
+					background: orca.background,
+					pricingLight: orca.pricingLight
+				}
+			};
+		}
+		function readPreferences(storage = localStorage) {
+			const current = readJson(storage, PREFERENCES_KEY);
+			if (typeof current === "object" && current !== null) return object(current);
+			return migrateLegacy(readJson(storage, LEGACY_PREFERENCES_KEY));
+		}
+		function normalizeSetting(setting, value) {
+			if (setting.type === "boolean") return typeof value === "boolean" ? value : setting.defaultValue;
+			if (setting.type === "select") return typeof value === "string" && setting.options.some((option) => option.value === value) ? value : setting.defaultValue;
+			if (setting.type === "range") {
+				const numeric = typeof value === "number" && Number.isFinite(value) ? value : setting.defaultValue;
+				const min = setting.min;
+				const max = setting.max;
+				return Math.min(max, Math.max(min, numeric));
+			}
+			if (setting.type === "color") return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : setting.defaultValue;
+			if (setting.type === "checkbox-group") {
+				const selected = new Set(Array.isArray(value) ? value : setting.defaultValue);
+				return setting.options.map((option) => option.value).filter((option) => selected.has(option));
+			}
+			return normalizeVisibilitySchedule(value, setting.defaultValue);
+		}
+		function settingSourceValue(setting, source) {
+			if (Object.hasOwn(source, setting.key)) return source[setting.key];
+			const legacy = setting.legacyValue;
+			if (legacy === void 0) return void 0;
+			const legacyValue = source[legacy.key];
+			if (typeof legacyValue !== "boolean" && typeof legacyValue !== "string" && typeof legacyValue !== "number") return;
+			const key = String(legacyValue);
+			return Object.hasOwn(legacy.map, key) ? legacy.map[key] : void 0;
+		}
+		function normalizeSkinValues(definition, value) {
+			const source = object(value);
+			return Object.fromEntries(definition.settings.map((setting) => [setting.key, normalizeSetting(setting, settingSourceValue(setting, source))]));
+		}
+		var PreferencesStore = class {
+			storage;
+			value;
+			listeners = /* @__PURE__ */ new Set();
+			onStorage = (event) => {
+				if (event.key !== "dsh.skin-manager.preferences.v2") return;
+				this.value = readPreferences(this.storage);
+				this.listeners.forEach((listener) => listener());
+			};
+			dispose;
+			constructor(storage = localStorage, target = window) {
+				this.storage = storage;
+				this.value = readPreferences(storage);
+				target.addEventListener("storage", this.onStorage);
+				this.dispose = () => target.removeEventListener("storage", this.onStorage);
+			}
+			subscribe = (listener) => {
+				this.listeners.add(listener);
+				return () => this.listeners.delete(listener);
+			};
+			values(definition) {
+				return normalizeSkinValues(definition, this.value[definition.skinId]);
+			}
+			set(definition, key, value) {
+				if (!definition.settings.some((setting) => setting.key === key)) return;
+				this.value = {
+					...this.value,
+					[definition.skinId]: {
+						...this.value[definition.skinId],
+						[key]: value
+					}
+				};
+				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
+				this.listeners.forEach((listener) => listener());
+			}
+			/** Full raw preferences snapshot for export; never mutates store state. */
+			snapshot() {
+				return this.value;
+			}
+			/**
+			* Replace every skin's preferences in one atomic write. Each skin block is
+			* normalized against its live definition so unknown keys, removed settings
+			* and malformed values never reach the persisted store. Returns the number
+			* of skin blocks actually stored.
+			*/
+			replace(definitions, incoming) {
+				const next = { ...this.value };
+				let written = 0;
+				for (const definition of definitions) {
+					const block = incoming[definition.skinId];
+					if (block === void 0) continue;
+					next[definition.skinId] = normalizeSkinValues(definition, block);
+					written += 1;
+				}
+				if (written === 0) return 0;
+				this.value = next;
+				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
+				this.listeners.forEach((listener) => listener());
+				return written;
+			}
+			/** Remove every setting under one skin id; used by per-skin reset flows. */
+			clearSkin(skinId) {
+				if (this.value[skinId] === void 0) return false;
+				const next = { ...this.value };
+				delete next[skinId];
+				this.value = next;
+				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
+				this.listeners.forEach((listener) => listener());
+				return true;
+			}
+		};
+		/** Stable source marker so importers can reject unrelated JSON early. */
+		const PREFERENCES_EXPORT_SOURCE = "dsh-skin-manager";
+		/** Maximum accepted file size for an import (256 KiB). Defends against accidents. */
+		const PREFERENCES_IMPORT_MAX_BYTES = 262144;
+		/** Error thrown when an import payload cannot be promoted to a live store. */
+		var PreferencesImportError = class extends Error {
+			code;
+			constructor(code, message) {
+				super(message);
+				this.code = code;
+				this.name = "PreferencesImportError";
+			}
+		};
+		function isObject(value) {
+			return typeof value === "object" && value !== null && !Array.isArray(value);
+		}
+		function isPreferences(value) {
+			if (!isObject(value)) return false;
+			for (const block of Object.values(value)) {
+				if (block === void 0) continue;
+				if (!isObject(block)) return false;
+			}
+			return true;
+		}
+		/** Build a versioned export envelope from a raw preferences snapshot. */
+		function buildPreferencesExport(prefs, now = /* @__PURE__ */ new Date()) {
+			const clean = {};
+			for (const [skinId, block] of Object.entries(prefs)) {
+				if (block === void 0) continue;
+				clean[skinId] = isObject(block) ? { ...block } : {};
+			}
+			return {
+				schema: 1,
+				source: PREFERENCES_EXPORT_SOURCE,
+				exportedAt: now.toISOString(),
+				preferences: clean
+			};
+		}
+		/**
+		* Pretty-print an export envelope for file download. The envelope is built
+		* with a fixed key order (schema → source → exportedAt → preferences), so a
+		* plain JSON.stringify preserves that order without a replacer array — a
+		* replacer whitelist would recurse into nested preferences blocks and strip
+		* every skin id and setting key.
+		*/
+		function serializePreferencesExport(exported) {
+			const ordered = {
+				schema: exported.schema,
+				source: exported.source,
+				exportedAt: exported.exportedAt,
+				preferences: exported.preferences
+			};
+			return `${JSON.stringify(ordered, null, 2)}\n`;
+		}
+		/**
+		* Parse and structurally validate a raw JSON string. Throws
+		* {@link PreferencesImportError} on any structural problem; never throws for
+		* a network or DOM reason.
+		*/
+		function parsePreferencesExport(raw, maxBytes = PREFERENCES_IMPORT_MAX_BYTES) {
+			if (raw === "" || raw === null) throw new PreferencesImportError("empty", "empty-payload");
+			if (raw.length > maxBytes) throw new PreferencesImportError("too-large", "payload-exceeds-max-size");
+			let parsed;
+			try {
+				parsed = JSON.parse(raw);
+			} catch {
+				throw new PreferencesImportError("invalid-json", "invalid-json-syntax");
+			}
+			if (!isObject(parsed)) throw new PreferencesImportError("invalid-envelope", "envelope-not-object");
+			if (parsed.schema !== 1) throw new PreferencesImportError("invalid-envelope", "unsupported-schema");
+			if (parsed.source !== "dsh-skin-manager") throw new PreferencesImportError("invalid-envelope", "unknown-source");
+			if (typeof parsed.exportedAt !== "string" || parsed.exportedAt === "") throw new PreferencesImportError("invalid-envelope", "missing-exported-at");
+			if (!isPreferences(parsed.preferences)) throw new PreferencesImportError("invalid-envelope", "preferences-not-object");
+			return {
+				schema: 1,
+				source: PREFERENCES_EXPORT_SOURCE,
+				exportedAt: parsed.exportedAt,
+				preferences: parsed.preferences
+			};
+		}
+		/**
+		* Project an import envelope onto the currently-registered skin definitions.
+		* Each skin block is normalized so that:
+		*  - unknown setting keys are dropped,
+		*  - removed settings fall back to their declared defaults,
+		*  - malformed values fall back to their declared defaults,
+		*  - skins not in the current registry are skipped entirely.
+		*
+		* Returns the normalized preferences along with a report of how many skins
+		* matched, so the UI can surface "imported N skins" feedback. Throws
+		* {@link PreferencesImportError} when nothing in the envelope matches.
+		*/
+		function validatePreferencesExport(exported, definitions) {
+			const matched = [];
+			const normalized = {};
+			for (const definition of definitions) {
+				const block = exported.preferences[definition.skinId];
+				if (block === void 0) continue;
+				normalized[definition.skinId] = normalizeSkinValues(definition, block);
+				matched.push(definition.skinId);
+			}
+			if (matched.length === 0) throw new PreferencesImportError("no-matching-skins", "no-skins-matched");
+			return {
+				preferences: normalized,
+				matchedSkins: matched
+			};
+		}
+		/** Convenience: parse → validate in one call. See {@link parsePreferencesExport}. */
+		function importPreferencesFromText(raw, definitions) {
+			const exported = parsePreferencesExport(raw);
+			return {
+				...validatePreferencesExport(exported, definitions),
+				exportedAt: exported.exportedAt
+			};
+		}
+		/** Default download filename for an export, scoped to the export date. */
+		function defaultExportFileName(now = /* @__PURE__ */ new Date()) {
+			return `dsh-skin-preferences-${now.toISOString().slice(0, 10)}.json`;
+		}
+		//#endregion
 		//#region \0dsh-css:../skin-manager/src/client/skin-manager.module.css.mjs
-		const css = ".orL4ja_section{color:var(--dsw-alias-label-primary);gap:14px;display:grid}.orL4ja_header h2,.orL4ja_card h3,.orL4ja_header p,.orL4ja_error{margin:0}.orL4ja_header{gap:6px;display:grid}.orL4ja_header p{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6}.orL4ja_card{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:10px;gap:10px;padding:14px;display:grid}.orL4ja_card h3{font-size:14px}.orL4ja_cardHeader{justify-content:space-between;align-items:center;gap:10px;display:flex}.orL4ja_checkButton{min-height:28px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 12px;font-size:12px}.orL4ja_checkButton:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}.orL4ja_checkButton:disabled{opacity:.55;cursor:default}.orL4ja_skinTile{align-self:start;gap:4px;min-width:0;display:grid}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));align-items:start;gap:8px;display:grid}.orL4ja_skinButton{width:100%}.orL4ja_defaultButton,.orL4ja_defaultActive{width:100%;min-height:44px;color:var(--dsw-alias-label-primary);border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;display:flex}.orL4ja_defaultButton>span,.orL4ja_defaultActive>span{text-align:left;gap:2px;display:grid}.orL4ja_defaultButton small,.orL4ja_defaultActive small{color:var(--dsw-alias-label-tertiary)}.orL4ja_defaultButton:disabled,.orL4ja_defaultActive:disabled{opacity:.75;cursor:default}.orL4ja_defaultActive{border-style:solid;border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_defaultState{flex:none;color:var(--dsw-alias-label-secondary)!important}.orL4ja_skinButton,.orL4ja_activeSkin{min-height:58px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-items:start;gap:3px;padding:10px;display:grid}.orL4ja_activeSkin{border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_skinButton small,.orL4ja_activeSkin small{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionRow{flex-wrap:wrap;align-items:center;gap:3px 8px;min-height:16px;padding-inline:2px;font-size:11px;line-height:1.5;display:flex}.orL4ja_compatibility{color:var(--dsw-alias-label-tertiary);padding-inline:2px;font-size:11px}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:inherit;line-height:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;padding:0}.orL4ja_versionHash:hover{color:var(--dsw-alias-brand-primary)}.orL4ja_versionMuted{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary,#12a150)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-primary,#e08700)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow{justify-content:space-between;align-items:center;gap:12px;min-height:34px;display:flex}.orL4ja_toggleRow>span,.orL4ja_selectRow>span,.orL4ja_sliderRow>span,.orL4ja_colorRow>span{gap:2px;display:grid}.orL4ja_toggleRow small,.orL4ja_selectRow small,.orL4ja_sliderRow small,.orL4ja_colorRow small,.orL4ja_checkboxGroup small,.orL4ja_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}.orL4ja_toggleRow input{block-size:18px;inline-size:34px;accent-color:var(--dsw-alias-brand-primary)}.orL4ja_toggleSwitch{cursor:pointer;border-radius:999px;flex:none;justify-content:center;align-items:center;margin:-4px;padding:4px;display:inline-flex}.orL4ja_toggleSwitch input,.orL4ja_selectRow select,.orL4ja_rangeRow select{cursor:pointer}.orL4ja_selectRow select,.orL4ja_rangeRow input,.orL4ja_rangeRow select{box-sizing:border-box;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);border-radius:6px}.orL4ja_selectRow select{max-width:240px;padding-inline:8px}.orL4ja_selectRow select:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled,.orL4ja_toggleRow input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorControl{flex:none;grid-auto-flow:column;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;border-radius:6px;width:44px;height:30px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-brand-primary)}.orL4ja_colorButton:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorSwatch{border:1px solid #0000005c;width:100%;height:100%;display:block}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-brand-primary);outline:1px solid var(--dsw-alias-border-l2);outline-offset:2px;background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:0;padding:10px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border:1px solid var(--dsw-alias-border-l2);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:30px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border:1px solid var(--dsw-alias-border-l2);border-radius:50%;width:28px;height:28px}.orL4ja_colorHueRow input[type=range]{appearance:none;border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-secondary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);text-align:center;border-radius:4px;padding-inline:6px}.orL4ja_checkboxGroup{border-left:2px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);gap:8px;margin-left:12px;padding:10px 12px 12px;display:grid}.orL4ja_checkboxGroupHeading{gap:2px;display:grid}.orL4ja_checkboxGrid{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px 12px;display:grid}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_sliderRow{grid-template-columns:minmax(0,1fr) auto minmax(120px,220px);align-items:center;gap:10px;min-height:40px;display:grid}.orL4ja_sliderValue{min-width:3ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right}.orL4ja_sliderRow input[type=range]{-webkit-appearance:none;appearance:none;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;width:100%;height:20px;image-rendering:pixelated;border-radius:0;margin:0;padding:0}.orL4ja_sliderRow input[type=range]::-webkit-slider-runnable-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:14px;height:22px;margin-top:-8px;box-shadow:2px 2px #5127ff59}.orL4ja_sliderRow input[type=range]::-moz-range-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-moz-range-thumb{border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:10px;height:18px;box-shadow:2px 2px #5127ff59}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect select{text-align:center;width:100%;min-width:0;max-width:none;padding-inline:6px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{gap:8px;display:grid}.orL4ja_scheduleDetails{border-left:2px solid var(--dsw-alias-border-l2);gap:8px;margin-left:12px;padding:10px;display:grid}.orL4ja_rangeList{gap:6px;display:grid}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_rangeRow input{width:100%;padding-inline:7px}.orL4ja_rangeRow button,.orL4ja_addRange{min-height:30px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 9px}.orL4ja_addRange{justify-self:start}.orL4ja_error{color:var(--dsw-alias-state-danger,#c43d3d);font-size:12px}@media (width<=720px){.orL4ja_skinGrid{grid-template-columns:1fr}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
+		const css = ".orL4ja_section{color:var(--dsw-alias-label-primary);gap:14px;display:grid}.orL4ja_header h2,.orL4ja_card h3,.orL4ja_header p,.orL4ja_error{margin:0}.orL4ja_header{gap:6px;display:grid}.orL4ja_header p{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6}.orL4ja_card{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:10px;gap:10px;padding:14px;display:grid}.orL4ja_card h3{font-size:14px}.orL4ja_cardHeader{justify-content:space-between;align-items:center;gap:10px;display:flex}.orL4ja_checkButton{min-height:28px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 12px;font-size:12px}.orL4ja_checkButton:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}.orL4ja_checkButton:disabled{opacity:.55;cursor:default}.orL4ja_skinTile{align-self:start;gap:4px;min-width:0;display:grid}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));align-items:start;gap:8px;display:grid}.orL4ja_skinButton{width:100%}.orL4ja_defaultButton,.orL4ja_defaultActive{width:100%;min-height:44px;color:var(--dsw-alias-label-primary);border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;display:flex}.orL4ja_defaultButton>span,.orL4ja_defaultActive>span{text-align:left;gap:2px;display:grid}.orL4ja_defaultButton small,.orL4ja_defaultActive small{color:var(--dsw-alias-label-tertiary)}.orL4ja_defaultButton:disabled,.orL4ja_defaultActive:disabled{opacity:.75;cursor:default}.orL4ja_defaultActive{border-style:solid;border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_defaultState{flex:none;color:var(--dsw-alias-label-secondary)!important}.orL4ja_skinButton,.orL4ja_activeSkin{min-height:58px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-items:start;gap:3px;padding:10px;display:grid}.orL4ja_activeSkin{border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_skinButton small,.orL4ja_activeSkin small{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionRow{flex-wrap:wrap;align-items:center;gap:3px 8px;min-height:16px;padding-inline:2px;font-size:11px;line-height:1.5;display:flex}.orL4ja_compatibility{color:var(--dsw-alias-label-tertiary);padding-inline:2px;font-size:11px}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:inherit;line-height:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;padding:0}.orL4ja_versionHash:hover{color:var(--dsw-alias-brand-primary)}.orL4ja_versionMuted{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary,#12a150)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-primary,#e08700)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow{justify-content:space-between;align-items:center;gap:12px;min-height:34px;display:flex}.orL4ja_toggleRow>span,.orL4ja_selectRow>span,.orL4ja_sliderRow>span,.orL4ja_colorRow>span{gap:2px;display:grid}.orL4ja_toggleRow small,.orL4ja_selectRow small,.orL4ja_sliderRow small,.orL4ja_colorRow small,.orL4ja_checkboxGroup small,.orL4ja_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}.orL4ja_toggleRow input{block-size:18px;inline-size:34px;accent-color:var(--dsw-alias-brand-primary)}.orL4ja_toggleSwitch{cursor:pointer;border-radius:999px;flex:none;justify-content:center;align-items:center;margin:-4px;padding:4px;display:inline-flex}.orL4ja_toggleSwitch input,.orL4ja_selectRow select,.orL4ja_rangeRow select{cursor:pointer}.orL4ja_selectRow select,.orL4ja_rangeRow input,.orL4ja_rangeRow select{box-sizing:border-box;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);border-radius:6px}.orL4ja_selectRow select{max-width:240px;padding-inline:8px}.orL4ja_selectRow select:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled,.orL4ja_toggleRow input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorControl{flex:none;grid-auto-flow:column;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;border-radius:6px;width:44px;height:30px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-brand-primary)}.orL4ja_colorButton:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorSwatch{border:1px solid #0000005c;width:100%;height:100%;display:block}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-brand-primary);outline:1px solid var(--dsw-alias-border-l2);outline-offset:2px;background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:0;padding:10px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border:1px solid var(--dsw-alias-border-l2);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:30px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border:1px solid var(--dsw-alias-border-l2);border-radius:50%;width:28px;height:28px}.orL4ja_colorHueRow input[type=range]{appearance:none;border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-secondary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);text-align:center;border-radius:4px;padding-inline:6px}.orL4ja_checkboxGroup{border-left:2px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);gap:8px;margin-left:12px;padding:10px 12px 12px;display:grid}.orL4ja_checkboxGroupHeading{gap:2px;display:grid}.orL4ja_checkboxGrid{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px 12px;display:grid}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_sliderRow{grid-template-columns:minmax(0,1fr) auto minmax(120px,220px);align-items:center;gap:10px;min-height:40px;display:grid}.orL4ja_sliderValue{min-width:3ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right}.orL4ja_sliderRow input[type=range]{-webkit-appearance:none;appearance:none;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;width:100%;height:20px;image-rendering:pixelated;border-radius:0;margin:0;padding:0}.orL4ja_sliderRow input[type=range]::-webkit-slider-runnable-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:14px;height:22px;margin-top:-8px;box-shadow:2px 2px #5127ff59}.orL4ja_sliderRow input[type=range]::-moz-range-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-moz-range-thumb{border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:10px;height:18px;box-shadow:2px 2px #5127ff59}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect select{text-align:center;width:100%;min-width:0;max-width:none;padding-inline:6px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{gap:8px;display:grid}.orL4ja_scheduleDetails{border-left:2px solid var(--dsw-alias-border-l2);gap:8px;margin-left:12px;padding:10px;display:grid}.orL4ja_rangeList{gap:6px;display:grid}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_rangeRow input{width:100%;padding-inline:7px}.orL4ja_rangeRow button,.orL4ja_addRange{min-height:30px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 9px}.orL4ja_addRange{justify-self:start}.orL4ja_error{color:var(--dsw-alias-state-danger,#c43d3d);font-size:12px}.orL4ja_backupActions{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.orL4ja_backupButton{min-height:32px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:6px 14px;font-size:12px}.orL4ja_backupButton:hover:not(:disabled){border-color:var(--dsw-alias-brand-primary)}.orL4ja_backupButton:disabled{opacity:.55;cursor:default}.orL4ja_dropZone{border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);text-align:center;border-radius:8px;gap:4px;padding:14px;font-size:12px;line-height:1.5;transition:border-color .12s,color .12s,background .12s;display:grid}.orL4ja_dropZoneActive{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}.orL4ja_cardHeaderActions{align-items:center;gap:8px;display:flex}.orL4ja_resetButton{min-height:26px;color:var(--dsw-alias-label-tertiary);border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:0 0;border-radius:6px;padding:3px 10px;font-size:11px}.orL4ja_resetButton:hover:not(:disabled){color:var(--dsw-alias-state-danger,#c43d3d);border-color:var(--dsw-alias-state-danger,#c43d3d)}.orL4ja_fileInput{clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}@media (width<=720px){.orL4ja_skinGrid{grid-template-columns:1fr}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
 		const tagId = "@dsh-external/dsh-client-ui-skin-deep-whale-manager/skin-manager.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -186,8 +542,11 @@ window.__ModuleLoader__.load({
 		var skin_manager_module_css_default = {
 			"activeSkin": "orL4ja_activeSkin",
 			"addRange": "orL4ja_addRange",
+			"backupActions": "orL4ja_backupActions",
+			"backupButton": "orL4ja_backupButton",
 			"card": "orL4ja_card",
 			"cardHeader": "orL4ja_cardHeader",
+			"cardHeaderActions": "orL4ja_cardHeaderActions",
 			"checkButton": "orL4ja_checkButton",
 			"checkboxGrid": "orL4ja_checkboxGrid",
 			"checkboxGroup": "orL4ja_checkboxGroup",
@@ -207,11 +566,15 @@ window.__ModuleLoader__.load({
 			"defaultActive": "orL4ja_defaultActive",
 			"defaultButton": "orL4ja_defaultButton",
 			"defaultState": "orL4ja_defaultState",
+			"dropZone": "orL4ja_dropZone",
+			"dropZoneActive": "orL4ja_dropZoneActive",
 			"error": "orL4ja_error",
+			"fileInput": "orL4ja_fileInput",
 			"header": "orL4ja_header",
 			"hint": "orL4ja_hint",
 			"rangeList": "orL4ja_rangeList",
 			"rangeRow": "orL4ja_rangeRow",
+			"resetButton": "orL4ja_resetButton",
 			"schedule": "orL4ja_schedule",
 			"scheduleDetails": "orL4ja_scheduleDetails",
 			"section": "orL4ja_section",
@@ -755,11 +1118,23 @@ window.__ModuleLoader__.load({
 		}
 		function CustomizationCard({ definition, registry }) {
 			const lang = useUiLang();
+			const copy = skinManagerCopy(lang);
 			const values = registry.values(definition);
+			const onReset = () => {
+				if (window.confirm(copy.resetSkinConfirm)) registry.resetSkin(definition.skinId);
+			};
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
 				className: skin_manager_module_css_default.card,
 				"data-skin-customization": definition.skinId,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: definitionTitle(definition, lang) }), definition.settings.map((setting) => {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+					className: skin_manager_module_css_default.cardHeader,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: definitionTitle(definition, lang) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+						type: "button",
+						className: skin_manager_module_css_default.resetButton,
+						onClick: onReset,
+						children: copy.resetSkinButton
+					})]
+				}), definition.settings.map((setting) => {
 					if (!settingVisible(setting, values)) return null;
 					const disabled = setting.disabledWhen !== void 0 && values[setting.disabledWhen] === true;
 					return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(SettingEditor, {
@@ -933,6 +1308,149 @@ window.__ModuleLoader__.load({
 							className: skin_manager_module_css_default.hint,
 							children: copy.noSettings
 						})]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BackupCard, { registry })
+				]
+			});
+		}
+		/**
+		* Backup & restore card: export the full preferences snapshot as a versioned
+		* JSON file, import one back (file picker or drag-and-drop), and surface the
+		* outcome through the same hint/error surface the rest of the manager uses.
+		*/
+		function BackupCard({ registry }) {
+			const copy = skinManagerCopy(useUiLang());
+			const fileInput = (0, react.useRef)(null);
+			const [dragging, setDragging] = (0, react.useState)(false);
+			const [notice, setNotice] = (0, react.useState)(null);
+			const live = (0, react.useRef)(true);
+			const noticeTimer = (0, react.useRef)(void 0);
+			(0, react.useEffect)(() => {
+				live.current = true;
+				return () => {
+					live.current = false;
+					if (noticeTimer.current !== void 0) window.clearTimeout(noticeTimer.current);
+				};
+			}, []);
+			const announce = (kind, text) => {
+				if (!live.current) return;
+				setNotice({
+					kind,
+					text
+				});
+				if (noticeTimer.current !== void 0) window.clearTimeout(noticeTimer.current);
+				noticeTimer.current = window.setTimeout(() => {
+					if (live.current) setNotice(null);
+				}, 4e3);
+			};
+			const onExport = () => {
+				try {
+					const text = serializePreferencesExport(buildPreferencesExport(registry.exportPreferences()));
+					const filename = defaultExportFileName();
+					const blob = new Blob([text], { type: "application/json" });
+					const url = URL.createObjectURL(blob);
+					const anchor = document.createElement("a");
+					anchor.href = url;
+					anchor.download = filename;
+					anchor.rel = "noopener";
+					document.body.append(anchor);
+					anchor.click();
+					anchor.remove();
+					URL.revokeObjectURL(url);
+					announce("ok", copy.exportOk);
+				} catch (error) {
+					announce("fail", copy.importFail(error instanceof Error ? error.message : String(error)));
+				}
+			};
+			const importText = (raw) => {
+				try {
+					const { preferences, matchedSkins } = importPreferencesFromText(raw, registry.getSnapshot().definitions);
+					const written = registry.importPreferences(preferences);
+					announce("ok", copy.importOk(written === 0 ? matchedSkins.length : written));
+				} catch (error) {
+					const message = error instanceof PreferencesImportError ? copy.importErrorMessage(error.code) : error instanceof Error ? error.message : String(error);
+					announce("fail", copy.importFail(message));
+				}
+			};
+			const readFile = (file) => {
+				if (!/\.json$/i.test(file.name) && file.type !== "application/json") {
+					announce("fail", copy.importFail(copy.importErrorInvalidEnvelope));
+					return;
+				}
+				file.text().then(importText).catch((error) => {
+					announce("fail", copy.importFail(error instanceof Error ? error.message : String(error)));
+				});
+			};
+			const onImportClick = () => {
+				fileInput.current?.click();
+			};
+			const onFileChange = (event) => {
+				const file = event.currentTarget.files?.[0];
+				event.currentTarget.value = "";
+				if (file === void 0) return;
+				readFile(file);
+			};
+			const onDragOver = (event) => {
+				event.preventDefault();
+				if (event.dataTransfer.types.includes("Files")) setDragging(true);
+			};
+			const onDragLeave = (event) => {
+				event.preventDefault();
+				setDragging(false);
+			};
+			const onDrop = (event) => {
+				event.preventDefault();
+				setDragging(false);
+				const file = event.dataTransfer.files?.[0];
+				if (file === void 0) return;
+				readFile(file);
+			};
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+				className: skin_manager_module_css_default.card,
+				"data-dsh-skin-backup": true,
+				children: [
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: skin_manager_module_css_default.cardHeader,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.backupTitle })
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: skin_manager_module_css_default.hint,
+						children: copy.backupIntro
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: skin_manager_module_css_default.backupActions,
+						children: [
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: skin_manager_module_css_default.backupButton,
+								onClick: onExport,
+								children: copy.exportButton
+							}),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: skin_manager_module_css_default.backupButton,
+								onClick: onImportClick,
+								children: copy.importButton
+							}),
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
+								ref: fileInput,
+								type: "file",
+								accept: "application/json,.json",
+								className: skin_manager_module_css_default.fileInput,
+								onChange: onFileChange
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: `${skin_manager_module_css_default.dropZone} ${dragging ? skin_manager_module_css_default.dropZoneActive : ""}`,
+						onDragOver,
+						onDragLeave,
+						onDrop,
+						children: dragging ? copy.dropActive : copy.dropHint
+					}),
+					notice !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: notice.kind === "ok" ? skin_manager_module_css_default.hint : skin_manager_module_css_default.error,
+						children: notice.text
 					})
 				]
 			});
@@ -980,156 +1498,6 @@ window.__ModuleLoader__.load({
 			if (!response.ok || result.ok !== true) throw new Error(result.error ?? `HTTP ${response.status}`);
 			window.setTimeout(() => window.location.reload(), 1200);
 		}
-		//#endregion
-		//#region src/client/schedule.ts
-		const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
-		const DEFAULT_VISIBILITY_SCHEDULE = {
-			enabled: false,
-			outside: "visible",
-			ranges: []
-		};
-		function normalizeTimeRange(value) {
-			if (typeof value !== "object" || value === null) return null;
-			const { start, end } = value;
-			if (typeof start !== "string" || typeof end !== "string") return null;
-			if (!TIME.test(start) || !TIME.test(end) || start === end) return null;
-			return {
-				start,
-				end
-			};
-		}
-		function normalizeVisibilitySchedule(value, fallback = DEFAULT_VISIBILITY_SCHEDULE) {
-			const source = typeof value === "object" && value !== null ? value : {};
-			const ranges = Array.isArray(source.ranges) ? source.ranges.map(normalizeTimeRange).filter((range) => range !== null).slice(0, 24) : fallback.ranges;
-			return {
-				enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
-				outside: source.outside === "hidden" ? "hidden" : source.outside === "visible" ? "visible" : fallback.outside,
-				ranges
-			};
-		}
-		const minutes = (time) => {
-			const [hour = 0, minute = 0] = time.split(":").map(Number);
-			return hour * 60 + minute;
-		};
-		function isInTimeRange(range, minuteOfDay) {
-			const start = minutes(range.start);
-			const end = minutes(range.end);
-			return start < end ? minuteOfDay >= start && minuteOfDay < end : minuteOfDay >= start || minuteOfDay < end;
-		}
-		/** Resolve local-time visibility; ranges always invert the outside policy. */
-		function scheduleVisibility(schedule, now = /* @__PURE__ */ new Date()) {
-			if (!schedule.enabled) return true;
-			const minuteOfDay = now.getHours() * 60 + now.getMinutes();
-			const inside = schedule.ranges.some((range) => isInTimeRange(range, minuteOfDay));
-			const outsideVisible = schedule.outside === "visible";
-			return inside ? !outsideVisible : outsideVisible;
-		}
-		/** Wake at the next minute boundary; exact enough for minute-resolution rules. */
-		function millisecondsToNextMinute(now = /* @__PURE__ */ new Date()) {
-			return Math.max(50, 6e4 - now.getSeconds() * 1e3 - now.getMilliseconds() + 25);
-		}
-		//#endregion
-		//#region src/client/preferences.ts
-		const PREFERENCES_KEY = "dsh.skin-manager.preferences.v2";
-		const LEGACY_PREFERENCES_KEY = "dsh-deep-whale.skin-manager.v1";
-		function object(value) {
-			return typeof value === "object" && value !== null ? value : {};
-		}
-		function readJson(storage, key) {
-			try {
-				const raw = storage.getItem(key);
-				return raw === null ? void 0 : JSON.parse(raw);
-			} catch {
-				return;
-			}
-		}
-		function migrateLegacy(value) {
-			const root = object(value);
-			const maid = object(root.maid);
-			const orca = object(root.orca);
-			return {
-				"maid-atelier": {
-					artwork: maid.artwork,
-					font: maid.font,
-					modelExit: maid.modelExit
-				},
-				"orca-link": {
-					character: orca.character,
-					background: orca.background,
-					pricingLight: orca.pricingLight
-				}
-			};
-		}
-		function readPreferences(storage = localStorage) {
-			const current = readJson(storage, PREFERENCES_KEY);
-			if (typeof current === "object" && current !== null) return object(current);
-			return migrateLegacy(readJson(storage, LEGACY_PREFERENCES_KEY));
-		}
-		function normalizeSetting(setting, value) {
-			if (setting.type === "boolean") return typeof value === "boolean" ? value : setting.defaultValue;
-			if (setting.type === "select") return typeof value === "string" && setting.options.some((option) => option.value === value) ? value : setting.defaultValue;
-			if (setting.type === "range") {
-				const numeric = typeof value === "number" && Number.isFinite(value) ? value : setting.defaultValue;
-				const min = setting.min;
-				const max = setting.max;
-				return Math.min(max, Math.max(min, numeric));
-			}
-			if (setting.type === "color") return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : setting.defaultValue;
-			if (setting.type === "checkbox-group") {
-				const selected = new Set(Array.isArray(value) ? value : setting.defaultValue);
-				return setting.options.map((option) => option.value).filter((option) => selected.has(option));
-			}
-			return normalizeVisibilitySchedule(value, setting.defaultValue);
-		}
-		function settingSourceValue(setting, source) {
-			if (Object.hasOwn(source, setting.key)) return source[setting.key];
-			const legacy = setting.legacyValue;
-			if (legacy === void 0) return void 0;
-			const legacyValue = source[legacy.key];
-			if (typeof legacyValue !== "boolean" && typeof legacyValue !== "string" && typeof legacyValue !== "number") return;
-			const key = String(legacyValue);
-			return Object.hasOwn(legacy.map, key) ? legacy.map[key] : void 0;
-		}
-		function normalizeSkinValues(definition, value) {
-			const source = object(value);
-			return Object.fromEntries(definition.settings.map((setting) => [setting.key, normalizeSetting(setting, settingSourceValue(setting, source))]));
-		}
-		var PreferencesStore = class {
-			storage;
-			value;
-			listeners = /* @__PURE__ */ new Set();
-			onStorage = (event) => {
-				if (event.key !== "dsh.skin-manager.preferences.v2") return;
-				this.value = readPreferences(this.storage);
-				this.listeners.forEach((listener) => listener());
-			};
-			dispose;
-			constructor(storage = localStorage, target = window) {
-				this.storage = storage;
-				this.value = readPreferences(storage);
-				target.addEventListener("storage", this.onStorage);
-				this.dispose = () => target.removeEventListener("storage", this.onStorage);
-			}
-			subscribe = (listener) => {
-				this.listeners.add(listener);
-				return () => this.listeners.delete(listener);
-			};
-			values(definition) {
-				return normalizeSkinValues(definition, this.value[definition.skinId]);
-			}
-			set(definition, key, value) {
-				if (!definition.settings.some((setting) => setting.key === key)) return;
-				this.value = {
-					...this.value,
-					[definition.skinId]: {
-						...this.value[definition.skinId],
-						[key]: value
-					}
-				};
-				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
-				this.listeners.forEach((listener) => listener());
-			}
-		};
 		const SKIN_CUSTOMIZATION_EVENTS = {
 			[1]: {
 				register: "dsh:skin-customization-register-v1",
@@ -1184,6 +1552,27 @@ window.__ModuleLoader__.load({
 			}
 			set(definition, key, value) {
 				this.store.set(definition, key, value);
+			}
+			/** Raw preferences snapshot for export; never mutates store state. */
+			exportPreferences() {
+				return this.store.snapshot();
+			}
+			/**
+			* Replace every skin's preferences in one atomic write. Each block is
+			* normalized against its live definition so unknown keys and malformed
+			* values never reach the persisted store. Returns the number of skins
+			* actually written. Subscribers are notified once per call.
+			*/
+			importPreferences(incoming) {
+				const written = this.store.replace(this.snapshot.definitions, incoming);
+				if (written > 0) this.applyAll();
+				return written;
+			}
+			/** Remove every setting under one skin id; used by per-skin reset flows. */
+			resetSkin(skinId) {
+				const cleared = this.store.clearSkin(skinId);
+				if (cleared) this.applyAll();
+				return cleared;
 			}
 			dispose() {
 				for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
