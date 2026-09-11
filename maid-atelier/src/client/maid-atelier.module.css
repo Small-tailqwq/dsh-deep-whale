@@ -2001,7 +2001,23 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   transform: none !important;
 }
 
-body[data-dsh-maid-atelier] [data-phase='hero'] [class*='headlineText'] {
+/* 0.1.5-alpha.1 moved the title text and the preview badge into one
+   `.titleGroup` flex unit (HeroShell). Unwrap it inside the hero grid so the
+   text keeps the centred middle column and the badge returns to the trailing
+   column; the grid's column gap replaces the host's flex gap. The unit itself
+   also carries the middle-column placement, so engines that still box the
+   `display: contents` element centre the pair instead of auto-placing it into
+   the first track. */
+body[data-dsh-maid-atelier] [data-phase='hero']
+  [class*='headline']:has(> [class*='fish']) > [class*='titleGroup'] {
+  display: contents !important;
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+}
+
+body[data-dsh-maid-atelier] [data-phase='hero']
+  [class*='titleGroup'] > span:not([class*='previewBadge']) {
   position: static !important;
   grid-column: 2;
   grid-row: 2;
@@ -2033,7 +2049,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [class*='headline'] {
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-phase='hero'] [class*='headlineText'] {
+  [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge']) {
   color: #fffaf0;
   font-weight: 650;
   letter-spacing: 0.02em;
@@ -2975,13 +2991,18 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-terminal] {
   color: #edf1fa;
 }
 
-body[data-dsh-maid-atelier] [class*='userRow'] [class*='bubble'] {
+/* The host tooltip bubble shares the `bubble` substring and mounts inside this
+   row (the host does not portal it), so it must stay out of the porcelain
+   surface below: the tooltip keeps the host's own dark plate under a static
+   white label, which a light bubble background would render unreadable. */
+body[data-dsh-maid-atelier] [class*='userRow'] [class*='bubble']:not([role='tooltip']) {
   border: 1px solid rgba(197, 164, 104, 0.48);
   background: rgba(232, 237, 249, 0.95);
   box-shadow: 0 6px 20px rgba(19, 38, 87, 0.1);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [class*='userRow'] [class*='bubble'] {
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [class*='userRow'] [class*='bubble']:not([role='tooltip']) {
   background: rgba(30, 47, 90, 0.97);
 }
 
@@ -3979,6 +4000,24 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu
   box-shadow: var(--maid-shadow), inset 0 1px rgba(255, 255, 255, 0.08);
 }
 
+/* The host tooltip is not portalled: it mounts as a sibling of its control, so
+   it lands inside skin-decorated containers (message rows, sidebar rows,
+   composer tools) and any rule that decorates such a container by class-name
+   substring reaches it. Its paint pair stays host-styled — a static white
+   label on `--dsw-alias-tooltip-bg` — and the user-row bubble rule above used
+   to paint a porcelain plate under that label. Restore the pair here, at the
+   same overlay boundary that already owns menus and dialogs, and keep one
+   attribute more than the decoration rules so a later surface rule cannot
+   silently invert the label again. */
+body[data-dsh-maid-atelier] [class*='bubble'][role='tooltip'][data-side],
+body[data-dsh-maid-atelier] [role='tooltip'][data-side] {
+  border: 0;
+  background: var(--dsw-alias-tooltip-bg, #2c2c2e);
+  box-shadow: none;
+  color: var(--dsw-static-neutral-bluish-00, #fff);
+  text-shadow: none;
+}
+
 /* Keep the settings surface above the composer while leaving the composer
    visible as a dimmed, blurred background layer. The host tooltip reads
    viewport coordinates into a fixed-position bubble mounted inside this
@@ -4447,7 +4486,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
    monospace contract. The Lexical editor is the sole draft text surface. */
 html[data-dsh-whale-maid-font='serif']
   body[data-dsh-maid-atelier]
-  :is([data-chat-flow], [class*='userRow'] [class*='bubble']) {
+  :is([data-chat-flow], [class*='userRow'] [class*='bubble']:not([role='tooltip'])) {
   --dsw-font-family: Georgia, 'Times New Roman', 'Songti SC',
     'Noto Serif SC', 'Noto Serif CJK SC', STSong, SimSun, serif;
   font-family: var(--dsw-font-family);

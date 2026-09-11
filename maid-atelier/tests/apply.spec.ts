@@ -1024,6 +1024,28 @@ describe('Maid Atelier skin apply', () => {
     expect(frameRule).toContain('z-index: 4')
   })
 
+  it('keeps the host tooltip pair readable inside decorated message rows', () => {
+    // The host tooltip is not portalled: it mounts inside the user row, and its
+    // class name shares the `bubble` substring with the user bubble. Every
+    // surface written for that bubble must exclude it, and the overlay boundary
+    // restores the host's white-on-dark pair for whatever decoration still
+    // reaches the bubble.
+    const bubbleGuards = [
+      ...CSS.matchAll(/\[class\*='userRow'\] \[class\*='bubble'\]([^{]*)\{/g),
+    ].map(([, guard = '']) => guard)
+    const tooltipRule = CSS.match(
+      /\[role='tooltip'\]\[data-side\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(bubbleGuards.length).toBeGreaterThan(0)
+    for (const guard of bubbleGuards) {
+      expect(guard).toContain(":not([role='tooltip'])")
+    }
+    expect(tooltipRule).toContain('background: var(--dsw-alias-tooltip-bg')
+    expect(tooltipRule).toContain('color: var(--dsw-static-neutral-bluish-00')
+    expect(tooltipRule).toContain('border: 0')
+    expect(tooltipRule).toContain('box-shadow: none')
+  })
+
   it('paints the sidebar double rule without shrinking the collapsed rail', () => {
     const sidebarRule = CSS.match(
       /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
@@ -1094,13 +1116,22 @@ describe('Maid Atelier skin apply', () => {
     const sendRule = CSS.match(
       /\[data-composer-card\] button\[class\*='primary'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const titleGroupRule = CSS.match(
+      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\) > \[class\*='titleGroup'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     const titleRule = CSS.match(
-      /\[data-phase='hero'\] \[class\*='headlineText'\]\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\]\s*\[data-phase='hero'\]\s*\[class\*='titleGroup'\] > span:not\(\[class\*='previewBadge'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const previewRule = CSS.match(
       /\[data-phase='hero'\] \[class\*='previewBadge'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(headlineRule).toContain('grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr)')
+    // 0.1.5-alpha.1 wrapped the title text and the preview badge in one
+    // `.titleGroup` unit; the grid only owns the middle column if that
+    // wrapper stops generating a box. The retired `headlineText` span must
+    // not survive as a second path, or the next host swap passes unnoticed.
+    expect(titleGroupRule).toContain('display: contents')
+    expect(CSS).not.toContain('headlineText')
     expect(titleRule).toContain('grid-column: 2')
     expect(previewRule).toContain('grid-column: 3')
     expect(previewRule).toContain('justify-self: start')
@@ -1115,7 +1146,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the dark hero title and preview badge legible over the night palace', () => {
     const titleRule = CSS.match(
-      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\]\s*\[data-phase='hero'\] \[class\*='headlineText'\]\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\]\s*\[data-phase='hero'\] \[class\*='titleGroup'\] > span:not\(\[class\*='previewBadge'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const badgeRule = CSS.match(
       /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\]\s*\[data-phase='hero'\] \[class\*='previewBadge'\]\s*\{([^}]*)\}/s,
