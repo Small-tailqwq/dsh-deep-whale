@@ -81,7 +81,9 @@ html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-m
   html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] {
     --maid-boot-figure-height: min(34dvh, 260px);
     grid-template-areas: 'left right' 'report report';
-    grid-template-columns: repeat(2, minmax(0, 240px));
+    /* Two fixed 240px tracks plus the gap need 504px, so every phone either
+       clipped the report or scrolled it sideways. Share the row instead. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
     column-gap: 24px;
     row-gap: 12px;
@@ -96,5 +98,23 @@ html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-m
   html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] > div {
     margin-top: 0;
     max-height: none;
+  }
+}
+
+/* Phones: stop sharing the row between the two figures, so the report keeps a
+   readable measure instead of three squeezed columns. */
+@media (max-width: 420px) {
+  html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error] {
+    --maid-boot-figure-height: min(22dvh, 150px);
+    grid-template-areas: 'report' 'left' 'right';
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error]::before,
+  html:not([data-dsh-whale-maid-art='hidden']) body[data-dsh-maid-atelier] [data-maid-boot-error]::after {
+    width: min(100%, 200px);
+    height: var(--maid-boot-figure-height);
+    justify-self: center;
   }
 }
