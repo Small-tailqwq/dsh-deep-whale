@@ -471,6 +471,7 @@ export function apply(ctx: Context): void {
   let observer: MutationObserver | undefined
   let titlebarOverlay: WindowControlsOverlay | undefined
   let syncTitlebarHeight: (() => void) | undefined
+  let titlebarSyncFrame: number | undefined
   let disposeMaidTableCards = (): void => {}
 
   ctx.effect(() => () => {
@@ -499,6 +500,8 @@ export function apply(ctx: Context): void {
     if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
       titlebarOverlay.removeEventListener('geometrychange', syncTitlebarHeight)
     }
+    if (titlebarSyncFrame !== undefined) cancelAnimationFrame(titlebarSyncFrame)
+    titlebarSyncFrame = undefined
     resizeObserver?.disconnect()
     for (const [property, value] of previous) {
       body.style.setProperty(property, value)
@@ -612,7 +615,11 @@ export function apply(ctx: Context): void {
   widthSheet.dataset.skinOwner = SKIN_OWNER
   ownedNodes.add(widthSheet)
   document.head.append(widthSheet)
-  widthSheet.sheet!.insertRule(`body[data-dsh-maid-atelier] :is(${SIDEBAR_COLUMN_SELECTOR}, [data-cordis-panel], [data-maid-settings-backdrop-frame], [data-maid-table-lightbox]) { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: 72.1px; --maid-sidebar-mascot-width: 229.6px; }`)
+  // Only `--maid-sidebar-width` is written at runtime: the drawer animates it
+  // every frame, and each additional CSSOM write is another style invalidation
+  // through the same rule. The two consumers that used to be mirrored from it
+  // are derived here instead, where they cost nothing per frame.
+  widthSheet.sheet!.insertRule(`body[data-dsh-maid-atelier] :is(${SIDEBAR_COLUMN_SELECTOR}, [data-cordis-panel], [data-maid-settings-backdrop-frame], [data-maid-table-lightbox]) { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: clamp(54px, calc(var(--maid-sidebar-width) * 0.2575), 94px); --maid-sidebar-mascot-width: min(320px, calc(var(--maid-sidebar-width) * 0.82)); }`)
   // The official frame rules reference env(titlebar-area-height), but the
   // CSS-modules pipeline rewrites the env() identifier there too, so the
   // title-bar row silently falls back to an auto row: expanding the sidebar
@@ -641,7 +648,7 @@ export function apply(ctx: Context): void {
   // it) is authoritative: whatever the title-bar height is — WCO env(), the
   // desktop 32px row, or a scaled window — the curtain lands exactly on the
   // rendered boundary, never a pixel off.
-  syncTitlebarHeight = (): void => {
+  const measureTitlebarHeight = (): void => {
     const columns = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (columns !== null) {
       const top = columns.getBoundingClientRect().top
@@ -661,9 +668,21 @@ export function apply(ctx: Context): void {
     }
     setRuleProperty(titlebarRule, '--maid-titlebar-height', '0px')
   }
+  // `geometrychange` and every sidebar structural mutation can land in the same
+  // frame, and each pass reads the column box (forcing layout) and then writes
+  // CSSOM (invalidating it again). Coalesce them into one measure and one write
+  // per frame; the first run stays synchronous so the curtain never starts a
+  // frame without its offset.
+  syncTitlebarHeight = (): void => {
+    if (titlebarSyncFrame !== undefined) return
+    titlebarSyncFrame = requestAnimationFrame(() => {
+      titlebarSyncFrame = undefined
+      measureTitlebarHeight()
+    })
+  }
   titlebarOverlay = navigator.windowControlsOverlay
   titlebarOverlay?.addEventListener('geometrychange', syncTitlebarHeight)
-  syncTitlebarHeight()
+  measureTitlebarHeight()
 
   const applySidebarWidth = (width: number): void => {
     if (width <= 0) return
@@ -679,24 +698,31 @@ export function apply(ctx: Context): void {
       && body.hasAttribute('data-maid-sidebar-compact') === compact) {
       return
     }
+    // The drawer animates this property frame by frame; the swag height and
+    // the mascot width are derived from it in CSS, so one write moves every
+    // dependent. Writing all three here cost three style invalidations per
+    // frame for the same visual result.
     setRuleProperty(widthRule, '--maid-sidebar-width', roundPx(width))
-    setRuleProperty(widthRule, '--maid-sidebar-swag-height', roundPx(Math.min(94, Math.max(54, width * 0.2575))))
-    setRuleProperty(widthRule, '--maid-sidebar-mascot-width', roundPx(Math.min(320, width * 0.82)))
     if (body.dataset.maidSidebarSize !== nextSize) body.dataset.maidSidebarSize = nextSize
-    body.toggleAttribute('data-maid-sidebar-compact', compact)
+    if (body.hasAttribute('data-maid-sidebar-compact') !== compact) {
+      body.toggleAttribute('data-maid-sidebar-compact', compact)
+    }
   }
 
   const clearSidebarWidth = (): void => {
     setRuleProperty(widthRule, '--maid-sidebar-width', '0px')
-    setRuleProperty(widthRule, '--maid-sidebar-swag-height', '54px')
-    setRuleProperty(widthRule, '--maid-sidebar-mascot-width', '0px')
     if (body.dataset.maidSidebarSize !== 'rail') body.dataset.maidSidebarSize = 'rail'
-    body.toggleAttribute('data-maid-sidebar-compact', true)
+    if (!body.hasAttribute('data-maid-sidebar-compact')) {
+      body.toggleAttribute('data-maid-sidebar-compact', true)
+    }
   }
 
   const syncProjectedState = (): void => {
+    // A same-value attribute write is still a mutation record and still makes
+    // every `body[...]`-prefixed rule re-match its whole subtree, so the
+    // projection only writes the delta.
     const set = (attribute: string, active: boolean): void => {
-      body.toggleAttribute(attribute, active)
+      if (body.hasAttribute(attribute) !== active) body.toggleAttribute(attribute, active)
     }
     set(
       PROJECTED_STATE_ATTRIBUTES.activeChat,
