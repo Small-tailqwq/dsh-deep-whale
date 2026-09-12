@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { type SkinCatalogEntry, type SkinTarget, type SkinVersionInfo, SKIN_MANAGER_ROUTE } from '../contract.ts'
 import type {
   SkinCustomizationDefinition,
@@ -9,6 +9,13 @@ import type {
 } from '../protocol.ts'
 import { SkinCustomizationRegistry } from './runtime.ts'
 import { definitionTitle, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
+import {
+  buildPreferencesExport,
+  defaultExportFileName,
+  importPreferencesFromText,
+  PreferencesImportError,
+  serializePreferencesExport,
+} from './transfer.ts'
 import css from './skin-manager.module.css'
 
 export interface SkinManagerInjected {
@@ -520,10 +527,23 @@ function CustomizationCard({ definition, registry }: {
   registry: SkinCustomizationRegistry
 }) {
   const lang = useUiLang()
+  const copy = skinManagerCopy(lang)
   const values = registry.values(definition)
+  const onReset = (): void => {
+    if (window.confirm(copy.resetSkinConfirm)) registry.resetSkin(definition.skinId)
+  }
   return (
     <section className={css.card} data-skin-customization={definition.skinId}>
-      <h3>{definitionTitle(definition, lang)}</h3>
+      <div className={css.cardHeader}>
+        <h3>{definitionTitle(definition, lang)}</h3>
+        <button
+          type="button"
+          className={css.resetButton}
+          onClick={onReset}
+        >
+          {copy.resetSkinButton}
+        </button>
+      </div>
       {definition.settings.map(setting => {
         if (!settingVisible(setting, values)) return null
         const disabled = setting.disabledWhen !== undefined && values[setting.disabledWhen] === true
@@ -692,7 +712,144 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
           <p className={css.hint}>{copy.noSettings}</p>
         </section>
       )}
+      <BackupCard registry={registry} />
     </div>
+  )
+}
+
+/**
+ * Backup & restore card: export the full preferences snapshot as a versioned
+ * JSON file, import one back (file picker or drag-and-drop), and surface the
+ * outcome through the same hint/error surface the rest of the manager uses.
+ */
+function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
+  const lang = useUiLang()
+  const copy = skinManagerCopy(lang)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'fail', text: string } | null>(null)
+  const live = useRef(true)
+  const noticeTimer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    live.current = true
+    return () => {
+      live.current = false
+      if (noticeTimer.current !== undefined) window.clearTimeout(noticeTimer.current)
+    }
+  }, [])
+
+  const announce = (kind: 'ok' | 'fail', text: string): void => {
+    if (!live.current) return
+    setNotice({ kind, text })
+    if (noticeTimer.current !== undefined) window.clearTimeout(noticeTimer.current)
+    noticeTimer.current = window.setTimeout(() => {
+      if (live.current) setNotice(null)
+    }, 4_000)
+  }
+
+  const onExport = (): void => {
+    try {
+      const exported = buildPreferencesExport(registry.exportPreferences())
+      const text = serializePreferencesExport(exported)
+      const filename = defaultExportFileName()
+      const blob = new Blob([text], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      anchor.rel = 'noopener'
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      announce('ok', copy.exportOk)
+    } catch (error) {
+      announce('fail', copy.importFail(error instanceof Error ? error.message : String(error)))
+    }
+  }
+
+  const importText = (raw: string): void => {
+    try {
+      const { preferences, matchedSkins } = importPreferencesFromText(raw, registry.getSnapshot().definitions)
+      const written = registry.importPreferences(preferences)
+      announce('ok', copy.importOk(written === 0 ? matchedSkins.length : written))
+    } catch (error) {
+      const message = error instanceof PreferencesImportError
+        ? copy.importErrorMessage(error.code)
+        : error instanceof Error ? error.message : String(error)
+      announce('fail', copy.importFail(message))
+    }
+  }
+
+  const readFile = (file: File): void => {
+    if (!/\.json$/i.test(file.name) && file.type !== 'application/json') {
+      announce('fail', copy.importFail(copy.importErrorInvalidEnvelope))
+      return
+    }
+    file.text().then(importText).catch((error: unknown) => {
+      announce('fail', copy.importFail(error instanceof Error ? error.message : String(error)))
+    })
+  }
+
+  const onImportClick = (): void => {
+    fileInput.current?.click()
+  }
+
+  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.currentTarget.files?.[0]
+    event.currentTarget.value = ''
+    if (file === undefined) return
+    readFile(file)
+  }
+
+  const onDragOver = (event: ReactDragEvent<HTMLDivElement>): void => {
+    event.preventDefault()
+    if (event.dataTransfer.types.includes('Files')) setDragging(true)
+  }
+
+  const onDragLeave = (event: ReactDragEvent<HTMLDivElement>): void => {
+    event.preventDefault()
+    setDragging(false)
+  }
+
+  const onDrop = (event: ReactDragEvent<HTMLDivElement>): void => {
+    event.preventDefault()
+    setDragging(false)
+    const file = event.dataTransfer.files?.[0]
+    if (file === undefined) return
+    readFile(file)
+  }
+
+  return (
+    <section className={css.card} data-dsh-skin-backup>
+      <div className={css.cardHeader}>
+        <h3>{copy.backupTitle}</h3>
+      </div>
+      <p className={css.hint}>{copy.backupIntro}</p>
+      <div className={css.backupActions}>
+        <button type="button" className={css.backupButton} onClick={onExport}>{copy.exportButton}</button>
+        <button type="button" className={css.backupButton} onClick={onImportClick}>{copy.importButton}</button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          className={css.fileInput}
+          onChange={onFileChange}
+        />
+      </div>
+      <div
+        className={`${css.dropZone} ${dragging ? css.dropZoneActive : ''}`}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        {dragging ? copy.dropActive : copy.dropHint}
+      </div>
+      {notice !== null && (
+        <p className={notice.kind === 'ok' ? css.hint : css.error}>{notice.text}</p>
+      )}
+    </section>
   )
 }
 

@@ -25,7 +25,9 @@ function activeSkin(catalog: SkinCatalogEntry[]): string {
 export function apply(ctx: SlotsContext): void {
   const store = new PreferencesStore()
   const registry = new SkinCustomizationRegistry(store)
-  ctx.effect(() => () => registry.dispose(), 'ui-skin-manager: customization registry')
+  ctx.effect(() => () => {
+    registry.dispose()
+  }, 'ui-skin-manager: customization registry')
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'dsh-skins',

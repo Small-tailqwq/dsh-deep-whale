@@ -45,7 +45,7 @@ const SIDEBAR_BASE_RULE = block(
   /body\[data-dsh-orca-link\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
 )
 const SIDEBAR_CHILDREN_RULE = block(
-  /body\[data-dsh-orca-link\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*>\s*:not\(\[role='tooltip'\]\)\s*\{([^}]*)\}/,
+  /body\[data-dsh-orca-link\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*>\s*:not\(\[role='tooltip'\][^)]*\)\s*\{([^}]*)\}/,
 )
 
 describe('ORCA LINK cordis panel stacking', () => {

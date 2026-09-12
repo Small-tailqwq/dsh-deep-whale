@@ -5,6 +5,7 @@ import {
   SKIN_CUSTOMIZATION_EVENTS,
   SKIN_CUSTOMIZATION_PROTOCOL,
   SkinAttributeProjector,
+  type SkinCustomizationDefinition,
   type SkinCustomizationRegistration,
   type SkinCustomizationState,
 } from '../src/protocol.ts'
@@ -104,5 +105,58 @@ describe('customization registry', () => {
     projector.release()
     expect(document.documentElement.getAttribute('data-example')).toBe('later-owner')
     document.documentElement.removeAttribute('data-example')
+  })
+})
+
+describe('registry export / import / reset', () => {
+  const definition: SkinCustomizationDefinition = {
+    protocol: 2,
+    skinId: 'example',
+    title: 'Example',
+    settings: [
+      { key: 'artwork', type: 'boolean', label: 'Artwork', defaultValue: true },
+      { key: 'font', type: 'select', label: 'Font', defaultValue: 'system', options: [{ value: 'system', label: 'System' }, { value: 'serif', label: 'Serif' }] },
+    ],
+    apply() {},
+  }
+
+  function makeRegistry(): SkinCustomizationRegistry {
+    // Seed the v2 preferences key so the legacy v1 migration does not inject
+    // maid-atelier/orca-link blocks with undefined values.
+    const storage = new MemoryStorage()
+    storage.setItem('dsh.skin-manager.preferences.v2', '{}')
+    const store = new PreferencesStore(storage, window)
+    const registry = new SkinCustomizationRegistry(store, window)
+    window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[2].register, {
+      detail: { token: {}, definition } satisfies SkinCustomizationRegistration,
+    }))
+    return registry
+  }
+
+  it('exportPreferences returns the raw snapshot', () => {
+    const registry = makeRegistry()
+    registry.set(definition, 'artwork', false)
+    expect(registry.exportPreferences()).toEqual({ example: { artwork: false } })
+    registry.dispose()
+  })
+
+  it('importPreferences normalizes and re-applies', () => {
+    const registry = makeRegistry()
+    const written = registry.importPreferences({ example: { artwork: 'bad', font: 'serif' }, 'unknown-skin': { x: 1 } })
+    expect(written).toBe(1)
+    // The normalized values surface through values(); the raw snapshot stores
+    // only the explicitly-written keys, so font is now persisted.
+    expect(registry.values(definition)).toEqual({ artwork: true, font: 'serif' })
+    registry.dispose()
+  })
+
+  it('resetSkin clears one skin and re-applies defaults', () => {
+    const registry = makeRegistry()
+    registry.set(definition, 'artwork', false)
+    expect(registry.resetSkin('example')).toBe(true)
+    expect(registry.exportPreferences().example).toBeUndefined()
+    expect(registry.values(definition).artwork).toBe(true)
+    expect(registry.resetSkin('example')).toBe(false)
+    registry.dispose()
   })
 })
