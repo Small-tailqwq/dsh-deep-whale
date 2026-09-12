@@ -470,61 +470,52 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
   }
 }
 
-/* The trim backs the conversation header with the navy band. Keep the native
-   controls above it and restate their foregrounds for the dark surface. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] {
+/* The session-header slot owns the navy band; nested panel headers keep their
+   own palette. Native controls consume the paired chrome tokens below, so the
+   decoration no longer needs a blanket `color: inherit` over every descendant
+   div/span/button — that rule also reached in-place overlays (role=dialog or
+   role=menu mounted inside this header) and overrode their own reading
+   palette. Every descendant-shaped rule here carries the overlay guard. */
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header {
   position: relative;
   z-index: 21;
   color: #f8f3e8;
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is(nav, span, button, a, div):not(:where([role='menu'], [role='menu'] *)) {
-  color: inherit;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  button:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)) {
   text-shadow: inherit;
 }
 
-/* In-place menus have their own surface and foreground palette. */
-body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [role='menu'] {
-  text-shadow: none;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'] {
-  color: #d7def0;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true'] {
-  color: #fff7e6;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true']::after {
-  background: var(--maid-gold);
-  box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
-}
-
-/* Secondary readouts (counters, captions, meta) step down in brightness. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is([class*='counter'], [class*='caption'], [class*='meta']) {
-  color: #b5c1dd;
-}
-
-/* Header icon buttons and the reroll action keep the gold trim. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):not(:where([role='menu'] *)):hover {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  button:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)):not([role='tab']):hover {
   color: var(--maid-gold-soft);
 }
 
-body[data-dsh-maid-atelier]
-  :is([data-pane='conversation'], [class*='centerCol'])
-  header[class*='header'] button:not([role='tab']):focus-visible {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  button:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)):not([role='tab']):focus-visible {
   border-radius: 4px;
   outline: 1px solid rgba(235, 204, 143, 0.86);
   outline-offset: 2px;
   box-shadow: 0 0 0 2px rgba(6, 17, 48, 0.68);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [class*='reroll'] {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header > [role='tablist'] > button[role='tab'] {
+  color: #d7def0;
+}
+
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header > [role='tablist'] > button[role='tab'][aria-selected='true'] {
+  color: #fff7e6;
+}
+
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header > [role='tablist'] > button[role='tab'][aria-selected='true']::after {
+  background: var(--maid-gold);
+  box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
+}
+
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  [class*='reroll']:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)) {
   border-color: rgba(225, 191, 124, 0.55);
   background: rgba(255, 252, 243, 0.08);
 }
@@ -1115,15 +1106,18 @@ body[data-dsh-maid-atelier]
   margin-top: 0;
 }
 
-/* sidebar.footer.action is the host's extension boundary. Keep its surface
-   and label tokens on the same navy palette so third-party cards cannot pair
-   the sidebar's porcelain text with the light application's panel fills. */
+/* Navy chrome gives extension controls matching surface and label tokens.
+   Menus and dialogs establish their own theme palette at the overlay root. */
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header,
 body[data-dsh-maid-atelier] [data-slot='sidebar.footer.action'] {
   --dsw-alias-bg-base: rgba(5, 14, 43, 0.96);
   --dsw-alias-bg-layer-1: rgba(16, 36, 86, 0.94);
   --dsw-alias-bg-layer-2: rgba(11, 25, 66, 0.97);
   --dsw-alias-bg-layer-3: rgba(24, 40, 80, 0.98);
+  --dsw-alias-bg-overlay: rgba(13, 25, 59, 0.98);
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3);
   --dsw-alias-label-primary: #f8f3e8;
+  --dsw-alias-label-primary-bluish: #d5dff3;
   --dsw-alias-label-secondary: #d7def0;
   --dsw-alias-label-tertiary: #b5c1dd;
   --dsw-alias-label-caption: #96a8ce;
@@ -1842,6 +1836,16 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     border: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
+  }
+
+  /* Touch taps retain the host's hover/focus tooltip; keyboard focus still
+     needs its label on the phone navigation toggle. */
+  @media (hover: none) {
+    html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+      :is([data-pane='sidebar'], [class*='sidebarCol'])
+      [class*='logoRow'] > button[class*='toggle']:not(:focus-visible) + [role='tooltip'] {
+      display: none !important;
+    }
   }
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
@@ -4503,16 +4507,25 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], 
   box-shadow: 0 0 0 2px rgba(7, 18, 48, 0.72);
 }
 
-/* Overlay surfaces (dialogs, menus, poppers) are portaled into the sidebar
-   DOM and would inherit its light-on-dark tokens; reset them to the skin's
-   body-level palette so light mode keeps dark text on the light panel. */
+/* Both inline and portaled overlays own a complete theme palette. Opaque
+   reading surfaces cover the transcript, and rebinding the menu alias here
+   keeps it from inheriting a value already resolved against the page/chrome
+   tokens: the Agent Team panel mounts inside the conversation header and
+   paints itself with `--dsw-specific-menu`. */
 body[data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [data-radix-popper-content-wrapper] > *) {
   color: var(--dsw-alias-label-primary, #172347);
+  text-shadow: none;
+  --dsw-alias-bg-base: #f8faff;
+  --dsw-alias-bg-layer-1: #f8faff;
+  --dsw-alias-bg-layer-2: #ebf0fa;
+  --dsw-alias-bg-layer-3: #e0e7f6;
+  --dsw-alias-bg-overlay: #f8faff;
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3);
   --dsw-alias-label-primary: #172347;
   --dsw-alias-label-primary-bluish: #243866;
   --dsw-alias-label-secondary: #4d5d7f;
-  --dsw-alias-label-tertiary: #6f7c99;
-  --dsw-alias-label-caption: #8a94aa;
+  --dsw-alias-label-tertiary: #52658c;
+  --dsw-alias-label-caption: #55688c;
   --dsw-alias-border-l1: rgba(71, 91, 145, 0.18);
   --dsw-alias-border-l2-darkmode-thin: rgba(71, 91, 145, 0.25);
   --dsw-alias-border-l2: rgba(71, 91, 145, 0.3);
@@ -4529,11 +4542,17 @@ body[data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [data-radix-popp
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu'], [data-radix-popper-content-wrapper] > *) {
   color: var(--dsw-alias-label-primary, #e7ecf7);
+  --dsw-alias-bg-base: #0d193b;
+  --dsw-alias-bg-layer-1: #121f43;
+  --dsw-alias-bg-layer-2: #182850;
+  --dsw-alias-bg-layer-3: #20315b;
+  --dsw-alias-bg-overlay: #0d193b;
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3);
   --dsw-alias-label-primary: #e7ecf7;
   --dsw-alias-label-primary-bluish: #d5dff3;
   --dsw-alias-label-secondary: #bdc9e3;
   --dsw-alias-label-tertiary: #96a6c9;
-  --dsw-alias-label-caption: #7f90b4;
+  --dsw-alias-label-caption: #8b9bbd;
   --dsw-alias-border-l1: rgba(151, 169, 216, 0.2);
   --dsw-alias-border-l2-darkmode-thin: rgba(151, 169, 216, 0.3);
   --dsw-alias-border-l2: rgba(151, 169, 216, 0.34);

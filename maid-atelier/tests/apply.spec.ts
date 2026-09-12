@@ -1501,7 +1501,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps internal tool-card headers out of the navy page-header treatment', () => {
     const pageHeaderRule = CSS.match(
-      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+      /\[data-slot='conversation.session.header'\] > header\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const terminalRule = CSS.match(/\[data-terminal\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const darkTerminalRule = CSS.match(
@@ -1669,7 +1669,7 @@ describe('Maid Atelier skin apply', () => {
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const conversationHeaderRule = CSS.match(
-      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+      /\[data-slot='conversation.session.header'\] > header\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const composerRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const obscuredComposerRule = CSS.match(
