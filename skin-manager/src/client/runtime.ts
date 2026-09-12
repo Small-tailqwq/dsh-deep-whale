@@ -8,7 +8,7 @@ import {
   type SkinSettingValue,
   type VisibilitySchedule,
 } from '../protocol.ts'
-import { PreferencesStore } from './preferences.ts'
+import { PreferencesStore, type Preferences } from './preferences.ts'
 import { millisecondsToNextMinute, scheduleVisibility } from './schedule.ts'
 
 export interface RegistrySnapshot {
@@ -53,6 +53,30 @@ export class SkinCustomizationRegistry {
 
   set(definition: SkinCustomizationDefinition, key: string, value: SkinSettingValue): void {
     this.store.set(definition, key, value)
+  }
+
+  /** Raw preferences snapshot for export; never mutates store state. */
+  exportPreferences(): Preferences {
+    return this.store.snapshot()
+  }
+
+  /**
+   * Replace every skin's preferences in one atomic write. Each block is
+   * normalized against its live definition so unknown keys and malformed
+   * values never reach the persisted store. Returns the number of skins
+   * actually written. Subscribers are notified once per call.
+   */
+  importPreferences(incoming: Preferences): number {
+    const written = this.store.replace(this.snapshot.definitions, incoming)
+    if (written > 0) this.applyAll()
+    return written
+  }
+
+  /** Remove every setting under one skin id; used by per-skin reset flows. */
+  resetSkin(skinId: string): boolean {
+    const cleared = this.store.clearSkin(skinId)
+    if (cleared) this.applyAll()
+    return cleared
   }
 
   dispose(): void {

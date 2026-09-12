@@ -639,6 +639,88 @@
   font-size: 12px;
 }
 
+/* Backup & restore: export/import JSON, drag-and-drop, per-skin reset. */
+.backupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.backupButton {
+  min-height: 32px;
+  padding: 6px 14px;
+  color: var(--dsw-alias-label-primary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.backupButton:hover:not(:disabled) {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.backupButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.dropZone {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.dropZoneActive {
+  border-color: var(--dsw-alias-brand-primary);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.cardHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resetButton {
+  min-height: 26px;
+  padding: 3px 10px;
+  color: var(--dsw-alias-label-tertiary);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.resetButton:hover:not(:disabled) {
+  color: var(--dsw-alias-state-danger, #c43d3d);
+  border-color: var(--dsw-alias-state-danger, #c43d3d);
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 720px) {
   .skinGrid {
     grid-template-columns: 1fr;

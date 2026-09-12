@@ -127,4 +127,42 @@ export class PreferencesStore {
     this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value))
     this.listeners.forEach(listener => listener())
   }
+
+  /** Full raw preferences snapshot for export; never mutates store state. */
+  snapshot(): Preferences {
+    return this.value
+  }
+
+  /**
+   * Replace every skin's preferences in one atomic write. Each skin block is
+   * normalized against its live definition so unknown keys, removed settings
+   * and malformed values never reach the persisted store. Returns the number
+   * of skin blocks actually stored.
+   */
+  replace(definitions: Iterable<SkinCustomizationDefinition>, incoming: Preferences): number {
+    const next: Preferences = { ...this.value }
+    let written = 0
+    for (const definition of definitions) {
+      const block = incoming[definition.skinId]
+      if (block === undefined) continue
+      next[definition.skinId] = normalizeSkinValues(definition, block)
+      written += 1
+    }
+    if (written === 0) return 0
+    this.value = next
+    this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value))
+    this.listeners.forEach(listener => listener())
+    return written
+  }
+
+  /** Remove every setting under one skin id; used by per-skin reset flows. */
+  clearSkin(skinId: string): boolean {
+    if (this.value[skinId] === undefined) return false
+    const next = { ...this.value }
+    delete next[skinId]
+    this.value = next
+    this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value))
+    this.listeners.forEach(listener => listener())
+    return true
+  }
 }
