@@ -10,6 +10,9 @@ const ATTR_FONT = 'data-dsh-whale-maid-font'
 const ATTR_MODEL_EXIT = 'data-dsh-whale-maid-model-exit'
 const ATTR_MODEL = 'data-dsh-whale-model'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
+const ATTR_NAV_MODE = 'data-maid-nav-mode'
+/** Navigation layouts the stylesheet implements; anything else falls back to the default. */
+const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
 
 export function modelFamily(name: string): 'pro' | 'flash' | 'flash-vision' | null {
   const compact = name.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -112,6 +115,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     projector.set(ATTR_FONT, state.values.font === 'serif' ? 'serif' : 'system')
     synchronizeModelMode()
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
+    const navMode = state.values.mobileNav
+    projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
   }
 
   return exposeSkinCustomization({
@@ -160,6 +165,20 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         label: '移动端根据所选模型显示立绘',
         labelEn: 'Show artwork based on the selected model on mobile',
         defaultValue: true,
+      },
+      {
+        key: 'mobileNav',
+        type: 'select',
+        label: '移动端导航方式',
+        labelEn: 'Phone navigation layout',
+        description: '仅影响竖屏手机（宽度 ≤700px）：左上角品牌图标（默认）、横向顶栏，或宿主原本的纵向侧栏。桌面与横屏不受影响。',
+        descriptionEn: 'Portrait phones only (≤700px wide): a brand mark in the top-left corner (default), a horizontal top bar, or the host\u2019s own vertical column. Desktop and landscape are untouched.',
+        defaultValue: 'corner',
+        options: [
+          { value: 'corner', label: '左上角品牌图标', labelEn: 'Brand mark · top-left corner' },
+          { value: 'topbar', label: '横向顶栏', labelEn: 'Horizontal top bar' },
+          { value: 'rail', label: '纵向侧栏（宿主默认）', labelEn: 'Vertical column (host default)' },
+        ],
       },
       {
         key: 'composerMode',

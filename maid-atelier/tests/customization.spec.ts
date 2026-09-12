@@ -11,7 +11,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   document.body.innerHTML = ''
   for (const attribute of [...document.documentElement.attributes]) {
-    if (attribute.name.startsWith('data-dsh-whale-') || attribute.name.startsWith('data-maid-composer-')) {
+    if (attribute.name.startsWith('data-dsh-whale-') || attribute.name.startsWith('data-maid-composer-') || attribute.name.startsWith('data-maid-nav-')) {
       document.documentElement.removeAttribute(attribute.name)
     }
   }
@@ -24,9 +24,9 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'modelExit', 'mobileModelExit', 'composerMode'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'modelExit', 'mobileModelExit', 'mobileNav', 'composerMode'])
     const state = {
-      values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, composerMode: 'scroll' }),
+      values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },
     }
     document.body.innerHTML = '<div data-composer-card><button aria-haspopup="menu" title="DeepSeek-V4-Flash-Vision-Exp">DeepSeek-V4-Flash-Vision-Ex</button></div>'
@@ -35,6 +35,7 @@ describe('maid customization declaration', () => {
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-art')).toBe('hidden')
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-font')).toBe('serif')
     expect(document.documentElement.getAttribute('data-maid-composer-mode')).toBe('scroll')
+    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('topbar')
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-model-exit')).toBe('disabled')
     width.mockReturnValue(420)
     window.dispatchEvent(new Event('resize'))
@@ -55,6 +56,7 @@ describe('maid customization declaration', () => {
     expect(document.documentElement.hasAttribute('data-dsh-whale-model')).toBe(false)
     expect(document.documentElement.hasAttribute('data-dsh-whale-maid-art')).toBe(false)
     expect(document.documentElement.hasAttribute('data-maid-composer-mode')).toBe(false)
+    expect(document.documentElement.hasAttribute('data-maid-nav-mode')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
 
@@ -69,6 +71,32 @@ describe('maid customization declaration', () => {
     expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.label) : []).toEqual(['始终显示', '空态胶囊（点击展开）', '上滚隐去 · 下滚渐现'])
     expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.labelEn) : []).toEqual(['Always visible', 'Idle capsule (click to expand)', 'Hide on scroll up · show on scroll down'])
     dispose()
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('exposes the phone navigation layouts and defaults to the corner mark', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    const mobileNav = definition.settings.find(setting => setting.key === 'mobileNav')
+    expect(mobileNav?.type).toBe('select')
+    expect(mobileNav?.defaultValue).toBe('corner')
+    expect(mobileNav && mobileNav.type === 'select' ? mobileNav.options.map(option => option.value) : []).toEqual(['corner', 'topbar', 'rail'])
+
+    // A missing value and an unknown value both mean the skin default, so a phone
+    // still gets the corner mark before the manager has pushed anything.
+    const blank = normalizeSkinValues(definition, {})
+    definition.apply({ values: blank, visibility: { sfwMode: true } })
+    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('corner')
+    definition.apply({ values: { ...blank, mobileNav: 'nonsense' }, visibility: { sfwMode: true } })
+    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('corner')
+    definition.apply({ values: { ...blank, mobileNav: 'rail' }, visibility: { sfwMode: true } })
+    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('rail')
+
+    dispose()
+    expect(document.documentElement.hasAttribute('data-maid-nav-mode')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
 
