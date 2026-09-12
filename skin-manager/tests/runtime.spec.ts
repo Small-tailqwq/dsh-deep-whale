@@ -133,6 +133,12 @@ describe('registry export / import / reset', () => {
     return registry
   }
 
+  function register(definition: SkinCustomizationDefinition): void {
+    window.dispatchEvent(new CustomEvent(SKIN_CUSTOMIZATION_EVENTS[2].register, {
+      detail: { token: {}, definition } satisfies SkinCustomizationRegistration,
+    }))
+  }
+
   it('exportPreferences returns the raw snapshot', () => {
     const registry = makeRegistry()
     registry.set(definition, 'artwork', false)
@@ -140,13 +146,62 @@ describe('registry export / import / reset', () => {
     registry.dispose()
   })
 
-  it('importPreferences normalizes and re-applies', () => {
-    const registry = makeRegistry()
+  it('importPreferences normalizes registered blocks and re-applies once', () => {
+    const applied: Array<SkinCustomizationState | null> = []
+    const live: SkinCustomizationDefinition = { ...definition, apply(state) { applied.push(state) } }
+    const storage = new MemoryStorage()
+    storage.setItem('dsh.skin-manager.preferences.v2', '{}')
+    const registry = new SkinCustomizationRegistry(new PreferencesStore(storage, window), window)
+    register(live)
+    applied.length = 0
     const written = registry.importPreferences({ example: { artwork: 'bad', font: 'serif' }, 'unknown-skin': { x: 1 } })
-    expect(written).toBe(1)
-    // The normalized values surface through values(); the raw snapshot stores
-    // only the explicitly-written keys, so font is now persisted.
-    expect(registry.values(definition)).toEqual({ artwork: true, font: 'serif' })
+    // Two blocks are stored: the registered skin's normalized one, and the
+    // unloaded skin's verbatim one, which is normalized when it registers.
+    expect(written).toBe(2)
+    // One store notification drives exactly one apply pass, with the normalized
+    // values — the store subscription already re-applies after a write.
+    expect(applied).toHaveLength(1)
+    expect(applied[0]?.values).toEqual({ artwork: true, font: 'serif' })
+    expect(registry.exportPreferences()['unknown-skin']).toEqual({ x: 1 })
+    registry.dispose()
+  })
+
+  it('normalizes a block stored for a skin that registers later', () => {
+    // The safety argument behind keeping unknown blocks: a block stored verbatim
+    // for an unloaded skin is normalized against its definition the moment that
+    // skin registers, so nothing unvalidated can reach that skin's apply().
+    const applied: Array<SkinCustomizationState | null> = []
+    const registry = makeRegistry()
+    expect(registry.importPreferences({ 'later-skin': { artwork: 'not-a-bool', font: 'removed-option' } })).toBe(1)
+    expect(applied).toEqual([])
+    register({
+      protocol: 2,
+      skinId: 'later-skin',
+      title: 'Later',
+      settings: [
+        { key: 'artwork', type: 'boolean', label: 'Artwork', defaultValue: true },
+        { key: 'font', type: 'select', label: 'Font', defaultValue: 'system', options: [{ value: 'system', label: 'System' }, { value: 'serif', label: 'Serif' }] },
+      ],
+      apply(state) { applied.push(state) },
+    })
+    expect(applied).toHaveLength(1)
+    expect(applied[0]?.values).toEqual({ artwork: true, font: 'system' })
+    registry.dispose()
+  })
+
+  it('removeUnregisteredSkins drops the blocks kept for unloaded skins', () => {
+    const registry = makeRegistry()
+    registry.importPreferences({ example: { artwork: false }, 'unknown-skin': { x: 1 } })
+    expect(registry.removeUnregisteredSkins()).toBe(1)
+    expect(registry.exportPreferences()).toEqual({ example: { artwork: false, font: 'system' } })
+    expect(registry.removeUnregisteredSkins()).toBe(0)
+    registry.dispose()
+  })
+
+  it('ignores a skin that declares the __proto__ id', () => {
+    const registry = new SkinCustomizationRegistry(new PreferencesStore(new MemoryStorage(), window), window)
+    register({ ...definition, skinId: '__proto__' })
+    expect(registry.getSnapshot().definitions).toEqual([])
     registry.dispose()
   })
 

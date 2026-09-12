@@ -44,7 +44,16 @@ window.__ModuleLoader__.load({
 		}
 		function normalizeVisibilitySchedule(value, fallback = DEFAULT_VISIBILITY_SCHEDULE) {
 			const source = typeof value === "object" && value !== null ? value : {};
-			const ranges = Array.isArray(source.ranges) ? source.ranges.map(normalizeTimeRange).filter((range) => range !== null).slice(0, 24) : fallback.ranges;
+			let ranges = fallback.ranges;
+			if (Array.isArray(source.ranges)) {
+				ranges = [];
+				for (const entry of source.ranges) {
+					const range = normalizeTimeRange(entry);
+					if (range === null) continue;
+					ranges.push(range);
+					if (ranges.length === 24) break;
+				}
+			}
 			return {
 				enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
 				outside: source.outside === "hidden" ? "hidden" : source.outside === "visible" ? "visible" : fallback.outside,
@@ -78,6 +87,19 @@ window.__ModuleLoader__.load({
 		const LEGACY_PREFERENCES_KEY = "dsh-deep-whale.skin-manager.v1";
 		function object(value) {
 			return typeof value === "object" && value !== null ? value : {};
+		}
+		/**
+		* Store one skin block as an own data property. Plain assignment would invoke
+		* the `__proto__` accessor inherited from `Object.prototype`, which rewrites the
+		* target's prototype and stores no block at all.
+		*/
+		function assignBlock(target, skinId, block) {
+			Object.defineProperty(target, skinId, {
+				value: block,
+				writable: true,
+				enumerable: true,
+				configurable: true
+			});
 		}
 		function readJson(storage, key) {
 			try {
@@ -163,14 +185,31 @@ window.__ModuleLoader__.load({
 			}
 			set(definition, key, value) {
 				if (!definition.settings.some((setting) => setting.key === key)) return;
-				this.value = {
+				this.commit({
 					...this.value,
 					[definition.skinId]: {
 						...this.value[definition.skinId],
 						[key]: value
 					}
-				};
-				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
+				});
+			}
+			/**
+			* Swap in `next` only after it has been serialized. Serializing first keeps
+			* memory, storage and subscribers on the same value: a payload that overflows
+			* `JSON.stringify` (a deeply nested imported block) or a storage write that
+			* throws (quota exceeded) must not leave the in-memory store ahead of the
+			* persisted one and silent for every later write.
+			*/
+			commit(next) {
+				const serialized = JSON.stringify(next);
+				const previous = this.value;
+				this.value = next;
+				try {
+					this.storage.setItem(PREFERENCES_KEY, serialized);
+				} catch (error) {
+					this.value = previous;
+					throw error;
+				}
 				this.listeners.forEach((listener) => listener());
 			}
 			/** Full raw preferences snapshot for export; never mutates store state. */
@@ -178,34 +217,54 @@ window.__ModuleLoader__.load({
 				return this.value;
 			}
 			/**
-			* Replace every skin's preferences in one atomic write. Each skin block is
-			* normalized against its live definition so unknown keys, removed settings
-			* and malformed values never reach the persisted store. Returns the number
-			* of skin blocks actually stored.
+			* Replace every skin's preferences in one atomic write. A block whose skin is
+			* registered right now is normalized against its live definition, so unknown
+			* keys, removed settings and malformed values never reach the persisted store.
+			* A block whose skin is not registered — the inactive half of a mutually
+			* exclusive pair on a fresh browser — is stored verbatim and normalized when
+			* {@link values} next reads it against that skin's definition. Returns the
+			* number of skin blocks stored.
 			*/
 			replace(definitions, incoming) {
 				const next = { ...this.value };
+				const registered = /* @__PURE__ */ new Set();
 				let written = 0;
 				for (const definition of definitions) {
+					registered.add(definition.skinId);
 					const block = incoming[definition.skinId];
 					if (block === void 0) continue;
-					next[definition.skinId] = normalizeSkinValues(definition, block);
+					assignBlock(next, definition.skinId, normalizeSkinValues(definition, block));
+					written += 1;
+				}
+				for (const [skinId, block] of Object.entries(incoming)) {
+					if (registered.has(skinId)) continue;
+					assignBlock(next, skinId, block);
 					written += 1;
 				}
 				if (written === 0) return 0;
-				this.value = next;
-				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
-				this.listeners.forEach((listener) => listener());
+				this.commit(next);
 				return written;
+			}
+			/**
+			* Drop every stored block whose skin the registry does not hold, returning the
+			* removed ids. Imports keep blocks for skins that are not loaded yet, so this
+			* is the one explicit way to discard that kept data.
+			*/
+			removeUnregistered(registered) {
+				const known = new Set(registered);
+				const removed = Object.keys(this.value).filter((skinId) => !known.has(skinId));
+				if (removed.length === 0) return [];
+				const next = {};
+				for (const [skinId, block] of Object.entries(this.value)) if (known.has(skinId)) assignBlock(next, skinId, block);
+				this.commit(next);
+				return removed;
 			}
 			/** Remove every setting under one skin id; used by per-skin reset flows. */
 			clearSkin(skinId) {
-				if (this.value[skinId] === void 0) return false;
+				if (!Object.hasOwn(this.value, skinId)) return false;
 				const next = { ...this.value };
 				delete next[skinId];
-				this.value = next;
-				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
-				this.listeners.forEach((listener) => listener());
+				this.commit(next);
 				return true;
 			}
 		};
@@ -257,18 +316,22 @@ window.__ModuleLoader__.load({
 			* Replace every skin's preferences in one atomic write. Each block is
 			* normalized against its live definition so unknown keys and malformed
 			* values never reach the persisted store. Returns the number of skins
-			* actually written. Subscribers are notified once per call.
+			* actually written. The store notifies its subscribers (including this
+			* registry's re-apply pass) exactly once, so nothing applies twice.
 			*/
 			importPreferences(incoming) {
-				const written = this.store.replace(this.snapshot.definitions, incoming);
-				if (written > 0) this.applyAll();
-				return written;
+				return this.store.replace(this.snapshot.definitions, incoming);
 			}
 			/** Remove every setting under one skin id; used by per-skin reset flows. */
 			resetSkin(skinId) {
-				const cleared = this.store.clearSkin(skinId);
-				if (cleared) this.applyAll();
-				return cleared;
+				return this.store.clearSkin(skinId);
+			}
+			/**
+			* Drop stored blocks for skins the registry does not hold — data an import
+			* kept for skins that are not loaded. Returns how many blocks were removed.
+			*/
+			removeUnregisteredSkins() {
+				return this.store.removeUnregistered(this.snapshot.definitions.map((definition) => definition.skinId)).length;
 			}
 			dispose() {
 				for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
@@ -304,6 +367,7 @@ window.__ModuleLoader__.load({
 			}
 			valid(definition, protocol) {
 				if (definition?.protocol !== protocol || typeof definition.skinId !== "string" || typeof definition.apply !== "function" || !Array.isArray(definition.settings)) return false;
+				if (definition.skinId === "__proto__") return false;
 				const settingTypes = /* @__PURE__ */ new Set([
 					"boolean",
 					"select",
@@ -483,28 +547,32 @@ window.__ModuleLoader__.load({
 			addRange: "添加时间段",
 			scheduleHint: "使用本机时间；支持跨午夜，例如 22:00 至 07:00。时间段按“开始包含、结束不包含”计算。",
 			backupTitle: "备份与恢复",
-			backupIntro: "将当前所有皮肤的配置导出为一个 JSON 文件，方便备份、迁移到其他浏览器或与他人分享。导入时会按当前已安装的皮肤自动校验，未知字段会被丢弃。",
+			backupIntro: "将当前所有皮肤的配置导出为一个 JSON 文件，方便备份、迁移到其他浏览器或与他人分享。导入时已安装皮肤会按各自声明校验，未知字段会被丢弃；当前未加载皮肤的配置会原样暂存，等该皮肤加载后自动生效。",
 			exportButton: "导出配置",
 			importButton: "导入配置",
 			dropHint: "将 JSON 文件拖放到此处，或点击上方按钮选择文件。",
 			dropActive: "松开以导入",
 			exportOk: "配置已导出为 JSON 文件。",
 			importOk: (count) => `已导入 ${count} 个皮肤的配置。`,
+			importOkDeferred: (active, deferred) => `已导入 ${active} 个皮肤的配置；另有 ${deferred} 个皮肤当前未加载，配置已暂存，加载后自动生效。`,
 			importFail: (message) => `导入失败：${message}`,
 			importErrorEmpty: "文件为空",
 			importErrorInvalidJson: "文件不是有效的 JSON",
 			importErrorInvalidEnvelope: "文件不是有效的皮肤配置备份",
-			importErrorNoMatchingSkins: "备份中没有匹配当前已安装皮肤的配置",
+			importErrorNoMatchingSkins: "备份里没有皮肤配置",
 			importErrorTooLarge: "文件过大，超过 256 KiB 限制",
 			resetSkinButton: "恢复默认",
 			resetSkinConfirm: "清空当前皮肤的所有自定义配置？",
 			resetSkinOk: "已恢复当前皮肤的默认配置。",
+			clearKeptButton: (count) => `清理 ${count} 个未加载皮肤的暂存配置`,
+			clearKeptConfirm: (count) => `删除 ${count} 个未加载皮肤的暂存配置？这些配置只在对应皮肤加载后才会生效。`,
+			clearKeptOk: (count) => `已清理 ${count} 个未加载皮肤的暂存配置。`,
 			importErrorMessage: (code) => {
 				switch (code) {
 					case "empty": return "文件为空";
 					case "invalid-json": return "文件不是有效的 JSON";
 					case "invalid-envelope": return "文件不是有效的皮肤配置备份";
-					case "no-matching-skins": return "备份中没有匹配当前已安装皮肤的配置";
+					case "no-matching-skins": return "备份里没有皮肤配置";
 					case "too-large": return "文件过大，超过 256 KiB 限制";
 				}
 			}
@@ -554,28 +622,32 @@ window.__ModuleLoader__.load({
 			addRange: "Add period",
 			scheduleHint: "Uses local time; crossing midnight is supported, e.g. 22:00 to 07:00. Periods are start-inclusive and end-exclusive.",
 			backupTitle: "Backup & Restore",
-			backupIntro: "Export every skin's current configuration as a JSON file for backup, migration to another browser, or sharing. Imports are validated against the skins currently installed; unknown fields are dropped automatically.",
+			backupIntro: "Export every skin's current configuration as a JSON file for backup, migration to another browser, or sharing. Installed skins are validated against their declarations, so unknown fields are dropped automatically; configuration for skins that are not loaded is stored as-is and takes effect when that skin loads.",
 			exportButton: "Export configuration",
 			importButton: "Import configuration",
 			dropHint: "Drop a JSON file here, or use the buttons above to pick one.",
 			dropActive: "Release to import",
 			exportOk: "Configuration exported as a JSON file.",
 			importOk: (count) => `Imported configuration for ${count} skin${count === 1 ? "" : "s"}.`,
+			importOkDeferred: (active, deferred) => `Imported configuration for ${active} skin${active === 1 ? "" : "s"}; stored ${deferred} more for skins that are not loaded yet.`,
 			importFail: (message) => `Import failed: ${message}`,
 			importErrorEmpty: "The file is empty",
 			importErrorInvalidJson: "The file is not valid JSON",
 			importErrorInvalidEnvelope: "The file is not a valid skin configuration backup",
-			importErrorNoMatchingSkins: "The backup contains no configuration matching the currently installed skins",
+			importErrorNoMatchingSkins: "The backup contains no skin configuration",
 			importErrorTooLarge: "The file exceeds the 256 KiB limit",
 			resetSkinButton: "Reset to defaults",
 			resetSkinConfirm: "Clear every custom option for the current skin?",
 			resetSkinOk: "The current skin was reset to its default configuration.",
+			clearKeptButton: (count) => `Clear stored configuration for ${count} unloaded skin${count === 1 ? "" : "s"}`,
+			clearKeptConfirm: (count) => `Delete the stored configuration for ${count} unloaded skin${count === 1 ? "" : "s"}? It only takes effect once that skin is loaded.`,
+			clearKeptOk: (count) => `Cleared stored configuration for ${count} unloaded skin${count === 1 ? "" : "s"}.`,
 			importErrorMessage: (code) => {
 				switch (code) {
 					case "empty": return "The file is empty";
 					case "invalid-json": return "The file is not valid JSON";
 					case "invalid-envelope": return "The file is not a valid skin configuration backup";
-					case "no-matching-skins": return "The backup contains no configuration matching the currently installed skins";
+					case "no-matching-skins": return "The backup contains no skin configuration";
 					case "too-large": return "The file exceeds the 256 KiB limit";
 				}
 			}
@@ -598,7 +670,7 @@ window.__ModuleLoader__.load({
 		}
 		/** Stable source marker so importers can reject unrelated JSON early. */
 		const PREFERENCES_EXPORT_SOURCE = "dsh-skin-manager";
-		/** Maximum accepted file size for an import (256 KiB). Defends against accidents. */
+		/** Maximum accepted file size for an import (256 KiB of UTF-8 bytes). Defends against accidents. */
 		const PREFERENCES_IMPORT_MAX_BYTES = 262144;
 		/** Error thrown when an import payload cannot be promoted to a live store. */
 		var PreferencesImportError = class extends Error {
@@ -612,6 +684,60 @@ window.__ModuleLoader__.load({
 		function isObject(value) {
 			return typeof value === "object" && value !== null && !Array.isArray(value);
 		}
+		/**
+		* Whether the text exceeds `limit` UTF-8 bytes. `String#length` counts UTF-16
+		* units, so multi-byte text can pass a character check and still exceed the byte
+		* budget; encoding the whole payload to measure it would allocate a second copy
+		* of an arbitrarily large input, so count units and stop at the first overrun.
+		* Unpaired surrogates count as the three-byte replacement character they encode
+		* to, which keeps the count equal to the encoded length.
+		*/
+		function exceedsBytes(text, limit) {
+			let bytes = 0;
+			for (let index = 0; index < text.length; index += 1) {
+				const code = text.charCodeAt(index);
+				if (code < 128) bytes += 1;
+				else if (code < 2048) bytes += 2;
+				else if (code >= 55296 && code <= 56319) {
+					const low = text.charCodeAt(index + 1);
+					if (low >= 56320 && low <= 57343) {
+						bytes += 4;
+						index += 1;
+					} else bytes += 3;
+				} else bytes += 3;
+				if (bytes > limit) return true;
+			}
+			return false;
+		}
+		/**
+		* Whether a block may be keyed by this skin id. `__proto__` is the one name that
+		* needs an own-property write at every assignment site and has no legitimate skin
+		* behind it, so an envelope carrying it is rejected rather than stored.
+		*/
+		function isStorableSkinId(skinId) {
+			return skinId !== "__proto__";
+		}
+		/**
+		* Whether any value in the tree is nested deeper than `max`. Iterative on
+		* purpose: the guard exists to reject deeply nested input, so it must not
+		* recurse into it. Depth starts at the preferences root.
+		*/
+		function exceedsDepth(value, max) {
+			const stack = [{
+				node: value,
+				depth: 0
+			}];
+			while (stack.length > 0) {
+				const { node, depth } = stack.pop();
+				if (depth > max) return true;
+				if (typeof node !== "object" || node === null) continue;
+				for (const child of Object.values(node)) stack.push({
+					node: child,
+					depth: depth + 1
+				});
+			}
+			return false;
+		}
 		function isPreferences(value) {
 			if (!isObject(value)) return false;
 			for (const block of Object.values(value)) {
@@ -620,12 +746,23 @@ window.__ModuleLoader__.load({
 			}
 			return true;
 		}
+		/**
+		* Reject a preferences block the store could not hold or round-trip. Enforced on
+		* every entrance — the parsed envelope and the projection — so no caller can
+		* hand the store a structure that later breaks a write or an export.
+		*/
+		function assertStorablePreferences(preferences) {
+			const skinIds = Object.keys(preferences);
+			if (skinIds.length > 64) throw new PreferencesImportError("invalid-envelope", "too-many-skin-blocks");
+			if (skinIds.some((skinId) => !isStorableSkinId(skinId))) throw new PreferencesImportError("invalid-envelope", "unstorable-skin-id");
+			if (exceedsDepth(preferences, 32)) throw new PreferencesImportError("invalid-envelope", "preferences-too-deep");
+		}
 		/** Build a versioned export envelope from a raw preferences snapshot. */
 		function buildPreferencesExport(prefs, now = /* @__PURE__ */ new Date()) {
 			const clean = {};
 			for (const [skinId, block] of Object.entries(prefs)) {
 				if (block === void 0) continue;
-				clean[skinId] = isObject(block) ? { ...block } : {};
+				assignBlock(clean, skinId, isObject(block) ? { ...block } : {});
 			}
 			return {
 				schema: 1,
@@ -657,7 +794,7 @@ window.__ModuleLoader__.load({
 		*/
 		function parsePreferencesExport(raw, maxBytes = PREFERENCES_IMPORT_MAX_BYTES) {
 			if (raw === "" || raw === null) throw new PreferencesImportError("empty", "empty-payload");
-			if (raw.length > maxBytes) throw new PreferencesImportError("too-large", "payload-exceeds-max-size");
+			if (exceedsBytes(raw, maxBytes)) throw new PreferencesImportError("too-large", "payload-exceeds-max-size");
 			let parsed;
 			try {
 				parsed = JSON.parse(raw);
@@ -669,6 +806,7 @@ window.__ModuleLoader__.load({
 			if (parsed.source !== "dsh-skin-manager") throw new PreferencesImportError("invalid-envelope", "unknown-source");
 			if (typeof parsed.exportedAt !== "string" || parsed.exportedAt === "") throw new PreferencesImportError("invalid-envelope", "missing-exported-at");
 			if (!isPreferences(parsed.preferences)) throw new PreferencesImportError("invalid-envelope", "preferences-not-object");
+			assertStorablePreferences(parsed.preferences);
 			return {
 				schema: 1,
 				source: PREFERENCES_EXPORT_SOURCE,
@@ -678,29 +816,47 @@ window.__ModuleLoader__.load({
 		}
 		/**
 		* Project an import envelope onto the currently-registered skin definitions.
-		* Each skin block is normalized so that:
+		* Each registered skin block is normalized so that:
 		*  - unknown setting keys are dropped,
 		*  - removed settings fall back to their declared defaults,
-		*  - malformed values fall back to their declared defaults,
-		*  - skins not in the current registry are skipped entirely.
+		*  - malformed values fall back to their declared defaults.
 		*
-		* Returns the normalized preferences along with a report of how many skins
-		* matched, so the UI can surface "imported N skins" feedback. Throws
-		* {@link PreferencesImportError} when nothing in the envelope matches.
+		* Skins the registry does not hold — mutual exclusion usually leaves the
+		* inactive skins unloaded on a fresh browser, so a backup taken with both
+		* installed arrives while only one is registered — keep their block verbatim in
+		* `deferredSkins`. Nothing can reach a live skin unvalidated: every read
+		* normalizes a block against its definition through
+		* {@link normalizeSkinValues}, so a deferred block is normalized the moment its
+		* skin registers. Dropping it here instead silently lost half of such a backup.
+		*
+		* Returns the projected preferences plus which skins matched and which are
+		* deferred, so the UI can say what actually took effect. Throws
+		* {@link PreferencesImportError} when the envelope carries no skin block at all
+		* or when a block could not be stored (see {@link assertStorablePreferences}).
 		*/
 		function validatePreferencesExport(exported, definitions) {
+			assertStorablePreferences(exported.preferences);
 			const matched = [];
+			const deferred = [];
 			const normalized = {};
+			const registered = /* @__PURE__ */ new Set();
 			for (const definition of definitions) {
+				registered.add(definition.skinId);
 				const block = exported.preferences[definition.skinId];
 				if (block === void 0) continue;
-				normalized[definition.skinId] = normalizeSkinValues(definition, block);
+				assignBlock(normalized, definition.skinId, normalizeSkinValues(definition, block));
 				matched.push(definition.skinId);
 			}
-			if (matched.length === 0) throw new PreferencesImportError("no-matching-skins", "no-skins-matched");
+			for (const [skinId, block] of Object.entries(exported.preferences)) {
+				if (registered.has(skinId)) continue;
+				assignBlock(normalized, skinId, block);
+				deferred.push(skinId);
+			}
+			if (matched.length === 0 && deferred.length === 0) throw new PreferencesImportError("no-matching-skins", "no-skins-matched");
 			return {
 				preferences: normalized,
-				matchedSkins: matched
+				matchedSkins: matched,
+				deferredSkins: deferred
 			};
 		}
 		/** Convenience: parse → validate in one call. See {@link parsePreferencesExport}. */
@@ -1498,14 +1654,19 @@ window.__ModuleLoader__.load({
 		* Backup & restore card: export the full preferences snapshot as a versioned
 		* JSON file, import one back (file picker or drag-and-drop), and surface the
 		* outcome through the same hint/error surface the rest of the manager uses.
+		* Imports keep blocks for skins that are not loaded, so the card also offers the
+		* one entry point that discards that kept data.
 		*/
 		function BackupCard({ registry }) {
 			const copy = skinManagerCopy(useUiLang());
+			const { definitions } = (0, react.useSyncExternalStore)(registry.subscribe, registry.getSnapshot);
 			const fileInput = (0, react.useRef)(null);
 			const [dragging, setDragging] = (0, react.useState)(false);
 			const [notice, setNotice] = (0, react.useState)(null);
 			const live = (0, react.useRef)(true);
 			const noticeTimer = (0, react.useRef)(void 0);
+			const registered = new Set(definitions.map((definition) => definition.skinId));
+			const keptSkins = Object.keys(registry.exportPreferences()).filter((skinId) => !registered.has(skinId));
 			(0, react.useEffect)(() => {
 				live.current = true;
 				return () => {
@@ -1545,9 +1706,9 @@ window.__ModuleLoader__.load({
 			};
 			const importText = (raw) => {
 				try {
-					const { preferences, matchedSkins } = importPreferencesFromText(raw, registry.getSnapshot().definitions);
+					const { preferences, matchedSkins, deferredSkins } = importPreferencesFromText(raw, registry.getSnapshot().definitions);
 					const written = registry.importPreferences(preferences);
-					announce("ok", copy.importOk(written === 0 ? matchedSkins.length : written));
+					announce("ok", deferredSkins.length === 0 ? copy.importOk(written === 0 ? matchedSkins.length : written) : copy.importOkDeferred(matchedSkins.length, deferredSkins.length));
 				} catch (error) {
 					const message = error instanceof PreferencesImportError ? copy.importErrorMessage(error.code) : error instanceof Error ? error.message : String(error);
 					announce("fail", copy.importFail(message));
@@ -1558,9 +1719,17 @@ window.__ModuleLoader__.load({
 					announce("fail", copy.importFail(copy.importErrorInvalidEnvelope));
 					return;
 				}
+				if (file.size > 262144) {
+					announce("fail", copy.importFail(copy.importErrorTooLarge));
+					return;
+				}
 				file.text().then(importText).catch((error) => {
 					announce("fail", copy.importFail(error instanceof Error ? error.message : String(error)));
 				});
+			};
+			const onClearKept = () => {
+				if (!window.confirm(copy.clearKeptConfirm(keptSkins.length))) return;
+				announce("ok", copy.clearKeptOk(registry.removeUnregisteredSkins()));
 			};
 			const onImportClick = () => {
 				fileInput.current?.click();
@@ -1636,6 +1805,15 @@ window.__ModuleLoader__.load({
 						onDragLeave,
 						onDrop,
 						children: dragging ? copy.dropActive : copy.dropHint
+					}),
+					keptSkins.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: skin_manager_module_css_default.backupActions,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: skin_manager_module_css_default.backupButton,
+							onClick: onClearKept,
+							children: copy.clearKeptButton(keptSkins.length)
+						})
 					}),
 					notice !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: notice.kind === "ok" ? skin_manager_module_css_default.hint : skin_manager_module_css_default.error,

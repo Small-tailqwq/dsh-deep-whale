@@ -9,6 +9,15 @@ function object(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}
 }
 
+/**
+ * Store one skin block as an own data property. Plain assignment would invoke
+ * the `__proto__` accessor inherited from `Object.prototype`, which rewrites the
+ * target's prototype and stores no block at all.
+ */
+export function assignBlock(target: Preferences, skinId: string, block: Record<string, unknown>): void {
+  Object.defineProperty(target, skinId, { value: block, writable: true, enumerable: true, configurable: true })
+}
+
 function readJson(storage: Pick<Storage, 'getItem'>, key: string): unknown {
   try {
     const raw = storage.getItem(key)
@@ -120,11 +129,29 @@ export class PreferencesStore {
 
   set(definition: SkinCustomizationDefinition, key: string, value: SkinSettingValue): void {
     if (!definition.settings.some(setting => setting.key === key)) return
-    this.value = {
+    this.commit({
       ...this.value,
       [definition.skinId]: { ...this.value[definition.skinId], [key]: value },
+    })
+  }
+
+  /**
+   * Swap in `next` only after it has been serialized. Serializing first keeps
+   * memory, storage and subscribers on the same value: a payload that overflows
+   * `JSON.stringify` (a deeply nested imported block) or a storage write that
+   * throws (quota exceeded) must not leave the in-memory store ahead of the
+   * persisted one and silent for every later write.
+   */
+  private commit(next: Preferences): void {
+    const serialized = JSON.stringify(next)
+    const previous = this.value
+    this.value = next
+    try {
+      this.storage.setItem(PREFERENCES_KEY, serialized)
+    } catch (error) {
+      this.value = previous
+      throw error
     }
-    this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value))
     this.listeners.forEach(listener => listener())
   }
 
@@ -134,35 +161,58 @@ export class PreferencesStore {
   }
 
   /**
-   * Replace every skin's preferences in one atomic write. Each skin block is
-   * normalized against its live definition so unknown keys, removed settings
-   * and malformed values never reach the persisted store. Returns the number
-   * of skin blocks actually stored.
+   * Replace every skin's preferences in one atomic write. A block whose skin is
+   * registered right now is normalized against its live definition, so unknown
+   * keys, removed settings and malformed values never reach the persisted store.
+   * A block whose skin is not registered — the inactive half of a mutually
+   * exclusive pair on a fresh browser — is stored verbatim and normalized when
+   * {@link values} next reads it against that skin's definition. Returns the
+   * number of skin blocks stored.
    */
   replace(definitions: Iterable<SkinCustomizationDefinition>, incoming: Preferences): number {
     const next: Preferences = { ...this.value }
+    const registered = new Set<string>()
     let written = 0
     for (const definition of definitions) {
+      registered.add(definition.skinId)
       const block = incoming[definition.skinId]
       if (block === undefined) continue
-      next[definition.skinId] = normalizeSkinValues(definition, block)
+      assignBlock(next, definition.skinId, normalizeSkinValues(definition, block))
+      written += 1
+    }
+    for (const [skinId, block] of Object.entries(incoming)) {
+      if (registered.has(skinId)) continue
+      assignBlock(next, skinId, block)
       written += 1
     }
     if (written === 0) return 0
-    this.value = next
-    this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value))
-    this.listeners.forEach(listener => listener())
+    this.commit(next)
     return written
+  }
+
+  /**
+   * Drop every stored block whose skin the registry does not hold, returning the
+   * removed ids. Imports keep blocks for skins that are not loaded yet, so this
+   * is the one explicit way to discard that kept data.
+   */
+  removeUnregistered(registered: Iterable<string>): string[] {
+    const known = new Set(registered)
+    const removed = Object.keys(this.value).filter(skinId => !known.has(skinId))
+    if (removed.length === 0) return []
+    const next: Preferences = {}
+    for (const [skinId, block] of Object.entries(this.value)) {
+      if (known.has(skinId)) assignBlock(next, skinId, block)
+    }
+    this.commit(next)
+    return removed
   }
 
   /** Remove every setting under one skin id; used by per-skin reset flows. */
   clearSkin(skinId: string): boolean {
-    if (this.value[skinId] === undefined) return false
+    if (!Object.hasOwn(this.value, skinId)) return false
     const next = { ...this.value }
     delete next[skinId]
-    this.value = next
-    this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value))
-    this.listeners.forEach(listener => listener())
+    this.commit(next)
     return true
   }
 }

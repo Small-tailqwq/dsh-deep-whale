@@ -7,6 +7,7 @@ import {
   parsePreferencesExport,
   PREFERENCES_EXPORT_SCHEMA,
   PREFERENCES_IMPORT_MAX_BYTES,
+  PREFERENCES_IMPORT_MAX_SKINS,
   PreferencesImportError,
   serializePreferencesExport,
   validatePreferencesExport,
@@ -43,6 +44,17 @@ const otherDefinition: SkinCustomizationDefinition = {
     { key: 'character', type: 'boolean', label: 'Character', defaultValue: true },
   ],
   apply() {},
+}
+
+/** Run an import that must be rejected and return the typed failure. */
+function importFailure(run: () => unknown): PreferencesImportError {
+  try {
+    run()
+  } catch (error) {
+    expect(error).toBeInstanceOf(PreferencesImportError)
+    return error as PreferencesImportError
+  }
+  throw new Error('expected the import to be rejected')
 }
 
 describe('preferences export envelope', () => {
@@ -99,6 +111,51 @@ describe('preferences import parsing', () => {
     expect(() => parsePreferencesExport(huge)).toThrow(PreferencesImportError)
   })
 
+  it('measures the size ceiling in UTF-8 bytes, not UTF-16 units', () => {
+    const text = serializePreferencesExport(buildPreferencesExport({ example: { note: '中'.repeat(40) } }))
+    // Every code unit fits inside the budget while the file's bytes do not.
+    const budget = text.length
+    expect(budget).toBeLessThan(new TextEncoder().encode(text).length)
+    expect(importFailure(() => parsePreferencesExport(text, budget)).code).toBe('too-large')
+    expect(parsePreferencesExport(text, new TextEncoder().encode(text).length).exportedAt).not.toBe('')
+  })
+
+  it('accepts a payload exactly at the byte ceiling and rejects one byte more', () => {
+    const text = serializePreferencesExport(buildPreferencesExport({ example: { note: '中'.repeat(10) } }))
+    const exact = new TextEncoder().encode(text).length
+    expect(parsePreferencesExport(text, exact).exportedAt).not.toBe('')
+    expect(importFailure(() => parsePreferencesExport(text, exact - 1)).code).toBe('too-large')
+  })
+
+  it('rejects a legal-sized payload nested too deeply to be written back', () => {
+    // The reported shape: ~48 KiB and 4800 levels deep inside one block. It
+    // parses, so the old projection stored it verbatim and the next store write
+    // threw `RangeError` from `JSON.stringify` after memory had already changed.
+    const depth = 4800
+    const text = '{"schema":1,"source":"dsh-skin-manager","exportedAt":"x","preferences":{"junk-skin":{"nested":'
+      + '{"nested":'.repeat(depth) + '"leaf"' + '}'.repeat(depth) + '}}}'
+    expect(text.length).toBeLessThan(PREFERENCES_IMPORT_MAX_BYTES)
+    expect(importFailure(() => parsePreferencesExport(text)).code).toBe('invalid-envelope')
+  })
+
+  it('rejects a block keyed __proto__ instead of reporting it as deferred', () => {
+    const text = '{"schema":1,"source":"dsh-skin-manager","exportedAt":"x","preferences":{"__proto__":{"artwork":false}}}'
+    // The key could only replace the projection's prototype, so the store wrote
+    // nothing while the UI still said the block was stored for later.
+    expect(importFailure(() => importPreferencesFromText(text, [definition])).code).toBe('invalid-envelope')
+    expect(Object.prototype).not.toHaveProperty('artwork')
+  })
+
+  it('rejects an envelope carrying more skin blocks than the store budget', () => {
+    const preferences: Record<string, Record<string, unknown>> = {}
+    for (let index = 0; index <= PREFERENCES_IMPORT_MAX_SKINS; index += 1) preferences[`skin-${index}`] = { x: 1 }
+    expect(importFailure(() => parsePreferencesExport(serializePreferencesExport(buildPreferencesExport(preferences)))).code)
+      .toBe('invalid-envelope')
+    const allowed = Object.fromEntries(Object.entries(preferences).slice(0, PREFERENCES_IMPORT_MAX_SKINS))
+    expect(parsePreferencesExport(serializePreferencesExport(buildPreferencesExport(allowed))).preferences)
+      .toEqual(allowed)
+  })
+
   it('rejects malformed JSON', () => {
     expect(() => parsePreferencesExport('{not json')).toThrow(PreferencesImportError)
     try {
@@ -125,23 +182,35 @@ describe('preferences import parsing', () => {
 })
 
 describe('preferences import validation against live definitions', () => {
-  it('normalizes every known setting and drops unknown keys', () => {
+  it('normalizes registered skins, drops unknown keys and defers skins that are not loaded', () => {
     const exported = buildPreferencesExport({
       'maid-atelier': { artwork: 'not-a-bool', font: 'removed-option', unknown: 'drop', sfw: { enabled: true, outside: 'hidden', ranges: [{ start: '22:00', end: '07:00' }] } },
       'unknown-skin': { anything: true },
     })
-    const { preferences, matchedSkins } = validatePreferencesExport(exported, [definition, otherDefinition])
+    const { preferences, matchedSkins, deferredSkins } = validatePreferencesExport(exported, [definition, otherDefinition])
     expect(matchedSkins).toEqual(['maid-atelier'])
+    expect(deferredSkins).toEqual(['unknown-skin'])
     expect(preferences['maid-atelier']).toEqual({
       artwork: true,
       font: 'system',
       sfw: { enabled: true, outside: 'hidden', ranges: [{ start: '22:00', end: '07:00' }] },
     })
-    expect(preferences['unknown-skin']).toBeUndefined()
+    // A skin the registry does not hold keeps its block verbatim: mutual
+    // exclusion leaves the inactive skin unloaded, and the read path normalizes
+    // the block against its definition once that skin registers.
+    expect(preferences['unknown-skin']).toEqual({ anything: true })
   })
 
-  it('throws when no skins in the envelope match the live registry', () => {
+  it('defers every block when no skin in the envelope is loaded', () => {
     const exported = buildPreferencesExport({ 'unknown-skin': { anything: true } })
+    const { preferences, matchedSkins, deferredSkins } = validatePreferencesExport(exported, [definition])
+    expect(matchedSkins).toEqual([])
+    expect(deferredSkins).toEqual(['unknown-skin'])
+    expect(preferences['unknown-skin']).toEqual({ anything: true })
+  })
+
+  it('throws when the envelope carries no skin block at all', () => {
+    const exported = buildPreferencesExport({})
     expect(() => validatePreferencesExport(exported, [definition])).toThrow(PreferencesImportError)
     try {
       validatePreferencesExport(exported, [definition])
@@ -163,6 +232,7 @@ describe('preferences import validation against live definitions', () => {
     const text = serializePreferencesExport(buildPreferencesExport({ 'maid-atelier': { artwork: false } }))
     const result = importPreferencesFromText(text, [definition, otherDefinition])
     expect(result.matchedSkins).toEqual(['maid-atelier'])
+    expect(result.deferredSkins).toEqual([])
     expect(result.preferences['maid-atelier']).toEqual({ artwork: false, font: 'system', sfw: { enabled: false, outside: 'visible', ranges: [] } })
     expect(result.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   })

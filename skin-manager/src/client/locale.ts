@@ -126,28 +126,33 @@ const zhCopy = {
   addRange: '添加时间段',
   scheduleHint: '使用本机时间；支持跨午夜，例如 22:00 至 07:00。时间段按“开始包含、结束不包含”计算。',
   backupTitle: '备份与恢复',
-  backupIntro: '将当前所有皮肤的配置导出为一个 JSON 文件，方便备份、迁移到其他浏览器或与他人分享。导入时会按当前已安装的皮肤自动校验，未知字段会被丢弃。',
+  backupIntro: '将当前所有皮肤的配置导出为一个 JSON 文件，方便备份、迁移到其他浏览器或与他人分享。导入时已安装皮肤会按各自声明校验，未知字段会被丢弃；当前未加载皮肤的配置会原样暂存，等该皮肤加载后自动生效。',
   exportButton: '导出配置',
   importButton: '导入配置',
   dropHint: '将 JSON 文件拖放到此处，或点击上方按钮选择文件。',
   dropActive: '松开以导入',
   exportOk: '配置已导出为 JSON 文件。',
   importOk: (count: number) => `已导入 ${count} 个皮肤的配置。`,
+  importOkDeferred: (active: number, deferred: number) =>
+    `已导入 ${active} 个皮肤的配置；另有 ${deferred} 个皮肤当前未加载，配置已暂存，加载后自动生效。`,
   importFail: (message: string) => `导入失败：${message}`,
   importErrorEmpty: '文件为空',
   importErrorInvalidJson: '文件不是有效的 JSON',
   importErrorInvalidEnvelope: '文件不是有效的皮肤配置备份',
-  importErrorNoMatchingSkins: '备份中没有匹配当前已安装皮肤的配置',
+  importErrorNoMatchingSkins: '备份里没有皮肤配置',
   importErrorTooLarge: '文件过大，超过 256 KiB 限制',
   resetSkinButton: '恢复默认',
   resetSkinConfirm: '清空当前皮肤的所有自定义配置？',
   resetSkinOk: '已恢复当前皮肤的默认配置。',
+  clearKeptButton: (count: number) => `清理 ${count} 个未加载皮肤的暂存配置`,
+  clearKeptConfirm: (count: number) => `删除 ${count} 个未加载皮肤的暂存配置？这些配置只在对应皮肤加载后才会生效。`,
+  clearKeptOk: (count: number) => `已清理 ${count} 个未加载皮肤的暂存配置。`,
   importErrorMessage: (code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large') => {
     switch (code) {
       case 'empty': return '文件为空'
       case 'invalid-json': return '文件不是有效的 JSON'
       case 'invalid-envelope': return '文件不是有效的皮肤配置备份'
-      case 'no-matching-skins': return '备份中没有匹配当前已安装皮肤的配置'
+      case 'no-matching-skins': return '备份里没有皮肤配置'
       case 'too-large': return '文件过大，超过 256 KiB 限制'
     }
   },
@@ -198,28 +203,33 @@ const enCopy: typeof zhCopy = {
   addRange: 'Add period',
   scheduleHint: 'Uses local time; crossing midnight is supported, e.g. 22:00 to 07:00. Periods are start-inclusive and end-exclusive.',
   backupTitle: 'Backup & Restore',
-  backupIntro: 'Export every skin\'s current configuration as a JSON file for backup, migration to another browser, or sharing. Imports are validated against the skins currently installed; unknown fields are dropped automatically.',
+  backupIntro: 'Export every skin\'s current configuration as a JSON file for backup, migration to another browser, or sharing. Installed skins are validated against their declarations, so unknown fields are dropped automatically; configuration for skins that are not loaded is stored as-is and takes effect when that skin loads.',
   exportButton: 'Export configuration',
   importButton: 'Import configuration',
   dropHint: 'Drop a JSON file here, or use the buttons above to pick one.',
   dropActive: 'Release to import',
   exportOk: 'Configuration exported as a JSON file.',
   importOk: (count: number) => `Imported configuration for ${count} skin${count === 1 ? '' : 's'}.`,
+  importOkDeferred: (active: number, deferred: number) =>
+    `Imported configuration for ${active} skin${active === 1 ? '' : 's'}; stored ${deferred} more for skins that are not loaded yet.`,
   importFail: (message: string) => `Import failed: ${message}`,
   importErrorEmpty: 'The file is empty',
   importErrorInvalidJson: 'The file is not valid JSON',
   importErrorInvalidEnvelope: 'The file is not a valid skin configuration backup',
-  importErrorNoMatchingSkins: 'The backup contains no configuration matching the currently installed skins',
+  importErrorNoMatchingSkins: 'The backup contains no skin configuration',
   importErrorTooLarge: 'The file exceeds the 256 KiB limit',
   resetSkinButton: 'Reset to defaults',
   resetSkinConfirm: 'Clear every custom option for the current skin?',
   resetSkinOk: 'The current skin was reset to its default configuration.',
+  clearKeptButton: (count: number) => `Clear stored configuration for ${count} unloaded skin${count === 1 ? '' : 's'}`,
+  clearKeptConfirm: (count: number) => `Delete the stored configuration for ${count} unloaded skin${count === 1 ? '' : 's'}? It only takes effect once that skin is loaded.`,
+  clearKeptOk: (count: number) => `Cleared stored configuration for ${count} unloaded skin${count === 1 ? '' : 's'}.`,
   importErrorMessage: (code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large') => {
     switch (code) {
       case 'empty': return 'The file is empty'
       case 'invalid-json': return 'The file is not valid JSON'
       case 'invalid-envelope': return 'The file is not a valid skin configuration backup'
-      case 'no-matching-skins': return 'The backup contains no configuration matching the currently installed skins'
+      case 'no-matching-skins': return 'The backup contains no skin configuration'
       case 'too-large': return 'The file exceeds the 256 KiB limit'
     }
   },

@@ -66,19 +66,24 @@ export class SkinCustomizationRegistry {
    * Replace every skin's preferences in one atomic write. Each block is
    * normalized against its live definition so unknown keys and malformed
    * values never reach the persisted store. Returns the number of skins
-   * actually written. Subscribers are notified once per call.
+   * actually written. The store notifies its subscribers (including this
+   * registry's re-apply pass) exactly once, so nothing applies twice.
    */
   importPreferences(incoming: Preferences): number {
-    const written = this.store.replace(this.snapshot.definitions, incoming)
-    if (written > 0) this.applyAll()
-    return written
+    return this.store.replace(this.snapshot.definitions, incoming)
   }
 
   /** Remove every setting under one skin id; used by per-skin reset flows. */
   resetSkin(skinId: string): boolean {
-    const cleared = this.store.clearSkin(skinId)
-    if (cleared) this.applyAll()
-    return cleared
+    return this.store.clearSkin(skinId)
+  }
+
+  /**
+   * Drop stored blocks for skins the registry does not hold — data an import
+   * kept for skins that are not loaded. Returns how many blocks were removed.
+   */
+  removeUnregisteredSkins(): number {
+    return this.store.removeUnregistered(this.snapshot.definitions.map(definition => definition.skinId)).length
   }
 
   dispose(): void {
@@ -124,6 +129,9 @@ export class SkinCustomizationRegistry {
 
   private valid(definition: SkinCustomizationDefinition, protocol: SkinCustomizationProtocol): boolean {
     if (definition?.protocol !== protocol || typeof definition.skinId !== 'string' || typeof definition.apply !== 'function' || !Array.isArray(definition.settings)) return false
+    // The skin id becomes an object key in the preferences store; `__proto__`
+    // cannot be stored as one and would resolve to the prototype instead.
+    if (definition.skinId === '__proto__') return false
     const settingTypes = new Set(['boolean', 'select', 'range', 'color', 'checkbox-group', 'visibility-schedule'])
     if (!definition.settings.every(setting => setting !== null && typeof setting === 'object' && settingTypes.has(setting.type))) return false
     const keys = definition.settings.map(setting => setting.key)

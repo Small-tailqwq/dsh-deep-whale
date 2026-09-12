@@ -16,6 +16,9 @@ export function normalizeTimeRange(value: unknown): TimeRange | null {
   return { start, end }
 }
 
+/** Ranges kept per schedule; the editor never offers more than this. */
+export const MAX_VISIBILITY_RANGES = 24
+
 export function normalizeVisibilitySchedule(
   value: unknown,
   fallback: VisibilitySchedule = DEFAULT_VISIBILITY_SCHEDULE,
@@ -23,9 +26,19 @@ export function normalizeVisibilitySchedule(
   const source = typeof value === 'object' && value !== null
     ? value as Partial<VisibilitySchedule>
     : {}
-  const ranges = Array.isArray(source.ranges)
-    ? source.ranges.map(normalizeTimeRange).filter((range): range is TimeRange => range !== null).slice(0, 24)
-    : fallback.ranges
+  // Stop at the last kept range instead of normalizing the whole array first.
+  // An imported block can carry an arbitrarily long `ranges` array and this
+  // runs on every `values()` read, so the truncation has to bound the work.
+  let ranges: TimeRange[] = fallback.ranges
+  if (Array.isArray(source.ranges)) {
+    ranges = []
+    for (const entry of source.ranges) {
+      const range = normalizeTimeRange(entry)
+      if (range === null) continue
+      ranges.push(range)
+      if (ranges.length === MAX_VISIBILITY_RANGES) break
+    }
+  }
   return {
     enabled: typeof source.enabled === 'boolean' ? source.enabled : fallback.enabled,
     outside: source.outside === 'hidden' ? 'hidden' : source.outside === 'visible' ? 'visible' : fallback.outside,
