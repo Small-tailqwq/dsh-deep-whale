@@ -8,13 +8,15 @@ interface Fixture {
   toggle: HTMLButtonElement
   row: HTMLElement
   rowAction: HTMLButtonElement
+  settingsButton: HTMLButtonElement
   dispose: () => void
 }
 
 /**
  * Build the layout shape the installer reads: a frame that drops
  * `data-sidebar-collapsed` while the narrow column is an overlay, plus a
- * decorated session row carrying DSH's nested actions control.
+ * decorated session row carrying DSH's nested actions control and the sidebar's
+ * own settings entry.
  */
 function mount(): Fixture {
   const frame = document.createElement('div')
@@ -33,7 +35,13 @@ function mount(): Fixture {
   rowAction.className = 'YDXeBa_iconButton'
   rowAction.setAttribute('aria-label', 'Session actions')
   row.append(rowAction)
-  column.append(toggle, row)
+  const settingsSlot = document.createElement('div')
+  settingsSlot.dataset.slot = 'sidebar.settings'
+  const settingsButton = document.createElement('button')
+  settingsButton.type = 'button'
+  settingsButton.setAttribute('aria-haspopup', 'dialog')
+  settingsSlot.append(settingsButton)
+  column.append(toggle, row, settingsSlot)
   frame.append(column)
   document.body.append(frame)
   return {
@@ -42,6 +50,7 @@ function mount(): Fixture {
     toggle,
     row,
     rowAction,
+    settingsButton,
     dispose: installMaidMobileDrawerAutoClose(document.body),
   }
 }
@@ -72,6 +81,14 @@ function mountOutside(): HTMLElement {
   outside.id = 'outside-the-drawer'
   document.body.append(outside)
   return outside
+}
+
+/** Mount the host dialog the sidebar's settings entry opens above the drawer. */
+function mountDialog(): HTMLElement {
+  const dialog = document.createElement('div')
+  dialog.setAttribute('role', 'dialog')
+  document.body.append(dialog)
+  return dialog
 }
 
 /** jsdom ships no PointerEvent; the installer only reads `isPrimary`/`button`. */
@@ -286,6 +303,84 @@ describe('Maid Atelier mobile drawer auto-close', () => {
     fixture.row.click()
     fixture.dispose()
     fixture.row.click()
+    await settle()
+
+    expect(toggleClick).not.toHaveBeenCalled()
+  })
+
+  it('closes the drawer when the settings dialog it opened is dismissed', async () => {
+    const fixture = mount()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    fixture.settingsButton.click()
+    const dialog = mountDialog()
+    await settle()
+    dialog.remove()
+    await settle()
+
+    expect(toggleClick).toHaveBeenCalledTimes(1)
+    fixture.dispose()
+  })
+
+  it('leaves the drawer up until the settings dialog has actually appeared', async () => {
+    const fixture = mount()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    // The click alone must not read as a dismissal: the host mounts the dialog
+    // a tick later and the reader is on their way into it.
+    fixture.settingsButton.click()
+    await settle()
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('ignores a dialog it did not open from the settings entry', async () => {
+    const fixture = mount()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    const dialog = mountDialog()
+    await settle()
+    dialog.remove()
+    await settle()
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('does not fold the collapsed rail when the settings dialog closes', async () => {
+    const fixture = mount()
+    setColumnWidth(fixture.column, 390)
+    fixture.frame.setAttribute('data-sidebar-collapsed', 'true')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    fixture.settingsButton.click()
+    const dialog = mountDialog()
+    await settle()
+    dialog.remove()
+    await settle()
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('stops watching the settings dialog once disposed', async () => {
+    const fixture = mount()
+    setColumnWidth(fixture.column, 301)
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    fixture.settingsButton.click()
+    const dialog = mountDialog()
+    await settle()
+    fixture.dispose()
+    dialog.remove()
     await settle()
 
     expect(toggleClick).not.toHaveBeenCalled()
