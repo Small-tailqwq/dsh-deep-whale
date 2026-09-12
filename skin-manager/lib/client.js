@@ -101,6 +101,19 @@ window.__ModuleLoader__.load({
 				configurable: true
 			});
 		}
+		/**
+		* Preferences as {@link PreferencesStore.replace} leaves them: incoming blocks win
+		* and blocks the import does not mention stay. Callers use this to inspect the
+		* result of an import before it is committed.
+		*/
+		function mergePreferences(current, incoming) {
+			const merged = { ...current };
+			for (const [skinId, block] of Object.entries(incoming)) {
+				if (block === void 0) continue;
+				assignBlock(merged, skinId, block);
+			}
+			return merged;
+		}
 		function readJson(storage, key) {
 			try {
 				const raw = storage.getItem(key);
@@ -268,6 +281,226 @@ window.__ModuleLoader__.load({
 				return true;
 			}
 		};
+		/** Stable source marker so importers can reject unrelated JSON early. */
+		const PREFERENCES_EXPORT_SOURCE = "dsh-skin-manager";
+		/** Maximum accepted configuration content for an import (256 KiB of UTF-8 bytes). Defends against accidents. */
+		const PREFERENCES_IMPORT_MAX_BYTES = 262144;
+		/** Error thrown when an import payload cannot be promoted to a live store. */
+		var PreferencesImportError = class extends Error {
+			code;
+			constructor(code, message) {
+				super(message);
+				this.code = code;
+				this.name = "PreferencesImportError";
+			}
+		};
+		function isObject(value) {
+			return typeof value === "object" && value !== null && !Array.isArray(value);
+		}
+		/**
+		* Whether the text exceeds `limit` UTF-8 bytes. `String#length` counts UTF-16
+		* units, so multi-byte text can pass a character check and still exceed the byte
+		* budget; encoding the whole payload to measure it would allocate a second copy
+		* of an arbitrarily large input, so count units and stop at the first overrun.
+		* Unpaired surrogates count as the three-byte replacement character they encode
+		* to, which keeps the count equal to the encoded length.
+		*/
+		function exceedsBytes(text, limit) {
+			let bytes = 0;
+			for (let index = 0; index < text.length; index += 1) {
+				const code = text.charCodeAt(index);
+				if (code < 128) bytes += 1;
+				else if (code < 2048) bytes += 2;
+				else if (code >= 55296 && code <= 56319) {
+					const low = text.charCodeAt(index + 1);
+					if (low >= 56320 && low <= 57343) {
+						bytes += 4;
+						index += 1;
+					} else bytes += 3;
+				} else bytes += 3;
+				if (bytes > limit) return true;
+			}
+			return false;
+		}
+		/**
+		* Whether a block may be keyed by this skin id. `__proto__` is the one name that
+		* needs an own-property write at every assignment site and has no legitimate skin
+		* behind it, so an envelope carrying it is rejected rather than stored.
+		*/
+		function isStorableSkinId(skinId) {
+			return skinId !== "__proto__";
+		}
+		/**
+		* Whether any value in the tree is nested deeper than `max`. Iterative on
+		* purpose: the guard exists to reject deeply nested input, so it must not
+		* recurse into it. Depth starts at the preferences root.
+		*/
+		function exceedsDepth(value, max) {
+			const stack = [{
+				node: value,
+				depth: 0
+			}];
+			while (stack.length > 0) {
+				const { node, depth } = stack.pop();
+				if (depth > max) return true;
+				if (typeof node !== "object" || node === null) continue;
+				for (const child of Object.values(node)) stack.push({
+					node: child,
+					depth: depth + 1
+				});
+			}
+			return false;
+		}
+		function isPreferences(value) {
+			if (!isObject(value)) return false;
+			for (const block of Object.values(value)) {
+				if (block === void 0) continue;
+				if (!isObject(block)) return false;
+			}
+			return true;
+		}
+		/**
+		* Reject a preferences block the store could not hold or round-trip. Enforced on
+		* every entrance — the parsed envelope and the projection — so no caller can
+		* hand the store a structure that later breaks a write or an export.
+		*/
+		function assertStorablePreferences(preferences) {
+			const skinIds = Object.keys(preferences);
+			if (skinIds.length > 64) throw new PreferencesImportError("invalid-envelope", "too-many-skin-blocks");
+			if (skinIds.some((skinId) => !isStorableSkinId(skinId))) throw new PreferencesImportError("invalid-envelope", "unstorable-skin-id");
+			if (exceedsDepth(preferences, 32)) throw new PreferencesImportError("invalid-envelope", "preferences-too-deep");
+		}
+		/**
+		* Reject a preference set the importer could not restore. The budget counts
+		* configuration content — the same measure `parsePreferencesExport` applies — so a
+		* set that passes here always exports to a file that passes. Imports keep blocks
+		* for unloaded skins, so without this the store can accumulate past the budget and
+		* answer with a backup nothing in the manager accepts.
+		*/
+		function assertPreferencesImportable(preferences) {
+			if (!exceedsBytes(JSON.stringify(buildPreferencesExport(preferences)), 262144)) return;
+			throw new PreferencesImportError("store-too-large", "stored-preferences-exceed-import-budget");
+		}
+		/** Build a versioned export envelope from a raw preferences snapshot. */
+		function buildPreferencesExport(prefs, now = /* @__PURE__ */ new Date()) {
+			const clean = {};
+			for (const [skinId, block] of Object.entries(prefs)) {
+				if (block === void 0) continue;
+				assignBlock(clean, skinId, isObject(block) ? { ...block } : {});
+			}
+			return {
+				schema: 1,
+				source: PREFERENCES_EXPORT_SOURCE,
+				exportedAt: now.toISOString(),
+				preferences: clean
+			};
+		}
+		/**
+		* Pretty-print an export envelope for file download. The envelope is built
+		* with a fixed key order (schema → source → exportedAt → preferences), so a
+		* plain JSON.stringify preserves that order without a replacer array — a
+		* replacer whitelist would recurse into nested preferences blocks and strip
+		* every skin id and setting key.
+		*
+		* Deep nesting can pad a legal payload past the text ceiling the importer applies
+		* before parsing, which would make the manager reject its own backup; the compact
+		* form is used when that happens, and its size is what the content budget bounds.
+		*/
+		function serializePreferencesExport(exported) {
+			const ordered = {
+				schema: exported.schema,
+				source: exported.source,
+				exportedAt: exported.exportedAt,
+				preferences: exported.preferences
+			};
+			const padded = `${JSON.stringify(ordered, null, 2)}\n`;
+			return exceedsBytes(padded, 524288) ? `${JSON.stringify(ordered)}\n` : padded;
+		}
+		/**
+		* Parse and structurally validate a raw JSON string. Throws
+		* {@link PreferencesImportError} on any structural problem; never throws for
+		* a network or DOM reason.
+		*/
+		function parsePreferencesExport(raw, maxBytes = PREFERENCES_IMPORT_MAX_BYTES) {
+			if (raw === "" || raw === null) throw new PreferencesImportError("empty", "empty-payload");
+			if (exceedsBytes(raw, maxBytes * 2)) throw new PreferencesImportError("too-large", "payload-exceeds-max-size");
+			let parsed;
+			try {
+				parsed = JSON.parse(raw);
+			} catch {
+				throw new PreferencesImportError("invalid-json", "invalid-json-syntax");
+			}
+			if (!isObject(parsed)) throw new PreferencesImportError("invalid-envelope", "envelope-not-object");
+			if (parsed.schema !== 1) throw new PreferencesImportError("invalid-envelope", "unsupported-schema");
+			if (parsed.source !== "dsh-skin-manager") throw new PreferencesImportError("invalid-envelope", "unknown-source");
+			if (typeof parsed.exportedAt !== "string" || parsed.exportedAt === "") throw new PreferencesImportError("invalid-envelope", "missing-exported-at");
+			if (!isPreferences(parsed.preferences)) throw new PreferencesImportError("invalid-envelope", "preferences-not-object");
+			assertStorablePreferences(parsed.preferences);
+			if (exceedsBytes(JSON.stringify(parsed), maxBytes)) throw new PreferencesImportError("too-large", "payload-exceeds-max-size");
+			return {
+				schema: 1,
+				source: PREFERENCES_EXPORT_SOURCE,
+				exportedAt: parsed.exportedAt,
+				preferences: parsed.preferences
+			};
+		}
+		/**
+		* Project an import envelope onto the currently-registered skin definitions.
+		* Each registered skin block is normalized so that:
+		*  - unknown setting keys are dropped,
+		*  - removed settings fall back to their declared defaults,
+		*  - malformed values fall back to their declared defaults.
+		*
+		* Skins the registry does not hold — mutual exclusion usually leaves the
+		* inactive skins unloaded on a fresh browser, so a backup taken with both
+		* installed arrives while only one is registered — keep their block verbatim in
+		* `deferredSkins`. Nothing can reach a live skin unvalidated: every read
+		* normalizes a block against its definition through
+		* {@link normalizeSkinValues}, so a deferred block is normalized the moment its
+		* skin registers. Dropping it here instead silently lost half of such a backup.
+		*
+		* Returns the projected preferences plus which skins matched and which are
+		* deferred, so the UI can say what actually took effect. Throws
+		* {@link PreferencesImportError} when the envelope carries no skin block at all
+		* or when a block could not be stored (see {@link assertStorablePreferences}).
+		*/
+		function validatePreferencesExport(exported, definitions) {
+			assertStorablePreferences(exported.preferences);
+			const matched = [];
+			const deferred = [];
+			const normalized = {};
+			const registered = /* @__PURE__ */ new Set();
+			for (const definition of definitions) {
+				registered.add(definition.skinId);
+				const block = exported.preferences[definition.skinId];
+				if (block === void 0) continue;
+				assignBlock(normalized, definition.skinId, normalizeSkinValues(definition, block));
+				matched.push(definition.skinId);
+			}
+			for (const [skinId, block] of Object.entries(exported.preferences)) {
+				if (registered.has(skinId)) continue;
+				assignBlock(normalized, skinId, block);
+				deferred.push(skinId);
+			}
+			if (matched.length === 0 && deferred.length === 0) throw new PreferencesImportError("no-matching-skins", "no-skins-matched");
+			return {
+				preferences: normalized,
+				matchedSkins: matched,
+				deferredSkins: deferred
+			};
+		}
+		/** Convenience: parse → validate in one call. See {@link parsePreferencesExport}. */
+		function importPreferencesFromText(raw, definitions) {
+			const exported = parsePreferencesExport(raw);
+			return {
+				...validatePreferencesExport(exported, definitions),
+				exportedAt: exported.exportedAt
+			};
+		}
+		/** Default download filename for an export, scoped to the export date. */
+		function defaultExportFileName(now = /* @__PURE__ */ new Date()) {
+			return `dsh-skin-preferences-${now.toISOString().slice(0, 10)}.json`;
+		}
 		//#endregion
 		//#region src/client/runtime.ts
 		/** Owns discovery, persistence fan-out, and clock updates behind one registry interface. */
@@ -318,8 +551,14 @@ window.__ModuleLoader__.load({
 			* values never reach the persisted store. Returns the number of skins
 			* actually written. The store notifies its subscribers (including this
 			* registry's re-apply pass) exactly once, so nothing applies twice.
+			*
+			* The import is rejected while the store is untouched when the merged result
+			* could no longer be exported into a file this manager accepts: kept blocks for
+			* unloaded skins accumulate, and an unrestorable backup is worse than a failed
+			* import the user can retry after clearing them.
 			*/
 			importPreferences(incoming) {
+				assertPreferencesImportable(mergePreferences(this.store.snapshot(), incoming));
 				return this.store.replace(this.snapshot.definitions, incoming);
 			}
 			/** Remove every setting under one skin id; used by per-skin reset flows. */
@@ -560,7 +799,7 @@ window.__ModuleLoader__.load({
 			importErrorInvalidJson: "文件不是有效的 JSON",
 			importErrorInvalidEnvelope: "文件不是有效的皮肤配置备份",
 			importErrorNoMatchingSkins: "备份里没有皮肤配置",
-			importErrorTooLarge: "文件过大，超过 256 KiB 限制",
+			importErrorTooLarge: "文件过大：配置内容超过 256 KiB 限制",
 			resetSkinButton: "恢复默认",
 			resetSkinConfirm: "清空当前皮肤的所有自定义配置？",
 			resetSkinOk: "已恢复当前皮肤的默认配置。",
@@ -573,7 +812,8 @@ window.__ModuleLoader__.load({
 					case "invalid-json": return "文件不是有效的 JSON";
 					case "invalid-envelope": return "文件不是有效的皮肤配置备份";
 					case "no-matching-skins": return "备份里没有皮肤配置";
-					case "too-large": return "文件过大，超过 256 KiB 限制";
+					case "too-large": return "文件过大：配置内容超过 256 KiB 限制";
+					case "store-too-large": return "导入后的配置会超过 256 KiB 的可恢复上限，请先清理未加载皮肤的暂存配置";
 				}
 			}
 		};
@@ -635,7 +875,7 @@ window.__ModuleLoader__.load({
 			importErrorInvalidJson: "The file is not valid JSON",
 			importErrorInvalidEnvelope: "The file is not a valid skin configuration backup",
 			importErrorNoMatchingSkins: "The backup contains no skin configuration",
-			importErrorTooLarge: "The file exceeds the 256 KiB limit",
+			importErrorTooLarge: "The file is too large: its configuration content exceeds the 256 KiB limit",
 			resetSkinButton: "Reset to defaults",
 			resetSkinConfirm: "Clear every custom option for the current skin?",
 			resetSkinOk: "The current skin was reset to its default configuration.",
@@ -648,7 +888,8 @@ window.__ModuleLoader__.load({
 					case "invalid-json": return "The file is not valid JSON";
 					case "invalid-envelope": return "The file is not a valid skin configuration backup";
 					case "no-matching-skins": return "The backup contains no skin configuration";
-					case "too-large": return "The file exceeds the 256 KiB limit";
+					case "too-large": return "The file is too large: its configuration content exceeds the 256 KiB limit";
+					case "store-too-large": return "The imported configuration would exceed the 256 KiB restorable limit; clear the stored configuration for unloaded skins first";
 				}
 			}
 		};
@@ -667,209 +908,6 @@ window.__ModuleLoader__.load({
 		}
 		function optionLabel(option, lang) {
 			return lang === "en" ? option.labelEn ?? option.label : option.label;
-		}
-		/** Stable source marker so importers can reject unrelated JSON early. */
-		const PREFERENCES_EXPORT_SOURCE = "dsh-skin-manager";
-		/** Maximum accepted file size for an import (256 KiB of UTF-8 bytes). Defends against accidents. */
-		const PREFERENCES_IMPORT_MAX_BYTES = 262144;
-		/** Error thrown when an import payload cannot be promoted to a live store. */
-		var PreferencesImportError = class extends Error {
-			code;
-			constructor(code, message) {
-				super(message);
-				this.code = code;
-				this.name = "PreferencesImportError";
-			}
-		};
-		function isObject(value) {
-			return typeof value === "object" && value !== null && !Array.isArray(value);
-		}
-		/**
-		* Whether the text exceeds `limit` UTF-8 bytes. `String#length` counts UTF-16
-		* units, so multi-byte text can pass a character check and still exceed the byte
-		* budget; encoding the whole payload to measure it would allocate a second copy
-		* of an arbitrarily large input, so count units and stop at the first overrun.
-		* Unpaired surrogates count as the three-byte replacement character they encode
-		* to, which keeps the count equal to the encoded length.
-		*/
-		function exceedsBytes(text, limit) {
-			let bytes = 0;
-			for (let index = 0; index < text.length; index += 1) {
-				const code = text.charCodeAt(index);
-				if (code < 128) bytes += 1;
-				else if (code < 2048) bytes += 2;
-				else if (code >= 55296 && code <= 56319) {
-					const low = text.charCodeAt(index + 1);
-					if (low >= 56320 && low <= 57343) {
-						bytes += 4;
-						index += 1;
-					} else bytes += 3;
-				} else bytes += 3;
-				if (bytes > limit) return true;
-			}
-			return false;
-		}
-		/**
-		* Whether a block may be keyed by this skin id. `__proto__` is the one name that
-		* needs an own-property write at every assignment site and has no legitimate skin
-		* behind it, so an envelope carrying it is rejected rather than stored.
-		*/
-		function isStorableSkinId(skinId) {
-			return skinId !== "__proto__";
-		}
-		/**
-		* Whether any value in the tree is nested deeper than `max`. Iterative on
-		* purpose: the guard exists to reject deeply nested input, so it must not
-		* recurse into it. Depth starts at the preferences root.
-		*/
-		function exceedsDepth(value, max) {
-			const stack = [{
-				node: value,
-				depth: 0
-			}];
-			while (stack.length > 0) {
-				const { node, depth } = stack.pop();
-				if (depth > max) return true;
-				if (typeof node !== "object" || node === null) continue;
-				for (const child of Object.values(node)) stack.push({
-					node: child,
-					depth: depth + 1
-				});
-			}
-			return false;
-		}
-		function isPreferences(value) {
-			if (!isObject(value)) return false;
-			for (const block of Object.values(value)) {
-				if (block === void 0) continue;
-				if (!isObject(block)) return false;
-			}
-			return true;
-		}
-		/**
-		* Reject a preferences block the store could not hold or round-trip. Enforced on
-		* every entrance — the parsed envelope and the projection — so no caller can
-		* hand the store a structure that later breaks a write or an export.
-		*/
-		function assertStorablePreferences(preferences) {
-			const skinIds = Object.keys(preferences);
-			if (skinIds.length > 64) throw new PreferencesImportError("invalid-envelope", "too-many-skin-blocks");
-			if (skinIds.some((skinId) => !isStorableSkinId(skinId))) throw new PreferencesImportError("invalid-envelope", "unstorable-skin-id");
-			if (exceedsDepth(preferences, 32)) throw new PreferencesImportError("invalid-envelope", "preferences-too-deep");
-		}
-		/** Build a versioned export envelope from a raw preferences snapshot. */
-		function buildPreferencesExport(prefs, now = /* @__PURE__ */ new Date()) {
-			const clean = {};
-			for (const [skinId, block] of Object.entries(prefs)) {
-				if (block === void 0) continue;
-				assignBlock(clean, skinId, isObject(block) ? { ...block } : {});
-			}
-			return {
-				schema: 1,
-				source: PREFERENCES_EXPORT_SOURCE,
-				exportedAt: now.toISOString(),
-				preferences: clean
-			};
-		}
-		/**
-		* Pretty-print an export envelope for file download. The envelope is built
-		* with a fixed key order (schema → source → exportedAt → preferences), so a
-		* plain JSON.stringify preserves that order without a replacer array — a
-		* replacer whitelist would recurse into nested preferences blocks and strip
-		* every skin id and setting key.
-		*/
-		function serializePreferencesExport(exported) {
-			const ordered = {
-				schema: exported.schema,
-				source: exported.source,
-				exportedAt: exported.exportedAt,
-				preferences: exported.preferences
-			};
-			return `${JSON.stringify(ordered, null, 2)}\n`;
-		}
-		/**
-		* Parse and structurally validate a raw JSON string. Throws
-		* {@link PreferencesImportError} on any structural problem; never throws for
-		* a network or DOM reason.
-		*/
-		function parsePreferencesExport(raw, maxBytes = PREFERENCES_IMPORT_MAX_BYTES) {
-			if (raw === "" || raw === null) throw new PreferencesImportError("empty", "empty-payload");
-			if (exceedsBytes(raw, maxBytes)) throw new PreferencesImportError("too-large", "payload-exceeds-max-size");
-			let parsed;
-			try {
-				parsed = JSON.parse(raw);
-			} catch {
-				throw new PreferencesImportError("invalid-json", "invalid-json-syntax");
-			}
-			if (!isObject(parsed)) throw new PreferencesImportError("invalid-envelope", "envelope-not-object");
-			if (parsed.schema !== 1) throw new PreferencesImportError("invalid-envelope", "unsupported-schema");
-			if (parsed.source !== "dsh-skin-manager") throw new PreferencesImportError("invalid-envelope", "unknown-source");
-			if (typeof parsed.exportedAt !== "string" || parsed.exportedAt === "") throw new PreferencesImportError("invalid-envelope", "missing-exported-at");
-			if (!isPreferences(parsed.preferences)) throw new PreferencesImportError("invalid-envelope", "preferences-not-object");
-			assertStorablePreferences(parsed.preferences);
-			return {
-				schema: 1,
-				source: PREFERENCES_EXPORT_SOURCE,
-				exportedAt: parsed.exportedAt,
-				preferences: parsed.preferences
-			};
-		}
-		/**
-		* Project an import envelope onto the currently-registered skin definitions.
-		* Each registered skin block is normalized so that:
-		*  - unknown setting keys are dropped,
-		*  - removed settings fall back to their declared defaults,
-		*  - malformed values fall back to their declared defaults.
-		*
-		* Skins the registry does not hold — mutual exclusion usually leaves the
-		* inactive skins unloaded on a fresh browser, so a backup taken with both
-		* installed arrives while only one is registered — keep their block verbatim in
-		* `deferredSkins`. Nothing can reach a live skin unvalidated: every read
-		* normalizes a block against its definition through
-		* {@link normalizeSkinValues}, so a deferred block is normalized the moment its
-		* skin registers. Dropping it here instead silently lost half of such a backup.
-		*
-		* Returns the projected preferences plus which skins matched and which are
-		* deferred, so the UI can say what actually took effect. Throws
-		* {@link PreferencesImportError} when the envelope carries no skin block at all
-		* or when a block could not be stored (see {@link assertStorablePreferences}).
-		*/
-		function validatePreferencesExport(exported, definitions) {
-			assertStorablePreferences(exported.preferences);
-			const matched = [];
-			const deferred = [];
-			const normalized = {};
-			const registered = /* @__PURE__ */ new Set();
-			for (const definition of definitions) {
-				registered.add(definition.skinId);
-				const block = exported.preferences[definition.skinId];
-				if (block === void 0) continue;
-				assignBlock(normalized, definition.skinId, normalizeSkinValues(definition, block));
-				matched.push(definition.skinId);
-			}
-			for (const [skinId, block] of Object.entries(exported.preferences)) {
-				if (registered.has(skinId)) continue;
-				assignBlock(normalized, skinId, block);
-				deferred.push(skinId);
-			}
-			if (matched.length === 0 && deferred.length === 0) throw new PreferencesImportError("no-matching-skins", "no-skins-matched");
-			return {
-				preferences: normalized,
-				matchedSkins: matched,
-				deferredSkins: deferred
-			};
-		}
-		/** Convenience: parse → validate in one call. See {@link parsePreferencesExport}. */
-		function importPreferencesFromText(raw, definitions) {
-			const exported = parsePreferencesExport(raw);
-			return {
-				...validatePreferencesExport(exported, definitions),
-				exportedAt: exported.exportedAt
-			};
-		}
-		/** Default download filename for an export, scoped to the export date. */
-		function defaultExportFileName(now = /* @__PURE__ */ new Date()) {
-			return `dsh-skin-preferences-${now.toISOString().slice(0, 10)}.json`;
 		}
 		//#endregion
 		//#region \0dsh-css:../skin-manager/src/client/skin-manager.module.css.mjs
@@ -1719,7 +1757,7 @@ window.__ModuleLoader__.load({
 					announce("fail", copy.importFail(copy.importErrorInvalidEnvelope));
 					return;
 				}
-				if (file.size > 262144) {
+				if (file.size > 524288) {
 					announce("fail", copy.importFail(copy.importErrorTooLarge));
 					return;
 				}

@@ -13,7 +13,7 @@ import {
   buildPreferencesExport,
   defaultExportFileName,
   importPreferencesFromText,
-  PREFERENCES_IMPORT_MAX_BYTES,
+  PREFERENCES_IMPORT_MAX_TEXT_BYTES,
   PreferencesImportError,
   serializePreferencesExport,
 } from './transfer.ts'
@@ -790,8 +790,8 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
       return
     }
     // Reject on the file's own size before reading it in; the parser repeats the
-    // check on the decoded text for any path that bypasses the picker.
-    if (file.size > PREFERENCES_IMPORT_MAX_BYTES) {
+    // check on the decoded text and then measures configuration content.
+    if (file.size > PREFERENCES_IMPORT_MAX_TEXT_BYTES) {
       announce('fail', copy.importFail(copy.importErrorTooLarge))
       return
     }

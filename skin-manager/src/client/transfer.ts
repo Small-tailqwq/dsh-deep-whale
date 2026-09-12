@@ -22,8 +22,14 @@ import { assignBlock, normalizeSkinValues } from './preferences.ts'
 export const PREFERENCES_EXPORT_SCHEMA = 1
 /** Stable source marker so importers can reject unrelated JSON early. */
 export const PREFERENCES_EXPORT_SOURCE = 'dsh-skin-manager'
-/** Maximum accepted file size for an import (256 KiB of UTF-8 bytes). Defends against accidents. */
+/** Maximum accepted configuration content for an import (256 KiB of UTF-8 bytes). Defends against accidents. */
 export const PREFERENCES_IMPORT_MAX_BYTES = 256 * 1024
+/**
+ * Raw text ceiling applied before parsing. The budget above counts configuration
+ * content, so formatting whitespace may pad a legal payload; this only bounds how
+ * much text reaches `JSON.parse`.
+ */
+export const PREFERENCES_IMPORT_MAX_TEXT_BYTES = PREFERENCES_IMPORT_MAX_BYTES * 2
 /** Maximum skin blocks one envelope may carry. */
 export const PREFERENCES_IMPORT_MAX_SKINS = 64
 /**
@@ -43,7 +49,7 @@ export interface PreferencesExport {
 
 /** Error thrown when an import payload cannot be promoted to a live store. */
 export class PreferencesImportError extends Error {
-  constructor(readonly code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large', message: string) {
+  constructor(readonly code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large' | 'store-too-large', message: string) {
     super(message)
     this.name = 'PreferencesImportError'
   }
@@ -125,6 +131,18 @@ function assertStorablePreferences(preferences: Preferences): void {
   if (exceedsDepth(preferences, PREFERENCES_IMPORT_MAX_DEPTH)) throw new PreferencesImportError('invalid-envelope', 'preferences-too-deep')
 }
 
+/**
+ * Reject a preference set the importer could not restore. The budget counts
+ * configuration content — the same measure `parsePreferencesExport` applies — so a
+ * set that passes here always exports to a file that passes. Imports keep blocks
+ * for unloaded skins, so without this the store can accumulate past the budget and
+ * answer with a backup nothing in the manager accepts.
+ */
+export function assertPreferencesImportable(preferences: Preferences): void {
+  if (!exceedsBytes(JSON.stringify(buildPreferencesExport(preferences)), PREFERENCES_IMPORT_MAX_BYTES)) return
+  throw new PreferencesImportError('store-too-large', 'stored-preferences-exceed-import-budget')
+}
+
 /** Build a versioned export envelope from a raw preferences snapshot. */
 export function buildPreferencesExport(prefs: Preferences, now: Date = new Date()): PreferencesExport {
   const clean: Preferences = {}
@@ -146,6 +164,10 @@ export function buildPreferencesExport(prefs: Preferences, now: Date = new Date(
  * plain JSON.stringify preserves that order without a replacer array — a
  * replacer whitelist would recurse into nested preferences blocks and strip
  * every skin id and setting key.
+ *
+ * Deep nesting can pad a legal payload past the text ceiling the importer applies
+ * before parsing, which would make the manager reject its own backup; the compact
+ * form is used when that happens, and its size is what the content budget bounds.
  */
 export function serializePreferencesExport(exported: PreferencesExport): string {
   const ordered: PreferencesExport = {
@@ -154,7 +176,8 @@ export function serializePreferencesExport(exported: PreferencesExport): string 
     exportedAt: exported.exportedAt,
     preferences: exported.preferences,
   }
-  return `${JSON.stringify(ordered, null, 2)}\n`
+  const padded = `${JSON.stringify(ordered, null, 2)}\n`
+  return exceedsBytes(padded, PREFERENCES_IMPORT_MAX_TEXT_BYTES) ? `${JSON.stringify(ordered)}\n` : padded
 }
 
 /**
@@ -164,7 +187,7 @@ export function serializePreferencesExport(exported: PreferencesExport): string 
  */
 export function parsePreferencesExport(raw: string, maxBytes = PREFERENCES_IMPORT_MAX_BYTES): PreferencesExport {
   if (raw === '' || raw === null) throw new PreferencesImportError('empty', 'empty-payload')
-  if (exceedsBytes(raw, maxBytes)) throw new PreferencesImportError('too-large', 'payload-exceeds-max-size')
+  if (exceedsBytes(raw, maxBytes * 2)) throw new PreferencesImportError('too-large', 'payload-exceeds-max-size')
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
@@ -176,7 +199,12 @@ export function parsePreferencesExport(raw: string, maxBytes = PREFERENCES_IMPOR
   if (parsed.source !== PREFERENCES_EXPORT_SOURCE) throw new PreferencesImportError('invalid-envelope', 'unknown-source')
   if (typeof parsed.exportedAt !== 'string' || parsed.exportedAt === '') throw new PreferencesImportError('invalid-envelope', 'missing-exported-at')
   if (!isPreferences(parsed.preferences)) throw new PreferencesImportError('invalid-envelope', 'preferences-not-object')
+  // Structural guards first: they bound nesting, so measuring the content below
+  // cannot overflow the stack on the payload they just rejected.
   assertStorablePreferences(parsed.preferences)
+  // The budget counts configuration content, not the text that carried it: the
+  // exporter may pretty-print or compact the same data, and both have to pass.
+  if (exceedsBytes(JSON.stringify(parsed), maxBytes)) throw new PreferencesImportError('too-large', 'payload-exceeds-max-size')
   return {
     schema: PREFERENCES_EXPORT_SCHEMA,
     source: PREFERENCES_EXPORT_SOURCE,

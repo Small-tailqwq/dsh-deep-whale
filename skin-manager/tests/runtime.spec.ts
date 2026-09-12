@@ -11,6 +11,7 @@ import {
 } from '../src/protocol.ts'
 import { PreferencesStore } from '../src/client/preferences.ts'
 import { SkinCustomizationRegistry } from '../src/client/runtime.ts'
+import { PreferencesImportError } from '../src/client/transfer.ts'
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>()
@@ -195,6 +196,27 @@ describe('registry export / import / reset', () => {
     expect(registry.removeUnregisteredSkins()).toBe(1)
     expect(registry.exportPreferences()).toEqual({ example: { artwork: false, font: 'system' } })
     expect(registry.removeUnregisteredSkins()).toBe(0)
+    registry.dispose()
+  })
+
+  it('rejects an import that would make the store unrestorable, and recovers after cleanup', () => {
+    const registry = makeRegistry()
+    const block = (fill: string) => ({ note: fill.repeat(150_000) })
+    expect(registry.importPreferences({ 'skin-a': block('a') })).toBe(1)
+    // Kept blocks accumulate; past the budget the manager could no longer export a
+    // file its own importer accepts, so the second import has to fail untouched.
+    const failure = ((): PreferencesImportError | null => {
+      try {
+        registry.importPreferences({ 'skin-b': block('b') })
+        return null
+      } catch (error) {
+        return error as PreferencesImportError
+      }
+    })()
+    expect(failure?.code).toBe('store-too-large')
+    expect(registry.exportPreferences()['skin-b']).toBeUndefined()
+    expect(registry.removeUnregisteredSkins()).toBe(1)
+    expect(registry.importPreferences({ 'skin-b': block('b') })).toBe(1)
     registry.dispose()
   })
 

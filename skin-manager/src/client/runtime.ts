@@ -10,8 +10,9 @@ import {
   type SkinSettingValue,
   type VisibilitySchedule,
 } from '../protocol.ts'
-import { PreferencesStore, type Preferences } from './preferences.ts'
+import { PreferencesStore, mergePreferences, type Preferences } from './preferences.ts'
 import { millisecondsToNextMinute, scheduleVisibility } from './schedule.ts'
+import { assertPreferencesImportable } from './transfer.ts'
 
 export interface RegistrySnapshot {
   definitions: SkinCustomizationDefinition[]
@@ -68,8 +69,14 @@ export class SkinCustomizationRegistry {
    * values never reach the persisted store. Returns the number of skins
    * actually written. The store notifies its subscribers (including this
    * registry's re-apply pass) exactly once, so nothing applies twice.
+   *
+   * The import is rejected while the store is untouched when the merged result
+   * could no longer be exported into a file this manager accepts: kept blocks for
+   * unloaded skins accumulate, and an unrestorable backup is worse than a failed
+   * import the user can retry after clearing them.
    */
   importPreferences(incoming: Preferences): number {
+    assertPreferencesImportable(mergePreferences(this.store.snapshot(), incoming))
     return this.store.replace(this.snapshot.definitions, incoming)
   }
 

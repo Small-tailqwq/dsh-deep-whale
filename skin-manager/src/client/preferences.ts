@@ -18,6 +18,20 @@ export function assignBlock(target: Preferences, skinId: string, block: Record<s
   Object.defineProperty(target, skinId, { value: block, writable: true, enumerable: true, configurable: true })
 }
 
+/**
+ * Preferences as {@link PreferencesStore.replace} leaves them: incoming blocks win
+ * and blocks the import does not mention stay. Callers use this to inspect the
+ * result of an import before it is committed.
+ */
+export function mergePreferences(current: Preferences, incoming: Preferences): Preferences {
+  const merged: Preferences = { ...current }
+  for (const [skinId, block] of Object.entries(incoming)) {
+    if (block === undefined) continue
+    assignBlock(merged, skinId, block)
+  }
+  return merged
+}
+
 function readJson(storage: Pick<Storage, 'getItem'>, key: string): unknown {
   try {
     const raw = storage.getItem(key)

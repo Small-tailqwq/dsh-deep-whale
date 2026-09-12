@@ -140,20 +140,21 @@ const zhCopy = {
   importErrorInvalidJson: '文件不是有效的 JSON',
   importErrorInvalidEnvelope: '文件不是有效的皮肤配置备份',
   importErrorNoMatchingSkins: '备份里没有皮肤配置',
-  importErrorTooLarge: '文件过大，超过 256 KiB 限制',
+  importErrorTooLarge: '文件过大：配置内容超过 256 KiB 限制',
   resetSkinButton: '恢复默认',
   resetSkinConfirm: '清空当前皮肤的所有自定义配置？',
   resetSkinOk: '已恢复当前皮肤的默认配置。',
   clearKeptButton: (count: number) => `清理 ${count} 个未加载皮肤的暂存配置`,
   clearKeptConfirm: (count: number) => `删除 ${count} 个未加载皮肤的暂存配置？这些配置只在对应皮肤加载后才会生效。`,
   clearKeptOk: (count: number) => `已清理 ${count} 个未加载皮肤的暂存配置。`,
-  importErrorMessage: (code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large') => {
+  importErrorMessage: (code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large' | 'store-too-large') => {
     switch (code) {
       case 'empty': return '文件为空'
       case 'invalid-json': return '文件不是有效的 JSON'
       case 'invalid-envelope': return '文件不是有效的皮肤配置备份'
       case 'no-matching-skins': return '备份里没有皮肤配置'
-      case 'too-large': return '文件过大，超过 256 KiB 限制'
+      case 'too-large': return '文件过大：配置内容超过 256 KiB 限制'
+      case 'store-too-large': return '导入后的配置会超过 256 KiB 的可恢复上限，请先清理未加载皮肤的暂存配置'
     }
   },
 }
@@ -217,20 +218,21 @@ const enCopy: typeof zhCopy = {
   importErrorInvalidJson: 'The file is not valid JSON',
   importErrorInvalidEnvelope: 'The file is not a valid skin configuration backup',
   importErrorNoMatchingSkins: 'The backup contains no skin configuration',
-  importErrorTooLarge: 'The file exceeds the 256 KiB limit',
+  importErrorTooLarge: 'The file is too large: its configuration content exceeds the 256 KiB limit',
   resetSkinButton: 'Reset to defaults',
   resetSkinConfirm: 'Clear every custom option for the current skin?',
   resetSkinOk: 'The current skin was reset to its default configuration.',
   clearKeptButton: (count: number) => `Clear stored configuration for ${count} unloaded skin${count === 1 ? '' : 's'}`,
   clearKeptConfirm: (count: number) => `Delete the stored configuration for ${count} unloaded skin${count === 1 ? '' : 's'}? It only takes effect once that skin is loaded.`,
   clearKeptOk: (count: number) => `Cleared stored configuration for ${count} unloaded skin${count === 1 ? '' : 's'}.`,
-  importErrorMessage: (code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large') => {
+  importErrorMessage: (code: 'empty' | 'invalid-json' | 'invalid-envelope' | 'no-matching-skins' | 'too-large' | 'store-too-large') => {
     switch (code) {
       case 'empty': return 'The file is empty'
       case 'invalid-json': return 'The file is not valid JSON'
       case 'invalid-envelope': return 'The file is not a valid skin configuration backup'
       case 'no-matching-skins': return 'The backup contains no skin configuration'
-      case 'too-large': return 'The file exceeds the 256 KiB limit'
+      case 'too-large': return 'The file is too large: its configuration content exceeds the 256 KiB limit'
+      case 'store-too-large': return 'The imported configuration would exceed the 256 KiB restorable limit; clear the stored configuration for unloaded skins first'
     }
   },
 }
