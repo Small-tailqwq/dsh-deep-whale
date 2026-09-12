@@ -31,4 +31,28 @@ describe('ORCA LINK sidebar motion', () => {
     expect(css).toContain('display: none;')
   })
 
+  // Issue #116: a plugin may inject a portalled host plus its own button instead
+  // of a direct-child button. The host must be lifted out of the stage and out
+  // of the native-button takeover, the region margin reset must fire for it, and
+  // the takeover's own selectors must stay intact.
+  it('treats a portalled plugin entry host as a sidebar entry', () => {
+    const lifted = css.match(
+      /body\[data-dsh-orca-link\]\[data-orca-sidebar-wide\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
+    )?.groups?.selector ?? ''
+    expect(lifted).toContain("button[data-dsh-part='sidebar-entry']")
+    expect(lifted).toContain('[data-plugin-entry]')
+    expect(css).toContain("> :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]))")
+    expect(css).toContain('> :not([role=\'tooltip\'], [data-orca-link-wordmark], [data-plugin-entry])')
+    expect(css).toContain(
+      "button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > *",
+    )
+    // The narrow-viewport block retires the stage, so the entry offset must
+    // retire with it for both marker shapes.
+    const narrow = css.match(
+      /@media \(max-width: 900px\) \{[\s\S]*?\n\}/,
+    )?.[0] ?? ''
+    expect(narrow).not.toBe('')
+    expect(narrow).toMatch(/:is\(button\[data-dsh-part='sidebar-entry'\], \[data-plugin-entry\]\)/)
+  })
+
 })

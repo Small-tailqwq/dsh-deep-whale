@@ -1409,7 +1409,7 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
   will-change: opacity;
 }
 
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) > :not([role='tooltip'], [data-orca-link-wordmark]) {
+body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) > :not([role='tooltip'], [data-orca-link-wordmark], [data-plugin-entry]) {
   position: relative;
   z-index: 1;
 }
@@ -1427,11 +1427,20 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
    entries below the stage: they read as a control row above the workspace.
    Flow anchor = the production shell's measured 120px from pane top to the
    browsing region's normal position (see the region rule below); entries sit
-   at that same slot, so the margin drops them to stage + 4. */
+   at that same slot, so the margin drops them to stage + 4.
+
+   Two marker shapes exist for the same intent (issue #116): the entry may be
+   the button itself, or the plugin's own portalled host is the direct child
+   and the button lives inside it. The `[data-plugin-entry]` host shape also
+   reports the plugin identity, so it doubles as the general opt-in for a
+   plugin-injected block. Both must stay out of the native-button takeover
+   below: that takeover hides every child of a matching button, and a plugin
+   row that copies the host's own button class is exactly the case it reaches. */
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
   > :first-child
-  > button[data-dsh-part='sidebar-entry'] {
+  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
+  position: relative;
   z-index: 3;
   margin-top: calc(var(--orca-stage, 300px) - 116px);
 }
@@ -1443,7 +1452,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
    original margin still does the stage push. */
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
-  > :first-child:has(> button[data-dsh-part='sidebar-entry'])
+  > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]))
   [class*='regionArea'] {
   margin-top: 0;
 }
@@ -1455,7 +1464,8 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
   > :first-child
-  > button[data-dsh-part='sidebar-entry'] ~ button[data-dsh-part='sidebar-entry'] {
+  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry])
+  ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
   margin-top: 0;
 }
 
@@ -1675,7 +1685,7 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
   pointer-events: none;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) {
   position: relative;
   z-index: 2;
   overflow: visible;
@@ -1685,12 +1695,12 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
   color: transparent;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) > * {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > * {
   opacity: 0;
   pointer-events: none;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::before {
   position: absolute;
   top: -14px;
   right: -14px;
@@ -1712,7 +1722,7 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
   transition: opacity 160ms ease;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::after {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::after {
   position: absolute;
   top: calc(var(--orca-stage, 300px) - 86px);
   right: -10px;
@@ -1725,18 +1735,18 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::before,
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::before {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::before,
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::before {
   opacity: 0.62;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):hover::after,
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible::after {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::after,
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::after {
   opacity: 0.92;
   transform: translate(-2px, -2px);
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']):focus-visible {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible {
   outline: none;
 }
 
@@ -3086,7 +3096,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link][data-orca-sidebar-wide]
     [data-slot='sidebar']
     > :first-child
-    > button[data-dsh-part='sidebar-entry'] {
+    > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
     margin-top: 0;
   }
   body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before { display: none; }
