@@ -7,7 +7,7 @@ import type {
   TimeRange,
   VisibilitySchedule,
 } from '../protocol.ts'
-import { SkinCustomizationRegistry } from './runtime.ts'
+import { SkinCustomizationRegistry, settingVisible } from './runtime.ts'
 import { definitionTitle, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
 import {
   buildPreferencesExport,
@@ -513,13 +513,6 @@ function SettingEditor({ setting, value, disabled = false, onChange }: {
     )
   }
   return <ScheduleEditor setting={setting} value={value as VisibilitySchedule} onChange={onChange} />
-}
-
-function settingVisible(setting: SkinSetting, values: Record<string, SkinSettingValue>): boolean {
-  const condition = setting.visibleWhen
-  if (condition === undefined) return true
-  const value = values[condition.key]
-  return condition.values.some(candidate => candidate === value)
 }
 
 function CustomizationCard({ definition, registry }: {

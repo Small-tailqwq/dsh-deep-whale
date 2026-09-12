@@ -42,6 +42,29 @@ export interface SkinSettingCondition {
   values: SkinConditionValue[]
 }
 
+/**
+ * At least one of the listed conditions must match. A control that belongs to
+ * a family of switches — the maid skin's glasses artwork is only meaningful
+ * while either the desktop or the mobile model-driven artwork switch is on —
+ * needs this instead of a single-key condition.
+ *
+ * A manager that predates this shape ignores the unknown field and keeps
+ * rendering the control, so the degradation is "always visible" rather than
+ * "never visible".
+ */
+export interface SkinSettingConditionAnyOf {
+  /**
+   * Mirror of the first entry as a plain single-key condition. Required on
+   * purpose: a manager that predates `anyOf` reads `key`/`values` directly and
+   * would otherwise read `undefined` and throw while rendering the card.
+   */
+  key: string
+  values: SkinConditionValue[]
+  anyOf: SkinSettingCondition[]
+}
+
+export type SkinSettingVisibility = SkinSettingCondition | SkinSettingConditionAnyOf
+
 export interface LegacySettingValue<T> {
   key: string
   map: Record<string, T>
@@ -63,7 +86,7 @@ interface SettingBase<T> {
   /** When this boolean setting key is true, the control becomes disabled. */
   disabledWhen?: string
   /** Only render this control while the referenced value matches one of these values. */
-  visibleWhen?: SkinSettingCondition
+  visibleWhen?: SkinSettingVisibility
   /** Use a mapped legacy key only while this setting has no stored value of its own. */
   legacyValue?: LegacySettingValue<T>
 }
