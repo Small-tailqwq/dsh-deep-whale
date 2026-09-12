@@ -10,7 +10,10 @@ describe('skin-manager stylesheet contract', () => {
     expect(css).toContain("data-maid-character='right'")
     expect(css).toContain("data-dsh-whale-model='flash'")
     expect(css).toContain("data-maid-character='left'")
-    expect(css).toContain("data-dsh-whale-model='flash-vision'")
+    // The glasses layer is keyed on the flash family plus its own switch, not
+    // on a retired `flash-vision` family.
+    expect(css).toContain("data-dsh-whale-maid-flash-glasses='on'")
+    expect(css).not.toContain('flash-vision')
     expect(css).toContain("data-maid-character='vision'")
   })
 
