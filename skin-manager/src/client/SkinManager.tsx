@@ -13,6 +13,7 @@ import {
   buildPreferencesExport,
   defaultExportFileName,
   importPreferencesFromText,
+  PREFERENCES_IMPORT_MAX_TEXT_BYTES,
   PreferencesImportError,
   serializePreferencesExport,
 } from './transfer.ts'
@@ -714,15 +715,21 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
  * Backup & restore card: export the full preferences snapshot as a versioned
  * JSON file, import one back (file picker or drag-and-drop), and surface the
  * outcome through the same hint/error surface the rest of the manager uses.
+ * Imports keep blocks for skins that are not loaded, so the card also offers the
+ * one entry point that discards that kept data.
  */
 function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
   const lang = useUiLang()
   const copy = skinManagerCopy(lang)
+  const { definitions } = useSyncExternalStore(registry.subscribe, registry.getSnapshot)
   const fileInput = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [notice, setNotice] = useState<{ kind: 'ok' | 'fail', text: string } | null>(null)
   const live = useRef(true)
   const noticeTimer = useRef<number | undefined>(undefined)
+
+  const registered = new Set(definitions.map(definition => definition.skinId))
+  const keptSkins = Object.keys(registry.exportPreferences()).filter(skinId => !registered.has(skinId))
 
   useEffect(() => {
     live.current = true
@@ -764,9 +771,11 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
 
   const importText = (raw: string): void => {
     try {
-      const { preferences, matchedSkins } = importPreferencesFromText(raw, registry.getSnapshot().definitions)
+      const { preferences, matchedSkins, deferredSkins } = importPreferencesFromText(raw, registry.getSnapshot().definitions)
       const written = registry.importPreferences(preferences)
-      announce('ok', copy.importOk(written === 0 ? matchedSkins.length : written))
+      announce('ok', deferredSkins.length === 0
+        ? copy.importOk(written === 0 ? matchedSkins.length : written)
+        : copy.importOkDeferred(matchedSkins.length, deferredSkins.length))
     } catch (error) {
       const message = error instanceof PreferencesImportError
         ? copy.importErrorMessage(error.code)
@@ -780,9 +789,20 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
       announce('fail', copy.importFail(copy.importErrorInvalidEnvelope))
       return
     }
+    // Reject on the file's own size before reading it in; the parser repeats the
+    // check on the decoded text and then measures configuration content.
+    if (file.size > PREFERENCES_IMPORT_MAX_TEXT_BYTES) {
+      announce('fail', copy.importFail(copy.importErrorTooLarge))
+      return
+    }
     file.text().then(importText).catch((error: unknown) => {
       announce('fail', copy.importFail(error instanceof Error ? error.message : String(error)))
     })
+  }
+
+  const onClearKept = (): void => {
+    if (!window.confirm(copy.clearKeptConfirm(keptSkins.length))) return
+    announce('ok', copy.clearKeptOk(registry.removeUnregisteredSkins()))
   }
 
   const onImportClick = (): void => {
@@ -849,6 +869,13 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
       >
         {dragging ? copy.dropActive : copy.dropHint}
       </div>
+      {keptSkins.length > 0 && (
+        <div className={css.backupActions}>
+          <button type="button" className={css.backupButton} onClick={onClearKept}>
+            {copy.clearKeptButton(keptSkins.length)}
+          </button>
+        </div>
+      )}
       {notice !== null && (
         <p className={notice.kind === 'ok' ? css.hint : css.error}>{notice.text}</p>
       )}

@@ -15,7 +15,7 @@
   ],
   "accent": "#c5a468",
   "bodyAttr": "data-dsh-maid-atelier",
-  "dshCompatibility": "0.1.5rc1",
+  "dshCompatibility": "0.1.5rc2",
   "package": "@dsh-external/dsh-client-ui-skin-maid-atelier",
   "wiring": {
     "id": "ui-skin-maid-atelier",

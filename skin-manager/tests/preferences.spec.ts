@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SkinCustomizationDefinition } from '../src/protocol.ts'
 import { normalizeSkinValues, PreferencesStore, readPreferences } from '../src/client/preferences.ts'
-import { normalizeVisibilitySchedule, scheduleVisibility } from '../src/client/schedule.ts'
+import { MAX_VISIBILITY_RANGES, normalizeVisibilitySchedule, scheduleVisibility } from '../src/client/schedule.ts'
 
 const definition: SkinCustomizationDefinition = {
   protocol: 1,
@@ -75,27 +75,58 @@ describe('visibility schedules', () => {
     expect(scheduleVisibility(schedule, local(6, 59))).toBe(true)
     expect(scheduleVisibility(schedule, local(12, 0))).toBe(false)
   })
+
+  it('keeps the first kept ranges without scanning the rest of an oversized array', () => {
+    let reads = 0
+    const ranges: unknown[] = []
+    for (let index = 0; index < 8000; index += 1) {
+      Object.defineProperty(ranges, index, {
+        get: () => {
+          reads += 1
+          return { start: '09:00', end: '12:00' }
+        },
+        enumerable: true,
+        configurable: true,
+      })
+    }
+    const schedule = normalizeVisibilitySchedule({ enabled: true, outside: 'visible', ranges })
+    expect(schedule.ranges).toHaveLength(MAX_VISIBILITY_RANGES)
+    // Every `values()` read normalizes this array, so the truncation has to
+    // bound the work: an imported 8000-entry array must not be fully scanned.
+    expect(reads).toBe(MAX_VISIBILITY_RANGES)
+  })
+
+  it('does not let invalid entries consume the range budget', () => {
+    const ranges = [
+      { start: 'nope', end: '00:00' },
+      ...Array.from({ length: 30 }, (_, index) => ({ start: `0${(index % 9) + 1}:00`, end: '23:00' })),
+    ]
+    expect(normalizeVisibilitySchedule({ ranges }).ranges).toHaveLength(MAX_VISIBILITY_RANGES)
+  })
 })
 
 describe('PreferencesStore snapshot / replace / clearSkin', () => {
+  function makeStorage(seed: unknown = {}): { storage: Storage, read: () => string | null } {
+    let value = JSON.stringify(seed) as string | null
+    const storage = {
+      getItem: () => value,
+      setItem: (_key: string, next: string) => { value = next },
+      removeItem: () => { value = null },
+    } as unknown as Storage
+    return { storage, read: () => value }
+  }
+
+  function makeTarget(): Window {
+    const handlers = new Map<string, EventListener>()
+    return {
+      addEventListener: (type: string, listener: EventListener) => handlers.set(type, listener),
+      removeEventListener: (type: string) => handlers.delete(type),
+      dispatchEvent: () => true,
+    } as unknown as Window
+  }
+
   function makeStore(seed: Record<string, Record<string, unknown>> = {}): PreferencesStore {
-    const storage = (() => {
-      let value = JSON.stringify(seed)
-      return {
-        getItem: () => value,
-        setItem: (_key: string, next: string) => { value = next },
-        removeItem: () => { value = '' },
-      } as Storage
-    })()
-    const target = (() => {
-      const handlers = new Map<string, EventListener>()
-      return {
-        addEventListener: (type: string, listener: EventListener) => handlers.set(type, listener),
-        removeEventListener: (type: string) => handlers.delete(type),
-        dispatchEvent: () => true,
-      } as unknown as Window
-    })()
-    return new PreferencesStore(storage, target)
+    return new PreferencesStore(makeStorage(seed).storage, makeTarget())
   }
 
   it('snapshot returns the raw preferences without mutating the store', () => {
@@ -103,16 +134,19 @@ describe('PreferencesStore snapshot / replace / clearSkin', () => {
     expect(store.snapshot()).toEqual({ example: { art: false } })
   })
 
-  it('replace normalizes every known skin and skips unknown ones', () => {
+  it('replace normalizes registered skins and stores blocks for skins that are not loaded', () => {
     const store = makeStore({ example: { art: true } })
     const written = store.replace([definition], { example: { art: 'bad', font: 'removed' }, 'unknown-skin': { x: 1 } })
-    expect(written).toBe(1)
+    expect(written).toBe(2)
     expect(store.snapshot().example).toEqual({ art: true, font: 'system', sfw: { enabled: false, outside: 'visible', ranges: [] } })
+    // Stored verbatim: `values()` normalizes the block against its definition
+    // once that skin registers, so an unloaded skin's configuration survives.
+    expect(store.snapshot()['unknown-skin']).toEqual({ x: 1 })
   })
 
-  it('replace reports zero and skips the write when no skin matches', () => {
+  it('replace reports zero and skips the write when the envelope has no block', () => {
     const store = makeStore({ example: { art: true } })
-    const written = store.replace([definition], { 'unknown-skin': { x: 1 } })
+    const written = store.replace([definition], {})
     expect(written).toBe(0)
     expect(store.snapshot()).toEqual({ example: { art: true } })
   })
@@ -133,6 +167,48 @@ describe('PreferencesStore snapshot / replace / clearSkin', () => {
     expect(store.snapshot().example).toBeUndefined()
     expect(calls).toBe(1)
     expect(store.clearSkin('example')).toBe(false)
+    expect(calls).toBe(1)
+  })
+
+  it('leaves memory, storage and subscribers untouched when the payload cannot be serialized', () => {
+    const { storage, read } = makeStorage({ example: { art: true } })
+    const store = new PreferencesStore(storage, makeTarget())
+    let calls = 0
+    store.subscribe(() => { calls += 1 })
+    // A structure the store cannot write back — here a cyclic block, the same
+    // class of failure a deeply nested imported block triggers — must not leave
+    // the in-memory store ahead of storage with every later write poisoned.
+    const cyclic: Record<string, unknown> = {}
+    cyclic.self = cyclic
+    expect(() => store.replace([definition], { cyclic })).toThrow(TypeError)
+    expect(store.snapshot()).toEqual({ example: { art: true } })
+    expect(JSON.parse(read()!)).toEqual({ example: { art: true } })
+    expect(calls).toBe(0)
+    store.set(definition, 'art', false)
+    expect(JSON.parse(read()!).example.art).toBe(false)
+    expect(calls).toBe(1)
+  })
+
+  it('rolls memory back when storage rejects the write instead of splitting the two', () => {
+    const { storage, read } = makeStorage({ example: { art: true } })
+    const store = new PreferencesStore(storage, makeTarget())
+    let calls = 0
+    store.subscribe(() => { calls += 1 })
+    storage.setItem = () => { throw new Error('quota exceeded') }
+    expect(() => store.replace([definition], { example: { art: false } })).toThrow('quota exceeded')
+    expect(store.snapshot()).toEqual({ example: { art: true } })
+    expect(JSON.parse(read()!)).toEqual({ example: { art: true } })
+    expect(calls).toBe(0)
+  })
+
+  it('removeUnregistered drops only blocks for skins the registry does not hold', () => {
+    const store = makeStore({ example: { art: true }, 'unknown-skin': { x: 1 } })
+    let calls = 0
+    store.subscribe(() => { calls += 1 })
+    expect(store.removeUnregistered(['example'])).toEqual(['unknown-skin'])
+    expect(store.snapshot()).toEqual({ example: { art: true } })
+    expect(calls).toBe(1)
+    expect(store.removeUnregistered(['example'])).toEqual([])
     expect(calls).toBe(1)
   })
 })
