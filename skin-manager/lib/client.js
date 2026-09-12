@@ -1401,15 +1401,22 @@ window.__ModuleLoader__.load({
 				readFile(file);
 			};
 			const onDragOver = (event) => {
+				if (!event.dataTransfer.types.includes("Files")) return;
 				event.preventDefault();
-				if (event.dataTransfer.types.includes("Files")) setDragging(true);
+				event.stopPropagation();
+				event.dataTransfer.dropEffect = "copy";
+				setDragging(true);
 			};
 			const onDragLeave = (event) => {
+				if (!event.dataTransfer.types.includes("Files")) return;
 				event.preventDefault();
+				event.stopPropagation();
 				setDragging(false);
 			};
 			const onDrop = (event) => {
+				if (!event.dataTransfer.types.includes("Files")) return;
 				event.preventDefault();
+				event.stopPropagation();
 				setDragging(false);
 				const file = event.dataTransfer.files?.[0];
 				if (file === void 0) return;
@@ -1453,6 +1460,7 @@ window.__ModuleLoader__.load({
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: `${skin_manager_module_css_default.dropZone} ${dragging ? skin_manager_module_css_default.dropZoneActive : ""}`,
+						onDragEnter: onDragOver,
 						onDragOver,
 						onDragLeave,
 						onDrop,
