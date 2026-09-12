@@ -2,6 +2,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { SkinCatalogEntry } from '../contract.ts'
 import { SkinManager, requestSkinSwitch } from './SkinManager.tsx'
+import { currentUiLang, skinManagerCopy } from './locale.ts'
 import { PreferencesStore } from './preferences.ts'
 import { SkinCustomizationRegistry } from './runtime.ts'
 import './skin-manager.module.css'
@@ -30,7 +31,12 @@ export function apply(ctx: SlotsContext): void {
     name: 'settings.section',
     id: 'dsh-skins',
     order: 115,
-    label: '皮肤管理',
+    // A label the host calls during render, so the settings nav follows the
+    // host language instead of staying on the Chinese source string. The host
+    // re-invokes it on every locale revision, which is when this re-reads
+    // <html lang>; the page itself follows through `useUiLang`. The nav cell is
+    // narrow and ellipsises, hence the dedicated short `navLabel`.
+    label: () => skinManagerCopy(currentUiLang()).navLabel,
     inject: () => ({ registry, active: activeSkin, switchSkin: requestSkinSwitch }),
   }, SkinManager))
 }
