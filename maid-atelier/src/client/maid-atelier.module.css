@@ -1500,6 +1500,93 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   box-shadow: none;
 }
 
+/* The window prompt (ask_user_question) and the plan review take the composer
+   seat over. Their desktop footer is one non-wrapping row — pager, status text
+   and the two action buttons — which measures 349px inside a 318px card on a
+   390px phone: the primary button is pushed past the card's right edge and
+   clipped by its own `overflow: hidden`, and at 360px its centre falls outside
+   the card so the tap misses it entirely. Reflow the footer, give the actions a
+   full-width row of touch-sized buttons, and cap the card against the visual
+   viewport rather than the layout viewport the keyboard does not shrink. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] :is([data-question-key], [data-plan-review-key]) {
+    padding: 6px 10px 10px !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section {
+    max-height: min(calc(var(--maid-vv-height, 100dvh) - 96px), 520px) !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section
+    > :is(footer, div:last-child) {
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 0 10px !important;
+  }
+
+  /* Actions own the last row; the pager and the status text share the one above. */
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section
+    > :is(footer, div:last-child) > :last-child {
+    flex: 1 1 100% !important;
+    flex-wrap: wrap !important;
+    justify-content: stretch !important;
+    gap: 8px !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) > section
+    > :is(footer, div:last-child) > :last-child > button {
+    flex: 1 1 0 !important;
+    min-height: 44px !important;
+  }
+
+  /* Icon-only affordances (collapse, dismiss, previous, next) meet the touch
+     minimum; the option rows grow with them. */
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key]) button[aria-label] {
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-question-key], [data-plan-review-key])
+    :is([role='radio'], [role='checkbox']) {
+    min-height: 44px !important;
+  }
+
+  @media (pointer: coarse) {
+    body[data-dsh-maid-atelier]
+      :is([data-question-key], [data-plan-review-key]) button[aria-label] {
+      min-width: 44px !important;
+      min-height: 44px !important;
+    }
+  }
+}
+
+/* The software keyboard does not resize the layout viewport, and this shell is
+   `height: 100%` of it, so a focused composer stays behind the keyboard and the
+   height-locked page cannot scroll it into view. While the keyboard is up the
+   client entry pins the application root to the band VisualViewport reports;
+   on engines that honour the `interactive-widget=resizes-content` viewport hint
+   the layout viewport resizes on its own and this block never engages. */
+@media (pointer: coarse) {
+  html[data-maid-keyboard='open'] body[data-dsh-maid-atelier] [id='root'] {
+    position: fixed !important;
+    top: var(--maid-vv-top, 0px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: var(--maid-vv-height, 100dvh) !important;
+    max-height: none !important;
+    overscroll-behavior: none !important;
+  }
+}
+
 /* Workspace groups receive skin-owned semantic hooks from the client entry.
    This keeps the ornamental tree independent from generated CSS-module names
    while leaving the official rows and their interactions intact. */
@@ -2956,6 +3043,32 @@ body[data-dsh-maid-atelier] [data-composer-card]
     [data-slot='conversation.input.model'] > [class$='_root']
     > button[aria-haspopup='menu'] > [class*='triggerLabel']::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* The host drops the model name in a narrow composer — its own stylesheet hides
+   the label and shows the icon inside `@container (width<=360px)`. The phone
+   rules above still stretch the picker across the whole seat, so with the name
+   gone the chip keeps a text-sized box and its icon is stranded at the left of
+   it. Once the name is hidden the picker is an icon chip: let it size to its
+   content, and hold it against send on the trailing edge. */
+@container (width<=360px) {
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] [data-slot='conversation.input.model'] > [class$='_root'] {
+    flex: 0 1 auto;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] [data-slot='conversation.input.model'] > [class$='_root']
+    > button[aria-haspopup='menu'] {
+    width: auto;
+    max-width: 100%;
+    padding: 0 4px 0 8px;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-phase='hero'], [data-phase='active'])
+    [data-composer-card] > [class*='row'] > [class*='trailing'] {
+    justify-content: flex-end;
   }
 }
 

@@ -1,9 +1,25 @@
 /**
  * `@deepseek-ai/dsh-client-ui-layout` closes its narrow sidebar only from the
- * toggle button — picking a session calls `openSession`, which never touches
- * `narrowExpanded`. On a phone the drawer therefore keeps covering the
- * conversation after a session switch, and the user has to close it by hand.
- * Mirror the toggle once the row click has been dispatched.
+ * toggle button. Three gestures a phone user expects are therefore missing:
+ *
+ * 1. picking a session calls `openSession`, which never touches
+ *    `narrowExpanded`, so the drawer keeps covering the conversation after a
+ *    session switch and has to be closed by hand;
+ * 2. tapping outside the open drawer does nothing at all — the host's
+ *    `overlayLayer` is only an overlay container (`pointer-events: none`, no
+ *    handler), not a scrim, so the drawer stays up until the toggle is found
+ *    again;
+ * 3. the drawer's own settings entry opens a host dialog *above* the overlay,
+ *    and closing that dialog drops the reader back onto the drawer — which, at
+ *    phone widths, covers the composer. Tapping the prompt then lands on a
+ *    session row and nothing can be typed.
+ *
+ * All three are mirrored here: a row activation closes the overlay on the next
+ * frame, a pointer that lands outside the open column dismisses it, and the
+ * settings dialog is watched so that dismissing it takes the overlay with it.
+ * The tap that dismisses is then swallowed, because on a phone the control
+ * behind the drawer is usually the composer — and its send button sits exactly
+ * in the corner a reader aims at when dismissing.
  *
  * The breakpoint mirrors `SIDEBAR_AUTO_COLLAPSE` in the layout package: below it
  * the collapsed column is a rail and the expanded column is an overlay, above it
@@ -13,18 +29,42 @@ const DRAWER_AUTO_COLLAPSE = 1024
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const SESSION_ROW_SELECTOR = '[data-maid-session-row], [role="treeitem"][class*="sessionRow"]'
 const ROW_AFFORDANCE_SELECTOR = '[role="menu"], [role="dialog"], input, textarea, [aria-haspopup]'
+/** Popups own the tap that dismisses them, so the drawer waits its turn. */
+const OPEN_POPUP_SELECTOR = [
+  '[role="menu"]',
+  '[role="listbox"]',
+  '[role="dialog"]',
+  '[aria-modal="true"]',
+  '[data-radix-popper-content-wrapper]',
+  '[data-floating-ui-portal]',
+].join(',')
+/** The host's resize handle is a drag, not a dismissal. */
+const DRAG_HANDLE_SELECTOR = "[class*='handle']"
+/** The drawer's own settings entry; its dialog is the one that strands the reader. */
+const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] button[aria-haspopup='dialog']"
+/** Only a dialog panel counts as the settings surface the reader opened. */
+const DIALOG_SELECTOR = '[role="dialog"]'
+/** How long a dismissing pointer keeps swallowing the click it produced. */
+const SWALLOW_WINDOW_MS = 400
+/**
+ * How long to wait for the settings dialog to show up before giving up on the
+ * watch. A trigger whose dialog never opens must not leave an observer on every
+ * body mutation for the rest of the session.
+ */
+const DIALOG_WATCH_TIMEOUT_MS = 4000
 
 /**
- * Close the narrow sidebar after a session row (or the sidebar's New Session
- * button) was activated.
+ * Close the narrow sidebar when a session row (or the sidebar's New Session
+ * button) is activated, and when a tap lands outside the open drawer.
  * @param body - skin owning element (document.body); supplies the document and view.
- * @returns disposer removing the click listener installed here.
+ * @returns disposer removing the listeners installed here.
  */
 export function installMaidMobileDrawerAutoClose(body: HTMLElement): () => void {
   const doc = body.ownerDocument
   const view = doc.defaultView
   if (view === null) return () => {}
   let pendingFrame: number | null = null
+  let swallowTimer: ReturnType<typeof setTimeout> | null = null
 
   const drawerOpen = (): boolean => view.innerWidth < DRAWER_AUTO_COLLAPSE
     && doc.querySelector('div[data-sidebar-collapsed]') === null
@@ -37,9 +77,106 @@ export function installMaidMobileDrawerAutoClose(body: HTMLElement): () => void 
       ?.click()
   }
 
+  /** Gestures that keep the drawer open: its own chrome, a popup, a drag handle. */
+  const ownsGesture = (target: Element): boolean => target.closest(SIDEBAR_COLUMN_SELECTOR) !== null
+    || target.closest(ROW_AFFORDANCE_SELECTOR) !== null
+    || target.closest(DRAG_HANDLE_SELECTOR) !== null
+    || doc.querySelector(OPEN_POPUP_SELECTOR) !== null
+
+  /** Dismiss the drawer for a gesture outside it; true when it was open to close. */
+  const dismissOutside = (target: Element): boolean => {
+    if (!drawerOpen() || ownsGesture(target)) return false
+    closeDrawer()
+    return true
+  }
+
+  const armSwallow = (): void => {
+    if (swallowTimer !== null) clearTimeout(swallowTimer)
+    swallowTimer = setTimeout(() => { swallowTimer = null }, SWALLOW_WINDOW_MS)
+  }
+
+  const releaseSwallow = (): boolean => {
+    if (swallowTimer === null) return false
+    clearTimeout(swallowTimer)
+    swallowTimer = null
+    return true
+  }
+
+  /**
+   * Watch the settings dialog the drawer just opened, and take the overlay down
+   * with it. The watcher only starts counting once the dialog has actually been
+   * on screen, so the gap between the click and the host mounting it cannot be
+   * mistaken for a dismissal.
+   */
+  let dialogWatch: MutationObserver | null = null
+  let dialogWatchTimer: ReturnType<typeof setTimeout> | null = null
+
+  const stopDialogWatch = (): void => {
+    dialogWatch?.disconnect()
+    dialogWatch = null
+    if (dialogWatchTimer !== null) {
+      clearTimeout(dialogWatchTimer)
+      dialogWatchTimer = null
+    }
+  }
+
+  const watchSettingsDialog = (): void => {
+    if (dialogWatch !== null) return
+    let seen = false
+    const check = (): void => {
+      if (doc.querySelector(DIALOG_SELECTOR) !== null) {
+        seen = true
+        if (dialogWatchTimer !== null) {
+          clearTimeout(dialogWatchTimer)
+          dialogWatchTimer = null
+        }
+        return
+      }
+      if (!seen) return
+      stopDialogWatch()
+      closeDrawer()
+    }
+    dialogWatch = new MutationObserver(check)
+    dialogWatch.observe(doc.body, { childList: true, subtree: true })
+    dialogWatchTimer = setTimeout(stopDialogWatch, DIALOG_WATCH_TIMEOUT_MS)
+  }
+
+  const onSettingsEntry = (event: MouseEvent): void => {
+    const target = event.target
+    if (!(target instanceof Element) || target.closest(SETTINGS_TRIGGER_SELECTOR) === null) return
+    watchSettingsDialog()
+  }
+
+  const onPointerDown = (event: PointerEvent): void => {
+    // Secondary buttons and extra touches during a pinch are not dismissals.
+    if (event.isPrimary === false || event.button > 0) return
+    const target = event.target
+    if (!(target instanceof Element) || !dismissOutside(target)) return
+    armSwallow()
+  }
+
+  const onMouseDown = (event: MouseEvent): void => {
+    // Cancelling the default focus keeps a dismissing tap from raising the phone
+    // keyboard on the composer behind the drawer.
+    if (swallowTimer !== null) event.preventDefault()
+  }
+
   const onClick = (event: MouseEvent): void => {
     const target = event.target
     if (!(target instanceof Element)) return
+
+    // The pointerdown that dismissed the drawer already did the work: swallow the
+    // click it produced so it cannot activate the control behind the overlay.
+    if (releaseSwallow()) {
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
+
+    // Synthetic clicks (no pointerdown) still dismiss; for a real pointer the
+    // drawer is already closed by now, so this is a no-op.
+    if (drawerOpen() && dismissOutside(target)) return
+
     // Row-internal affordances (overflow menu, inline rename, popovers) own the
     // gesture and keep the drawer open.
     if (target.closest(ROW_AFFORDANCE_SELECTOR) !== null) return
@@ -59,10 +196,18 @@ export function installMaidMobileDrawerAutoClose(body: HTMLElement): () => void 
     })
   }
 
+  doc.addEventListener('pointerdown', onPointerDown, true)
+  doc.addEventListener('mousedown', onMouseDown, true)
+  doc.addEventListener('click', onSettingsEntry, true)
   doc.addEventListener('click', onClick, true)
   return () => {
+    doc.removeEventListener('pointerdown', onPointerDown, true)
+    doc.removeEventListener('mousedown', onMouseDown, true)
+    doc.removeEventListener('click', onSettingsEntry, true)
     doc.removeEventListener('click', onClick, true)
     if (pendingFrame !== null) view.cancelAnimationFrame(pendingFrame)
     pendingFrame = null
+    releaseSwallow()
+    stopDialogWatch()
   }
 }
