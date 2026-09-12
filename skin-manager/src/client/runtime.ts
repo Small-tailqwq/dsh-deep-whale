@@ -5,6 +5,8 @@ import {
   type SkinCustomizationDefinition,
   type SkinCustomizationProtocol,
   type SkinCustomizationRegistration,
+  type SkinSetting,
+  type SkinSettingCondition,
   type SkinSettingValue,
   type VisibilitySchedule,
 } from '../protocol.ts'
@@ -170,4 +172,22 @@ export class SkinCustomizationRegistry {
       ? this.target.setTimeout(() => this.applyAll(), millisecondsToNextMinute(this.now()))
       : undefined
   }
+}
+
+/** Whether one single-key condition holds for the current values. */
+export function conditionMatches(condition: SkinSettingCondition, values: Record<string, SkinSettingValue>): boolean {
+  const value = values[condition.key]
+  return condition.values.some(candidate => candidate === value)
+}
+
+/**
+ * Whether a setting should render. `anyOf` is the family-of-switches form: the
+ * control shows while any listed condition holds, and the top-level single-key
+ * mirror keeps the declaration readable for a manager that predates `anyOf`.
+ */
+export function settingVisible(setting: SkinSetting, values: Record<string, SkinSettingValue>): boolean {
+  const condition = setting.visibleWhen
+  if (condition === undefined) return true
+  if ('anyOf' in condition) return condition.anyOf.some(entry => conditionMatches(entry, values))
+  return conditionMatches(condition, values)
 }

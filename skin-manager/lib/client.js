@@ -9,6 +9,368 @@ window.__ModuleLoader__.load({
 		//#region src/contract.ts
 		/** Same-origin host route used for catalog discovery and activation. */
 		const SKIN_MANAGER_ROUTE = "/api/dsh/skins";
+		const SKIN_CUSTOMIZATION_EVENTS = {
+			[1]: {
+				register: "dsh:skin-customization-register-v1",
+				unregister: "dsh:skin-customization-unregister-v1",
+				ready: "dsh:skin-customization-ready-v1"
+			},
+			[2]: {
+				register: "dsh:skin-customization-register-v2",
+				unregister: "dsh:skin-customization-unregister-v2",
+				ready: "dsh:skin-customization-ready-v2"
+			}
+		};
+		SKIN_CUSTOMIZATION_EVENTS[2].register;
+		SKIN_CUSTOMIZATION_EVENTS[2].unregister;
+		SKIN_CUSTOMIZATION_EVENTS[2].ready;
+		//#endregion
+		//#region src/client/schedule.ts
+		const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+		const DEFAULT_VISIBILITY_SCHEDULE = {
+			enabled: false,
+			outside: "visible",
+			ranges: []
+		};
+		function normalizeTimeRange(value) {
+			if (typeof value !== "object" || value === null) return null;
+			const { start, end } = value;
+			if (typeof start !== "string" || typeof end !== "string") return null;
+			if (!TIME.test(start) || !TIME.test(end) || start === end) return null;
+			return {
+				start,
+				end
+			};
+		}
+		function normalizeVisibilitySchedule(value, fallback = DEFAULT_VISIBILITY_SCHEDULE) {
+			const source = typeof value === "object" && value !== null ? value : {};
+			const ranges = Array.isArray(source.ranges) ? source.ranges.map(normalizeTimeRange).filter((range) => range !== null).slice(0, 24) : fallback.ranges;
+			return {
+				enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
+				outside: source.outside === "hidden" ? "hidden" : source.outside === "visible" ? "visible" : fallback.outside,
+				ranges
+			};
+		}
+		const minutes = (time) => {
+			const [hour = 0, minute = 0] = time.split(":").map(Number);
+			return hour * 60 + minute;
+		};
+		function isInTimeRange(range, minuteOfDay) {
+			const start = minutes(range.start);
+			const end = minutes(range.end);
+			return start < end ? minuteOfDay >= start && minuteOfDay < end : minuteOfDay >= start || minuteOfDay < end;
+		}
+		/** Resolve local-time visibility; ranges always invert the outside policy. */
+		function scheduleVisibility(schedule, now = /* @__PURE__ */ new Date()) {
+			if (!schedule.enabled) return true;
+			const minuteOfDay = now.getHours() * 60 + now.getMinutes();
+			const inside = schedule.ranges.some((range) => isInTimeRange(range, minuteOfDay));
+			const outsideVisible = schedule.outside === "visible";
+			return inside ? !outsideVisible : outsideVisible;
+		}
+		/** Wake at the next minute boundary; exact enough for minute-resolution rules. */
+		function millisecondsToNextMinute(now = /* @__PURE__ */ new Date()) {
+			return Math.max(50, 6e4 - now.getSeconds() * 1e3 - now.getMilliseconds() + 25);
+		}
+		//#endregion
+		//#region src/client/preferences.ts
+		const PREFERENCES_KEY = "dsh.skin-manager.preferences.v2";
+		const LEGACY_PREFERENCES_KEY = "dsh-deep-whale.skin-manager.v1";
+		function object(value) {
+			return typeof value === "object" && value !== null ? value : {};
+		}
+		function readJson(storage, key) {
+			try {
+				const raw = storage.getItem(key);
+				return raw === null ? void 0 : JSON.parse(raw);
+			} catch {
+				return;
+			}
+		}
+		function migrateLegacy(value) {
+			const root = object(value);
+			const maid = object(root.maid);
+			const orca = object(root.orca);
+			return {
+				"maid-atelier": {
+					artwork: maid.artwork,
+					font: maid.font,
+					modelExit: maid.modelExit
+				},
+				"orca-link": {
+					character: orca.character,
+					background: orca.background,
+					pricingLight: orca.pricingLight
+				}
+			};
+		}
+		function readPreferences(storage = localStorage) {
+			const current = readJson(storage, PREFERENCES_KEY);
+			if (typeof current === "object" && current !== null) return object(current);
+			return migrateLegacy(readJson(storage, LEGACY_PREFERENCES_KEY));
+		}
+		function normalizeSetting(setting, value) {
+			if (setting.type === "boolean") return typeof value === "boolean" ? value : setting.defaultValue;
+			if (setting.type === "select") return typeof value === "string" && setting.options.some((option) => option.value === value) ? value : setting.defaultValue;
+			if (setting.type === "range") {
+				const numeric = typeof value === "number" && Number.isFinite(value) ? value : setting.defaultValue;
+				const min = setting.min;
+				const max = setting.max;
+				return Math.min(max, Math.max(min, numeric));
+			}
+			if (setting.type === "color") return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : setting.defaultValue;
+			if (setting.type === "checkbox-group") {
+				const selected = new Set(Array.isArray(value) ? value : setting.defaultValue);
+				return setting.options.map((option) => option.value).filter((option) => selected.has(option));
+			}
+			return normalizeVisibilitySchedule(value, setting.defaultValue);
+		}
+		function settingSourceValue(setting, source) {
+			if (Object.hasOwn(source, setting.key)) return source[setting.key];
+			const legacy = setting.legacyValue;
+			if (legacy === void 0) return void 0;
+			const legacyValue = source[legacy.key];
+			if (typeof legacyValue !== "boolean" && typeof legacyValue !== "string" && typeof legacyValue !== "number") return;
+			const key = String(legacyValue);
+			return Object.hasOwn(legacy.map, key) ? legacy.map[key] : void 0;
+		}
+		function normalizeSkinValues(definition, value) {
+			const source = object(value);
+			return Object.fromEntries(definition.settings.map((setting) => [setting.key, normalizeSetting(setting, settingSourceValue(setting, source))]));
+		}
+		var PreferencesStore = class {
+			storage;
+			value;
+			listeners = /* @__PURE__ */ new Set();
+			onStorage = (event) => {
+				if (event.key !== "dsh.skin-manager.preferences.v2") return;
+				this.value = readPreferences(this.storage);
+				this.listeners.forEach((listener) => listener());
+			};
+			dispose;
+			constructor(storage = localStorage, target = window) {
+				this.storage = storage;
+				this.value = readPreferences(storage);
+				target.addEventListener("storage", this.onStorage);
+				this.dispose = () => target.removeEventListener("storage", this.onStorage);
+			}
+			subscribe = (listener) => {
+				this.listeners.add(listener);
+				return () => this.listeners.delete(listener);
+			};
+			values(definition) {
+				return normalizeSkinValues(definition, this.value[definition.skinId]);
+			}
+			set(definition, key, value) {
+				if (!definition.settings.some((setting) => setting.key === key)) return;
+				this.value = {
+					...this.value,
+					[definition.skinId]: {
+						...this.value[definition.skinId],
+						[key]: value
+					}
+				};
+				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
+				this.listeners.forEach((listener) => listener());
+			}
+			/** Full raw preferences snapshot for export; never mutates store state. */
+			snapshot() {
+				return this.value;
+			}
+			/**
+			* Replace every skin's preferences in one atomic write. Each skin block is
+			* normalized against its live definition so unknown keys, removed settings
+			* and malformed values never reach the persisted store. Returns the number
+			* of skin blocks actually stored.
+			*/
+			replace(definitions, incoming) {
+				const next = { ...this.value };
+				let written = 0;
+				for (const definition of definitions) {
+					const block = incoming[definition.skinId];
+					if (block === void 0) continue;
+					next[definition.skinId] = normalizeSkinValues(definition, block);
+					written += 1;
+				}
+				if (written === 0) return 0;
+				this.value = next;
+				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
+				this.listeners.forEach((listener) => listener());
+				return written;
+			}
+			/** Remove every setting under one skin id; used by per-skin reset flows. */
+			clearSkin(skinId) {
+				if (this.value[skinId] === void 0) return false;
+				const next = { ...this.value };
+				delete next[skinId];
+				this.value = next;
+				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
+				this.listeners.forEach((listener) => listener());
+				return true;
+			}
+		};
+		//#endregion
+		//#region src/client/runtime.ts
+		/** Owns discovery, persistence fan-out, and clock updates behind one registry interface. */
+		var SkinCustomizationRegistry = class {
+			store;
+			target;
+			now;
+			definitions = /* @__PURE__ */ new Map();
+			listeners = /* @__PURE__ */ new Set();
+			snapshot = {
+				definitions: [],
+				revision: 0
+			};
+			timer;
+			unsubscribeStore;
+			constructor(store = new PreferencesStore(), target = window, now = () => /* @__PURE__ */ new Date()) {
+				this.store = store;
+				this.target = target;
+				this.now = now;
+				this.unsubscribeStore = store.subscribe(() => {
+					this.applyAll();
+					this.emit();
+				});
+				for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
+					target.addEventListener(events.register, this.onRegister);
+					target.addEventListener(events.unregister, this.onUnregister);
+					target.dispatchEvent(new Event(events.ready));
+				}
+			}
+			getSnapshot = () => this.snapshot;
+			subscribe = (listener) => {
+				this.listeners.add(listener);
+				return () => this.listeners.delete(listener);
+			};
+			values(definition) {
+				return this.store.values(definition);
+			}
+			set(definition, key, value) {
+				this.store.set(definition, key, value);
+			}
+			/** Raw preferences snapshot for export; never mutates store state. */
+			exportPreferences() {
+				return this.store.snapshot();
+			}
+			/**
+			* Replace every skin's preferences in one atomic write. Each block is
+			* normalized against its live definition so unknown keys and malformed
+			* values never reach the persisted store. Returns the number of skins
+			* actually written. Subscribers are notified once per call.
+			*/
+			importPreferences(incoming) {
+				const written = this.store.replace(this.snapshot.definitions, incoming);
+				if (written > 0) this.applyAll();
+				return written;
+			}
+			/** Remove every setting under one skin id; used by per-skin reset flows. */
+			resetSkin(skinId) {
+				const cleared = this.store.clearSkin(skinId);
+				if (cleared) this.applyAll();
+				return cleared;
+			}
+			dispose() {
+				for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
+					this.target.removeEventListener(events.register, this.onRegister);
+					this.target.removeEventListener(events.unregister, this.onUnregister);
+				}
+				this.unsubscribeStore();
+				this.store.dispose();
+				if (this.timer !== void 0) this.target.clearTimeout(this.timer);
+				for (const definition of this.definitions.values()) definition.apply(null);
+				this.definitions.clear();
+			}
+			onRegister = (event) => {
+				const detail = event instanceof CustomEvent ? event.detail : void 0;
+				const protocol = this.eventProtocol(event.type, "register");
+				if (!detail || protocol === void 0 || !this.valid(detail.definition, protocol)) return;
+				this.definitions.set(detail.token, detail.definition);
+				this.rebuildSnapshot();
+				this.applyAll();
+			};
+			onUnregister = (event) => {
+				const detail = event instanceof CustomEvent ? event.detail : void 0;
+				const protocol = this.eventProtocol(event.type, "unregister");
+				if (!detail || protocol !== detail.definition.protocol || this.definitions.get(detail.token) !== detail.definition) return;
+				detail.definition.apply(null);
+				this.definitions.delete(detail.token);
+				this.rebuildSnapshot();
+				this.scheduleClock();
+			};
+			eventProtocol(type, phase) {
+				if (type === SKIN_CUSTOMIZATION_EVENTS[1][phase]) return 1;
+				if (type === SKIN_CUSTOMIZATION_EVENTS[2][phase]) return 2;
+			}
+			valid(definition, protocol) {
+				if (definition?.protocol !== protocol || typeof definition.skinId !== "string" || typeof definition.apply !== "function" || !Array.isArray(definition.settings)) return false;
+				const settingTypes = /* @__PURE__ */ new Set([
+					"boolean",
+					"select",
+					"range",
+					"color",
+					"checkbox-group",
+					"visibility-schedule"
+				]);
+				if (!definition.settings.every((setting) => setting !== null && typeof setting === "object" && settingTypes.has(setting.type))) return false;
+				const keys = definition.settings.map((setting) => setting.key);
+				return keys.length === new Set(keys).size && keys.every((key) => /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(key));
+			}
+			rebuildSnapshot() {
+				this.snapshot = {
+					definitions: [...new Set(this.definitions.values())],
+					revision: this.snapshot.revision + 1
+				};
+				this.listeners.forEach((listener) => listener());
+			}
+			emit() {
+				this.snapshot = {
+					...this.snapshot,
+					revision: this.snapshot.revision + 1
+				};
+				this.listeners.forEach((listener) => listener());
+			}
+			applyAll() {
+				const now = this.now();
+				for (const definition of new Set(this.definitions.values())) {
+					const values = this.store.values(definition);
+					const visibility = Object.fromEntries(definition.settings.filter((setting) => setting.type === "visibility-schedule").map((setting) => [setting.key, scheduleVisibility(values[setting.key], now)]));
+					try {
+						definition.apply({
+							values,
+							visibility
+						});
+					} catch (error) {
+						console.error(`[skin-manager] ${definition.skinId} customization failed`, error);
+					}
+				}
+				this.scheduleClock();
+			}
+			scheduleClock() {
+				if (this.timer !== void 0) this.target.clearTimeout(this.timer);
+				const hasEnabledSchedule = [...new Set(this.definitions.values())].some((definition) => {
+					const values = this.store.values(definition);
+					return definition.settings.some((setting) => setting.type === "visibility-schedule" && values[setting.key].enabled);
+				});
+				this.timer = hasEnabledSchedule ? this.target.setTimeout(() => this.applyAll(), millisecondsToNextMinute(this.now())) : void 0;
+			}
+		};
+		/** Whether one single-key condition holds for the current values. */
+		function conditionMatches(condition, values) {
+			const value = values[condition.key];
+			return condition.values.some((candidate) => candidate === value);
+		}
+		/**
+		* Whether a setting should render. `anyOf` is the family-of-switches form: the
+		* control shows while any listed condition holds, and the top-level single-key
+		* mirror keeps the declaration readable for a manager that predates `anyOf`.
+		*/
+		function settingVisible(setting, values) {
+			const condition = setting.visibleWhen;
+			if (condition === void 0) return true;
+			if ("anyOf" in condition) return condition.anyOf.some((entry) => conditionMatches(entry, values));
+			return conditionMatches(condition, values);
+		}
 		//#endregion
 		//#region src/client/locale.ts
 		/**
@@ -234,191 +596,6 @@ window.__ModuleLoader__.load({
 		function optionLabel(option, lang) {
 			return lang === "en" ? option.labelEn ?? option.label : option.label;
 		}
-		//#endregion
-		//#region src/client/schedule.ts
-		const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
-		const DEFAULT_VISIBILITY_SCHEDULE = {
-			enabled: false,
-			outside: "visible",
-			ranges: []
-		};
-		function normalizeTimeRange(value) {
-			if (typeof value !== "object" || value === null) return null;
-			const { start, end } = value;
-			if (typeof start !== "string" || typeof end !== "string") return null;
-			if (!TIME.test(start) || !TIME.test(end) || start === end) return null;
-			return {
-				start,
-				end
-			};
-		}
-		function normalizeVisibilitySchedule(value, fallback = DEFAULT_VISIBILITY_SCHEDULE) {
-			const source = typeof value === "object" && value !== null ? value : {};
-			const ranges = Array.isArray(source.ranges) ? source.ranges.map(normalizeTimeRange).filter((range) => range !== null).slice(0, 24) : fallback.ranges;
-			return {
-				enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
-				outside: source.outside === "hidden" ? "hidden" : source.outside === "visible" ? "visible" : fallback.outside,
-				ranges
-			};
-		}
-		const minutes = (time) => {
-			const [hour = 0, minute = 0] = time.split(":").map(Number);
-			return hour * 60 + minute;
-		};
-		function isInTimeRange(range, minuteOfDay) {
-			const start = minutes(range.start);
-			const end = minutes(range.end);
-			return start < end ? minuteOfDay >= start && minuteOfDay < end : minuteOfDay >= start || minuteOfDay < end;
-		}
-		/** Resolve local-time visibility; ranges always invert the outside policy. */
-		function scheduleVisibility(schedule, now = /* @__PURE__ */ new Date()) {
-			if (!schedule.enabled) return true;
-			const minuteOfDay = now.getHours() * 60 + now.getMinutes();
-			const inside = schedule.ranges.some((range) => isInTimeRange(range, minuteOfDay));
-			const outsideVisible = schedule.outside === "visible";
-			return inside ? !outsideVisible : outsideVisible;
-		}
-		/** Wake at the next minute boundary; exact enough for minute-resolution rules. */
-		function millisecondsToNextMinute(now = /* @__PURE__ */ new Date()) {
-			return Math.max(50, 6e4 - now.getSeconds() * 1e3 - now.getMilliseconds() + 25);
-		}
-		//#endregion
-		//#region src/client/preferences.ts
-		const PREFERENCES_KEY = "dsh.skin-manager.preferences.v2";
-		const LEGACY_PREFERENCES_KEY = "dsh-deep-whale.skin-manager.v1";
-		function object(value) {
-			return typeof value === "object" && value !== null ? value : {};
-		}
-		function readJson(storage, key) {
-			try {
-				const raw = storage.getItem(key);
-				return raw === null ? void 0 : JSON.parse(raw);
-			} catch {
-				return;
-			}
-		}
-		function migrateLegacy(value) {
-			const root = object(value);
-			const maid = object(root.maid);
-			const orca = object(root.orca);
-			return {
-				"maid-atelier": {
-					artwork: maid.artwork,
-					font: maid.font,
-					modelExit: maid.modelExit
-				},
-				"orca-link": {
-					character: orca.character,
-					background: orca.background,
-					pricingLight: orca.pricingLight
-				}
-			};
-		}
-		function readPreferences(storage = localStorage) {
-			const current = readJson(storage, PREFERENCES_KEY);
-			if (typeof current === "object" && current !== null) return object(current);
-			return migrateLegacy(readJson(storage, LEGACY_PREFERENCES_KEY));
-		}
-		function normalizeSetting(setting, value) {
-			if (setting.type === "boolean") return typeof value === "boolean" ? value : setting.defaultValue;
-			if (setting.type === "select") return typeof value === "string" && setting.options.some((option) => option.value === value) ? value : setting.defaultValue;
-			if (setting.type === "range") {
-				const numeric = typeof value === "number" && Number.isFinite(value) ? value : setting.defaultValue;
-				const min = setting.min;
-				const max = setting.max;
-				return Math.min(max, Math.max(min, numeric));
-			}
-			if (setting.type === "color") return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : setting.defaultValue;
-			if (setting.type === "checkbox-group") {
-				const selected = new Set(Array.isArray(value) ? value : setting.defaultValue);
-				return setting.options.map((option) => option.value).filter((option) => selected.has(option));
-			}
-			return normalizeVisibilitySchedule(value, setting.defaultValue);
-		}
-		function settingSourceValue(setting, source) {
-			if (Object.hasOwn(source, setting.key)) return source[setting.key];
-			const legacy = setting.legacyValue;
-			if (legacy === void 0) return void 0;
-			const legacyValue = source[legacy.key];
-			if (typeof legacyValue !== "boolean" && typeof legacyValue !== "string" && typeof legacyValue !== "number") return;
-			const key = String(legacyValue);
-			return Object.hasOwn(legacy.map, key) ? legacy.map[key] : void 0;
-		}
-		function normalizeSkinValues(definition, value) {
-			const source = object(value);
-			return Object.fromEntries(definition.settings.map((setting) => [setting.key, normalizeSetting(setting, settingSourceValue(setting, source))]));
-		}
-		var PreferencesStore = class {
-			storage;
-			value;
-			listeners = /* @__PURE__ */ new Set();
-			onStorage = (event) => {
-				if (event.key !== "dsh.skin-manager.preferences.v2") return;
-				this.value = readPreferences(this.storage);
-				this.listeners.forEach((listener) => listener());
-			};
-			dispose;
-			constructor(storage = localStorage, target = window) {
-				this.storage = storage;
-				this.value = readPreferences(storage);
-				target.addEventListener("storage", this.onStorage);
-				this.dispose = () => target.removeEventListener("storage", this.onStorage);
-			}
-			subscribe = (listener) => {
-				this.listeners.add(listener);
-				return () => this.listeners.delete(listener);
-			};
-			values(definition) {
-				return normalizeSkinValues(definition, this.value[definition.skinId]);
-			}
-			set(definition, key, value) {
-				if (!definition.settings.some((setting) => setting.key === key)) return;
-				this.value = {
-					...this.value,
-					[definition.skinId]: {
-						...this.value[definition.skinId],
-						[key]: value
-					}
-				};
-				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
-				this.listeners.forEach((listener) => listener());
-			}
-			/** Full raw preferences snapshot for export; never mutates store state. */
-			snapshot() {
-				return this.value;
-			}
-			/**
-			* Replace every skin's preferences in one atomic write. Each skin block is
-			* normalized against its live definition so unknown keys, removed settings
-			* and malformed values never reach the persisted store. Returns the number
-			* of skin blocks actually stored.
-			*/
-			replace(definitions, incoming) {
-				const next = { ...this.value };
-				let written = 0;
-				for (const definition of definitions) {
-					const block = incoming[definition.skinId];
-					if (block === void 0) continue;
-					next[definition.skinId] = normalizeSkinValues(definition, block);
-					written += 1;
-				}
-				if (written === 0) return 0;
-				this.value = next;
-				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
-				this.listeners.forEach((listener) => listener());
-				return written;
-			}
-			/** Remove every setting under one skin id; used by per-skin reset flows. */
-			clearSkin(skinId) {
-				if (this.value[skinId] === void 0) return false;
-				const next = { ...this.value };
-				delete next[skinId];
-				this.value = next;
-				this.storage.setItem(PREFERENCES_KEY, JSON.stringify(this.value));
-				this.listeners.forEach((listener) => listener());
-				return true;
-			}
-		};
 		/** Stable source marker so importers can reject unrelated JSON early. */
 		const PREFERENCES_EXPORT_SOURCE = "dsh-skin-manager";
 		/** Maximum accepted file size for an import (256 KiB). Defends against accidents. */
@@ -1120,12 +1297,6 @@ window.__ModuleLoader__.load({
 				onChange
 			});
 		}
-		function settingVisible(setting, values) {
-			const condition = setting.visibleWhen;
-			if (condition === void 0) return true;
-			const value = values[condition.key];
-			return condition.values.some((candidate) => candidate === value);
-		}
 		function CustomizationCard({ definition, registry }) {
 			const lang = useUiLang();
 			const copy = skinManagerCopy(lang);
@@ -1401,15 +1572,22 @@ window.__ModuleLoader__.load({
 				readFile(file);
 			};
 			const onDragOver = (event) => {
+				if (!event.dataTransfer.types.includes("Files")) return;
 				event.preventDefault();
-				if (event.dataTransfer.types.includes("Files")) setDragging(true);
+				event.stopPropagation();
+				event.dataTransfer.dropEffect = "copy";
+				setDragging(true);
 			};
 			const onDragLeave = (event) => {
+				if (!event.dataTransfer.types.includes("Files")) return;
 				event.preventDefault();
+				event.stopPropagation();
 				setDragging(false);
 			};
 			const onDrop = (event) => {
+				if (!event.dataTransfer.types.includes("Files")) return;
 				event.preventDefault();
+				event.stopPropagation();
 				setDragging(false);
 				const file = event.dataTransfer.files?.[0];
 				if (file === void 0) return;
@@ -1453,6 +1631,7 @@ window.__ModuleLoader__.load({
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: `${skin_manager_module_css_default.dropZone} ${dragging ? skin_manager_module_css_default.dropZoneActive : ""}`,
+						onDragEnter: onDragOver,
 						onDragOver,
 						onDragLeave,
 						onDrop,
@@ -1508,167 +1687,6 @@ window.__ModuleLoader__.load({
 			if (!response.ok || result.ok !== true) throw new Error(result.error ?? `HTTP ${response.status}`);
 			window.setTimeout(() => window.location.reload(), 1200);
 		}
-		const SKIN_CUSTOMIZATION_EVENTS = {
-			[1]: {
-				register: "dsh:skin-customization-register-v1",
-				unregister: "dsh:skin-customization-unregister-v1",
-				ready: "dsh:skin-customization-ready-v1"
-			},
-			[2]: {
-				register: "dsh:skin-customization-register-v2",
-				unregister: "dsh:skin-customization-unregister-v2",
-				ready: "dsh:skin-customization-ready-v2"
-			}
-		};
-		SKIN_CUSTOMIZATION_EVENTS[2].register;
-		SKIN_CUSTOMIZATION_EVENTS[2].unregister;
-		SKIN_CUSTOMIZATION_EVENTS[2].ready;
-		//#endregion
-		//#region src/client/runtime.ts
-		/** Owns discovery, persistence fan-out, and clock updates behind one registry interface. */
-		var SkinCustomizationRegistry = class {
-			store;
-			target;
-			now;
-			definitions = /* @__PURE__ */ new Map();
-			listeners = /* @__PURE__ */ new Set();
-			snapshot = {
-				definitions: [],
-				revision: 0
-			};
-			timer;
-			unsubscribeStore;
-			constructor(store = new PreferencesStore(), target = window, now = () => /* @__PURE__ */ new Date()) {
-				this.store = store;
-				this.target = target;
-				this.now = now;
-				this.unsubscribeStore = store.subscribe(() => {
-					this.applyAll();
-					this.emit();
-				});
-				for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
-					target.addEventListener(events.register, this.onRegister);
-					target.addEventListener(events.unregister, this.onUnregister);
-					target.dispatchEvent(new Event(events.ready));
-				}
-			}
-			getSnapshot = () => this.snapshot;
-			subscribe = (listener) => {
-				this.listeners.add(listener);
-				return () => this.listeners.delete(listener);
-			};
-			values(definition) {
-				return this.store.values(definition);
-			}
-			set(definition, key, value) {
-				this.store.set(definition, key, value);
-			}
-			/** Raw preferences snapshot for export; never mutates store state. */
-			exportPreferences() {
-				return this.store.snapshot();
-			}
-			/**
-			* Replace every skin's preferences in one atomic write. Each block is
-			* normalized against its live definition so unknown keys and malformed
-			* values never reach the persisted store. Returns the number of skins
-			* actually written. Subscribers are notified once per call.
-			*/
-			importPreferences(incoming) {
-				const written = this.store.replace(this.snapshot.definitions, incoming);
-				if (written > 0) this.applyAll();
-				return written;
-			}
-			/** Remove every setting under one skin id; used by per-skin reset flows. */
-			resetSkin(skinId) {
-				const cleared = this.store.clearSkin(skinId);
-				if (cleared) this.applyAll();
-				return cleared;
-			}
-			dispose() {
-				for (const events of Object.values(SKIN_CUSTOMIZATION_EVENTS)) {
-					this.target.removeEventListener(events.register, this.onRegister);
-					this.target.removeEventListener(events.unregister, this.onUnregister);
-				}
-				this.unsubscribeStore();
-				this.store.dispose();
-				if (this.timer !== void 0) this.target.clearTimeout(this.timer);
-				for (const definition of this.definitions.values()) definition.apply(null);
-				this.definitions.clear();
-			}
-			onRegister = (event) => {
-				const detail = event instanceof CustomEvent ? event.detail : void 0;
-				const protocol = this.eventProtocol(event.type, "register");
-				if (!detail || protocol === void 0 || !this.valid(detail.definition, protocol)) return;
-				this.definitions.set(detail.token, detail.definition);
-				this.rebuildSnapshot();
-				this.applyAll();
-			};
-			onUnregister = (event) => {
-				const detail = event instanceof CustomEvent ? event.detail : void 0;
-				const protocol = this.eventProtocol(event.type, "unregister");
-				if (!detail || protocol !== detail.definition.protocol || this.definitions.get(detail.token) !== detail.definition) return;
-				detail.definition.apply(null);
-				this.definitions.delete(detail.token);
-				this.rebuildSnapshot();
-				this.scheduleClock();
-			};
-			eventProtocol(type, phase) {
-				if (type === SKIN_CUSTOMIZATION_EVENTS[1][phase]) return 1;
-				if (type === SKIN_CUSTOMIZATION_EVENTS[2][phase]) return 2;
-			}
-			valid(definition, protocol) {
-				if (definition?.protocol !== protocol || typeof definition.skinId !== "string" || typeof definition.apply !== "function" || !Array.isArray(definition.settings)) return false;
-				const settingTypes = /* @__PURE__ */ new Set([
-					"boolean",
-					"select",
-					"range",
-					"color",
-					"checkbox-group",
-					"visibility-schedule"
-				]);
-				if (!definition.settings.every((setting) => setting !== null && typeof setting === "object" && settingTypes.has(setting.type))) return false;
-				const keys = definition.settings.map((setting) => setting.key);
-				return keys.length === new Set(keys).size && keys.every((key) => /^[a-zA-Z][a-zA-Z0-9._-]*$/.test(key));
-			}
-			rebuildSnapshot() {
-				this.snapshot = {
-					definitions: [...new Set(this.definitions.values())],
-					revision: this.snapshot.revision + 1
-				};
-				this.listeners.forEach((listener) => listener());
-			}
-			emit() {
-				this.snapshot = {
-					...this.snapshot,
-					revision: this.snapshot.revision + 1
-				};
-				this.listeners.forEach((listener) => listener());
-			}
-			applyAll() {
-				const now = this.now();
-				for (const definition of new Set(this.definitions.values())) {
-					const values = this.store.values(definition);
-					const visibility = Object.fromEntries(definition.settings.filter((setting) => setting.type === "visibility-schedule").map((setting) => [setting.key, scheduleVisibility(values[setting.key], now)]));
-					try {
-						definition.apply({
-							values,
-							visibility
-						});
-					} catch (error) {
-						console.error(`[skin-manager] ${definition.skinId} customization failed`, error);
-					}
-				}
-				this.scheduleClock();
-			}
-			scheduleClock() {
-				if (this.timer !== void 0) this.target.clearTimeout(this.timer);
-				const hasEnabledSchedule = [...new Set(this.definitions.values())].some((definition) => {
-					const values = this.store.values(definition);
-					return definition.settings.some((setting) => setting.type === "visibility-schedule" && values[setting.key].enabled);
-				});
-				this.timer = hasEnabledSchedule ? this.target.setTimeout(() => this.applyAll(), millisecondsToNextMinute(this.now())) : void 0;
-			}
-		};
 		//#endregion
 		//#region src/client/index.ts
 		const inject = ["slots"];

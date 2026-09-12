@@ -7,7 +7,7 @@ import type {
   TimeRange,
   VisibilitySchedule,
 } from '../protocol.ts'
-import { SkinCustomizationRegistry } from './runtime.ts'
+import { SkinCustomizationRegistry, settingVisible } from './runtime.ts'
 import { definitionTitle, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
 import {
   buildPreferencesExport,
@@ -515,13 +515,6 @@ function SettingEditor({ setting, value, disabled = false, onChange }: {
   return <ScheduleEditor setting={setting} value={value as VisibilitySchedule} onChange={onChange} />
 }
 
-function settingVisible(setting: SkinSetting, values: Record<string, SkinSettingValue>): boolean {
-  const condition = setting.visibleWhen
-  if (condition === undefined) return true
-  const value = values[condition.key]
-  return condition.values.some(candidate => candidate === value)
-}
-
 function CustomizationCard({ definition, registry }: {
   definition: SkinCustomizationDefinition
   registry: SkinCustomizationRegistry
@@ -803,18 +796,27 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
     readFile(file)
   }
 
+  // The composer listens on document; file drags over the import target must
+  // stop bubbling before they open its overlay or become message attachments.
   const onDragOver = (event: ReactDragEvent<HTMLDivElement>): void => {
+    if (!event.dataTransfer.types.includes('Files')) return
     event.preventDefault()
-    if (event.dataTransfer.types.includes('Files')) setDragging(true)
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = 'copy'
+    setDragging(true)
   }
 
   const onDragLeave = (event: ReactDragEvent<HTMLDivElement>): void => {
+    if (!event.dataTransfer.types.includes('Files')) return
     event.preventDefault()
+    event.stopPropagation()
     setDragging(false)
   }
 
   const onDrop = (event: ReactDragEvent<HTMLDivElement>): void => {
+    if (!event.dataTransfer.types.includes('Files')) return
     event.preventDefault()
+    event.stopPropagation()
     setDragging(false)
     const file = event.dataTransfer.files?.[0]
     if (file === undefined) return
@@ -840,6 +842,7 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
       </div>
       <div
         className={`${css.dropZone} ${dragging ? css.dropZoneActive : ''}`}
+        onDragEnter={onDragOver}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}

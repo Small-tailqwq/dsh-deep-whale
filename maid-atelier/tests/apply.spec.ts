@@ -993,6 +993,152 @@ describe('Maid Atelier skin apply', () => {
     await fiber.dispose()
   })
 
+  it('slides the phone drawer in for every nav mode, not just rail', () => {
+    // Every phone mode drops the host's grid track before opening it, so none of
+    // them inherits the host's grid-column transition; without a shared entrance
+    // the column snapped from the 48px bar/button box to the full-height drawer
+    // inside a single frame (measured in the browser: only two distinct widths
+    // across the whole transition, no tween at all).
+    //
+    // The file holds three near-identical `div:not([data-sidebar-collapsed])`
+    // rules per mode (two layout, one entrance), so match on the declaration
+    // instead: only the entrance rules carry the animation.
+    const DRAWER_ANIM = 'animation: maidAtelierPhoneDrawerIn'
+    const rulesWith = (decl: string): { selector: string; body: string }[] => {
+      const out: { selector: string; body: string }[] = []
+      let at = -1
+      while ((at = CSS.indexOf('{', at + 1)) !== -1) {
+        const close = CSS.indexOf('}', at)
+        if (close === -1) break
+        if (!CSS.slice(at, close).includes(decl)) continue
+        // Back up past the previous block to recover this rule's selector; the
+        // `{` at `at` itself must be excluded, so scan from `at - 1`.
+        const head = Math.max(CSS.lastIndexOf('}', at - 1), CSS.lastIndexOf('{', at - 1)) + 1
+        out.push({
+          selector: CSS.slice(head, at).replace(/\s+/g, ' ').trim(),
+          body: CSS.slice(at + 1, close).replace(/\s+/g, ' ').trim(),
+        })
+      }
+      return out
+    }
+
+    // The drawer keeps the horizontal slide it always had.
+    const entranceRules = rulesWith(DRAWER_ANIM)
+    const shared = entranceRules[0]?.body ?? ''
+    const rail = entranceRules[1]?.body ?? ''
+    const keyframe = (name: string): string =>
+      CSS.match(new RegExp(`@keyframes ${name}\\s*\\{([\\s\\S]*?)\\n\\}`))?.[1] ?? ''
+    const drawerIn = keyframe('maidAtelierPhoneDrawerIn')
+
+    for (const [name, rule] of [['shared', shared], ['rail', rail]] as const) {
+      expect(rule, `${name} drawer entrance rule`).toContain(DRAWER_ANIM)
+    }
+    expect(drawerIn).toContain('translateX(-100%)')
+    expect(drawerIn).not.toContain('translateY')
+
+    // The collapsed bar must not animate at all. It hosts the settings overlay's
+    // subtree, and every animatable property was measured to break that panel:
+    // `transform` makes this column the overlay's containing block (the fixed
+    // panel centred against the 390x48 bar and landed off-screen), `clip-path`
+    // clips fixed descendants (the panel was cut to the bar and only its tab
+    // strip survived), and `opacity` installs a stacking context. Verified in the
+    // browser by toggling each one: the panel's probes were unreachable while any
+    // of them were live on this rule.
+    const barRule = rulesWith('animation: none').find((rule) =>
+      rule.selector.includes("data-maid-nav-mode='topbar'")
+      && rule.selector.includes('data-sidebar-collapsed'))?.body ?? ''
+    expect(barRule, 'collapsed topbar rule').toContain('animation: none')
+    for (const offender of ['transform', 'translate', 'clip-path', 'scale(', 'opacity']) {
+      expect(barRule, `collapsed topbar rule must not declare ${offender}`).not.toContain(offender)
+    }
+    expect(CSS).not.toContain('@keyframes maidAtelierPhoneTopbarDrop')
+  })
+
+  it('keeps the expanded sidebar entries out of the collapsed phone box', () => {
+    // The host does not unmount its expanded content at the collapse: `wide`
+    // stays true for its 150ms fade, SidebarRoot keeps the wide layout, and the
+    // host's own `collapsed` class only arrives with the rail swap. Corner and
+    // the top bar have already replaced the host's clipped column with a 48px
+    // box, so during that window the surviving wide entries (the brand button
+    // and the portalled plugin entries) are laid out by the collapsed geometry
+    // and paint a clipped row across the bar on every close.
+    //
+    // Match the whole rule text: the selector may span the comment above it, so
+    // the assertions below read the captured selector, not the declaration body.
+    const windowRules = [
+      ...CSS.matchAll(
+        /html:not\(\[data-maid-nav-mode='rail'\]\) body\[data-dsh-maid-atelier\][^{}]*?div\[data-sidebar-collapsed\][^{}]*?\{([^{}]*)\}/g,
+      ),
+    ]
+      .map((match) => ({
+        selector: match[0].slice(0, match[0].indexOf('{')).replace(/\s+/g, ' ').trim(),
+        body: match[1] ?? '',
+      }))
+      .filter((rule) => rule.body.includes('display: none !important'))
+
+    expect(windowRules.length).toBeGreaterThan(0)
+    const selectors = windowRules.map((rule) => rule.selector).join(' | ')
+    // Only the collapse window (the host has not swapped the rail in yet).
+    expect(selectors).toContain("div:not([class*='collapsed'])")
+    // The expanded brand button, and everything but the rail's own controls.
+    expect(selectors).toContain("[class*='logoRow']")
+    expect(selectors).toContain("[class*='newSession']")
+    expect(selectors).toContain("[class*='footArea']")
+    // Portalled plugin entries are direct children of the SidebarRoot.
+    expect(selectors).toContain('[data-plugin-entry]')
+    expect(selectors).toContain("button[data-dsh-part='sidebar-entry']")
+    // The plugin action row above the settings seat is expanded content too,
+    // while the seat itself stays because the settings dialog mounts inside it.
+    expect(selectors).toContain("[class*='footerActions']")
+    // `rail` keeps the host's own clipped column and must stay untouched.
+    for (const rule of windowRules) {
+      expect(rule.selector, 'collapse-window rule').toContain(":not([data-maid-nav-mode='rail'])")
+    }
+
+    // Run those selectors against the host's own sidebar tree (the rc.2 shape:
+    // logoRow / newSession / nav.panelList / regionArea / footArea), so the
+    // window is proven to hide the expanded entries — including the panel list
+    // that carries the plugin entries — and to leave the rail controls alone.
+    // The list rows are `nav.panelList`'s children, not portalled buttons, so a
+    // selector-only assertion above would not prove this.
+    document.documentElement.removeAttribute('data-maid-nav-mode')
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div class="fixture_frame" data-sidebar-collapsed>
+        <div class="fixture_sidebarCol">
+          <div data-slot="sidebar" style="display: contents">
+            <div class="fixture_root fixture_fading fixture_quietBars">
+              <div class="fixture_logoRow">
+                <button class="fixture_brand" data-fixture="brand"></button>
+                <button class="fixture_iconButton fixture_toggle" data-fixture="toggle"></button>
+              </div>
+              <button class="fixture_newSession" data-fixture="newSession"></button>
+              <nav class="fixture_panelList" data-fixture="panelList">
+                <button class="fixture_panelRow" data-fixture="panelRow"></button>
+              </nav>
+              <div class="fixture_regionArea" data-fixture="regionArea"></div>
+              <div class="fixture_footArea" data-fixture="footArea">
+                <div class="fixture_footerActions" data-fixture="footerActions"></div>
+                <div class="fixture_settingsArea" data-fixture="settingsArea"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const hiddenFixtures = (): string[] => [...new Set(
+      windowRules
+        .flatMap((rule) => [...document.querySelectorAll(rule.selector)])
+        .map((element) => element.getAttribute('data-fixture') ?? element.tagName),
+    )].sort()
+    expect(hiddenFixtures()).toEqual(['brand', 'footerActions', 'panelList'])
+    // At settle the host adds its `collapsed` class: the window is over and the
+    // rail keeps every control.
+    document.querySelector('.fixture_root')!.className = 'fixture_root fixture_collapsed fixture_railIn'
+    expect(hiddenFixtures()).toEqual([])
+    document.body.removeAttribute('data-dsh-maid-atelier')
+  })
+
   it('dresses the frameless title bar with the sidebar navy gradient', () => {
     const titlebarRule = CSS.match(/\[class\*='titlebar'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     expect(titlebarRule).toContain('linear-gradient')
@@ -1053,6 +1199,25 @@ describe('Maid Atelier skin apply', () => {
     expect(sidebarRule).toContain('border-right: 0')
     expect(sidebarRule).toContain('inset -1px 0 rgba(255, 245, 215, 0.82)')
     expect(sidebarRule).toContain('inset -3px 0 rgba(226, 207, 166, 0.72)')
+  })
+
+  it('pins the rail toggle to its resting whale on touch', () => {
+    // The host dresses the rail toggle on hover:
+    // `.collapsed .toggle:hover .panelIcon { display: inline }` hides the whale
+    // mark and shows the panel glyph, and `.iconButton:hover` adds its wash. A
+    // touch screen latches that hover on the control it tapped, so the glyph
+    // appeared to change whenever the drawer was toggled and changed back on the
+    // next tap elsewhere. Touch pins the resting state; pointer devices keep the
+    // host's reveal.
+    const touchBlock = CSS.match(
+      /@media \(hover: none\)\s*\{\s*body\[data-dsh-maid-atelier\][\s\S]*?\n\}/,
+    )?.[0] ?? ''
+    expect(touchBlock).toContain("[class*='panelIcon']")
+    expect(touchBlock).toContain('display: none')
+    expect(touchBlock).toContain("[class*='railMark']")
+    expect(touchBlock).toContain('display: inline-flex')
+    expect(touchBlock).toContain("[class*='toggle']:hover {")
+    expect(touchBlock).toContain('background: transparent')
   })
 
   it('restores the large hero text floor without fixing the workspace height', () => {
@@ -1357,17 +1522,41 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("[data-maid-table-expand]::before")
     expect(CSS).toContain("content: '⤢'")
     expect(CSS).toMatch(/\[data-maid-table-frame\]\[data-maid-table-expandable\][^,{]*:hover > \[data-maid-table-expand\]/)
-    expect(CSS).toMatch(/@media \(hover: none\)[\s\S]*?\[data-maid-table-frame\]\[data-maid-table-expandable\] > \[data-maid-table-expand\]/)
     expect(lightboxRule).toContain('position: fixed')
     expect(lightboxRule).toContain('z-index: 940')
     expect(panelRule).toContain('width: min(var(--maid-table-expanded-width, 1180px), 100%)')
     expect(expandedRule).toContain('width: 100%')
     expect(expandedRule).toContain('min-width: 0')
-    expect(CSS).toContain('@media (hover: none)')
+    // Touch gets no expand control: the panel cannot show more of a wide table
+    // than the bubble already does on a phone, so the frame stays as the
+    // scrolling box and the table pans horizontally inside it instead.
+    const touchTableBlock = CSS.match(
+      /@media \(hover: none\), \(pointer: coarse\)\s*\{([\s\S]*?)\n\}/,
+    )?.[1] ?? ''
+    expect(touchTableBlock).toContain('[data-maid-table-expand]')
+    expect(touchTableBlock).toContain('display: none')
+    expect(touchTableBlock).toContain('overscroll-behavior-x: contain')
+    expect(touchTableBlock).not.toContain('opacity')
     // `md-table-wide` is a bare class the renderer emits through clsx; a CSS
     // Modules build hashes selector classes, which silently disabled the rule
     // (the breakout kept painting). The :global() guard is the contract.
     expect(CSS).toContain(":global(.md-table-wide table)")
+    // A phone page never gives the sidebar a column of its own, but the
+    // collapsed bar spans the viewport and publishes that whole width as
+    // `--maid-sidebar-width`: the desktop inset above then left the lightbox
+    // with no width behind the bar and a ~90px sliver under the open drawer.
+    const phoneLightboxRule = CSS.match(
+      /@media \(max-width: 700px\)\s*\{\s*body\[data-dsh-maid-atelier\] \[data-maid-table-lightbox\]\s*\{([^{}]*)\}/s,
+    )?.[1] ?? ''
+    expect(phoneLightboxRule).toContain('left: 0')
+    // The panel owns the remaining width, so the table keeps its natural width
+    // and pans inside the panel scroller instead of squeezing every column.
+    expect(CSS).toMatch(
+      /@media \(max-width: 700px\)\s*\{[\s\S]*?\[data-maid-table-expanded\]\s*\{[^{}]*width: max-content/s,
+    )
+    expect(CSS).toMatch(
+      /@media \(max-width: 700px\)\s*\{[\s\S]*?\[data-maid-table-expanded\] table\s*\{[^{}]*width: max-content/s,
+    )
   })
 
   it('keeps reasoning and command-style assistant blocks outside Markdown bubbles', () => {
@@ -1501,7 +1690,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps internal tool-card headers out of the navy page-header treatment', () => {
     const pageHeaderRule = CSS.match(
-      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+      /\[data-slot='conversation.session.header'\] > header\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const terminalRule = CSS.match(/\[data-terminal\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const darkTerminalRule = CSS.match(
@@ -1615,6 +1804,55 @@ describe('Maid Atelier skin apply', () => {
     expect(SETTINGS_CARRIER_FADE_RULE).toContain('animation: none !important')
   })
 
+  it('releases the drawer transform while the settings dialog owns the viewport', () => {
+    // The expanded phone column carries a transform animation for its entrance,
+    // and a transform there becomes the containing block of every fixed
+    // descendant. SettingsPanel is a position: fixed overlay (`inset: 0`,
+    // `z-index: 1000`, rc.2 ui-settings-general) mounted inside that same
+    // column, so while the animation is live the panel lays out against the
+    // 300px drawer instead of the viewport — it only shows over the sidebar.
+    // The release keys on the dialog itself, not on a projected body attribute,
+    // so the panel's first frame is already right.
+    const rule = CSS.match(
+      /body\[data-dsh-maid-atelier\][^{}]*?div:not\(\[data-sidebar-collapsed\]\)[^{}]*?\):has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^{}]*)\}/s,
+    )
+    expect(rule, 'drawer release rule').not.toBeNull()
+    expect(rule?.[1]).toContain('animation: none !important')
+    const selector = (rule?.[0] ?? '')
+      .slice(0, (rule?.[0] ?? '').indexOf('{'))
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div class="fixture_frame">
+        <div class="fixture_sidebarCol">
+          <div data-slot="sidebar" style="display: contents">
+            <div class="fixture_root">
+              <div class="fixture_footArea">
+                <div class="fixture_settingsArea">
+                  <div data-slot="sidebar.settings">
+                    <button type="button" class="fixture_trigger"></button>
+                    <div role="presentation">
+                      <div class="fixture_mask"></div>
+                      <div role="dialog" aria-modal="true"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const column = document.querySelector('.fixture_sidebarCol')!
+    expect([...document.querySelectorAll(selector)]).toEqual([column])
+    // The drawer keeps its own entrance motion once the dialog is gone.
+    document.querySelector("[role='dialog']")!.remove()
+    expect([...document.querySelectorAll(selector)]).toEqual([])
+    document.body.removeAttribute('data-dsh-maid-atelier')
+  })
+
   it('targets the carrier suppression at the official footArea, not the SidebarRoot', () => {
     // The slot anchor is a display:contents wrapper, so the column's direct
     // div is NOT the SidebarRoot: the root (z-index release target) and the
@@ -1669,7 +1907,7 @@ describe('Maid Atelier skin apply', () => {
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const conversationHeaderRule = CSS.match(
-      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) header\[class\*='header'\]\s*\{([^}]*)\}/s,
+      /\[data-slot='conversation.session.header'\] > header\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const composerRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const obscuredComposerRule = CSS.match(
@@ -2125,8 +2363,10 @@ describe('Maid Atelier skin apply', () => {
     const widthRule = document.head
       .querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")!
     expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-width: 312px')
-    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 80.34px')
-    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-mascot-width: 255.84px')
+    // The derived sizes follow the animated width inside the rule itself, so a
+    // per-frame pass writes one property instead of three.
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: clamp(54px,calc(var(--maid-sidebar-width)*0.2575),94px)')
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-mascot-width: min(320px,calc(var(--maid-sidebar-width)*0.82))')
     expect(document.body.dataset.maidSidebarSize).toBe('wide')
     await fiber.dispose()
     expect(document.body.style.getPropertyValue('--maid-sidebar-width')).toBe('legacy')
@@ -2156,7 +2396,7 @@ describe('Maid Atelier skin apply', () => {
     const widthRule = document.head
       .querySelector<HTMLStyleElement>("[data-skin-chrome='sidebar-width-rule']")!
     expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-width: 96px')
-    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: 54px')
+    expect(widthRule.sheet!.cssRules[0].cssText).toContain('--maid-sidebar-swag-height: clamp(54px,calc(var(--maid-sidebar-width)*0.2575),94px)')
     expect(document.body.dataset.maidSidebarSize).toBe('rail')
     expect(document.body.getAttribute('style')).toBe(bodyStyle)
   })

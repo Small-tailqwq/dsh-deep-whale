@@ -308,58 +308,17 @@ describe('Maid Atelier mobile drawer auto-close', () => {
     expect(toggleClick).not.toHaveBeenCalled()
   })
 
-  it('closes the drawer when the settings dialog it opened is dismissed', async () => {
+  it('leaves the drawer open when the settings dialog it opened is dismissed', async () => {
     const fixture = mount()
     setColumnWidth(fixture.column, 301)
     fixture.frame.removeAttribute('data-sidebar-collapsed')
     const toggleClick = vi.spyOn(fixture.toggle, 'click')
 
-    fixture.settingsButton.click()
-    const dialog = mountDialog()
-    await settle()
-    dialog.remove()
-    await settle()
-
-    expect(toggleClick).toHaveBeenCalledTimes(1)
-    fixture.dispose()
-  })
-
-  it('leaves the drawer up until the settings dialog has actually appeared', async () => {
-    const fixture = mount()
-    setColumnWidth(fixture.column, 301)
-    fixture.frame.removeAttribute('data-sidebar-collapsed')
-    const toggleClick = vi.spyOn(fixture.toggle, 'click')
-
-    // The click alone must not read as a dismissal: the host mounts the dialog
-    // a tick later and the reader is on their way into it.
-    fixture.settingsButton.click()
-    await settle()
-
-    expect(toggleClick).not.toHaveBeenCalled()
-    fixture.dispose()
-  })
-
-  it('ignores a dialog it did not open from the settings entry', async () => {
-    const fixture = mount()
-    setColumnWidth(fixture.column, 301)
-    fixture.frame.removeAttribute('data-sidebar-collapsed')
-    const toggleClick = vi.spyOn(fixture.toggle, 'click')
-
-    const dialog = mountDialog()
-    await settle()
-    dialog.remove()
-    await settle()
-
-    expect(toggleClick).not.toHaveBeenCalled()
-    fixture.dispose()
-  })
-
-  it('does not fold the collapsed rail when the settings dialog closes', async () => {
-    const fixture = mount()
-    setColumnWidth(fixture.column, 390)
-    fixture.frame.setAttribute('data-sidebar-collapsed', 'true')
-    const toggleClick = vi.spyOn(fixture.toggle, 'click')
-
+    // The drawer's own settings entry opens a host dialog above the overlay.
+    // Closing that dialog closes one surface, not two: the drawer the reader
+    // opened stays exactly where it was. The installer used to fold the drawer
+    // with the dialog, and the user rejected the app deciding to restore more
+    // than the one surface they closed.
     fixture.settingsButton.click()
     const dialog = mountDialog()
     await settle()
@@ -368,21 +327,5 @@ describe('Maid Atelier mobile drawer auto-close', () => {
 
     expect(toggleClick).not.toHaveBeenCalled()
     fixture.dispose()
-  })
-
-  it('stops watching the settings dialog once disposed', async () => {
-    const fixture = mount()
-    setColumnWidth(fixture.column, 301)
-    fixture.frame.removeAttribute('data-sidebar-collapsed')
-    const toggleClick = vi.spyOn(fixture.toggle, 'click')
-
-    fixture.settingsButton.click()
-    const dialog = mountDialog()
-    await settle()
-    fixture.dispose()
-    dialog.remove()
-    await settle()
-
-    expect(toggleClick).not.toHaveBeenCalled()
   })
 })

@@ -9,14 +9,23 @@ const ATTR_ART = 'data-dsh-whale-maid-art'
 const ATTR_FONT = 'data-dsh-whale-maid-font'
 const ATTR_MODEL_EXIT = 'data-dsh-whale-maid-model-exit'
 const ATTR_MODEL = 'data-dsh-whale-model'
+const ATTR_FLASH_GLASSES = 'data-dsh-whale-maid-flash-glasses'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
+const ATTR_NAV_MODE = 'data-maid-nav-mode'
+/** Navigation layouts the stylesheet implements; anything else falls back to the default. */
+const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
 
-export function modelFamily(name: string): 'pro' | 'flash' | 'flash-vision' | null {
+/**
+ * The lineup is DeepSeek Flash and DeepSeek Pro, so the display name only
+ * decides which side the artwork sits on. Both families carry vision now: the
+ * glasses artwork is a separate switch (`flashGlasses`) instead of a `vision`
+ * substring match, which used to split an older V4 name into a third family.
+ */
+export function modelFamily(name: string): 'pro' | 'flash' | null {
   const compact = name.toLowerCase().replace(/[^a-z0-9]/g, '')
-  if (compact.includes('v4pro')) return 'pro'
-  const isV4Flash = compact.includes('v4flash') || compact.includes('v4f')
-  if (isV4Flash && compact.includes('vision')) return 'flash-vision'
-  if (isV4Flash) return 'flash'
+  if (!compact.includes('deepseek')) return null
+  if (compact.includes('pro')) return 'pro'
+  if (compact.includes('flash')) return 'flash'
   return null
 }
 
@@ -110,8 +119,11 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     const scheduleVisible = state.visibility.sfwMode !== false
     projector.set(ATTR_ART, artwork && scheduleVisible ? 'visible' : 'hidden')
     projector.set(ATTR_FONT, state.values.font === 'serif' ? 'serif' : 'system')
+    projector.set(ATTR_FLASH_GLASSES, state.values.flashGlasses === true ? 'on' : 'off')
     synchronizeModelMode()
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
+    const navMode = state.values.mobileNav
+    projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
   }
 
   return exposeSkinCustomization({
@@ -160,6 +172,41 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         label: '移动端根据所选模型显示立绘',
         labelEn: 'Show artwork based on the selected model on mobile',
         defaultValue: true,
+      },
+      {
+        key: 'flashGlasses',
+        type: 'boolean',
+        label: 'flash🧐 带眼镜立绘',
+        labelEn: 'flash 🧐 glasses artwork',
+        description: 'flash 模型改用带眼镜的立绘。',
+        descriptionEn: 'Use the glasses artwork for the flash model.',
+        defaultValue: false,
+        visibleWhen: {
+          // The top-level single-key form is what a manager that predates
+          // `anyOf` reads; it lands on the mobile switch (on by default), so
+          // the control still renders there instead of throwing on an absent
+          // `values`.
+          key: 'mobileModelExit',
+          values: [true],
+          anyOf: [
+            { key: 'modelExit', values: [true] },
+            { key: 'mobileModelExit', values: [true] },
+          ],
+        },
+      },
+      {
+        key: 'mobileNav',
+        type: 'select',
+        label: '移动端导航方式',
+        labelEn: 'Phone navigation layout',
+        description: '仅影响竖屏手机（宽度 ≤700px）：左上角品牌图标（默认）、横向顶栏，或宿主原本的纵向侧栏。桌面与横屏不受影响。',
+        descriptionEn: 'Portrait phones only (≤700px wide): a brand mark in the top-left corner (default), a horizontal top bar, or the host\u2019s own vertical column. Desktop and landscape are untouched.',
+        defaultValue: 'corner',
+        options: [
+          { value: 'corner', label: '左上角品牌图标', labelEn: 'Brand mark · top-left corner' },
+          { value: 'topbar', label: '横向顶栏', labelEn: 'Horizontal top bar' },
+          { value: 'rail', label: '纵向侧栏（宿主默认）', labelEn: 'Vertical column (host default)' },
+        ],
       },
       {
         key: 'composerMode',

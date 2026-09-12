@@ -57,6 +57,6 @@ const dispose = exposeSkinCustomization({
 })
 ```
 
-`visibleWhen` 按另一设置的当前值决定是否渲染依赖项；`legacyValue` 可在新键尚未写入时把旧键值映射为新默认值，用于无损拆分已有设置。复选组的值按声明中的 option 顺序保存为字符串数组。颜色设置由 manager 自绘带完整边框的色域、色相与 RGB 弹层，不依赖无法被页面样式控制的浏览器原生取色弹窗。
+`visibleWhen` 按另一设置的当前值决定是否渲染依赖项；需要「同族开关任一开启即可」时用 `visibleWhen: { key, values, anyOf: [{ key, values }, …] }`，任一条目成立就渲染。`anyOf` 声明**必须**同时保留顶层的 `key`/`values`：只认识单键形式的管理器会直接读这两个字段，缺失时会读到 `undefined` 并在渲染卡片时抛错，而不是降级为常显。`legacyValue` 可在新键尚未写入时把旧键值映射为新默认值，用于无损拆分已有设置。复选组的值按声明中的 option 顺序保存为字符串数组。颜色设置由 manager 自绘带完整边框的色域、色相与 RGB 弹层，不依赖无法被页面样式控制的浏览器原生取色弹窗。
 
 皮肤必须持有并清理自己的 DOM、CSS、observer、listener 与 timer；管理器只处理声明、持久化和时间规则，不了解皮肤内部选择器。`exposeSkinCustomization()` 的返回值应注册到皮肤的 Cordis effect disposer。

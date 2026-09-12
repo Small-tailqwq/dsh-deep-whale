@@ -275,14 +275,17 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
   opacity: 0;
 }
 
-html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+/* Flash with the glasses switch on swaps both sides for the glasses layer. The
+   switch itself is declared with `visibleWhen`, so it only exists while one of
+   the artwork-by-model switches is on. */
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash'][data-dsh-whale-maid-flash-glasses='on']
   body[data-dsh-maid-atelier]
   :is([data-maid-character='left'], [data-maid-character='right']) {
   opacity: 0;
   visibility: hidden;
 }
 
-html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash'][data-dsh-whale-maid-flash-glasses='on']
   body[data-dsh-maid-atelier]
   [data-maid-character='vision'] {
   opacity: 1;
@@ -304,7 +307,7 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-visio
     body[data-dsh-maid-atelier] [data-maid-character='left'],
   html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
     body[data-dsh-maid-atelier] [data-maid-character='right'],
-  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash'][data-dsh-whale-maid-flash-glasses='on']
     body[data-dsh-maid-atelier] [data-maid-character='vision'] {
     opacity: 1;
     visibility: visible;
@@ -470,61 +473,52 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
   }
 }
 
-/* The trim backs the conversation header with the navy band. Keep the native
-   controls above it and restate their foregrounds for the dark surface. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] {
+/* The session-header slot owns the navy band; nested panel headers keep their
+   own palette. Native controls consume the paired chrome tokens below, so the
+   decoration no longer needs a blanket `color: inherit` over every descendant
+   div/span/button — that rule also reached in-place overlays (role=dialog or
+   role=menu mounted inside this header) and overrode their own reading
+   palette. Every descendant-shaped rule here carries the overlay guard. */
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header {
   position: relative;
   z-index: 21;
   color: #f8f3e8;
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is(nav, span, button, a, div):not(:where([role='menu'], [role='menu'] *)) {
-  color: inherit;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  button:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)) {
   text-shadow: inherit;
 }
 
-/* In-place menus have their own surface and foreground palette. */
-body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [role='menu'] {
-  text-shadow: none;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'] {
-  color: #d7def0;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true'] {
-  color: #fff7e6;
-}
-
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] button[role='tab'][aria-selected='true']::after {
-  background: var(--maid-gold);
-  box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
-}
-
-/* Secondary readouts (counters, captions, meta) step down in brightness. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] :is([class*='counter'], [class*='caption'], [class*='meta']) {
-  color: #b5c1dd;
-}
-
-/* Header icon buttons and the reroll action keep the gold trim. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) [class*='header'] button:not([role='tab']):not(:where([role='menu'] *)):hover {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  button:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)):not([role='tab']):hover {
   color: var(--maid-gold-soft);
 }
 
-body[data-dsh-maid-atelier]
-  :is([data-pane='conversation'], [class*='centerCol'])
-  header[class*='header'] button:not([role='tab']):focus-visible {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  button:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)):not([role='tab']):focus-visible {
   border-radius: 4px;
   outline: 1px solid rgba(235, 204, 143, 0.86);
   outline-offset: 2px;
   box-shadow: 0 0 0 2px rgba(6, 17, 48, 0.68);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) header[class*='header'] [class*='reroll'] {
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header > [role='tablist'] > button[role='tab'] {
+  color: #d7def0;
+}
+
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header > [role='tablist'] > button[role='tab'][aria-selected='true'] {
+  color: #fff7e6;
+}
+
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header > [role='tablist'] > button[role='tab'][aria-selected='true']::after {
+  background: var(--maid-gold);
+  box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
+}
+
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header
+  [class*='reroll']:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)) {
   border-color: rgba(225, 191, 124, 0.55);
   background: rgba(255, 252, 243, 0.08);
 }
@@ -780,6 +774,36 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='logoRow'] [c
   box-shadow:
     inset 0 0 0 2px rgba(5, 15, 45, 0.76),
     0 3px 10px rgba(1, 7, 24, 0.28);
+}
+
+/* The host swaps the rail toggle's whale mark for the panel glyph on hover
+   (`.collapsed .toggle:hover .panelIcon`, plus the icon button's hover wash).
+   A touch screen never gets a real hover, but it does latch one on the control
+   it tapped: opening the drawer left the toggle dressed as its hover self until
+   the next tap landed elsewhere — tap settings and the whale came back. Pin the
+   rail's resting state on touch; a pointer device keeps the hover reveal. Every
+   navigation layout shares this, because the toggle is the host's in all three. */
+@media (hover: none) {
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='root'][class*='collapsed']
+    [class*='logoRow'] [class*='toggle']:hover [class*='panelIcon'] {
+    display: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='root'][class*='collapsed']
+    [class*='logoRow'] [class*='toggle']:hover [class*='railMark'] {
+    display: inline-flex;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='root'][class*='collapsed']
+    [class*='logoRow'] [class*='toggle']:hover {
+    background: transparent;
+  }
 }
 
 body[data-dsh-maid-atelier] button[class*='newSession'] {
@@ -1115,15 +1139,18 @@ body[data-dsh-maid-atelier]
   margin-top: 0;
 }
 
-/* sidebar.footer.action is the host's extension boundary. Keep its surface
-   and label tokens on the same navy palette so third-party cards cannot pair
-   the sidebar's porcelain text with the light application's panel fills. */
+/* Navy chrome gives extension controls matching surface and label tokens.
+   Menus and dialogs establish their own theme palette at the overlay root. */
+body[data-dsh-maid-atelier] [data-slot='conversation.session.header'] > header,
 body[data-dsh-maid-atelier] [data-slot='sidebar.footer.action'] {
   --dsw-alias-bg-base: rgba(5, 14, 43, 0.96);
   --dsw-alias-bg-layer-1: rgba(16, 36, 86, 0.94);
   --dsw-alias-bg-layer-2: rgba(11, 25, 66, 0.97);
   --dsw-alias-bg-layer-3: rgba(24, 40, 80, 0.98);
+  --dsw-alias-bg-overlay: rgba(13, 25, 59, 0.98);
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3);
   --dsw-alias-label-primary: #f8f3e8;
+  --dsw-alias-label-primary-bluish: #d5dff3;
   --dsw-alias-label-secondary: #d7def0;
   --dsw-alias-label-tertiary: #b5c1dd;
   --dsw-alias-label-caption: #96a8ce;
@@ -1584,6 +1611,591 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     height: var(--maid-vv-height, 100dvh) !important;
     max-height: none !important;
     overscroll-behavior: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Phone navigation layout — one skin customization value, three modes.
+
+   The host pins its collapsed rail to the left edge as a 56px column, so at
+   390x844 the conversation column measures 334px: 14% of the viewport spent on
+   a strip whose only always-useful control is the toggle that opens the column.
+   `data-maid-nav-mode` (owned by installMaidCustomization) picks what phone
+   portrait does instead:
+
+     corner  (skin default) the toggle becomes a 48px brand button in the
+             top-left corner, clear of the host's own header row; the rest of
+             the column's chrome stays one tap away in the drawer.
+     topbar  the same chrome spread as a 48px bar across the top.
+     rail    no rule below matches, so the host's own column is untouched.
+
+   The mode travels on `data-maid-nav-mode` on the document element, which is
+   where `SkinAttributeProjector` writes and where the manager may not have
+   pushed a value yet — on a fresh load, or on an install without the manager.
+   So `corner` is what the selectors below mean by *absence*: only `topbar` and
+   `rail` need an explicit value, and a missing attribute still gives a phone the
+   skin's default layout.
+
+   Hooks are the host's own: `data-sidebar-collapsed` on the AppFrame is its
+   marker for "the column is the rail", `sidebarCol` is the class the rest of
+   this file already matches on, and `logoRow` / `toggle` / `panelList` /
+   `newSession` / `settingsArea` are its names. The `@supports` arm covers
+   engines without relational selectors. Everything the expanded column already
+   offers is hidden by matching *siblings of `logoRow`* rather than a list of
+   class names, so a later build cannot re-introduce a row into the corner
+   button. `z-index: 40` stays inside the host's layer contract (menu 100 /
+   modal 1000).
+
+   Portrait only: in landscape the scarce axis is height, so the rail's 56px of
+   width is the cheaper trade and every mode below leaves the host alone. */
+@media (max-width: 700px) and (orientation: portrait) {
+  /* Frame: one column, conversation only. The column is out of flow in both
+     states — collapsed it is the dock or the bar, expanded it is the overlay
+     drawer — so the frame must never keep the track it vacated, or the host grid
+     would place the conversation in that track and leave an empty strip beside
+     the drawer. `:has` identifies the expanded frame; the collapsed frame keeps
+     the host's own `data-sidebar-collapsed` marker, which needs no support arm. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed],
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    > :is([class*='centerCol'], [data-pane='conversation']),
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    > :is([class*='centerCol'], [data-pane='conversation']) {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* rail: the collapsed rail stays the host's own column — that is what the
+     mode means — but the expanded drawer must stop paying for a grid track.
+     While it is open the frame drops that track, the conversation keeps the
+     full width, and the drawer floats (shared rule below). */
+  html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    > :is([class*='centerCol'], [data-pane='conversation']) {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* The drawer slides in horizontally, the motion it always had. In the topbar
+     mode the collapsed bar is pushed out of view as it opens and drops back in
+     once the drawer is gone, so that bar never renders at the drawer's
+     in-between width. Rail and corner keep the same horizontal drawer motion. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+  }
+
+  /* Closing: the bar returns immediately. It cannot fade or travel — this column
+     hosts the settings overlay's subtree, and every property that could animate
+     it (`transform` = containing block, `clip-path` = clips fixed descendants,
+     `opacity` = stacking context) was measured to break that panel. The drawer
+     keeps its own horizontal slide below. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: none;
+  }
+
+  html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+  }
+
+  /* The drawer's entrance is a transform animation on this very column, and a
+     transform here becomes the containing block of every fixed descendant — the
+     settings overlay is mounted inside this same column, so while the animation
+     is live the panel lays out against the 300px drawer instead of the viewport
+     and never fills a phone screen ("the settings window only shows in the
+     sidebar"). The drawer is at rest by the time the dialog opens, so release
+     the animation while the dialog owns the screen; it is the same defect the
+     collapsed bar above avoids by carrying no animation at all. */
+  body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']):has([role='dialog'][aria-modal='true']) {
+    animation: none !important;
+  }
+
+  /* -- corner ------------------------------------------------------------- */
+  /* A fixed 48px brand button in the top-left. The box itself stays inert so it
+     never eats a tap meant for the header behind it; only the toggle inside it
+     is interactive. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 10px !important;
+    order: 0 !important;
+    box-sizing: border-box !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    flex: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+    z-index: 40 !important;
+  }
+
+  /* One centred row inside the button: the logo row and nothing else. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is(div:has(> [class*='logoRow']), [class*='logoRow']) {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    width: 48px !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    flex: none !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+  }
+
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    div:has(> [class*='logoRow']) > :not([class*='logoRow']) {
+    display: none !important;
+  }
+
+  @supports not (selector(:has(*))) {
+    html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+      div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+      box-sizing: border-box !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 48px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      max-height: 48px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      pointer-events: none !important;
+    }
+
+    html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+      div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol'])
+      > div > :not([class*='logoRow']) {
+      display: none !important;
+    }
+  }
+
+  /* The toggle is the whole target and the only interactive thing left. The rail
+     variant already paints it as a gold-ringed navy medallion, so this only
+     sizes it and hands it the pointer. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='logoRow'] button[class*='toggle'] {
+    box-sizing: border-box !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    place-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
+  /* The host header keeps its own row, its own order and its own behaviour; it
+     only starts after the button. The host pads it `10px 28px 0 20px`, so 64px
+     clears the 48px button (10px + 48px) and leaves the title row intact. */
+  html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='conversation'], [class*='centerCol'])
+    header[class*='header'] {
+    padding-left: 64px !important;
+  }
+
+  /* -- topbar ------------------------------------------------------------- */
+  /* The collapsed column becomes a 48px bar across the top, above the
+     conversation. The column is full width now, so the width-based
+     `data-maid-sidebar-size` heuristic reports `wide` and the framed wide
+     trigger/plaque styling would be squeezed into the bar; it therefore gets its
+     own compact round targets (36px), matching the rail variant below. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    order: -1 !important;
+    width: 100% !important;
+    height: calc(48px + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(48px + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(48px + env(safe-area-inset-top, 0px)) !important;
+    flex: none !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    border-right: none !important;
+    border-bottom: 0.5px solid var(--dsw-alias-border-l3) !important;
+    overflow: visible !important;
+  }
+
+  /* The sidebar root below the host's slot anchor: one horizontal row. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    div:has(> [class*='logoRow']) {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 0 8px !important;
+    overflow: visible !important;
+  }
+
+  @supports not (selector(:has(*))) {
+    html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+      div[data-sidebar-collapsed]
+      :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 4px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      padding: 0 8px !important;
+      overflow: visible !important;
+    }
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='logoRow'] {
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: none !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Touch taps retain the host's hover/focus tooltip; keyboard focus still
+     needs its label on the phone navigation toggle. */
+  @media (hover: none) {
+    html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+      :is([data-pane='sidebar'], [class*='sidebarCol'])
+      [class*='logoRow'] > button[class*='toggle']:not(:focus-visible) + [role='tooltip'] {
+      display: none !important;
+    }
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelList'] {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 2px !important;
+    margin: 0 !important;
+    flex: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelRow'] {
+    width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+
+  /* New Session is a framed plaque in the column; in the bar it is a round icon
+     target with the rail variant's ink so the glyph stays legible. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) button[class*='newSession'] {
+    box-sizing: border-box !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-self: center !important;
+    justify-content: center !important;
+    border: 1px solid rgba(225, 207, 170, 0.72) !important;
+    border-image: none !important;
+    border-radius: 50% !important;
+    color: #ebd29e !important;
+    background: linear-gradient(145deg, rgba(77, 103, 169, 0.4), rgba(7, 18, 52, 0.78)) !important;
+    box-shadow: inset 0 0 0 2px rgba(5, 15, 45, 0.7) !important;
+    filter: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) button[class*='newSession'] svg {
+    color: #f4dfa8 !important;
+    stroke-width: 1.9;
+    filter: drop-shadow(0 1px 2px rgba(1, 7, 24, 0.5));
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='newSessionLabel'],
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelTitle'] {
+    display: none !important;
+  }
+
+  /* Same compact treatment for the settings trigger. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    [class*='settingsArea'] button[aria-haspopup='dialog'] {
+    box-sizing: border-box !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid rgba(225, 191, 124, 0.76) !important;
+    border-image: none !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0 !important;
+    color: #dfbf7c !important;
+    background: linear-gradient(145deg, rgba(77, 103, 169, 0.48), rgba(7, 18, 52, 0.82)) !important;
+    box-shadow:
+      inset 0 0 0 2px rgba(5, 15, 45, 0.76),
+      0 3px 9px rgba(1, 7, 24, 0.24) !important;
+    filter: none !important;
+    overflow: visible !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    [class*='settingsArea'] button[aria-haspopup='dialog'] [class*='triggerLabel'] {
+    display: none !important;
+  }
+
+  /* Rows that only make sense in the tall rail. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is(
+      [class*='regionArea'],
+      [class*='searchExpanded'],
+      [class*='sectionHeader'],
+      [data-skin-chrome='sidebar-mascot'],
+      [data-skin-chrome='sidebar-corners']
+    ) {
+    display: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is([class*='footArea'], [class*='settingsArea'], [class*='footerActions']) {
+    flex-direction: row !important;
+    align-items: center !important;
+    margin: 0 0 0 auto !important;
+    padding: 0 !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [data-maid-sidebar-footer] {
+    flex-direction: row !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [data-maid-sidebar-footer]::before {
+    display: none !important;
+  }
+
+  /* -- shared: expanded column floats over the conversation ---------------- */
+  /* The host animates its own grid track to open the drawer, which resizes the
+     conversation column on every frame and drags the whole page into a style
+     recalculation with it. All three modes therefore take the same route: the
+     expanded column leaves the grid and floats over the conversation, which
+     keeps the full width and never moves. `rail` shares this rule so its own
+     collapsed rail stays the host's, while opening it stops pushing the chat. */
+  body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: min(300px, 84vw) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    z-index: 60 !important;
+    border-right: 0.5px solid var(--dsw-alias-border-l3) !important;
+    box-shadow: 24px 0 64px rgba(8, 17, 48, 0.35) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    div:has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) > [class*='handle'] {
+    display: none !important;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol']):has([class*='regionArea']:not([style*='display: none'])) {
+    overscroll-behavior: contain !important;
+  }
+
+  /* The host does not unmount its expanded content at the collapse: its `wide`
+     flag stays true for the 150ms fade, the SidebarRoot keeps the wide layout,
+     and the host's own `collapsed` class only arrives with the rail swap.
+     Corner and the top bar have already replaced the host's clipped column with
+     a 48px box, so during that window the surviving wide entries are laid out
+     by the collapsed geometry: the brand button, the portalled plugin entries
+     and the expanded foot rows paint across the bar as a clipped row, and every
+     close shows that row where the rail should be. Keep everything the rail
+     replaces out of the collapsed box until the host swaps it in. `rail` keeps
+     the host's own column, which already clips the fade, so it needs none of
+     this. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    > :not([class*='logoRow'], [class*='newSession'], [class*='regionArea'], [class*='footArea']) {
+    display: none !important;
+  }
+
+  /* The logo row's other occupant is the expanded brand button — the rail keeps
+     only the toggle — and a plugin entry is portalled into the column next to
+     it, so neither is reached by the sibling rule above. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    > [class*='logoRow'] > :not([class*='toggle']) {
+    display: none !important;
+  }
+
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    :is([data-plugin-entry], button[data-dsh-part='sidebar-entry']) {
+    display: none !important;
+  }
+
+  /* The foot keeps its settings seat — the host mounts the settings dialog
+     inside that subtree, and the skin already holds it opaque through the fade
+     — but the plugin action row above it is expanded content like any other. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    > [class*='footArea'] > [class*='footerActions'] {
+    display: none !important;
+  }
+}
+
+/* Phone drawer motion. The drawer itself keeps the horizontal slide it always
+   had; the top-bar mode adds one vertical motion on top, because there the
+   collapsed state is a 48px bar spanning the viewport.
+   The bar drop is what removes the collapse artefact: the frame is already back
+   on the collapsed 390x48 bar while the drawer slides away, so the mid-flight
+   reflow of that bar happens while the bar is still above the viewport. Only
+   composited properties move (translate + opacity), keeping the frame off the
+   main thread. */
+@keyframes maidAtelierPhoneDrawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+/* No top-bar keyframes: the collapsed bar cannot animate without breaking the
+   settings overlay mounted inside this same sidebar tree (see the closing rule
+   above). The drawer below keeps its own entrance. */
+
+/* Very narrow top bars keep the mark only. */
+@media (max-width: 420px) and (orientation: portrait) {
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    :is(
+      [class*='brandName'],
+      [class*='fallbackBrandName'],
+      [class*='localBuildBrand'],
+      [class*='buildVersion']
+    ) {
+    display: none !important;
   }
 }
 
@@ -3284,11 +3896,20 @@ body[data-dsh-maid-atelier]
   transform: none;
 }
 
-@media (hover: none) {
+/* Touch gets no expand control at all. There is no hover to reveal it, and the
+   panel it opens cannot show more of a wide table than the bubble already does
+   on a phone. The frame stays — it is the scrolling box — and the table pans
+   horizontally inside it; `contain` keeps a pan that reaches the end of the
+   table from chaining into the page. */
+@media (hover: none), (pointer: coarse) {
   body[data-dsh-maid-atelier]
-    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable] > [data-maid-table-expand] {
-    opacity: 1;
-    transform: none;
+    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand] {
+    display: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
+    overscroll-behavior-x: contain;
   }
 }
 
@@ -3451,6 +4072,32 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
     opacity: 1;
     filter: none;
     transform: none;
+  }
+}
+
+/* A phone page never gives the sidebar a column of its own: the collapsed
+   layout is the corner mark or the top bar, and the expanded one floats over
+   the conversation. The collapsed bar, however, spans the viewport and
+   publishes that whole width as `--maid-sidebar-width`, so the desktop offset
+   above leaves the lightbox with no width behind the bar — and with a ~90px
+   sliver under an open drawer, because there the column is the drawer's own
+   300px. The expand control therefore opened a table nobody could see. Phone
+   widths own the viewport instead, and the panel keeps the wide table at its
+   natural width and pans it in its own scroller rather than squeezing every
+   column into the remaining strip. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] [data-maid-table-lightbox] {
+    left: 0;
+  }
+
+  body[data-dsh-maid-atelier] [data-maid-table-expanded] {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  body[data-dsh-maid-atelier] [data-maid-table-expanded] table {
+    width: max-content;
+    min-width: 0;
   }
 }
 
@@ -4068,16 +4715,25 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], 
   box-shadow: 0 0 0 2px rgba(7, 18, 48, 0.72);
 }
 
-/* Overlay surfaces (dialogs, menus, poppers) are portaled into the sidebar
-   DOM and would inherit its light-on-dark tokens; reset them to the skin's
-   body-level palette so light mode keeps dark text on the light panel. */
+/* Both inline and portaled overlays own a complete theme palette. Opaque
+   reading surfaces cover the transcript, and rebinding the menu alias here
+   keeps it from inheriting a value already resolved against the page/chrome
+   tokens: the Agent Team panel mounts inside the conversation header and
+   paints itself with `--dsw-specific-menu`. */
 body[data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [data-radix-popper-content-wrapper] > *) {
   color: var(--dsw-alias-label-primary, #172347);
+  text-shadow: none;
+  --dsw-alias-bg-base: #f8faff;
+  --dsw-alias-bg-layer-1: #f8faff;
+  --dsw-alias-bg-layer-2: #ebf0fa;
+  --dsw-alias-bg-layer-3: #e0e7f6;
+  --dsw-alias-bg-overlay: #f8faff;
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3);
   --dsw-alias-label-primary: #172347;
   --dsw-alias-label-primary-bluish: #243866;
   --dsw-alias-label-secondary: #4d5d7f;
-  --dsw-alias-label-tertiary: #6f7c99;
-  --dsw-alias-label-caption: #8a94aa;
+  --dsw-alias-label-tertiary: #52658c;
+  --dsw-alias-label-caption: #55688c;
   --dsw-alias-border-l1: rgba(71, 91, 145, 0.18);
   --dsw-alias-border-l2-darkmode-thin: rgba(71, 91, 145, 0.25);
   --dsw-alias-border-l2: rgba(71, 91, 145, 0.3);
@@ -4094,11 +4750,17 @@ body[data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [data-radix-popp
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu'], [data-radix-popper-content-wrapper] > *) {
   color: var(--dsw-alias-label-primary, #e7ecf7);
+  --dsw-alias-bg-base: #0d193b;
+  --dsw-alias-bg-layer-1: #121f43;
+  --dsw-alias-bg-layer-2: #182850;
+  --dsw-alias-bg-layer-3: #20315b;
+  --dsw-alias-bg-overlay: #0d193b;
+  --dsw-specific-menu: var(--dsw-alias-bg-layer-3);
   --dsw-alias-label-primary: #e7ecf7;
   --dsw-alias-label-primary-bluish: #d5dff3;
   --dsw-alias-label-secondary: #bdc9e3;
   --dsw-alias-label-tertiary: #96a6c9;
-  --dsw-alias-label-caption: #7f90b4;
+  --dsw-alias-label-caption: #8b9bbd;
   --dsw-alias-border-l1: rgba(151, 169, 216, 0.2);
   --dsw-alias-border-l2-darkmode-thin: rgba(151, 169, 216, 0.3);
   --dsw-alias-border-l2: rgba(151, 169, 216, 0.34);
@@ -5003,6 +5665,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [da
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: none;
+  }
+
   body[data-dsh-maid-atelier]
     [data-phase='active']
     > :has(> [data-conversation-scroll])
