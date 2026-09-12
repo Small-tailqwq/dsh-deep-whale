@@ -23,6 +23,41 @@ function unpairedFullRoundRules(css: string): string[] {
 }
 
 /**
+ * Selector/declaration pairs of every flat rule in the stylesheet, comments and
+ * at-rule preludes excluded. Specs that must survive an equivalent rewrite run
+ * these selectors against a real DOM fixture instead of matching source text.
+ */
+function flatCssRules(css: string): Array<{ selector: string, body: string }> {
+  return [...css.replace(/\/\*[\s\S]*?\*\//g, ' ').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((match) => ({
+      selector: (match[1] ?? '').trim().replace(/\s+/g, ' '),
+      body: match[2] ?? '',
+    }))
+    .filter((rule) => !rule.selector.startsWith('@'))
+}
+
+/** The stylesheet without its `prefers-reduced-motion` override blocks. */
+function withoutReducedMotion(css: string): string {
+  let rest = css
+  for (;;) {
+    const start = rest.indexOf('@media (prefers-reduced-motion: reduce)')
+    if (start < 0) return rest
+    const open = rest.indexOf('{', start)
+    if (open < 0) return rest
+    let depth = 0
+    let end = open
+    for (; end < rest.length; end += 1) {
+      if (rest[end] === '{') depth += 1
+      else if (rest[end] === '}') {
+        depth -= 1
+        if (depth === 0) break
+      }
+    }
+    rest = rest.slice(0, start) + rest.slice(end + 1)
+  }
+}
+
+/**
  * Declarations of the settings-open rule governing the sidebar content root's
  * stacking context — the one seat two specs below both read.
  *
@@ -1804,25 +1839,33 @@ describe('Maid Atelier skin apply', () => {
     expect(SETTINGS_CARRIER_FADE_RULE).toContain('animation: none !important')
   })
 
-  it('releases the drawer transform while the settings dialog owns the viewport', () => {
-    // The expanded phone column carries a transform animation for its entrance,
-    // and a transform there becomes the containing block of every fixed
-    // descendant. SettingsPanel is a position: fixed overlay (`inset: 0`,
-    // `z-index: 1000`, rc.2 ui-settings-general) mounted inside that same
-    // column, so while the animation is live the panel lays out against the
-    // 300px drawer instead of the viewport — it only shows over the sidebar.
-    // The release keys on the dialog itself, not on a projected body attribute,
-    // so the panel's first frame is already right.
-    const rule = CSS.match(
-      /body\[data-dsh-maid-atelier\][^{}]*?div:not\(\[data-sidebar-collapsed\]\)[^{}]*?\):has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^{}]*)\}/s,
-    )
-    expect(rule, 'drawer release rule').not.toBeNull()
-    expect(rule?.[1]).toContain('animation: none !important')
-    const selector = (rule?.[0] ?? '')
-      .slice(0, (rule?.[0] ?? '').indexOf('{'))
-      .replace(/\s+/g, ' ')
-      .trim()
+  it('ends the drawer entrance without disabling it around the settings dialog', () => {
+    // The entrance must use `backwards`. With `both` the finished animation
+    // stayed applied, which kept this column a containing block for the fixed
+    // settings overlay mounted inside it — that forced an `animation: none`
+    // release while the dialog was open, and the release replayed the entrance
+    // the instant the dialog closed, because the property came back on the same
+    // column and the browser treated it as a new animation. Measured on a phone
+    // viewport (393x844, topbar): animationend at 3981ms when the drawer opened,
+    // then a fresh animationstart at 6732ms right after settings closed.
+    const source = withoutReducedMotion(CSS.replace(/\/\*[\s\S]*?\*\//g, ' '))
+    const entrances = [...source.matchAll(
+      /([^{}]*?)\{\s*animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier\(0\.22, 0\.78, 0\.2, 1\) (\w+);/g,
+    )].map((match) => ({
+      selector: (match[1] ?? '').trim().replace(/\s+/g, ' '),
+      fill: match[2] ?? '',
+    }))
+    expect(entrances.length, 'drawer entrance rules').toBeGreaterThanOrEqual(2)
+    for (const entrance of entrances) expect(entrance.fill, 'drawer entrance fill mode').toBe('backwards')
 
+    // The dialog-triggered release on this column must not come back: it is what
+    // replayed. Every rule that cancels an animation is matched against the real
+    // drawer column with the settings dialog inside it, so an equivalent rewrite
+    // (a bare column selector, a looser `:has([role='dialog'])`,
+    // `animation-name: none`) is caught as well. The carrier rule that keeps the
+    // dialog opaque legitimately declares `animation: none` for another element,
+    // and the reduced-motion overrides are stripped above — outside those, no
+    // rule may cancel this column's entrance.
     document.body.setAttribute('data-dsh-maid-atelier', '')
     document.body.innerHTML = `
       <div class="fixture_frame">
@@ -1846,10 +1889,31 @@ describe('Maid Atelier skin apply', () => {
       </div>
     `
     const column = document.querySelector('.fixture_sidebarCol')!
-    expect([...document.querySelectorAll(selector)]).toEqual([column])
-    // The drawer keeps its own entrance motion once the dialog is gone.
-    document.querySelector("[role='dialog']")!.remove()
-    expect([...document.querySelectorAll(selector)]).toEqual([])
+    const cancellations = flatCssRules(source)
+      .filter((rule) => /(?:^|[\s;])animation(?:-name)?\s*:\s*none/.test(rule.body))
+    expect(cancellations.length, 'harvested animation cancellations').toBeGreaterThan(0)
+    for (const mode of ['topbar', 'rail']) {
+      document.documentElement.setAttribute('data-maid-nav-mode', mode)
+      // Sanity: this fixture really is the drawer column, or the negative
+      // assertion below would pass vacuously.
+      expect(
+        entrances.filter((entrance) => column.matches(entrance.selector)).length,
+        `entrance rules matching the fixture in ${mode} mode`,
+      ).toBeGreaterThanOrEqual(1)
+      for (const rule of cancellations) {
+        let matches = false
+        let evaluable = true
+        try {
+          matches = column.matches(rule.selector)
+        } catch {
+          evaluable = false
+        }
+        // A selector this environment cannot evaluate must not pass silently.
+        expect(evaluable, `cancellation rule not evaluable: ${rule.selector}`).toBe(true)
+        expect(matches, `rule cancels the drawer entrance in ${mode} mode: ${rule.selector}`).toBe(false)
+      }
+    }
+    document.documentElement.removeAttribute('data-maid-nav-mode')
     document.body.removeAttribute('data-dsh-maid-atelier')
   })
 
@@ -2333,8 +2397,13 @@ describe('Maid Atelier skin apply', () => {
     const workspaceHeaderKeyframes = CSS.match(
       /@keyframes maidAtelierWorkspaceHeaderEnter\s*\{[\s\S]*?\r?\n\}/,
     )?.[0] ?? ''
-    expect(workspaceHeaderRule).toContain('animation: maidAtelierWorkspaceHeaderEnter 320ms 110ms both')
+    expect(workspaceHeaderRule).toContain('animation: maidAtelierWorkspaceHeaderEnter 320ms 110ms backwards')
     expect(workspaceHeaderKeyframes).toContain('@keyframes maidAtelierWorkspaceHeaderEnter')
+    // The final keyframe must not hand the header an identity transform, and the
+    // fill mode must not go back to `both`: either one leaves a containing block
+    // for the fixed descendants mounted in the session header.
+    expect(workspaceHeaderKeyframes).toContain('transform: none')
+    expect(workspaceHeaderKeyframes).not.toContain('translateY(0)')
     expect(workspaceHeaderKeyframes).not.toContain('padding-bottom:')
     expect(reducedMotionRule).toContain('transition: none')
     expect(reducedMotionRule).toContain('animation: none')
