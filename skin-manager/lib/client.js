@@ -39,8 +39,16 @@ window.__ModuleLoader__.load({
 		function uiLangSnapshot() {
 			return detectUiLang();
 		}
-		/** Settings-section markup renders through getServerSnapshot; node-side calls have no DOM. */
-		function serverUiLang() {
+		/**
+		* Live read for every caller that is not a React render: the settings-section
+		* server snapshot, and — the reason this is exported — slot labels. A
+		* `settings.section` label is a plain function the host calls itself, so the
+		* manager cannot subscribe for it the way `useUiLang` does; the host
+		* recomputes labels on its own locale revision and this read then picks the
+		* repointed `<html lang>` up. Node-side calls have no DOM and degrade to the
+		* source language.
+		*/
+		function currentUiLang() {
 			try {
 				return detectUiLang();
 			} catch {
@@ -66,10 +74,11 @@ window.__ModuleLoader__.load({
 			};
 		}
 		function useUiLang() {
-			return (0, react.useSyncExternalStore)(subscribeUiLang, uiLangSnapshot, serverUiLang);
+			return (0, react.useSyncExternalStore)(subscribeUiLang, uiLangSnapshot, currentUiLang);
 		}
 		const zhCopy = {
 			headerTitle: "皮肤管理",
+			navLabel: "皮肤管理",
 			headerIntro: "这里会发现当前 Web profile 中已安装的皮肤。激活由管理器统一处理；详细配置由皮肤按通用协议自行声明并负责应用。每个皮肤下方显示本地提交或构建指纹；「检查更新」只比较官方仓库的构建结果，不会改动你的本地文件。",
 			installedTitle: "已安装皮肤",
 			checking: "检查中…",
@@ -140,6 +149,7 @@ window.__ModuleLoader__.load({
 		};
 		const enCopy = {
 			headerTitle: "Skin Management",
+			navLabel: "Skins",
 			headerIntro: "This page discovers the skins installed in the current Web profile. Activation is handled by the manager; detailed options are declared and applied by each skin over a shared protocol. Every skin lists its local commit or build fingerprint below. \"Check updates\" only compares against the official repository's build results and never touches your local files.",
 			installedTitle: "Installed Skins",
 			checking: "Checking…",
@@ -1677,7 +1687,7 @@ window.__ModuleLoader__.load({
 				name: "settings.section",
 				id: "dsh-skins",
 				order: 115,
-				label: "皮肤管理",
+				label: () => skinManagerCopy(currentUiLang()).navLabel,
 				inject: () => ({
 					registry,
 					active: activeSkin,
