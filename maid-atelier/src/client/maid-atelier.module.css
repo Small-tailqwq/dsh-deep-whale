@@ -275,14 +275,17 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
   opacity: 0;
 }
 
-html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+/* Flash with the glasses switch on swaps both sides for the glasses layer. The
+   switch itself is declared with `visibleWhen`, so it only exists while one of
+   the artwork-by-model switches is on. */
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash'][data-dsh-whale-maid-flash-glasses='on']
   body[data-dsh-maid-atelier]
   :is([data-maid-character='left'], [data-maid-character='right']) {
   opacity: 0;
   visibility: hidden;
 }
 
-html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash'][data-dsh-whale-maid-flash-glasses='on']
   body[data-dsh-maid-atelier]
   [data-maid-character='vision'] {
   opacity: 1;
@@ -304,7 +307,7 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-visio
     body[data-dsh-maid-atelier] [data-maid-character='left'],
   html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
     body[data-dsh-maid-atelier] [data-maid-character='right'],
-  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash-vision']
+  html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash'][data-dsh-whale-maid-flash-glasses='on']
     body[data-dsh-maid-atelier] [data-maid-character='vision'] {
     opacity: 1;
     visibility: visible;
@@ -771,6 +774,36 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='logoRow'] [c
   box-shadow:
     inset 0 0 0 2px rgba(5, 15, 45, 0.76),
     0 3px 10px rgba(1, 7, 24, 0.28);
+}
+
+/* The host swaps the rail toggle's whale mark for the panel glyph on hover
+   (`.collapsed .toggle:hover .panelIcon`, plus the icon button's hover wash).
+   A touch screen never gets a real hover, but it does latch one on the control
+   it tapped: opening the drawer left the toggle dressed as its hover self until
+   the next tap landed elsewhere — tap settings and the whale came back. Pin the
+   rail's resting state on touch; a pointer device keeps the hover reveal. Every
+   navigation layout shares this, because the toggle is the host's in all three. */
+@media (hover: none) {
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='root'][class*='collapsed']
+    [class*='logoRow'] [class*='toggle']:hover [class*='panelIcon'] {
+    display: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='root'][class*='collapsed']
+    [class*='logoRow'] [class*='toggle']:hover [class*='railMark'] {
+    display: inline-flex;
+  }
+
+  body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='root'][class*='collapsed']
+    [class*='logoRow'] [class*='toggle']:hover {
+    background: transparent;
+  }
 }
 
 body[data-dsh-maid-atelier] button[class*='newSession'] {
@@ -1645,6 +1678,69 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     min-height: 0 !important;
   }
 
+  /* rail: the collapsed rail stays the host's own column — that is what the
+     mode means — but the expanded drawer must stop paying for a grid track.
+     While it is open the frame drops that track, the conversation keeps the
+     full width, and the drawer floats (shared rule below). */
+  html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    > :is([class*='centerCol'], [data-pane='conversation']) {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* The drawer slides in horizontally, the motion it always had. In the topbar
+     mode the collapsed bar is pushed out of view as it opens and drops back in
+     once the drawer is gone, so that bar never renders at the drawer's
+     in-between width. Rail and corner keep the same horizontal drawer motion. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+  }
+
+  /* Closing: the bar returns immediately. It cannot fade or travel — this column
+     hosts the settings overlay's subtree, and every property that could animate
+     it (`transform` = containing block, `clip-path` = clips fixed descendants,
+     `opacity` = stacking context) was measured to break that panel. The drawer
+     keeps its own horizontal slide below. */
+  html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: none;
+  }
+
+  html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) both;
+  }
+
+  /* The drawer's entrance is a transform animation on this very column, and a
+     transform here becomes the containing block of every fixed descendant — the
+     settings overlay is mounted inside this same column, so while the animation
+     is live the panel lays out against the 300px drawer instead of the viewport
+     and never fills a phone screen ("the settings window only shows in the
+     sidebar"). The drawer is at rest by the time the dialog opens, so release
+     the animation while the dialog owns the screen; it is the same defect the
+     collapsed bar above avoids by carrying no animation at all. */
+  body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']):has([role='dialog'][aria-modal='true']) {
+    animation: none !important;
+  }
+
   /* -- corner ------------------------------------------------------------- */
   /* A fixed 48px brand button in the top-left. The box itself stays inert so it
      never eats a tap meant for the header behind it; only the toggle inside it
@@ -1983,7 +2079,13 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   /* -- shared: expanded column floats over the conversation ---------------- */
-  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+  /* The host animates its own grid track to open the drawer, which resizes the
+     conversation column on every frame and drags the whole page into a style
+     recalculation with it. All three modes therefore take the same route: the
+     expanded column leaves the grid and floats over the conversation, which
+     keeps the full width and never moves. `rail` shares this rule so its own
+     collapsed rail stays the host's, while opening it stops pushing the chat. */
+  body[data-dsh-maid-atelier]
     div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
     :is([data-pane='sidebar'], [class*='sidebarCol']) {
     position: fixed !important;
@@ -2000,16 +2102,87 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     overscroll-behavior: contain !important;
   }
 
-  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+  body[data-dsh-maid-atelier]
     div:has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) > [class*='handle'] {
     display: none !important;
   }
 
-  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+  body[data-dsh-maid-atelier]
     :is([data-pane='sidebar'], [class*='sidebarCol']):has([class*='regionArea']:not([style*='display: none'])) {
     overscroll-behavior: contain !important;
   }
+
+  /* The host does not unmount its expanded content at the collapse: its `wide`
+     flag stays true for the 150ms fade, the SidebarRoot keeps the wide layout,
+     and the host's own `collapsed` class only arrives with the rail swap.
+     Corner and the top bar have already replaced the host's clipped column with
+     a 48px box, so during that window the surviving wide entries are laid out
+     by the collapsed geometry: the brand button, the portalled plugin entries
+     and the expanded foot rows paint across the bar as a clipped row, and every
+     close shows that row where the rail should be. Keep everything the rail
+     replaces out of the collapsed box until the host swaps it in. `rail` keeps
+     the host's own column, which already clips the fade, so it needs none of
+     this. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    > :not([class*='logoRow'], [class*='newSession'], [class*='regionArea'], [class*='footArea']) {
+    display: none !important;
+  }
+
+  /* The logo row's other occupant is the expanded brand button — the rail keeps
+     only the toggle — and a plugin entry is portalled into the column next to
+     it, so neither is reached by the sibling rule above. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    > [class*='logoRow'] > :not([class*='toggle']) {
+    display: none !important;
+  }
+
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    :is([data-plugin-entry], button[data-dsh-part='sidebar-entry']) {
+    display: none !important;
+  }
+
+  /* The foot keeps its settings seat — the host mounts the settings dialog
+     inside that subtree, and the skin already holds it opaque through the fade
+     — but the plugin action row above it is expanded content like any other. */
+  html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    > div > div:not([class*='collapsed'])
+    > [class*='footArea'] > [class*='footerActions'] {
+    display: none !important;
+  }
 }
+
+/* Phone drawer motion. The drawer itself keeps the horizontal slide it always
+   had; the top-bar mode adds one vertical motion on top, because there the
+   collapsed state is a 48px bar spanning the viewport.
+   The bar drop is what removes the collapse artefact: the frame is already back
+   on the collapsed 390x48 bar while the drawer slides away, so the mid-flight
+   reflow of that bar happens while the bar is still above the viewport. Only
+   composited properties move (translate + opacity), keeping the frame off the
+   main thread. */
+@keyframes maidAtelierPhoneDrawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+/* No top-bar keyframes: the collapsed bar cannot animate without breaking the
+   settings overlay mounted inside this same sidebar tree (see the closing rule
+   above). The drawer below keeps its own entrance. */
 
 /* Very narrow top bars keep the mark only. */
 @media (max-width: 420px) and (orientation: portrait) {
@@ -3723,11 +3896,20 @@ body[data-dsh-maid-atelier]
   transform: none;
 }
 
-@media (hover: none) {
+/* Touch gets no expand control at all. There is no hover to reveal it, and the
+   panel it opens cannot show more of a wide table than the bubble already does
+   on a phone. The frame stays — it is the scrolling box — and the table pans
+   horizontally inside it; `contain` keeps a pan that reaches the end of the
+   table from chaining into the page. */
+@media (hover: none), (pointer: coarse) {
   body[data-dsh-maid-atelier]
-    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable] > [data-maid-table-expand] {
-    opacity: 1;
-    transform: none;
+    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand] {
+    display: none;
+  }
+
+  body[data-dsh-maid-atelier]
+    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
+    overscroll-behavior-x: contain;
   }
 }
 
@@ -3890,6 +4072,32 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
     opacity: 1;
     filter: none;
     transform: none;
+  }
+}
+
+/* A phone page never gives the sidebar a column of its own: the collapsed
+   layout is the corner mark or the top bar, and the expanded one floats over
+   the conversation. The collapsed bar, however, spans the viewport and
+   publishes that whole width as `--maid-sidebar-width`, so the desktop offset
+   above leaves the lightbox with no width behind the bar — and with a ~90px
+   sliver under an open drawer, because there the column is the drawer's own
+   300px. The expand control therefore opened a table nobody could see. Phone
+   widths own the viewport instead, and the panel keeps the wide table at its
+   natural width and pans it in its own scroller rather than squeezing every
+   column into the remaining strip. */
+@media (max-width: 700px) {
+  body[data-dsh-maid-atelier] [data-maid-table-lightbox] {
+    left: 0;
+  }
+
+  body[data-dsh-maid-atelier] [data-maid-table-expanded] {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  body[data-dsh-maid-atelier] [data-maid-table-expanded] table {
+    width: max-content;
+    min-width: 0;
   }
 }
 
@@ -5457,6 +5665,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ [da
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-dsh-maid-atelier]
+    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
+    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    animation: none;
+  }
+
   body[data-dsh-maid-atelier]
     [data-phase='active']
     > :has(> [data-conversation-scroll])
