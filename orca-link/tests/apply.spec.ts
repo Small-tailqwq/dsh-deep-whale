@@ -410,6 +410,35 @@ describe('Orca Link skin apply', () => {
     expect(plus.getAttribute('data-orca-link-icon')).toBe('plus')
   })
 
+  it('redraws the generic tool row as a diagonal wrench and leaves other sparkles alone', async () => {
+    // Every tool row carries `data-tool` (dsh-client-ui-tool's ToolRow) and the
+    // unmapped tools take the sparkle glyph as their icon, while the trajectory
+    // view uses that same glyph for assistant messages — and the host itself
+    // draws a wrench for tool kinds.
+    document.body.innerHTML = `
+      <div data-variant="code" data-tool="unknown-tool" data-state="done">
+        <svg viewBox="0 0 16 16"><path d="M6.1 3.1Q6.6 7.8 11.3 8.3"></path></svg>
+      </div>
+      <div data-chat-flow-kind="assistant-step">
+        <svg viewBox="0 0 16 16"><path d="M6.1 3.1Q6.6 7.8 11.3 8.3"></path></svg>
+      </div>
+    `
+    fiber = await mount()
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon'))).toEqual(['wrench', 'sparkle'])
+
+    const art = svgs[0]!.querySelector('g[data-orca-link-icon-art]')!
+    expect(art.querySelector('g')?.getAttribute('transform')).toBe('rotate(-45 8 8)')
+    expect(Array.from(art.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M8 4.75v6.5',
+      'M6 2.5v2.25h4V2.5',
+      'M6 13.5v-2.25h4V13.5',
+    ])
+
+    await fiber.dispose()
+    expect(document.querySelectorAll('[data-orca-link-icon]').length).toBe(0)
+  })
+
   it('redraws the 0.1.5 meridian globe instead of its retired ellipse key', async () => {
     document.body.innerHTML = `
       <svg viewBox="0 0 14 14"><path d="M7.00018 0.353516C10.6708 0.353535 13.6468 3.32958"></path></svg>

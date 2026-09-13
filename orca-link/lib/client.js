@@ -1250,6 +1250,13 @@ window.__ModuleLoader__.load({
 				"<path d=\"M7 7h2v2H7z\" fill=\"currentColor\" stroke=\"none\"/>"
 			].join(""),
 			sparkle: ["<path d=\"M8 1.5v3.25M8 11.25v3.25M1.5 8h3.25M11.25 8h3.25\"/>", "<path d=\"M6.5 6.5h3v3h-3z\" fill=\"currentColor\" stroke=\"none\"/>"].join(""),
+			wrench: [
+				"<g transform=\"rotate(-45 8 8)\">",
+				"<path d=\"M8 4.75v6.5\"/>",
+				"<path d=\"M6 2.5v2.25h4V2.5\"/>",
+				"<path d=\"M6 13.5v-2.25h4V13.5\"/>",
+				"</g>"
+			].join(""),
 			data: ["<rect x=\"2.5\" y=\"2.5\" width=\"11\" height=\"4\"/>", "<rect x=\"2.5\" y=\"9\" width=\"11\" height=\"4\"/>"].join(""),
 			database: ["<path d=\"M3.5 2h9v12h-9z\"/>", "<path d=\"M3.5 6h9M3.5 10h9\"/>"].join(""),
 			gauge: [
@@ -1502,11 +1509,16 @@ window.__ModuleLoader__.load({
 			return null;
 		}
 		/**
-		* The composer's command button draws the generic plus, which reads as an
-		* add/attach affordance next to the paperclip. Redraw it as the command prompt;
-		* every other plus keeps its own meaning.
+		* A glyph can mean different things by position. The composer's command button
+		* draws the generic plus, which reads as an add/attach affordance next to the
+		* paperclip, so it becomes the command prompt while every other plus keeps its
+		* meaning. The sparkle is the same story: the trajectory view uses it for
+		* assistant messages, but every tool row (`dsh-client-ui-tool`'s ToolRow, marked
+		* with `data-tool`) borrows it for its icon, and those rows become the wrench
+		* the host itself draws for tools.
 		*/
 		function contextualName(svg, name) {
+			if (name === "sparkle") return svg.closest("[data-tool]") !== null ? "wrench" : name;
 			if (name !== "plus") return name;
 			const trigger = svg.closest("button[aria-haspopup='listbox']");
 			return trigger !== null && trigger.closest("[data-composer-seat]") !== null ? "command" : name;

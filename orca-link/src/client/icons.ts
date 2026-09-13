@@ -78,6 +78,17 @@ const ICON_ART: Record<string, string> = {
     '<path d="M8 1.5v3.25M8 11.25v3.25M1.5 8h3.25M11.25 8h3.25"/>',
     '<path d="M6.5 6.5h3v3h-3z" fill="currentColor" stroke="none"/>',
   ].join(''),
+  // Tool rows: the host draws its own wrench off-axis for tool kinds, and the
+  // conversation flow reuses the sparkle glyph there, so the skin squares a
+  // double-ended wrench into two open jaws joined by one handle and rotates the
+  // whole tool 45 degrees.
+  wrench: [
+    '<g transform="rotate(-45 8 8)">',
+    '<path d="M8 4.75v6.5"/>',
+    '<path d="M6 2.5v2.25h4V2.5"/>',
+    '<path d="M6 13.5v-2.25h4V13.5"/>',
+    '</g>',
+  ].join(''),
   data: [
     '<rect x="2.5" y="2.5" width="11" height="4"/>',
     '<rect x="2.5" y="9" width="11" height="4"/>',
@@ -472,11 +483,18 @@ function matchIcon(html: string): string | null {
 }
 
 /**
- * The composer's command button draws the generic plus, which reads as an
- * add/attach affordance next to the paperclip. Redraw it as the command prompt;
- * every other plus keeps its own meaning.
+ * A glyph can mean different things by position. The composer's command button
+ * draws the generic plus, which reads as an add/attach affordance next to the
+ * paperclip, so it becomes the command prompt while every other plus keeps its
+ * meaning. The sparkle is the same story: the trajectory view uses it for
+ * assistant messages, but every tool row (`dsh-client-ui-tool`'s ToolRow, marked
+ * with `data-tool`) borrows it for its icon, and those rows become the wrench
+ * the host itself draws for tools.
  */
 function contextualName(svg: SVGElement, name: string): string {
+  if (name === 'sparkle') {
+    return svg.closest('[data-tool]') !== null ? 'wrench' : name
+  }
   if (name !== 'plus') return name
   const trigger = svg.closest("button[aria-haspopup='listbox']")
   return trigger !== null && trigger.closest('[data-composer-seat]') !== null ? 'command' : name
