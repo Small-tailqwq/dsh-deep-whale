@@ -1031,6 +1031,13 @@ body[data-dsh-maid-atelier]
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.62));
 }
 
+body[data-dsh-maid-atelier]
+    [data-maid-sidebar-footer]
+    [data-slot='sidebar.footer.action'] button svg {
+  color: #e8c77f;
+  filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.62));
+}
+
 body[data-dsh-maid-atelier]:is([data-maid-sidebar-size='rail'], [data-maid-sidebar-size='narrow']) button[class*='newSession'] {
   padding-inline: 0;
   border-width: 0 32px;
