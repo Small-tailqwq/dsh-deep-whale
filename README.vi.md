@@ -34,6 +34,8 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 
 ### Cài đặt một dòng (khuyến nghị)
 
+> **Trước tiên hãy kiểm tra bản phân phối:** các lệnh dưới đây chỉ dành cho môi trường standalone chạy DSH trực tiếp. Nếu bạn đã cài `@linxin666/dsh-web-all` (dsh-web), hãy cài bản `maid-atelier` tương thích từ trung tâm giao diện/trình cài đặt của chính dsh-web. Không cài chồng các package standalone của kho này vào cùng profile vì hợp đồng component và style khác nhau, có thể làm giao diện hiển thị sai.
+
 Ba package phân phối (trình quản lý + hai giao diện) được cài đặt trực tiếp dưới dạng dependency GitHub — **không cần clone**; mỗi package là một thư mục con `#path:` trong kho. Yêu cầu **pnpm ≥ 9**: cú pháp thư mục con xuất hiện từ pnpm 9, pnpm 8 sẽ hiểu `path:...` là tham chiếu commit và báo lỗi.
 
 **Linux / macOS / WSL:**
