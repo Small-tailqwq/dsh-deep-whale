@@ -13,6 +13,7 @@ import { installOrcaHeadlineTypewriter } from './headline-typewriter.ts'
 import { installOrcaIcons } from './icons.ts'
 import { installOrcaLinkStatus } from './link-status.ts'
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { installOrcaPageIcons } from './page-icons.ts'
 import { installOrcaPricingLight } from './pricing-light.ts'
 import { installOrcaRailSearch } from './rail-search.ts'
 import { installOrcaScene } from './scene.ts'
@@ -34,14 +35,6 @@ const SIDEBAR_ART_WIDTH_PROPERTY = '--orca-sidebar-art-width'
 const SIDEBAR_WIDE_ATTRIBUTE = 'data-orca-sidebar-wide'
 const APP_FRAME_SELECTOR = "[id='root'] > div[data-slot='root'] > div"
 const cls = (name: keyof typeof css): string => css[name] ?? ''
-
-const FAVICON = [
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">',
-  '<rect width="64" height="64" fill="#f7f9fc"/>',
-  '<path d="M8 18c9 1 15 7 18 16 2-11 8-19 18-24-2 9 1 15 7 19 2-3 4-5 7-6-2 16-12 26-28 27-10 0-18-7-22-18-2-6-5-11-10-14Z" fill="#11151b"/>',
-  '<rect x="43" y="26" width="4" height="4" fill="#086cff"/>',
-  '</svg>',
-].join('')
 
 const DSH_WORDMARK = [
   '<path fill-rule="evenodd" clip-rule="evenodd" d="M4 5H44L57 17V28L44 39H4V5ZM16 14V30H40L46 25V20L40 14H16Z" fill="currentColor"/>',
@@ -123,6 +116,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => installOrcaCustomization(), 'ui-skin-orca-link: customization declaration')
   ctx.effect(() => installOrcaLightVisibility(body), 'ui-skin-orca-link: decorative light visibility')
   ctx.effect(() => installOrcaBootError(), 'ui-skin-orca-link: boot failure presentation')
+  ctx.effect(() => installOrcaPageIcons(), 'ui-skin-orca-link: page icons')
   const originalTitle = document.title
   const originalLightHeroArt = body.style.getPropertyValue(LIGHT_HERO_ART_PROPERTY)
   const originalLightActiveArt = body.style.getPropertyValue(LIGHT_ACTIVE_ART_PROPERTY)
@@ -253,10 +247,6 @@ export function apply(ctx: Context): void {
   standby.append(text('span', cls('standbyCopy'), 'ORCA LINK STANDBY'))
   standby.append(text('span', cls('standbyLine'), ''))
 
-  const favicon = document.createElement('link')
-  favicon.rel = 'icon'
-  favicon.href = `data:image/svg+xml;utf8,${encodeURIComponent(FAVICON)}`
-  document.head.append(favicon)
   document.title = SKIN_TITLE
   body.append(lightScene, darkScene, spine, standby)
 
@@ -300,7 +290,6 @@ export function apply(ctx: Context): void {
     document.querySelectorAll('[data-orca-link-brand]').forEach((brandButton) => {
       brandButton.removeAttribute('data-orca-link-brand')
     })
-    favicon.remove()
     if (document.title === SKIN_TITLE) document.title = originalTitle
   }, 'ui-skin-orca-link: technical chrome')
 }

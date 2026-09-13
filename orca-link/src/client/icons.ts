@@ -16,7 +16,8 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  * @deepseek-ai/dsh-client-ui-primitives (verified against that package's
  * icons/index.tsx and the live GUI). Unmatched glyphs — the brand wordmark,
  * hero glow, whale mark, and the pre-expanded tree-corner connector, which
- * is already rectilinear — keep the host drawing.
+ * is already rectilinear — keep the host drawing, as do the alarm clock, the
+ * Cordis plugin badge and the 16px right-up arrow, which no redraw claims yet.
  */
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
@@ -81,6 +82,45 @@ const ICON_ART: Record<string, string> = {
     '<rect x="2.5" y="2.5" width="11" height="4"/>',
     '<rect x="2.5" y="9" width="11" height="4"/>',
   ].join(''),
+  // Token usage: the host draws a tall cylinder; the skin squares the same
+  // three-tier store into one closed column with two rules. Two detached bars
+  // would read as the settings `data` glyph, and a full-width column reads as a
+  // slab beside the pill label, so the column keeps the host's tall proportion.
+  database: [
+    '<path d="M3.5 2h9v12h-9z"/>',
+    '<path d="M3.5 6h9M3.5 10h9"/>',
+  ].join(''),
+  // Session stats: the host draws a dial with a needle; the skin squares the
+  // dial into a frame left open at the bottom and keeps the needle at 45
+  // degrees, distinct from the context-usage pixel field drawn under `usage`.
+  gauge: [
+    '<path d="M2.5 12.25V2.75h11v9.5"/>',
+    '<path d="M8 9 11.25 5.75"/>',
+    '<path d="M7 8h2v2H7z" fill="currentColor" stroke="none"/>',
+  ].join(''),
+  // Clock: the host draws a ring with two hands; the skin squares the dial and
+  // keeps one L-shaped reading from the centre.
+  clock: [
+    '<path d="M2.25 2.25h11.5v11.5H2.25z"/>',
+    '<path d="M8 8V4.5M8 8h3.5"/>',
+  ].join(''),
+  // Light theme: the skin's own register for brightness is ink coverage. The
+  // whole glyph is one closed outline — a squared core with four stubby lobes,
+  // no inner edges and nothing filled — so it reads as empty, and stays distinct
+  // from `sparkle`'s filled core.
+  sun: [
+    '<path d="M6.5 1.5h3v2h3v3h2v3h-2v3h-3v2h-3v-2h-3v-3h-2v-3h2v-3h3z"/>',
+  ].join(''),
+  // Dark theme: the inverse register over the same 11-unit square — the area
+  // stays filled and only a 45-degree corner is cut away, so the ink itself
+  // carries the dark reading instead of a crescent outline.
+  moon: ['<path fill-rule="evenodd" d="M2.5 2.5h11v11h-11zM8.75 2.5h4.75v4.75z" fill="currentColor" stroke="none"/>'].join(''),
+  // Follow-system theme: a squared display on a stand; it carries no inner
+  // prompt, so it cannot read as `terminal`.
+  monitor: [
+    '<path d="M1.75 2.75h12.5v8.75H1.75z"/>',
+    '<path d="M8 11.5v1.5M5.25 13.25h5.5"/>',
+  ].join(''),
   'agent-preset': [
     '<path d="M6.75 1.75h2.5v2.5h-2.5zM1.75 11.75h2.5v2.5h-2.5zM11.75 11.75h2.5v2.5h-2.5z" fill="currentColor" stroke="none"/>',
     '<path d="M8 4.25 3 11.75M8 4.25l5 7.5"/>',
@@ -119,10 +159,22 @@ const ICON_ART: Record<string, string> = {
   ellipsis: [
     '<path d="M2.25 6.5h3v3h-3zM6.5 6.5h3v3h-3zM10.75 6.5h3v3h-3z" fill="currentColor" stroke="none"/>',
   ].join(''),
+  // Thought balloon: square-cornered, tailing bottom-left, holding three filled
+  // squares. The queue balloon tails bottom-right and holds two rules, so the
+  // two stay apart. The previous square with an inner cross did not read as a
+  // thought row.
   think: [
-    '<path d="M2.5 2.5h11v11h-11z"/>',
-    '<path d="M8 4.75v2M8 9.25v2M4.75 8h2M9.25 8h2"/>',
-    '<path d="M7 7h2v2H7z" fill="currentColor" stroke="none"/>',
+    '<path d="M2.25 2.75h11.5v8.25H6.75L4 13.75V11H2.25z"/>',
+    '<path d="M4 6h2v2H4zM7 6h2v2H7zM10 6h2v2h-2z" fill="currentColor" stroke="none"/>',
+  ].join(''),
+  // Context injection: a syringe — thumb rest and plunger above the barrel,
+  // drawn liquid at the barrel foot, needle below.
+  'context-injection': [
+    '<path d="M5.25 2.5h5.5"/>',
+    '<path d="M8 2.5v2.25"/>',
+    '<path d="M5 4.75h6v7.5H5z"/>',
+    '<path d="M6.25 10.5h3.5v1.75h-3.5z" fill="currentColor" stroke="none"/>',
+    '<path d="M8 12.25v2.25"/>',
   ].join(''),
   terminal: [
     '<path d="M1.75 2.5h12.5v11H1.75z"/>',
@@ -344,6 +396,16 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ['M13.0762 1.37207C14.0846', 'branch'],
   ['M12.3368 1.53569L11.931 4.43172', 'code'],
   ['M11.2426 4.80473V6.10551H4.75819', 'browse'],
+  // Composer stats dock and the turn-usage row: the token-usage cylinder and
+  // the session-stats dial. Neither had a key, so both kept the host drawing.
+  ['<ellipse cx="8" cy="3.6" rx="5.75" ry="2.4"', 'database'],
+  ['M2.25 3.6V12.3A5.75 2.4', 'database'],
+  ['M3.49 13.26A6.375 6.375 0 1 1 12.51 13.26', 'gauge'],
+  ['<circle cx="8" cy="8" r="6.375"', 'clock'],
+  ['M8 4.4V8.3L10.7 9.85', 'clock'],
+  // Conversation rows: the thought balloon (14px and 16px host variants) and
+  // the context-injection disclosure, which had no key and kept the host drawing.
+  ['M11.9512 1.13281C12.401 1.20666', 'context-injection'],
   ['M7.06431 5.93342C7.68763', 'think'],
   ['M8.00192 6.64454C8.75026', 'think'],
   ['x="3" y="3" width="10" height="10" rx="3"', 'stop'],

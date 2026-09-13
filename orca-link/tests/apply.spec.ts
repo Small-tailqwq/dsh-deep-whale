@@ -10,6 +10,7 @@ import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { apply } from '../src/client/index.ts'
+import { installOrcaPageIcons } from '../src/client/page-icons.ts'
 
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/orca-link.module.css'), 'utf8')
 const TURN_MARK_SELECTOR = "[data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]"
@@ -95,6 +96,100 @@ describe('Orca Link skin apply', () => {
     expect(document.body.style.getPropertyValue('--orca-link-dark-hero-art')).toBe('')
     expect(document.body.style.getPropertyValue('--orca-link-dark-active-art')).toBe('')
     expect(document.head.querySelector('link[rel="icon"]')).toBeNull()
+  })
+
+  it('replaces the host tab icon and Web-app manifest with the skin web icon', async () => {
+    // The host declares both links statically in its boot HTML, and a browser
+    // honours the first usable declaration: an appended skin link would never
+    // be reached, so the icon and the manifest are replaced instead.
+    document.head.innerHTML = `
+      <meta name="fixture-before" />
+      <link rel="manifest" href="./manifest.webmanifest" />
+      <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+      <meta name="fixture-after" />
+    `
+    const shape = (): string[] => Array.from(document.head.children)
+      .filter(node => !(node instanceof HTMLTitleElement))
+      .map(node => (
+        node instanceof HTMLLinkElement
+          ? `${node.tagName}[${node.getAttribute('rel')}]`
+          : `${node.tagName}[${node.getAttribute('name')}]`
+      ))
+    fiber = await mount()
+
+    expect(shape()).toEqual(['META[fixture-before]', 'META[fixture-after]', 'LINK[icon]', 'LINK[manifest]'])
+    const favicon = document.head.querySelector<HTMLLinkElement>('link[data-skin-chrome="favicon"]')!
+    expect(favicon.getAttribute('type')).toBe('image/svg+xml')
+    const iconHref = favicon.getAttribute('href') ?? ''
+    expect(iconHref.startsWith('data:image/svg+xml;utf8,')).toBe(true)
+    expect(decodeURIComponent(iconHref)).toContain('<rect x="43" y="26" width="4" height="4"')
+
+    const manifestLink = document.head.querySelector<HTMLLinkElement>('link[data-skin-chrome="manifest"]')!
+    expect(manifestLink.getAttribute('type')).toBe('application/manifest+json')
+    const manifestHref = manifestLink.getAttribute('href') ?? ''
+    const manifestPrefix = 'data:application/manifest+json,'
+    expect(manifestHref.startsWith(manifestPrefix)).toBe(true)
+    const manifest = JSON.parse(decodeURIComponent(manifestHref.slice(manifestPrefix.length)))
+    // Relative URLs cannot resolve against a data: manifest, so identity and
+    // scope are absolute while the host's name and display mode are kept.
+    const root = new URL('/', document.location.href).href
+    expect(manifest).toEqual({
+      id: root,
+      name: 'DeepSeek Harness',
+      short_name: 'DSH',
+      start_url: root,
+      scope: root,
+      display: 'fullscreen',
+      icons: [{ src: iconHref, sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+    })
+
+    await fiber.dispose()
+    expect(document.head.querySelectorAll('link[data-skin-chrome]')).toHaveLength(0)
+    expect(shape()).toEqual(['META[fixture-before]', 'LINK[manifest]', 'LINK[icon]', 'META[fixture-after]'])
+    document.head.innerHTML = ''
+  })
+
+  it('keeps the skin page icons until the last overlapping activation is disposed', async () => {
+    document.head.innerHTML = '<link rel="icon" type="image/svg+xml" href="./favicon.svg" />'
+    const first = await mount()
+    const second = await mount()
+
+    // Leaving the first installation in place: the second activation must not
+    // capture the skin's own links as if they were the host's.
+    await first.dispose()
+    expect(document.head.querySelector('link[data-skin-chrome="favicon"]')).not.toBeNull()
+    expect(document.head.querySelector('link[href="./favicon.svg"]')).toBeNull()
+
+    await second.dispose()
+    expect(document.head.querySelectorAll('link[data-skin-chrome]')).toHaveLength(0)
+    expect(document.head.querySelector('link[href="./favicon.svg"]')).not.toBeNull()
+    document.head.innerHTML = ''
+    fiber = undefined
+  })
+
+  it('restores the host page icons when the replacement manifest cannot be built', async () => {
+    document.head.innerHTML = `
+      <link rel="manifest" href="./manifest.webmanifest" />
+      <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    `
+    vi.stubGlobal('URL', class {
+      constructor() {
+        throw new Error('fixture URL failure')
+      }
+    })
+
+    expect(() => installOrcaPageIcons()).toThrow('fixture URL failure')
+    expect(document.head.querySelectorAll('*')).toHaveLength(2)
+    expect(document.head.querySelector('link[href="./favicon.svg"]')).not.toBeNull()
+    expect(document.head.querySelector('link[href="./manifest.webmanifest"]')).not.toBeNull()
+    expect(document.head.querySelectorAll('link[data-skin-chrome]')).toHaveLength(0)
+
+    vi.unstubAllGlobals()
+    fiber = await mount()
+    expect(document.head.querySelector('link[data-skin-chrome="favicon"]')).not.toBeNull()
+    await fiber.dispose()
+    expect(document.head.querySelector('link[href="./favicon.svg"]')).not.toBeNull()
+    document.head.innerHTML = ''
   })
 
   it('replaces the production sidebar wordmark with DSH vector paths', async () => {
@@ -354,6 +449,128 @@ describe('Orca Link skin apply', () => {
     for (const el of document.querySelectorAll('[data-orca-link-icon]')) {
       expect(el.querySelector('g[data-orca-link-icon-art]')).not.toBeNull()
     }
+    await fiber.dispose()
+    expect(document.querySelectorAll('[data-orca-link-icon]').length).toBe(0)
+  })
+
+  it('redraws the thought row as a tailed balloon and the context-injection row as a syringe', async () => {
+    // The thought glyph shipped as a square with an inner cross, in a 14px and a
+    // 16px host variant; both now draw the balloon. The context-injection row's
+    // glyph had no key at all and kept the host's rounded box with an insert
+    // arrow, which is the gap this redraw closes.
+    document.body.innerHTML = `
+      <svg viewBox="0 0 14 14"><path d="M7.06431 5.93342C7.68763 6.43904"></path></svg>
+      <svg viewBox="0 0 16 16"><path d="M11.9512 1.13281C12.401 1.20666 12.8093 1.34164"></path></svg>
+      <svg viewBox="0 0 16 16"><path d="M8.00192 6.64454C8.75026 7.25169"></path></svg>
+    `
+    fiber = await mount()
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon')))
+      .toEqual(['think', 'context-injection', 'think'])
+
+    const think = svgs[0]!
+    const thinkArt = think.querySelector('g[data-orca-link-icon-art]')!
+    expect(Array.from(thinkArt.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M2.25 2.75h11.5v8.25H6.75L4 13.75V11H2.25z',
+      'M4 6h2v2H4zM7 6h2v2H7zM10 6h2v2h-2z',
+    ])
+    // The host drawing stays in place; the stylesheet hides it while the skin
+    // is active, so the redraw must not replace the host node.
+    expect(think.querySelector(':scope > path')?.getAttribute('d')).toBe('M7.06431 5.93342C7.68763 6.43904')
+
+    const injection = svgs[1]!
+    const injectionArt = injection.querySelector('g[data-orca-link-icon-art]')!
+    expect(Array.from(injectionArt.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M5.25 2.5h5.5',
+      'M8 2.5v2.25',
+      'M5 4.75h6v7.5H5z',
+      'M6.25 10.5h3.5v1.75h-3.5z',
+      'M8 12.25v2.25',
+    ])
+
+    await fiber.dispose()
+    expect(document.querySelectorAll('[data-orca-link-icon]').length).toBe(0)
+  })
+
+  it('redraws the token-usage cylinder and the session-stats dial as rectilinear art', async () => {
+    // Both glyphs sit in the composer stats dock (and the token one again in the
+    // turn-usage row) and neither had a key, so they kept the host drawing: a
+    // cylinder with an elliptical head, and a dial with a needle.
+    document.body.innerHTML = `
+      <svg viewBox="0 0 16 16">
+        <ellipse cx="8" cy="3.6" rx="5.75" ry="2.4" stroke="currentColor" stroke-width="1.25"></ellipse>
+        <path d="M2.25 3.6V12.3A5.75 2.4 0 0 0 13.75 12.3V3.6" stroke="currentColor" stroke-width="1.25"></path>
+        <path d="M2.25 7.95A5.75 2.4 0 0 0 13.75 7.95" stroke="currentColor" stroke-width="1.25"></path>
+      </svg>
+      <svg viewBox="0 0 16 16">
+        <path d="M3.49 13.26A6.375 6.375 0 1 1 12.51 13.26" stroke="currentColor" stroke-width="1.25"></path>
+        <path d="M8 8.75L11.4 5.35" stroke="currentColor" stroke-width="1.25"></path>
+        <circle cx="8" cy="8.75" r="1.55" fill="currentColor"></circle>
+      </svg>
+    `
+    fiber = await mount()
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon'))).toEqual(['database', 'gauge'])
+
+    const databaseArt = svgs[0]!.querySelector('g[data-orca-link-icon-art]')!
+    expect(Array.from(databaseArt.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M3.5 2h9v12h-9z',
+      'M3.5 6h9M3.5 10h9',
+    ])
+    // The host's elliptical head must not survive inside the redraw.
+    expect(databaseArt.querySelector('ellipse')).toBeNull()
+
+    const gaugeArt = svgs[1]!.querySelector('g[data-orca-link-icon-art]')!
+    expect(Array.from(gaugeArt.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M2.5 12.25V2.75h11v9.5',
+      'M8 9 11.25 5.75',
+      'M7 8h2v2H7z',
+    ])
+    expect(gaugeArt.querySelector('circle')).toBeNull()
+
+    await fiber.dispose()
+    expect(document.querySelectorAll('[data-orca-link-icon]').length).toBe(0)
+  })
+
+  it('redraws the timestamp clock and keeps every theme icon drawn', async () => {
+    // The clock had no key at all. The theme row was worse than a missing
+    // redraw: sun, moon and monitor already had keys but no art, so the
+    // stylesheet hid the host drawing and left those controls blank.
+    document.body.innerHTML = `
+      <svg viewBox="0 0 16 16">
+        <circle cx="8" cy="8" r="6.375" stroke="currentColor" stroke-width="1.25"></circle>
+        <path d="M8 4.4V8.3L10.7 9.85" stroke="currentColor" stroke-width="1.25"></path>
+      </svg>
+      <svg viewBox="0 0 16 16"><path d="M11.3496 8C11.3496 6.14985 9.85015 4.65039" fill="currentColor"></path></svg>
+      <svg viewBox="0 0 16 16"><path d="M13.2764 9.52324C12.5607 9.97754 11.7177 10.242" fill="currentColor"></path></svg>
+      <svg viewBox="0 0 16 16"><path d="M12.1665 13.5811V14.7803H3.66651V13.5811H12.1665Z" fill="currentColor"></path></svg>
+    `
+    fiber = await mount()
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon')))
+      .toEqual(['clock', 'sun', 'moon', 'monitor'])
+    for (const svg of svgs) {
+      // A key without art hides the host glyph and draws nothing in its place.
+      const art = svg.querySelector('g[data-orca-link-icon-art]')
+      expect(art).not.toBeNull()
+      expect(art?.querySelectorAll('path').length).toBeGreaterThan(0)
+    }
+    // Register contract for the theme pair: the light glyph fills nothing, the
+    // dark glyph is a filled block, so ink coverage itself carries the reading
+    // and the two never drift back into two look-alike outlines.
+    const lightArt = svgs[1]!.querySelector('g[data-orca-link-icon-art]')!
+    expect(lightArt.querySelectorAll('path[fill]')).toHaveLength(0)
+    // One closed outline: the lobes belong to the same path, so the glyph has no
+    // inner edges at all.
+    expect(Array.from(lightArt.querySelectorAll('path')).map(path => path.getAttribute('d'))).toEqual([
+      'M6.5 1.5h3v2h3v3h2v3h-2v3h-3v2h-3v-2h-3v-3h-2v-3h2v-3h3z',
+    ])
+    const darkArt = svgs[2]!.querySelector('g[data-orca-link-icon-art]')!
+    expect(darkArt.querySelector('path[fill="currentColor"]')).not.toBeNull()
+    expect(darkArt.querySelector('path')?.getAttribute('fill-rule')).toBe('evenodd')
+    expect(Array.from(svgs[0]!.querySelectorAll('g[data-orca-link-icon-art] path')).map(path => path.getAttribute('d')))
+      .toEqual(['M2.25 2.25h11.5v11.5H2.25z', 'M8 8V4.5M8 8h3.5'])
+
     await fiber.dispose()
     expect(document.querySelectorAll('[data-orca-link-icon]').length).toBe(0)
   })
