@@ -34,7 +34,7 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 ### 一行安装（推荐）
 
-> **先确认发行版：**下面的命令只用于直接运行 DSH 的 standalone 环境。若已安装 `@linxin666/dsh-web-all`（dsh-web），请改从 dsh-web 自带的皮肤中心/安装入口安装其 `maid-atelier` 适配版；不要在同一 profile 中再叠装本仓库的 standalone 包，否则组件与样式契约不一致，界面可能显示异常。
+> **先确认发行版：**下面的命令只用于直接运行 DSH 的 standalone 环境。若已安装 `@linxin666/dsh-web-all`（dsh-web），请改从 dsh-web 自带的皮肤中心/安装入口安装其 `maid-atelier` 与 `orca-link` 适配版；不要在同一 profile 中再叠装本仓库的 standalone 包，否则组件与样式契约不一致，界面可能显示异常。
 
 三个发行包（皮肤管理器 + 两套皮肤）直接以 GitHub 依赖安装，**无需 clone**；每个包都是仓库中的一个 `#path:` 子目录。需要 **pnpm ≥ 9**:子目录语法从 pnpm 9 开始支持，pnpm 8 会把 `path:...` 当作 commit 引用而报错。
 
