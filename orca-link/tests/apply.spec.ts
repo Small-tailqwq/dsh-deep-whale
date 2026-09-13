@@ -693,6 +693,50 @@ describe('Orca Link skin apply', () => {
     await fiber.dispose()
   })
 
+  it('still plays the exit ghost when the started session replaces the conversation root', async () => {
+    document.body.innerHTML = `
+      <div data-phase="hero">
+        <div class="fixture_conversationBody">
+          <div data-conversation-scroll>
+            <div data-chat-flow></div>
+            <div data-composer-seat>
+              <div data-composer-card>
+                <div data-composer-input contenteditable="true">launch</div>
+                <button type="button">send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const oldRoot = document.querySelector<HTMLElement>('[data-phase]')!
+    const seat = document.querySelector<HTMLElement>('[data-composer-seat]')!
+    const card = document.querySelector<HTMLElement>('[data-composer-card]')!
+    const input = document.querySelector<HTMLElement>('[data-composer-input]')!
+    card.getBoundingClientRect = () => ({ left: 100, top: 200, width: 600, height: 120 } as DOMRect)
+
+    fiber = await mount()
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+
+    // The started session swaps the conversation root while the adopted seat
+    // node survives: the new root has no phase history to compare against.
+    const newRoot = document.createElement('div')
+    newRoot.dataset.phase = 'active'
+    const scrollport = document.createElement('div')
+    scrollport.setAttribute('data-conversation-scroll', '')
+    const chatFlow = document.createElement('div')
+    chatFlow.setAttribute('data-chat-flow', '')
+    scrollport.append(chatFlow, seat)
+    newRoot.append(scrollport)
+    document.body.replaceChild(newRoot, oldRoot)
+
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(1)
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(true)
+
+    await fiber.dispose()
+  })
+
   it('hides the active composer on upward scroll and restores it downward or at bottom', async () => {
     document.body.innerHTML = `
       <div data-phase="active">

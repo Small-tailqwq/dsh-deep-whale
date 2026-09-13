@@ -827,6 +827,7 @@ window.__ModuleLoader__.load({
 					if (phase === "hero") hasSeenHero = true;
 					const seat = seatOf(root);
 					if (seat === null) return;
+					if (previous === "hero" && phase !== "hero" || previous === void 0 && hasSeenHero && phase !== "hero") playExitGhost(seat);
 					const wasOutsideChat = seat.hasAttribute(OUTSIDE_CHAT_ATTRIBUTE);
 					const belongsToConversation = composerBelongsToConversation(root);
 					seat.toggleAttribute(OUTSIDE_CHAT_ATTRIBUTE, !belongsToConversation);
@@ -836,7 +837,6 @@ window.__ModuleLoader__.load({
 						blurSeat(seat);
 						return;
 					}
-					if (previous === "hero" && phase !== "hero") playExitGhost(seat);
 					if (phase === "active") {
 						if (wasOutsideChat || previous === "hero" || previous === "settling" || previous === void 0 && hasSeenHero) enterSeat(seat);
 					} else {

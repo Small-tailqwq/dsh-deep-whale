@@ -421,6 +421,16 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
       const seat = seatOf(root)
       if (seat === null) return
 
+      // The exit ghost is owed to the host leaving the hero phase, not to the
+      // seat reaching active: a submit may pass through settling while the
+      // session is created, and the snapshot must not wait that out. A root
+      // replaced while the first session starts has no phase history here at
+      // all, so it takes the same replacement-safe fallback the dock-in
+      // animation already has.
+      const leftHero = previous === 'hero' && phase !== 'hero'
+      const replacedRoot = previous === undefined && hasSeenHero && phase !== 'hero'
+      if (leftHero || replacedRoot) playExitGhost(seat)
+
       const wasOutsideChat = seat.hasAttribute(OUTSIDE_CHAT_ATTRIBUTE)
       const belongsToConversation = composerBelongsToConversation(root)
       seat.toggleAttribute(OUTSIDE_CHAT_ATTRIBUTE, !belongsToConversation)
@@ -430,11 +440,6 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
         blurSeat(seat)
         return
       }
-
-      // The exit ghost is owed to the host leaving the hero phase, not to the
-      // seat reaching active: a submit may pass through settling while the
-      // session is created, and the snapshot must not wait that out.
-      if (previous === 'hero' && phase !== 'hero') playExitGhost(seat)
 
       if (phase === 'active') {
         if (
