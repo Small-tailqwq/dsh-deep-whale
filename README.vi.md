@@ -1,8 +1,8 @@
 # dsh-deep-whale · Bộ sưu tập giao diện Whale-Girl
 
-[简体中文](README.md) · [English](README.en.md) · **[Tiếng Việt](README.vi.md)**
+[简体中文](README.md) · [English](README.en.md) · **Tiếng Việt**
 
-Bộ sưu tập giao diện (skin) mang chủ đề鲸鱼娘 (whale-girl) cho DeepSeek Harness Web GUI (kho phân phối độc lập).
+Bộ sưu tập giao diện (skin) mang chủ đề cô gái cá voi (whale-girl) cho DeepSeek Harness Web GUI (kho phân phối độc lập).
 
 ## Xem trước
 
@@ -44,7 +44,7 @@ Ba package phân phối (trình quản lý + hai giao diện) được cài đ�
 dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
 ```
 
-**PowerShell** (`#` bắt đầu注释, spec phải bọc trong ngoặc kép; dùng `;` thay cho `&&`):
+**PowerShell** (`#` bắt đầu chú thích, spec phải bọc trong dấu nháy; dùng `;` thay cho `&&`):
 
 ```powershell
 dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
@@ -74,7 +74,7 @@ Dependency GitHub bị pnpm khóa tại commit lúc cài đặt; `update` sẽ p
 
 ### Lười gõ lệnh? Để AI cài
 
-Dán đoạn sau vào bất kỳ AI (hoặc dsh本身). [INSTALL.md](INSTALL.md) là điểm vào chuẩn: AI sẽ đọc và được dẫn đến kỹ năng `dsh-skin-install` đi kèm — cài đặt thông thường chạy cùng lệnh một dòng ở trên, còn các luồng di chuyển cũ, phát triển cục bộ, kiểm tra commit cụ thể thì theo quy trình kỹ năng (dàn xếp xung đột trước, link đường dẫn tuyệt đối, xác minh khởi động lạnh).
+Dán đoạn sau vào bất kỳ AI nào (hoặc chính dsh). [INSTALL.md](INSTALL.md) là điểm vào chuẩn: AI sẽ đọc và được dẫn đến kỹ năng `dsh-skin-install` đi kèm — cài đặt thông thường chạy cùng lệnh một dòng ở trên, còn các luồng di chuyển cũ, phát triển cục bộ, kiểm tra commit cụ thể thì theo quy trình kỹ năng (dàn xếp xung đột trước, link đường dẫn tuyệt đối, xác minh khởi động lạnh).
 
 ```
 Đọc https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md và cài đặt các giao diện từ kho này theo hướng dẫn
@@ -101,7 +101,7 @@ dsh plugin --profile web add <đường dẫn tuyệt đối clone>/maid-atelier
 dsh plugin --profile web add <đường dẫn tuyệt đối clone>/orca-link      # ORCA LINK
 ```
 
-> Lệnh `node` đầu tiên là **tối ưu tùy chọn**: dàn đặt trước mọi `plugin add`, đặt giao diện mục tiêu là唯一 bật để lần khởi động đầu tiên đã là giao diện đó; giữ nguyên YAML không phải giao diện, không ghi đè toàn bộ patch. Bỏ qua cũng an toàn — skin-manager sẽ hoàn nguyên về mặc định khi khởi động lạnh, sau đó chuyển trong Cài đặt → Quản lý giao diện. Dùng `--target orca-link` cho ORCA LINK hoặc `--target official` cho giao diện gốc.
+> Lệnh `node` đầu tiên là **tối ưu tùy chọn**: dàn đặt trước mọi `plugin add`, đặt giao diện mục tiêu là giao diện duy nhất được bật để lần khởi động đầu tiên đã là giao diện đó; giữ nguyên YAML không phải giao diện, không ghi đè toàn bộ patch. Bỏ qua cũng an toàn — skin-manager sẽ hoàn nguyên về mặc định khi khởi động lạnh, sau đó chuyển trong Cài đặt → Quản lý giao diện. Dùng `--target orca-link` cho ORCA LINK hoặc `--target official` cho giao diện gốc.
 
 **Cách A (khuyến nghị): Cài đặt → Quản lý giao diện → nhấn «Chuyển» trên giao diện muốn dùng.** Trình quản lý tự động ghi dòng `disabled` xung đột vào cả hai lớp patch và tải lại nóng; chỉ cần tải lại trang.
 
@@ -125,7 +125,7 @@ dsh plugin --profile web add C:/Users/<bạn>/code/dsh-deep-whale/skin-manager
 dsh plugin --profile web add C:/Users/<bạn>/code/dsh-deep-whale/maid-atelier
 ```
 
-### Cài đặt quá nhiều / Giao diện lỗi怎么办
+### Đã cài quá nhiều / Giao diện bị lỗi thì làm gì?
 
 Triệu chứng: nút cài đặt biến mất, thanh bị trang trí che hoặc chiều rộng bất thường, giao diện lộn xộn (khôi phục khi tắt giao diện).
 
@@ -136,7 +136,7 @@ Triệu chứng: nút cài đặt biến mất, thanh bị trang trí che hoặc
 ### Quy tắc đường dẫn tương đối (dễ mắc lỗi)
 
 - Đường dẫn tương đối (bắt đầu bằng `./`, `../`) được phân giải theo **thư mục gọi lệnh dsh**, không phải thư mục kho giao diện.
-- **Không bao giờ dùng tên thư mục trần**: `dsh plugin --profile web add maid-atelier` sẽ bị当作 tên package npm kéo từ registry mà 404. Hãy dùng `./maid-atelier` (khi đã ở trong thư mục kho giao diện), `../dsh-deep-whale/maid-atelier` (khi dsh-deep-whale cùng cấp), hoặc đường dẫn tuyệt đối.
+- **Không bao giờ dùng tên thư mục trần**: `dsh plugin --profile web add maid-atelier` sẽ bị coi là tên package npm và được tải từ registry, dẫn đến lỗi 404. Hãy dùng `./maid-atelier` (khi đã ở trong thư mục kho giao diện), `../dsh-deep-whale/maid-atelier` (khi dsh-deep-whale cùng cấp), hoặc đường dẫn tuyệt đối.
 - `../dsh-deep-whale/maid-atelier` sau `cd <harness>` chỉ hoạt động khi **dsh-deep-whale cùng cấp với thư mục harness**; nếu clone ở nơi khác, đường dẫn tương đối sẽ link sai vị trí (lệnh không báo lỗi nhưng giao diện không hoạt động). Không chắc thì dùng đường dẫn tuyệt đối.
 
 ### Xác minh sau cài đặt
@@ -163,7 +163,7 @@ Kết quả phải chứa manager và package giao diện đang bật; giao di�
 | `ERR_PNPM_EXOTIC_SUBDEP` | Cố gắng cài "package gốc/tổng hợp" mang theo Git dependency (chính sách an ninh chuỗi cung ứng pnpm 11; kho này không cung cấp package như vậy) | Cài ba package con `#path:` như ở trên |
 | `pnpm not found on PATH` | Môi trường thiếu pnpm | Cài pnpm (`npm i -g pnpm`) rồi thử lại |
 | Package có trong danh sách nhưng trang không hiệu ứng | Giao diện bị `disabled` (công tắc xung đột đa giao diện) hoặc trình duyệt chưa tải lại | Kiểm tra `disabled` trong `--dump-config`; tải lại trang |
-| Lệnh PowerShell không hoàn thành/lỗi | `#` không ngoặc kép bị当作注释 | Luôn bọc spec trong ngoặc kép đơn |
+| Lệnh PowerShell không hoàn thành/lỗi | `#` không được đặt trong dấu nháy nên bị coi là chú thích | Luôn bọc spec trong dấu nháy đơn |
 
 ## Người đóng góp
 
