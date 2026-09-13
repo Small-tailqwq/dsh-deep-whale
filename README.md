@@ -161,6 +161,7 @@ document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) 
 | `ERR_PNPM_EXOTIC_SUBDEP` | 尝试安装会再带 Git 依赖的“根包/聚合包”（pnpm 11 安全策略，本仓库不提供此类包） | 按本页一行安装三个 `#path:` 子包 |
 | `pnpm not found on PATH` | 环境缺少 pnpm | 安装 pnpm（`npm i -g pnpm`）后重试 |
 | 包在列表里但页面无效果 | 皮肤被 `disabled`（多皮肤互斥开关）或浏览器未刷新 | `--dump-config` 核对 disabled；刷新页面 |
+| 皮肤在管理器里可见、patch 里 `disabled: false`，切换后页面却无任何变化 | 已装过插件市场（dshmarket / skin-center）时，市场按 GitHub 仓库归类主题，用自己维护的停用名单 `<profile>/.dsh-market/state.json` 在启动时回放，优先级高于 `cordis.patch.yml`（#111 / #112 已定位，与 #106 同类） | 停掉该 profile 的 DSH 进程（只刷页面不够），备份两个 `cordis.patch.yml` 与市场的 `state.json`；从 `state.json` 的 `disabled` 里只移除本仓库 manager / maid-atelier / orca-link 三个包名；两层 patch 三包状态统一（manager 启用、皮肤段只留一套启用）后重启，之后只用「设置 → 皮肤管理」切换 |
 | PowerShell 命令不完整/报错 | `#` 未加引号被当注释截断 | spec 一律单引号包裹 |
 
 ## 贡献者

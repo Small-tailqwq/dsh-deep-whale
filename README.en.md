@@ -161,6 +161,7 @@ It must contain the manager and the active skin package; disabled skins may be a
 | `ERR_PNPM_EXOTIC_SUBDEP` | installing an aggregate "root package" that itself carries Git dependencies (pnpm 11 supply-chain policy; this repo ships no such package) | install the three `#path:` sub-packages as shown above |
 | `pnpm not found on PATH` | pnpm missing from the environment | install pnpm (`npm i -g pnpm`) and retry |
 | package listed but no effect on the page | skin is `disabled` (multi-skin mutual exclusion) or the browser was not refreshed | check `disabled` in `--dump-config`; refresh |
+| skin visible in the manager, patch says `disabled: false`, but nothing changes on the page after switching | with the plugin marketplace (dshmarket / skin-center) installed, it groups themes by GitHub repo and replays its own disable list `<profile>/.dsh-market/state.json` at startup, which takes priority over `cordis.patch.yml` (located in #111 / #112; same class as #106) | stop the DSH process for that profile (a page refresh is not enough), back up both `cordis.patch.yml` files and the marketplace `state.json`; remove only this repo's manager / maid-atelier / orca-link package names from `state.json`'s `disabled` array; unify the three packages across both patch layers (manager enabled, exactly one skin enabled), restart, and switch only via Settings → Skin Management afterwards |
 | PowerShell command truncated / errors | unquoted `#` starts a comment | always quote specs in single quotes |
 
 ## Contributors
