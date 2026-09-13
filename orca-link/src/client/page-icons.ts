@@ -10,7 +10,16 @@
  * The replacement manifest travels as a data: URL, where relative paths cannot
  * resolve: the identity fields reuse the host values and start_url/scope are
  * made absolute against the runtime origin.
+ *
+ * The manifest declares bitmap icons only. Windows builds the installed app,
+ * taskbar and start-menu icons from bitmap manifest icons, and a `sizes: "any"`
+ * SVG entry — which matches every size — makes Edge's icon-update path pick an
+ * icon it cannot rasterise, so the app falls back to the site's initial letter
+ * or a stale site icon. The SVG stays as the tab favicon, where arbitrary size
+ * is an advantage and no rasterisation is needed.
  */
+import { PAGE_ICON_192, PAGE_ICON_512 } from './page-icon-art.generated.ts'
+
 const PAGE_ICON_SVG = [
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">',
   '<rect width="64" height="64" fill="#f7f9fc"/>',
@@ -78,7 +87,10 @@ function mountPageIcons(doc: Document): () => void {
       start_url: root,
       scope: root,
       display: MANIFEST_DISPLAY,
-      icons: [{ src: PAGE_ICON, sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+      icons: [
+        { src: PAGE_ICON_192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: PAGE_ICON_512, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      ],
     }
     const manifestLink = doc.createElement('link')
     manifestLink.rel = 'manifest'

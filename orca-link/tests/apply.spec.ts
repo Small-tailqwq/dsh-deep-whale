@@ -140,7 +140,13 @@ describe('Orca Link skin apply', () => {
       start_url: root,
       scope: root,
       display: 'fullscreen',
-      icons: [{ src: iconHref, sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+      // Bitmap icons only: Windows rasterises the installed app, taskbar and
+      // start-menu icons from them, and a `sizes: "any"` SVG entry lets the
+      // update path pick an icon it cannot rasterise.
+      icons: [
+        { src: expect.stringMatching(/^data:image\/png;base64,/), sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: expect.stringMatching(/^data:image\/png;base64,/), sizes: '512x512', type: 'image/png', purpose: 'any' },
+      ],
     })
 
     await fiber.dispose()
