@@ -2,6 +2,8 @@
 
 The one-line install pulls the skin manager and all Deep Whale skins directly from GitHub as `#path:` sub-packages — no clone, no AI assistance. Requires **pnpm ≥ 9**.
 
+> **Distribution boundary:** these instructions are only for standalone environments that run DSH directly. If `@linxin666/dsh-web-all` (dsh-web) is installed, stop here and install dsh-web's adapted `maid-atelier` and `orca-link` through its own skin center/installer. Do not add this repository's standalone packages to the same profile.
+
 > AI assistants: follow this file as the installation guide. A plain install is just the one-liner below; use the bundled `.agents/skills/dsh-skin-install` skill only for legacy migration, local development builds, specified-commit testing, or diagnosis.
 
 ## Linux / macOS / WSL

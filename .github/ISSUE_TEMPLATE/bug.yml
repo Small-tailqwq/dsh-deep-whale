@@ -35,6 +35,17 @@ body:
       placeholder: 例如 0.1.0-rc.8
     validations:
       required: true
+  - type: dropdown
+    id: dsh-web-ecosystem
+    attributes:
+      label: 是否使用 dsh-web 生态链
+      description: 如果使用，请同时把问题反馈到 https://github.com/zhu1090093659/dsh-web/issues ，以便核对 dsh-web 的组合组件与适配皮肤。
+      options:
+        - 否，直接运行 DSH
+        - 是，安装了 @linxin666/dsh-web-all 或其他 dsh-web 组件
+        - 不确定
+    validations:
+      required: true
   - type: input
     id: skin-version
     attributes:

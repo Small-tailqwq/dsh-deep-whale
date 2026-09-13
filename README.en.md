@@ -1,6 +1,6 @@
 # dsh-deep-whale · Whale-Girl Skin Series
 
-[简体中文](README.md) · **[English](README.en.md)** · [Tiếng Việt](README.vi.md)
+[简体中文](README.md) · **English** · [Tiếng Việt](README.vi.md)
 
 Whale-girl themed skin series for the DeepSeek Harness Web GUI (standalone distribution repository).
 
@@ -33,6 +33,8 @@ Click an image for the full size.
 ## Installation
 
 ### One-line install (recommended)
+
+> **Check your distribution first:** the commands below are only for standalone environments that run DSH directly. If you installed `@linxin666/dsh-web-all` (dsh-web), install its adapted `maid-atelier` and `orca-link` through dsh-web's own skin center/installer instead. Do not add this repository's standalone packages to the same profile; the component and styling contracts differ and the resulting UI may be broken.
 
 The three distribution packages (skin manager + both skins) install directly as GitHub dependencies — **no clone required**; each package is a `#path:` subdirectory of the repository. Requires **pnpm ≥ 9**: the subdirectory syntax landed in pnpm 9, and pnpm 8 treats `path:...` as a commit reference and fails.
 

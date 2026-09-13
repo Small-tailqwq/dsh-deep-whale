@@ -13,6 +13,8 @@ DeepSeek Harness Web GUI 的深海女仆工坊皮肤：双女仆背景、深海�
 
 ## 安装
 
+> 若已安装 `@linxin666/dsh-web-all`（dsh-web），请从 dsh-web 自带的皮肤中心/安装入口安装其适配版 `maid-atelier` 与 `orca-link`，不要执行下面的 standalone 安装命令。两种发行方式的组件与样式契约不同，不能在同一 profile 中叠装。
+
 推荐连同皮肤管理器一起，从仓库一行安装（需要 pnpm ≥ 9，`#path:` 子目录语法）：
 
 ```sh
