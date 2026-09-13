@@ -2735,7 +2735,6 @@ body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat] {
    on the scaled compositor raster instead of the crisp 1:1 one. */
 body[data-dsh-orca-link] [data-phase='active'] [data-composer-seat]:is(
     [data-orca-composer-motion],
-    [data-orca-composer-exiting],
     [data-orca-composer-collapsing],
     [data-orca-composer-collapse-rebounding],
     [data-orca-composer-restoring]
@@ -2958,10 +2957,6 @@ body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-hidden] {
 
 body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-outside-chat] {
   display: none !important;
-}
-
-body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-exiting] {
-  opacity: 0;
 }
 
 /* Clip the moving card inside its stationary seat so the transformed footer

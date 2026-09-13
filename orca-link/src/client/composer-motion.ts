@@ -14,7 +14,6 @@ const NESTED_SCROLL_SURFACE_SELECTOR = [
   '[data-floating-ui-portal]',
 ].join(',')
 
-const EXIT_ATTRIBUTE = 'data-orca-composer-exiting'
 const ENTER_ATTRIBUTE = 'data-orca-composer-entering'
 const HIDDEN_ATTRIBUTE = 'data-orca-composer-hidden'
 const INTERACTIVE_ATTRIBUTE = 'data-orca-composer-interactive'
@@ -26,6 +25,12 @@ const SCROLL_THRESHOLD = 10
 const BOTTOM_THRESHOLD = 24
 const GHOST_LIFETIME_MS = 260
 const ENTER_LIFETIME_MS = 820
+// A submit press on the hero card only arms a snapshot of how that card looks
+// right now; the host leaving the hero phase is what turns the snapshot into
+// the exit ghost. An unconsumed snapshot expires instead of hiding anything, so
+// a candidate menu — or any other overlay that takes the key — leaves the
+// composer exactly as it was.
+const EXIT_SNAPSHOT_LIFETIME_MS = 800
 // The seat's own transition runs 300ms (opacity) / 340ms (transform).
 const MOTION_LIFETIME_MS = 360
 // A wheel gesture on the draft scroller may keep scrolling the transcript for
@@ -37,6 +42,11 @@ const SEAT_GESTURE_WINDOW_MS = 200
 interface ScrollBinding {
   lastTop: number | null
   dispose: () => void
+}
+
+interface ExitSnapshot {
+  seat: HTMLElement
+  ghost: HTMLElement
 }
 
 function phaseRootOf(element: Element): HTMLElement | null {
@@ -110,7 +120,9 @@ function wheelTargetsSeatDraft(event: WheelEvent): boolean {
 /**
  * Own the ORCA composer transition and scroll-intent presentation. This
  * module observes the host's stable data hooks; it never submits prompts or
- * creates sessions itself.
+ * creates sessions itself. The hero exit is driven by the host's own phase
+ * change: a press only snapshots the card, and the ghost plays once the host
+ * confirms the submit by leaving the hero phase.
  */
 export function installOrcaComposerMotion(body: HTMLElement): () => void {
   const doc = body.ownerDocument
@@ -121,6 +133,8 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
   // gestures (see SEAT_GESTURE_WINDOW_MS) rather than scroll-intent.
   let seatGestureUntil = 0
   let hasSeenHero = false
+  let exitSnapshot: ExitSnapshot | null = null
+  let exitSnapshotTimer: ReturnType<typeof setTimeout> | undefined
 
   const schedule = (callback: () => void, delay: number): void => {
     const timer = setTimeout(() => {
@@ -152,7 +166,6 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
   }
 
   const removeMotionAttributes = (seat: HTMLElement): void => {
-    seat.removeAttribute(EXIT_ATTRIBUTE)
     seat.removeAttribute(ENTER_ATTRIBUTE)
     seat.removeAttribute(HIDDEN_ATTRIBUTE)
     seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
@@ -195,7 +208,6 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
 
   const enterSeat = (seat: HTMLElement): void => {
     if (isManualMotion(seat)) return
-    seat.removeAttribute(EXIT_ATTRIBUTE)
     seat.removeAttribute(HIDDEN_ATTRIBUTE)
     const card = seat.querySelector<HTMLElement>(COMPOSER_CARD_SELECTOR)
     if (card === null) return
@@ -217,10 +229,27 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     })
   }
 
-  const mountExitGhost = (card: HTMLElement): void => {
-    const rect = card.getBoundingClientRect()
-    if (rect.width <= 0 || rect.height <= 0) return
+  const discardExitSnapshot = (): void => {
+    if (exitSnapshotTimer !== undefined) {
+      clearTimeout(exitSnapshotTimer)
+      timers.delete(exitSnapshotTimer)
+      exitSnapshotTimer = undefined
+    }
+    exitSnapshot = null
+  }
 
+  /**
+   * Snapshot the hero card while it is still on screen. Nothing is hidden and
+   * nothing is mounted yet: the snapshot only becomes a ghost once the host
+   * actually leaves the hero phase, and it is dropped untouched when the press
+   * turned out not to be a submit.
+   */
+  const prepareExitGhost = (seat: HTMLElement, card: HTMLElement): void => {
+    const rect = card.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      discardExitSnapshot()
+      return
+    }
     const ghost = card.cloneNode(true)
     if (!(ghost instanceof HTMLElement)) return
     copyLiveFieldValues(card, ghost)
@@ -235,17 +264,42 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     ghost.style.top = `${rect.top}px`
     ghost.style.width = `${rect.width}px`
     ghost.style.height = `${rect.height}px`
-    body.append(ghost)
-    ghost.addEventListener('animationend', () => { ghost.remove() }, { once: true })
-    schedule(() => { ghost.remove() }, GHOST_LIFETIME_MS)
+
+    discardExitSnapshot()
+    exitSnapshot = { seat, ghost }
+    const timer = setTimeout(() => {
+      timers.delete(timer)
+      exitSnapshotTimer = undefined
+      exitSnapshot = null
+    }, EXIT_SNAPSHOT_LIFETIME_MS)
+    exitSnapshotTimer = timer
+    timers.add(timer)
   }
 
-  const stageHeroExit = (root: HTMLElement): void => {
-    const seat = seatOf(root)
-    const card = root.querySelector<HTMLElement>(`${COMPOSER_CARD_SELECTOR}:not([class*='cardWorkspaceTrigger'])`)
-    if (seat === null || card === null || seat.hasAttribute(EXIT_ATTRIBUTE)) return
-    mountExitGhost(card)
-    seat.setAttribute(EXIT_ATTRIBUTE, '')
+  /**
+   * The seat is leaving the hero phase for the active conversation: mount the
+   * snapshot where the old card stood so it fades out there while the seat runs
+   * its own dock-in animation. Without a snapshot (a phase change nobody
+   * pressed for) this is a no-op.
+   */
+  const playExitGhost = (seat: HTMLElement): void => {
+    const snapshot = exitSnapshot
+    if (snapshot === null) return
+    // A replaced seat is not the one this press belonged to: drop the
+    // snapshot now instead of waiting out its window.
+    if (snapshot.seat !== seat) {
+      discardExitSnapshot()
+      return
+    }
+    const ghost = snapshot.ghost
+    discardExitSnapshot()
+    body.append(ghost)
+    // animationend bubbles: only the ghost's own fade-out may retire it, not a
+    // descendant animation that happens to finish first.
+    ghost.addEventListener('animationend', (event) => {
+      if (event.target === ghost) ghost.remove()
+    })
+    schedule(() => { ghost.remove() }, GHOST_LIFETIME_MS)
   }
 
   const primaryButtonOf = (card: HTMLElement): HTMLButtonElement | null => {
@@ -268,12 +322,15 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     if (root?.dataset.phase !== 'hero') return
     if (event.key !== 'Enter' || event.shiftKey || event.repeat || event.isComposing || event.keyCode === 229) return
 
+    // Only a press that looks like a submit arms a snapshot. What the key
+    // actually meant is the host's call: an open candidate menu takes it, the
+    // phase stays hero, and the snapshot expires on its own.
     const card = input.closest<HTMLElement>(COMPOSER_CARD_SELECTOR)
     if (card === null || card.matches("[class*='cardWorkspaceTrigger']")) return
-    if (card.querySelector("[aria-expanded='true']") !== null) return
     const primary = primaryButtonOf(card)
     if (primary === null || primary.disabled) return
-    stageHeroExit(root)
+    const seat = input.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
+    if (seat !== null) prepareExitGhost(seat, card)
   }
 
   const onFocusIn = (event: FocusEvent): void => {
@@ -301,7 +358,8 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     const root = card === null || card === undefined ? null : phaseRootOf(card)
     if (button === null || card === null || card === undefined || root?.dataset.phase !== 'hero') return
     if (button.disabled || primaryButtonOf(card) !== button) return
-    stageHeroExit(root)
+    const seat = card.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
+    if (seat !== null) prepareExitGhost(seat, card)
   }
 
   const bindScrollport = (scrollport: HTMLElement): void => {
@@ -367,21 +425,26 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
       const belongsToConversation = composerBelongsToConversation(root)
       seat.toggleAttribute(OUTSIDE_CHAT_ATTRIBUTE, !belongsToConversation)
       if (!belongsToConversation) {
-        seat.removeAttribute(EXIT_ATTRIBUTE)
         seat.removeAttribute(ENTER_ATTRIBUTE)
         seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
         blurSeat(seat)
         return
       }
 
+      // The exit ghost is owed to the host leaving the hero phase, not to the
+      // seat reaching active: a submit may pass through settling while the
+      // session is created, and the snapshot must not wait that out.
+      if (previous === 'hero' && phase !== 'hero') playExitGhost(seat)
+
       if (phase === 'active') {
         if (
           wasOutsideChat
-          || seat.hasAttribute(EXIT_ATTRIBUTE)
           || previous === 'hero'
           || previous === 'settling'
           || (previous === undefined && hasSeenHero)
-        ) enterSeat(seat)
+        ) {
+          enterSeat(seat)
+        }
       } else {
         if (!seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) seat.removeAttribute(HIDDEN_ATTRIBUTE)
         if (phase === 'hero') seat.removeAttribute(ENTER_ATTRIBUTE)
@@ -412,6 +475,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     doc.removeEventListener('focusout', onFocusOut, true)
     scrollBindings.forEach(binding => { binding.dispose() })
     scrollBindings.clear()
+    discardExitSnapshot()
     timers.forEach(timer => { clearTimeout(timer) })
     timers.clear()
     doc.querySelectorAll<HTMLElement>(COMPOSER_SEAT_SELECTOR).forEach(removeMotionAttributes)

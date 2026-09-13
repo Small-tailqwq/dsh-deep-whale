@@ -520,7 +520,7 @@ describe('Orca Link skin apply', () => {
     expect(document.title).toBe('active session · ORCA LINK')
   })
 
-  it('crossfades the hero composer into the active dock without submitting itself', async () => {
+  it('plays the hero exit ghost only once the host leaves the hero phase', async () => {
     document.body.innerHTML = `
       <div data-phase="hero">
         <div class="fixture_conversationBody">
@@ -544,12 +544,14 @@ describe('Orca Link skin apply', () => {
 
     fiber = await mount()
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
-    expect(seat.hasAttribute('data-orca-composer-exiting')).toBe(true)
-    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(1)
+    // The press only arms a snapshot of the card: nothing is hidden yet.
+    expect(seat.style.cssText).toBe('')
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(false)
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(0)
 
     root.dataset.phase = 'active'
     await new Promise(resolve => { setTimeout(resolve, 0) })
-    expect(seat.hasAttribute('data-orca-composer-exiting')).toBe(false)
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(1)
     expect(seat.hasAttribute('data-orca-composer-entering')).toBe(true)
     expect(Number.parseFloat(seat.style.getPropertyValue('--orca-composer-enter-distance'))).toBe(window.innerHeight - 200 + 32)
     input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
@@ -559,6 +561,136 @@ describe('Orca Link skin apply', () => {
     fiber = undefined
     expect(document.querySelector('[data-orca-composer-ghost]')).toBeNull()
     expect(seat.hasAttribute('data-orca-composer-entering')).toBe(false)
+  })
+
+  it('leaves the hero composer untouched when a candidate menu takes the Enter', async () => {
+    // A candidate menu rendered into the composer card answers Enter with its
+    // own pick, so the phase stays hero: the exit must never hide the seat on a
+    // press the host did not treat as a submit.
+    document.body.innerHTML = `
+      <div data-phase="hero">
+        <div class="fixture_conversationBody">
+          <div data-conversation-scroll>
+            <div data-chat-flow></div>
+            <div data-composer-seat>
+              <div data-composer-card>
+                <div data-trigger-menu>
+                  <div role="listbox" aria-activedescendant="dsh-slash-option-command-0">
+                    <button id="dsh-slash-option-command-0" type="button" role="option" aria-selected="true">/plan</button>
+                  </div>
+                </div>
+                <div data-composer-input contenteditable="true">/pl</div>
+                <button type="button">send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const root = document.querySelector<HTMLElement>('[data-phase]')!
+    const seat = document.querySelector<HTMLElement>('[data-composer-seat]')!
+    const card = document.querySelector<HTMLElement>('[data-composer-card]')!
+    const input = document.querySelector<HTMLElement>('[data-composer-input]')!
+    card.getBoundingClientRect = () => ({ left: 100, top: 200, width: 600, height: 120 } as DOMRect)
+
+    fiber = await mount()
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+    // The press arms a snapshot, but the host's menu consumed the key: nothing
+    // may be mounted or hidden in that same turn.
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(0)
+    expect(seat.style.cssText).toBe('')
+    // Past the snapshot window the unconsumed press must have left no trace.
+    await new Promise(resolve => { setTimeout(resolve, 850) })
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(0)
+    expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(false)
+    expect(seat.hasAttribute('data-orca-composer-exiting')).toBe(false)
+    expect(seat.style.cssText).toBe('')
+    expect(CSS).not.toContain('data-orca-composer-exiting')
+
+    // An expired snapshot stays unclaimable: a later phase change must not
+    // replay a press the host already spent.
+    root.dataset.phase = 'active'
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(0)
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(true)
+
+    await fiber.dispose()
+  })
+
+  it('arms the same snapshot when the hero submit button is clicked', async () => {
+    document.body.innerHTML = `
+      <div data-phase="hero">
+        <div class="fixture_conversationBody">
+          <div data-conversation-scroll>
+            <div data-chat-flow></div>
+            <div data-composer-seat>
+              <div data-composer-card>
+                <div data-composer-input contenteditable="true">launch</div>
+                <button type="button">send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const root = document.querySelector<HTMLElement>('[data-phase]')!
+    const seat = document.querySelector<HTMLElement>('[data-composer-seat]')!
+    const card = document.querySelector<HTMLElement>('[data-composer-card]')!
+    const button = card.querySelector<HTMLButtonElement>('button')!
+    card.getBoundingClientRect = () => ({ left: 100, top: 200, width: 600, height: 120 } as DOMRect)
+
+    fiber = await mount()
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    expect(seat.style.cssText).toBe('')
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(0)
+
+    root.dataset.phase = 'active'
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(1)
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(true)
+
+    await fiber.dispose()
+  })
+
+  it('plays the exit ghost as soon as the host leaves hero, settling included', async () => {
+    document.body.innerHTML = `
+      <div data-phase="hero">
+        <div class="fixture_conversationBody">
+          <div data-conversation-scroll>
+            <div data-chat-flow></div>
+            <div data-composer-seat>
+              <div data-composer-card>
+                <div data-composer-input contenteditable="true">launch</div>
+                <button type="button">send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    const root = document.querySelector<HTMLElement>('[data-phase]')!
+    const seat = document.querySelector<HTMLElement>('[data-composer-seat]')!
+    const card = document.querySelector<HTMLElement>('[data-composer-card]')!
+    const input = document.querySelector<HTMLElement>('[data-composer-input]')!
+    card.getBoundingClientRect = () => ({ left: 100, top: 200, width: 600, height: 120 } as DOMRect)
+
+    fiber = await mount()
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+
+    // A submit may run through settling while the session is created: the ghost
+    // belongs to leaving hero, not to reaching active.
+    root.dataset.phase = 'settling'
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(1)
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(false)
+
+    root.dataset.phase = 'active'
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(document.querySelectorAll('[data-orca-composer-ghost]')).toHaveLength(1)
+    expect(seat.hasAttribute('data-orca-composer-entering')).toBe(true)
+
+    await fiber.dispose()
   })
 
   it('hides the active composer on upward scroll and restores it downward or at bottom', async () => {
