@@ -4,6 +4,7 @@ import {
   SkinAttributeProjector,
   type SkinCustomizationState,
 } from '../../../skin-manager/src/protocol.ts'
+import { installSessionArtwork } from './session-artwork.ts'
 
 const ATTR_ART = 'data-dsh-whale-maid-art'
 const ATTR_FONT = 'data-dsh-whale-maid-font'
@@ -36,6 +37,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
   let frame: number | undefined
   let activeState: SkinCustomizationState | null = null
   let mobile = window.innerWidth <= 700
+  /** Live session-state portrait swap; present only while its setting is on. */
+  let disposeSessionArtwork: (() => void) | undefined
 
   const synchronizeModel = (): void => {
     let family: ReturnType<typeof modelFamily> = null
@@ -104,11 +107,25 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     synchronizeModelMode()
   }
 
+  /**
+   * Install or retract the session-state portrait swap. Idempotent, so
+   * `apply()` can drive it on every settings change without bookkeeping.
+   */
+  const synchronizeSessionArtwork = (enabled: boolean): void => {
+    if (enabled && disposeSessionArtwork === undefined) {
+      disposeSessionArtwork = installSessionArtwork()
+    } else if (!enabled && disposeSessionArtwork !== undefined) {
+      disposeSessionArtwork()
+      disposeSessionArtwork = undefined
+    }
+  }
+
   const apply = (state: SkinCustomizationState | null): void => {
     if (state === null) {
       window.removeEventListener('resize', onResize)
       activeState = null
       stopModelObserver()
+      synchronizeSessionArtwork(false)
       projector.release()
       return
     }
@@ -124,6 +141,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
     const navMode = state.values.mobileNav
     projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
+    synchronizeSessionArtwork(state.values.stateArtwork === true)
   }
 
   return exposeSkinCustomization({
@@ -193,6 +211,15 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
             { key: 'mobileModelExit', values: [true] },
           ],
         },
+      },
+      {
+        key: 'stateArtwork',
+        type: 'boolean',
+        label: '按会话状态切换立绘',
+        labelEn: 'Switch artwork with session state',
+        description: '思考或工具运行时换成思考造型，一轮结束换成完成造型，本轮出错或被中断换成泄气造型。立绘由 window.__dshMaidAtelierArtwork 提供；未提供时本开关不产生任何变化。',
+        descriptionEn: 'Swap the right maid for a thinking portrait while she works, a finished one after a turn, and a dejected one when a turn fails or is interrupted. Portraits come from window.__dshMaidAtelierArtwork; without them this switch changes nothing.',
+        defaultValue: false,
       },
       {
         key: 'mobileNav',
