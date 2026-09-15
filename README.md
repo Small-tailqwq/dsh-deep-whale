@@ -17,9 +17,9 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 | 皮肤 | 包名 | 说明 | 许可 |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [orca-link](orca-link/) | `@dsh-external/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、虎鲸娘角色与电蓝链路信号 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [skin-manager](skin-manager/) | `@dsh-external/dsh-client-ui-skin-deep-whale-manager` | 通用皮肤发现、切换与皮肤自声明配置面板 | MIT |
+| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、虎鲸娘角色与电蓝链路信号 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | 通用皮肤发现、切换与皮肤自声明配置面板 | MIT |
 
 ## 版权所有人
 
@@ -36,41 +36,53 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 > **先确认发行版：**下面的命令只用于直接运行 DSH 的 standalone 环境。若已安装 `@linxin666/dsh-web-all`（dsh-web），请改从 dsh-web 自带的皮肤中心/安装入口安装其 `maid-atelier` 与 `orca-link` 适配版；不要在同一 profile 中再叠装本仓库的 standalone 包，否则组件与样式契约不一致，界面可能显示异常。
 
-三个发行包（皮肤管理器 + 两套皮肤）直接以 GitHub 依赖安装，**无需 clone**；每个包都是仓库中的一个 `#path:` 子目录。需要 **pnpm ≥ 9**:子目录语法从 pnpm 9 开始支持，pnpm 8 会把 `path:...` 当作 commit 引用而报错。
+三个发行包（皮肤管理器 + 两套皮肤）已发布到 npm。未指定 dist-tag 时安装稳定的 `latest`，**无需 clone**。
 
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-**PowerShell**（`#` 是注释起始符，spec 必须包在引号里；`&&` 不可用于分隔，用 `;`）：
+**PowerShell**（用 `;` 分隔命令）：
 
 ```powershell
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
 只想用其中一套皮肤时，把不需要的那行删掉（skin-manager 建议保留，切换与互斥都靠它）。
 
 首次安装是新增插件包，需要重启一次 DSH。重启时 skin-manager 会检测“两套皮肤同时启用”并**自动原子回退到官方默认**，所以首次安装不会出现皮肤叠加窗口；随后打开「设置 → 皮肤管理」点击目标皮肤「切换」即热重载生效，此后切换不再需要重启，也不需要 AI 参与。
 
-> 快捷方式：把 `github:Small-tailqwq/dsh-deep-whale#path:/` 换成**本地 clone 目录**也可以（见[独立子包安装](#独立子包安装本地开发与弱网备用)）；GitHub 一行安装与本地 link 是对同一包名的两种选择，混用会以最后一次 `add` 为准。
+> 需要直接跟随 GitHub `main` 时，也可用 `github:Small-tailqwq/dsh-deep-whale#path:/<子目录>`（需要 pnpm ≥ 9）；本地开发见[独立子包安装](#独立子包安装本地开发与弱网备用)。npm、GitHub 与本地 link 是同一包名的不同来源，混用时以最后一次 `add` 为准。
 
 ### 更新
 
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web update @dsh-external/dsh-client-ui-skin-deep-whale-manager @dsh-external/dsh-client-ui-skin-maid-atelier @dsh-external/dsh-client-ui-skin-orca-link
+dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
 ```
 
 **PowerShell**（`@` 开头 token 建议加引号）：
 
 ```powershell
-dsh plugin --profile web update '@dsh-external/dsh-client-ui-skin-deep-whale-manager' '@dsh-external/dsh-client-ui-skin-maid-atelier' '@dsh-external/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-GitHub 依赖被 pnpm 锁定到安装时刻的 commit；`update` 重新解析仓库最新提交。也可以不带包名执行 `dsh plugin --profile web update`（更新 profile 全部依赖，只装了本仓库皮肤时效果相同）。bundle 内容更新走配置热重载；只有新增/删除插件包才需要重启。
+npm 依赖默认跟随 `latest`；`update` 重新解析该标签当前指向的版本。GitHub 依赖则重新解析仓库最新提交。也可以不带包名执行 `dsh plugin --profile web update`（更新 profile 全部依赖，只装了本仓库皮肤时效果相同）。bundle 内容更新走配置热重载；只有新增/删除插件包才需要重启。
+
+### 从旧占位 scope 迁移
+
+`0.1.3` 之前从 GitHub 安装的版本使用 `@dsh-external/*` 依赖键；它只是本项目过去的源码占位符。必须先移除三个旧键，再运行上面的 npm 一行安装，否则 DSH 可能同时保留两组插件身份：
+
+```sh
+dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-maid-atelier'
+dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-manager'
+```
+
+随后重启一次 DSH。皮肤偏好按 `maid-atelier` / `orca-link` 的 skin id 保存，不会随 npm scope 改名。
 
 ### 懒得敲命令？让 AI 装
 
@@ -91,7 +103,7 @@ GitHub 依赖被 pnpm 锁定到安装时刻的 commit；`update` 重新解析仓
 
 ### 独立子包安装（本地开发与弱网备用）
 
-> 普通用户不需要使用本节：GitHub 一行安装更快（无需 clone）。本节用于本地开发、指定提交测试，或 GitHub 网络不可用时。GitHub 依赖与本地 link 针对同一包名，用哪种就执行哪种，不要混跑。
+> 普通用户不需要使用本节：npm 一行安装无需 clone。本节用于本地开发、指定提交测试，或 registry 网络不可用时。npm/GitHub 依赖与本地 link 针对同一包名，用哪种就执行哪种，不要混跑。
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置（浅克隆足够，跳过历史）
@@ -142,14 +154,14 @@ dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
 ### 安装后验证
 
 ```sh
-dsh plugin --profile web list          # 应看到三个 @dsh-external/dsh-client-ui-skin-* 依赖
+dsh plugin --profile web list          # 应看到三个 @smalltailqwq/dsh-client-ui-skin-* 依赖
 dsh --profile web --dump-config        # manager 行 disabled: false；两套皮肤互斥：skins 恰一套 false
 ```
 
 > 一行安装后、**尚未重启前** `--dump-config` 的状态取决于你的 patch 层：干净环境下两套皮肤都还没有互斥行（默认启用，是正常过渡态——首次重启时 skin-manager 兜底回退并写入互斥行）；若 home 层残留过互斥行（之前装过本仓库皮肤又卸载），则直接沿用该状态。冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）。启动页 HTML 必须引用 manager 与启用皮肤的 `/plugins/<真实包名>/client.js`；不同 DSH 版本载体不同（旧版在 `window.__DSH_BOOT__` JSON 里，0.1.1rc2+ 是直接 `<script src>` 标签），下面这条两种版本都能用：
 
 ```js
-document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) ?? []
+document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
 结果必须包含 manager 与当前启用的皮肤包名；被停用的皮肤可以不出现。刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。
@@ -158,9 +170,9 @@ document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) 
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| `ERR_PNPM_FETCH_404` | GitHub spec 拼写错误、网络不可用，或独立子包用了裸目录名 | 复制上方完整 spec；开发 link 使用绝对路径 |
+| `ERR_PNPM_FETCH_404` | npm 包名/GitHub spec 拼写错误、网络不可用，或独立子包用了裸目录名 | 正式安装复制上方 npm 包名；开发 link 使用绝对路径 |
 | `The matching commit...`/无法解析 ref | **pnpm < 9**，`#path:` 子目录语法不被支持 | 升级 pnpm 到 ≥ 9（`npm i -g pnpm@latest`） |
-| `ERR_PNPM_EXOTIC_SUBDEP` | 尝试安装会再带 Git 依赖的“根包/聚合包”（pnpm 11 安全策略，本仓库不提供此类包） | 按本页一行安装三个 `#path:` 子包 |
+| `ERR_PNPM_EXOTIC_SUBDEP` | 尝试安装会再带 Git 依赖的“根包/聚合包”（pnpm 11 安全策略，本仓库不提供此类包） | 按本页 npm 一行命令安装三个发行包 |
 | `pnpm not found on PATH` | 环境缺少 pnpm | 安装 pnpm（`npm i -g pnpm`）后重试 |
 | 包在列表里但页面无效果 | 皮肤被 `disabled`（多皮肤互斥开关）或浏览器未刷新 | `--dump-config` 核对 disabled；刷新页面 |
 | PowerShell 命令不完整/报错 | `#` 未加引号被当注释截断 | spec 一律单引号包裹 |

@@ -17,9 +17,9 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 
 | Giao diện | Tên package | Mô tả | Giấy phép |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@dsh-external/dsh-client-ui-skin-maid-atelier` | Xưởng hầu biển sâu: nền hai hầu gái, giao diện ren xanh biển sâu và thanh bên chibi | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [orca-link](orca-link/) | `@dsh-external/dsh-client-ui-skin-orca-link` | ORCA LINK: khoang cơ khí trắng ngọc, nhân vật orca-girl và tín hiệu liên kết xanh điện | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [skin-manager](skin-manager/) | `@dsh-external/dsh-client-ui-skin-deep-whale-manager` | Trình quản lý giao diện: khám phá, chuyển đổi và tùy chỉnh theo giao diện tự khai báo | MIT |
+| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | Xưởng hầu biển sâu: nền hai hầu gái, giao diện ren xanh biển sâu và thanh bên chibi | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | ORCA LINK: khoang cơ khí trắng ngọc, nhân vật orca-girl và tín hiệu liên kết xanh điện | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | Trình quản lý giao diện: khám phá, chuyển đổi và tùy chỉnh theo giao diện tự khai báo | MIT |
 
 ## Chủ sở hữu bản quyền
 
@@ -36,41 +36,53 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 
 > **Trước tiên hãy kiểm tra bản phân phối:** các lệnh dưới đây chỉ dành cho môi trường standalone chạy DSH trực tiếp. Nếu bạn đã cài `@linxin666/dsh-web-all` (dsh-web), hãy cài các bản `maid-atelier` và `orca-link` tương thích từ trung tâm giao diện/trình cài đặt của chính dsh-web. Không cài chồng các package standalone của kho này vào cùng profile vì hợp đồng component và style khác nhau, có thể làm giao diện hiển thị sai.
 
-Ba package phân phối (trình quản lý + hai giao diện) được cài đặt trực tiếp dưới dạng dependency GitHub — **không cần clone**; mỗi package là một thư mục con `#path:` trong kho. Yêu cầu **pnpm ≥ 9**: cú pháp thư mục con xuất hiện từ pnpm 9, pnpm 8 sẽ hiểu `path:...` là tham chiếu commit và báo lỗi.
+Ba package phân phối (trình quản lý + hai giao diện) đã được phát hành trên npm. Khi không chỉ định dist-tag, lệnh này cài bản ổn định `latest` — **không cần clone**.
 
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
 **PowerShell** (`#` bắt đầu chú thích, spec phải bọc trong dấu nháy; dùng `;` thay cho `&&`):
 
 ```powershell
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
 Chỉ muốn dùng một giao diện thì xóa dòng không cần (khuyến nghị giữ skin-manager vì chuyển đổi và xung đột đều dựa vào nó).
 
 Lần đầu cài đặt là thêm package mới, cần khởi động lại DSH một lần. Khi khởi động lại, skin-manager sẽ phát hiện "hai giao diện cùng bật" và **tự động hoàn nguyên về mặc định chính thức**, nên lần đầu cài sẽ không bị chồng giao diện; sau đó mở «Cài đặt → Quản lý giao diện» nhấn «Chuyển» trên giao diện mong muốn — tải lại nóng sẽ áp dụng ngay. Các lần chuyển sau không cần khởi động lại hay AI hỗ trợ.
 
-> Lối tắt: bạn có thể thay `github:Small-tailqwq/dsh-deep-whale#path:/` bằng **thư mục clone cục bộ** (xem [Cài đặt package con độc lập](#cài-đặt-package-con-độc-lập-phát-triển-và-dự-phòng-mạng-yếu)); cài đặt GitHub một dòng và link cục bộ là hai cách tham chiếu cùng tên package, trộn lẫn thì lần `add` cuối cùng sẽ thắng.
+> Để theo dõi trực tiếp nhánh GitHub `main`, dùng `github:Small-tailqwq/dsh-deep-whale#path:/<thư-mục-con>` (yêu cầu pnpm ≥ 9). Phát triển cục bộ xem [Cài đặt package con độc lập](#cài-đặt-package-con-độc-lập-phát-triển-và-dự-phòng-mạng-yếu). npm, GitHub và link cục bộ là các nguồn khác nhau cho cùng tên package; lần `add` cuối cùng sẽ thắng.
 
 ### Cập nhật
 
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web update @dsh-external/dsh-client-ui-skin-deep-whale-manager @dsh-external/dsh-client-ui-skin-maid-atelier @dsh-external/dsh-client-ui-skin-orca-link
+dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
 ```
 
 **PowerShell** (token bắt đầu bằng `@` nên thêm ngoặc kép):
 
 ```powershell
-dsh plugin --profile web update '@dsh-external/dsh-client-ui-skin-deep-whale-manager' '@dsh-external/dsh-client-ui-skin-maid-atelier' '@dsh-external/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-Dependency GitHub bị pnpm khóa tại commit lúc cài đặt; `update` sẽ phân giải lại commit mới nhất. Bạn cũng có thể chạy `dsh plugin --profile web update` không kèm tên package (cập nhật toàn bộ profile; tương đương nếu chỉ cài các package này). Nội dung bundle cập nhật qua tải lại nóng cấu hình; chỉ khi thêm/xóa package mới cần khởi động lại.
+Dependency npm mặc định theo `latest`; `update` sẽ phân giải lại phiên bản hiện được gắn tag đó. Dependency GitHub sẽ phân giải lại commit mới nhất. Bạn cũng có thể chạy `dsh plugin --profile web update` không kèm tên package (cập nhật toàn bộ profile; tương đương nếu chỉ cài các package này). Nội dung bundle cập nhật qua tải lại nóng cấu hình; chỉ khi thêm/xóa package mới cần khởi động lại.
+
+### Di chuyển từ scope giữ chỗ cũ
+
+Các bản cài từ GitHub trước `0.1.3` dùng dependency key `@dsh-external/*`. Scope đó chỉ là giá trị giữ chỗ trong mã nguồn của dự án. Hãy xóa cả ba key cũ trước khi chạy lệnh npm một dòng ở trên; nếu không DSH có thể giữ đồng thời hai danh tính plugin:
+
+```sh
+dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-maid-atelier'
+dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-manager'
+```
+
+Sau khi thêm package mới, khởi động lại DSH một lần. Tùy chọn giao diện vẫn được lưu theo skin id `maid-atelier` / `orca-link` và không bị đổi tên theo npm scope.
 
 ### Lười gõ lệnh? Để AI cài
 
@@ -91,7 +103,7 @@ Dán đoạn sau vào bất kỳ AI nào (hoặc chính dsh). [INSTALL.md](INSTA
 
 ### Cài đặt package con độc lập (phát triển và dự phòng mạng yếu)
 
-> Người dùng thông thường không cần phần này: cài đặt GitHub một dòng nhanh hơn (không cần clone). Phần này dành cho phát triển cục bộ, kiểm tra commit cụ thể, hoặc khi mạng GitHub không khả dụng. Spec GitHub và link cục bộ tham chiếu cùng tên package — chọn một và nhất quán.
+> Người dùng thông thường không cần phần này: cài đặt npm một dòng không cần clone. Phần này dành cho phát triển cục bộ, kiểm tra commit cụ thể, hoặc khi registry không khả dụng. Dependency npm/GitHub và link cục bộ tham chiếu cùng tên package — chọn một và nhất quán.
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone ở bất kỳ đâu (shallow là đủ, bỏ qua lịch sử)
@@ -142,14 +154,14 @@ Triệu chứng: nút cài đặt biến mất, thanh bị trang trí che hoặc
 ### Xác minh sau cài đặt
 
 ```sh
-dsh plugin --profile web list          # phải thấy ba dependency @dsh-external/dsh-client-ui-skin-*
+dsh plugin --profile web list          # phải thấy ba dependency @smalltailqwq/dsh-client-ui-skin-*
 dsh --profile web --dump-config        # dòng manager disabled: false; hai giao diện xung đột: đúng một cái false
 ```
 
 > Ngay sau cài đặt một dòng, **trước khi khởi động lại lần đầu**, `--dump-config` phụ thuộc vào lớp patch của bạn: môi trường sạch thì cả hai giao diện chưa có dòng xung đột (mặc định bật — trạng thái chuyển tiếp bình thường; skin-manager sẽ ghi dòng xung đột khi khởi động lại lần đầu). Nếu lớp home đã có dòng xung đột từ lần cài trước, trạng thái đó được tái sử dụng. Sau khởi động lạnh, phải kiểm tra danh sách client trong console trình duyệt (chỉ có entry cấu hình không chứng minh bundle trình duyệt đã đăng ký). Trang HTML khởi động phải tham chiếu `/plugins/<tên package thật>/client.js` cho manager và giao diện đang bật; carrier khác nhau theo phiên bản DSH (bản cũ đặt trong JSON `window.__DSH_BOOT__`, 0.1.1rc2+ dùng thẻ `<script src>` trực tiếp), dòng lệnh sau hoạt động cho cả hai:
 
 ```js
-document.documentElement.outerHTML.match(/\/plugins\/@dsh-external\/[^"'\s]+/g) ?? []
+document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
 Kết quả phải chứa manager và package giao diện đang bật; giao diện bị tắt có thể không xuất hiện. Tải lại trình duyệt để thấy giao diện; bật/tắt giao diện qua tải lại nóng cấu hình, không cần khởi động lại dsh (chỉ khi thêm/xóa package mới cần khởi động lại).
@@ -158,9 +170,9 @@ Kết quả phải chứa manager và package giao diện đang bật; giao di�
 
 | Triệu chứng | Nguyên nhân | Khắc phục |
 |---|---|---|
-| `ERR_PNPM_FETCH_404` | Spec GitHub viết sai, mạng không khả dụng, hoặc dùng tên thư mục trần cho package con | Sao chép spec đầy đủ ở trên; dùng đường dẫn tuyệt đối cho link phát triển |
+| `ERR_PNPM_FETCH_404` | Tên package npm/spec GitHub viết sai, mạng không khả dụng, hoặc dùng tên thư mục trần cho package con | Sao chép tên package npm ở trên; dùng đường dẫn tuyệt đối cho link phát triển |
 | `The matching commit...`/Không phân giải ref | **pnpm < 9**, cú pháp thư mục con `#path:` không được hỗ trợ | Nâng cấp pnpm lên ≥ 9 (`npm i -g pnpm@latest`) |
-| `ERR_PNPM_EXOTIC_SUBDEP` | Cố gắng cài "package gốc/tổng hợp" mang theo Git dependency (chính sách an ninh chuỗi cung ứng pnpm 11; kho này không cung cấp package như vậy) | Cài ba package con `#path:` như ở trên |
+| `ERR_PNPM_EXOTIC_SUBDEP` | Cố gắng cài "package gốc/tổng hợp" mang theo Git dependency (chính sách an ninh chuỗi cung ứng pnpm 11; kho này không cung cấp package như vậy) | Dùng lệnh npm một dòng ở trên để cài ba package phân phối |
 | `pnpm not found on PATH` | Môi trường thiếu pnpm | Cài pnpm (`npm i -g pnpm`) rồi thử lại |
 | Package có trong danh sách nhưng trang không hiệu ứng | Giao diện bị `disabled` (công tắc xung đột đa giao diện) hoặc trình duyệt chưa tải lại | Kiểm tra `disabled` trong `--dump-config`; tải lại trang |
 | Lệnh PowerShell không hoàn thành/lỗi | `#` không được đặt trong dấu nháy nên bị coi là chú thích | Luôn bọc spec trong dấu nháy đơn |
