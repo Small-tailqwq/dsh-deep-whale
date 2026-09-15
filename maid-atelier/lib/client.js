@@ -1093,6 +1093,121 @@ window.__ModuleLoader__.load({
 			}
 		};
 		//#endregion
+		//#region src/client/session-artwork.ts
+		/** Rows the harness marks as actively working (reasoning or a running tool). */
+		const RUNNING_SELECTOR = "[data-state=\"running\"]";
+		/**
+		* Rows that already ended badly. `stopped` is an interrupted tool call, which
+		* reads as "this turn did not land" exactly as `error` does.
+		*/
+		const FAILED_SELECTOR = "[data-state=\"error\"], [data-state=\"stopped\"]";
+		/**
+		* The node this module borrows while a state portrait is on screen. The skin
+		* owns every `[data-maid-character]` node, so this selector cannot drift with
+		* the host.
+		*/
+		const PORTRAIT_SELECTOR = "[data-maid-character=\"right\"]";
+		/** How long a finished or failed portrait stays up before the base one returns. */
+		const HOLD_MS = 4200;
+		/**
+		* A streaming transcript mutates constantly; coalescing the resulting bursts
+		* keeps one turn at a handful of recounts instead of thousands.
+		*/
+		const TICK_MS = 280;
+		/**
+		* Follow the session state and swap the right maid's portrait through the
+		* caller-supplied map.
+		*
+		* @returns A disposer that disconnects the observer, clears both timers, and
+		*   restores the portrait this module replaced. Idempotent, so a repeated
+		*   disposal cannot remove another activation's writes.
+		*/
+		function installSessionArtwork() {
+			const supplied = window.__dshMaidAtelierArtwork;
+			const thinking = supplied?.thinking;
+			const done = supplied?.done;
+			const failed = supplied?.failed;
+			if (thinking === void 0 && done === void 0 && failed === void 0) return () => {};
+			/** The value found before this module first wrote, restored verbatim. */
+			let originalSrc = null;
+			let observer;
+			let tick;
+			let hold;
+			let disposed = false;
+			/** True between the first running row appearing and the last one settling. */
+			let working = false;
+			/** Failure rows already on the page when the current turn started. */
+			let errorBaseline = 0;
+			/** Portrait for the state the session is in right now, if any. */
+			let live;
+			/** Portrait for the finished/failed state, held for {@link HOLD_MS}. */
+			let held;
+			const portrait = () => document.querySelector(PORTRAIT_SELECTOR);
+			const paint = () => {
+				const image = portrait();
+				if (image === null) return;
+				if (originalSrc === null) originalSrc = image.getAttribute("src");
+				const next = live ?? held ?? originalSrc;
+				if (next === null || image.getAttribute("src") === next) return;
+				image.setAttribute("src", next);
+			};
+			const recount = () => {
+				if (disposed) return;
+				const failures = document.querySelectorAll(FAILED_SELECTOR).length;
+				if (document.querySelectorAll(RUNNING_SELECTOR).length > 0) {
+					if (!working) {
+						working = true;
+						errorBaseline = failures;
+					}
+					if (hold !== void 0) clearTimeout(hold);
+					hold = void 0;
+					held = void 0;
+					live = failures > errorBaseline ? failed : thinking;
+				} else {
+					live = void 0;
+					if (working) {
+						working = false;
+						held = failures > errorBaseline ? failed : done;
+						if (hold !== void 0) clearTimeout(hold);
+						hold = setTimeout(() => {
+							hold = void 0;
+							held = void 0;
+							paint();
+						}, HOLD_MS);
+					}
+				}
+				paint();
+			};
+			observer = new MutationObserver(() => {
+				if (disposed || tick !== void 0) return;
+				tick = setTimeout(() => {
+					tick = void 0;
+					recount();
+				}, TICK_MS);
+			});
+			observer.observe(document.body, {
+				attributes: true,
+				attributeFilter: ["data-state"],
+				childList: true,
+				subtree: true
+			});
+			recount();
+			return () => {
+				disposed = true;
+				observer?.disconnect();
+				observer = void 0;
+				if (tick !== void 0) clearTimeout(tick);
+				if (hold !== void 0) clearTimeout(hold);
+				tick = void 0;
+				hold = void 0;
+				working = false;
+				live = void 0;
+				held = void 0;
+				const image = portrait();
+				if (image !== null && originalSrc !== null && image.getAttribute("src") !== originalSrc) image.setAttribute("src", originalSrc);
+			};
+		}
+		//#endregion
 		//#region src/client/customization.ts
 		const ATTR_ART = "data-dsh-whale-maid-art";
 		const ATTR_FONT = "data-dsh-whale-maid-font";
@@ -1127,6 +1242,8 @@ window.__ModuleLoader__.load({
 			let frame;
 			let activeState = null;
 			let mobile = window.innerWidth <= 700;
+			/** Live session-state portrait swap; present only while its setting is on. */
+			let disposeSessionArtwork;
 			const synchronizeModel = () => {
 				let family = null;
 				for (const trigger of document.querySelectorAll("[data-composer-card] button[aria-haspopup='menu']")) {
@@ -1182,11 +1299,23 @@ window.__ModuleLoader__.load({
 				mobile = nextMobile;
 				synchronizeModelMode();
 			};
+			/**
+			* Install or retract the session-state portrait swap. Idempotent, so
+			* `apply()` can drive it on every settings change without bookkeeping.
+			*/
+			const synchronizeSessionArtwork = (enabled) => {
+				if (enabled && disposeSessionArtwork === void 0) disposeSessionArtwork = installSessionArtwork();
+				else if (!enabled && disposeSessionArtwork !== void 0) {
+					disposeSessionArtwork();
+					disposeSessionArtwork = void 0;
+				}
+			};
 			const apply = (state) => {
 				if (state === null) {
 					window.removeEventListener("resize", onResize);
 					activeState = null;
 					stopModelObserver();
+					synchronizeSessionArtwork(false);
 					projector.release();
 					return;
 				}
@@ -1202,6 +1331,7 @@ window.__ModuleLoader__.load({
 				projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === "string" ? state.values.composerMode : "persistent");
 				const navMode = state.values.mobileNav;
 				projector.set(ATTR_NAV_MODE, typeof navMode === "string" && NAV_MODES.has(navMode) ? navMode : "corner");
+				synchronizeSessionArtwork(state.values.stateArtwork === true);
 			};
 			return exposeSkinCustomization({
 				protocol: 2,
@@ -1278,6 +1408,15 @@ window.__ModuleLoader__.load({
 								values: [true]
 							}]
 						}
+					},
+					{
+						key: "stateArtwork",
+						type: "boolean",
+						label: "按会话状态切换立绘",
+						labelEn: "Switch artwork with session state",
+						description: "思考或工具运行时换成思考造型，一轮结束换成完成造型，本轮出错或被中断换成泄气造型。立绘由 window.__dshMaidAtelierArtwork 提供；未提供时本开关不产生任何变化。",
+						descriptionEn: "Swap the right maid for a thinking portrait while she works, a finished one after a turn, and a dejected one when a turn fails or is interrupted. Portraits come from window.__dshMaidAtelierArtwork; without them this switch changes nothing.",
+						defaultValue: false
 					},
 					{
 						key: "mobileNav",
