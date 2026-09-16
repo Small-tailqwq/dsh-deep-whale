@@ -4,4 +4,4 @@
 # skins is managed by scripts/dsh-skin (home-layer disabled rows).
 - insert:
     - id: ui-skin-orca-link
-      name: '@dsh-external/dsh-client-ui-skin-orca-link'
+      name: '@smalltailqwq/dsh-client-ui-skin-orca-link'
