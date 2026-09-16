@@ -9,13 +9,13 @@ The one-line install pulls the stable `latest` release of the skin manager and b
 ## Linux / macOS / WSL
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 ## PowerShell
 
 ```powershell
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 Restart DSH once (first package addition). On that restart the skin manager detects "two skins enabled at once" and atomically falls back to the official default, so skins can never stack; then choose a skin in Settings → Skin Management. Later switches hot-reload without a restart.
@@ -23,11 +23,11 @@ Restart DSH once (first package addition). On that restart the skin manager dete
 Update with:
 
 ```sh
-dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
+dsh plugin --profile web update @wjingshan/dsh-client-ui-skin-deep-whale-manager @wjingshan/dsh-client-ui-skin-maid-atelier @wjingshan/dsh-client-ui-skin-orca-link
 ```
 
 ```powershell
-dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web update '@wjingshan/dsh-client-ui-skin-deep-whale-manager' '@wjingshan/dsh-client-ui-skin-maid-atelier' '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 ## Migrating from the old placeholder scope

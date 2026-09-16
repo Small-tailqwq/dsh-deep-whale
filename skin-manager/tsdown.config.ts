@@ -5,7 +5,7 @@ import { clientBundle } from '../orca-link/build/tsdown.client.ts'
 const managerRoot = fileURLToPath(new URL('.', import.meta.url))
 const entryPath = (entry: unknown): string => resolve(managerRoot, String(entry)).replaceAll('\\', '/')
 const bundle = clientBundle(
-  '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager',
+  '@wjingshan/dsh-client-ui-skin-deep-whale-manager',
   ['src/index.ts', 'src/protocol.ts'],
   { portableCssModuleIds: true },
 )

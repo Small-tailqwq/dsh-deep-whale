@@ -27,11 +27,11 @@
 
 ## 三、已跟进，等待回复
 
-- **#109**：[9 月 7 日跟进](https://github.com/Small-tailqwq/dsh-deep-whale/issues/109#issuecomment-5567290438)，待安装来源、当前版本和恢复结果。
-- **#99**：[9 月 7 日跟进](https://github.com/Small-tailqwq/dsh-deep-whale/issues/99#issuecomment-5567290680)，待分辨率、系统/浏览器缩放、窗口状态及当前截图。
-- **#52**：[9 月 7 日跟进](https://github.com/Small-tailqwq/dsh-deep-whale/issues/52#issuecomment-5567290932)，待 EAC 临时会话按钮所属插件、版本及当前截图。
-- **#55**：[9 月 7 日跟进](https://github.com/Small-tailqwq/dsh-deep-whale/issues/55#issuecomment-5567291165)，待截图、版本及图标所属插件；已有 4K / 150% 系统缩放信息。
-- **#106**：[9 月 7 日跟进](https://github.com/Small-tailqwq/dsh-deep-whale/issues/106#issuecomment-5567294781)，待用户当前版本、恢复结果及上游进展。
+- **#109**：[9 月 7 日跟进](https://github.com/wjingshan/dsh-deep-whale/issues/109#issuecomment-5567290438)，待安装来源、当前版本和恢复结果。
+- **#99**：[9 月 7 日跟进](https://github.com/wjingshan/dsh-deep-whale/issues/99#issuecomment-5567290680)，待分辨率、系统/浏览器缩放、窗口状态及当前截图。
+- **#52**：[9 月 7 日跟进](https://github.com/wjingshan/dsh-deep-whale/issues/52#issuecomment-5567290932)，待 EAC 临时会话按钮所属插件、版本及当前截图。
+- **#55**：[9 月 7 日跟进](https://github.com/wjingshan/dsh-deep-whale/issues/55#issuecomment-5567291165)，待截图、版本及图标所属插件；已有 4K / 150% 系统缩放信息。
+- **#106**：[9 月 7 日跟进](https://github.com/wjingshan/dsh-deep-whale/issues/106#issuecomment-5567294781)，待用户当前版本、恢复结果及上游进展。
 - **上游催办未送达**：[dsh-market#519](https://github.com/dsh-market/dsh-market/issues/519)、[dsh-desktop#835](https://github.com/anywhere-labs/dsh-desktop/issues/835) 均开放、无回复；9 月 7 日连接器评论返回 403（集成无写权限）。需有权限的账号继续跟进市场共存边界、Desktop patch 热重载/重启契约；未标为已催办。
 
 ## 四、保留

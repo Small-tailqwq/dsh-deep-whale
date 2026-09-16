@@ -1,5 +1,5 @@
 {
-  "name": "@smalltailqwq/dsh-client-ui-skin-orca-link",
+  "name": "@wjingshan/dsh-client-ui-skin-orca-link",
   "description": "Hot-pluggable ORCA LINK skin for the dsh web GUI: pearl-white technical glass, graphite mechanics, and electric-blue signal accents",
   "version": "0.1.3",
   "type": "module",
@@ -20,18 +20,18 @@
     }
   },
   "scripts": {
-    "build": "tsdown && node ../scripts/write-skin-build.mjs . Small-tailqwq/dsh-deep-whale",
+    "build": "tsdown && node ../scripts/write-skin-build.mjs . wjingshan/dsh-deep-whale",
     "test": "vitest run"
   },
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Small-tailqwq/dsh-deep-whale.git",
+    "url": "git+https://github.com/wjingshan/dsh-deep-whale.git",
     "directory": "orca-link"
   },
-  "homepage": "https://github.com/Small-tailqwq/dsh-deep-whale/tree/main/orca-link#readme",
+  "homepage": "https://github.com/wjingshan/dsh-deep-whale/tree/main/orca-link#readme",
   "bugs": {
-    "url": "https://github.com/Small-tailqwq/dsh-deep-whale/issues"
+    "url": "https://github.com/wjingshan/dsh-deep-whale/issues"
   },
   "publishConfig": {
     "access": "public",

@@ -1,5 +1,5 @@
 {
-  "name": "@smalltailqwq/dsh-client-ui-skin-deep-whale-manager",
+  "name": "@wjingshan/dsh-client-ui-skin-deep-whale-manager",
   "description": "Settings-integrated discovery, activation, and skin-owned customization for DSH Web skins",
   "version": "0.1.3",
   "type": "module",
@@ -32,12 +32,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Small-tailqwq/dsh-deep-whale.git",
+    "url": "git+https://github.com/wjingshan/dsh-deep-whale.git",
     "directory": "skin-manager"
   },
-  "homepage": "https://github.com/Small-tailqwq/dsh-deep-whale/tree/main/skin-manager#readme",
+  "homepage": "https://github.com/wjingshan/dsh-deep-whale/tree/main/skin-manager#readme",
   "bugs": {
-    "url": "https://github.com/Small-tailqwq/dsh-deep-whale/issues"
+    "url": "https://github.com/wjingshan/dsh-deep-whale/issues"
   },
   "publishConfig": {
     "access": "public",

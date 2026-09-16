@@ -4,4 +4,4 @@
 # skins is managed by scripts/dsh-skin (home-layer disabled rows).
 - insert:
     - id: ui-skin-maid-atelier
-      name: '@smalltailqwq/dsh-client-ui-skin-maid-atelier'
+      name: '@wjingshan/dsh-client-ui-skin-maid-atelier'

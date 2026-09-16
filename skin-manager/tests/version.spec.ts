@@ -39,7 +39,7 @@ function writeBuildPackage(dir: string, path = 'orca-link'): string {
     schema: 1,
     fingerprint,
     sourceCommit: LONG_HASH,
-    repository: 'Small-tailqwq/dsh-deep-whale',
+    repository: 'wjingshan/dsh-deep-whale',
     path,
   }))
   return fingerprint
@@ -63,7 +63,7 @@ function fakeGit(overrides: Partial<Record<string, (args: string[]) => string | 
       return '2026-08-22T10:00:00+08:00'
     }
     if (head === 'status') return ''
-    if (head === 'remote') return 'https://github.com/Small-tailqwq/dsh-deep-whale.git'
+    if (head === 'remote') return 'https://github.com/wjingshan/dsh-deep-whale.git'
     return null
   }
 }
@@ -76,7 +76,7 @@ function fakeDeps(overrides: Partial<SkinVersionDeps> = {}): SkinVersionDeps {
     buildMeta: async () => ({
       fingerprint: REMOTE_FINGERPRINT,
       sourceCommit: 'b'.repeat(40),
-      repository: 'Small-tailqwq/dsh-deep-whale',
+      repository: 'wjingshan/dsh-deep-whale',
       path: 'orca-link',
     }),
     compareCommit: async () => 'identical',
@@ -87,10 +87,10 @@ function fakeDeps(overrides: Partial<SkinVersionDeps> = {}): SkinVersionDeps {
 
 describe('parseGitHubRemote', () => {
   it('accepts https, git@ and ssh forms with optional .git suffix', () => {
-    expect(parseGitHubRemote('https://github.com/Small-tailqwq/dsh-deep-whale.git'))
-      .toEqual({ owner: 'Small-tailqwq', repo: 'dsh-deep-whale' })
-    expect(parseGitHubRemote('https://github.com/Small-tailqwq/dsh-deep-whale'))
-      .toEqual({ owner: 'Small-tailqwq', repo: 'dsh-deep-whale' })
+    expect(parseGitHubRemote('https://github.com/wjingshan/dsh-deep-whale.git'))
+      .toEqual({ owner: 'wjingshan', repo: 'dsh-deep-whale' })
+    expect(parseGitHubRemote('https://github.com/wjingshan/dsh-deep-whale'))
+      .toEqual({ owner: 'wjingshan', repo: 'dsh-deep-whale' })
     expect(parseGitHubRemote('git@github.com:owner/repo.git'))
       .toEqual({ owner: 'owner', repo: 'repo' })
     expect(parseGitHubRemote('ssh://git@github.com/owner/repo.git'))
@@ -143,7 +143,7 @@ describe('readSkinBuildMeta', () => {
       expect(readSkinBuildMeta(dir)).toEqual({
         fingerprint: computeSkinFingerprint(dir),
         sourceCommit: LONG_HASH,
-        repository: 'Small-tailqwq/dsh-deep-whale',
+        repository: 'wjingshan/dsh-deep-whale',
         path: 'orca-link',
       })
     } finally {
@@ -187,7 +187,7 @@ describe('inspectInstalledVersion', () => {
       const result = await inspectInstalledVersion(dir)
       expect(result.source).toBe('build')
       expect(result.local?.hash).toBe(fingerprint)
-      expect(result.repository).toBe('Small-tailqwq/dsh-deep-whale')
+      expect(result.repository).toBe('wjingshan/dsh-deep-whale')
       expect(result.relPath).toBe('orca-link')
       expect(result.baseRef).toBe(LONG_HASH)
     } finally {
@@ -270,14 +270,14 @@ describe('inspectSkinVersion', () => {
         buildMeta: async () => ({
           fingerprint: fingerprint === REMOTE_FINGERPRINT ? 'c'.repeat(64) : REMOTE_FINGERPRINT,
           sourceCommit: 'b'.repeat(40),
-          repository: 'Small-tailqwq/dsh-deep-whale',
+          repository: 'wjingshan/dsh-deep-whale',
           path: 'orca-link',
         }),
         compareCommit: async () => 'ahead',
       }))
       expect(result.source).toBe('build')
       expect(result.remote?.state).toBe('update-available')
-      expect(result.remote?.repo).toBe('Small-tailqwq/dsh-deep-whale')
+      expect(result.remote?.repo).toBe('wjingshan/dsh-deep-whale')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -292,7 +292,7 @@ describe('inspectSkinVersion', () => {
         buildMeta: async () => ({
           fingerprint,
           sourceCommit: 'b'.repeat(40),
-          repository: 'Small-tailqwq/dsh-deep-whale',
+          repository: 'wjingshan/dsh-deep-whale',
           path: 'orca-link',
         }),
       }))
@@ -310,7 +310,7 @@ describe('inspectSkinVersion', () => {
       writeFileSync(join(dir, 'skin.build.json'), JSON.stringify({
         schema: 1,
         fingerprint,
-        repository: 'Small-tailqwq/dsh-deep-whale',
+        repository: 'wjingshan/dsh-deep-whale',
         path: 'orca-link',
       }))
       const result = await inspectSkinVersion('orca-link', dir, fakeDeps({

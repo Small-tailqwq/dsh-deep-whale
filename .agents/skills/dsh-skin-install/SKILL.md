@@ -5,7 +5,7 @@ description: 迁移、切换、更新或验证 DSH Web 的 dsh-deep-whale 皮肤
 
 # dsh-deep-whale 皮肤安装与切换
 
-目标：让 DSH Web 皮肤快速且可恢复地生效。**普通首次安装直接使用仓库 README 的 npm 一行命令（三个 `@smalltailqwq` 包，默认 `latest`），不需要 AI 预处理；皮肤互斥由 skin-manager 的启动兜底负责（检测到两套及以上皮肤同时启用 → 原子回退官方默认）。**本地开发与指定提交仍须保证互斥。切换和已安装 npm / link / GitHub 依赖的代码更新走热加载；初次新增包才重启；更新与指定提交测试只在用户要求时发生。
+目标：让 DSH Web 皮肤快速且可恢复地生效。**普通首次安装直接使用仓库 README 的 npm 一行命令（三个 `@wjingshan` 包，默认 `latest`），不需要 AI 预处理；皮肤互斥由 skin-manager 的启动兜底负责（检测到两套及以上皮肤同时启用 → 原子回退官方默认）。**本地开发与指定提交仍须保证互斥。切换和已安装 npm / link / GitHub 依赖的代码更新走热加载；初次新增包才重启；更新与指定提交测试只在用户要求时发生。
 
 **本技能只给流程指导，具体事实以现场读取为准**：仓库会更新（新增皮肤、改署名链），不要依赖本文件或记忆中的清单，实时读取。
 
@@ -18,13 +18,13 @@ description: 迁移、切换、更新或验证 DSH Web 的 dsh-deep-whale 皮肤
 
 ## 先判断场景（决定走哪条路）
 
-先查当前 dsh 环境：`dsh plugin --profile <name> list`（实际 profile 名如 web）。本仓库三个发行包：`@smalltailqwq/dsh-client-ui-skin-deep-whale-manager`、`@smalltailqwq/dsh-client-ui-skin-maid-atelier`、`@smalltailqwq/dsh-client-ui-skin-orca-link`（npm 安装显示为版本依赖，GitHub 安装显示为 `github:`，本地路径安装显示为 `link:`）：
+先查当前 dsh 环境：`dsh plugin --profile <name> list`（实际 profile 名如 web）。本仓库三个发行包：`@wjingshan/dsh-client-ui-skin-deep-whale-manager`、`@wjingshan/dsh-client-ui-skin-maid-atelier`、`@wjingshan/dsh-client-ui-skin-orca-link`（npm 安装显示为版本依赖，GitHub 安装显示为 `github:`，本地路径安装显示为 `link:`）：
 
 - **三包均已安装 → 场景 A 切换**：直接热切换，不 clone、不提问、不介绍，**跳过“重启安全闸门”与扫描清单**。
 - **未安装或只装了部分 → 场景 B 首次/补齐安装**：
   - 用户要正式版：按仓库 README 从 npm 安装三个 `latest` 包（也可让用户自行执行，无需 AI）——**不要 clone**；
   - 用户要本地开发版/测试指定提交：走本地 link 流程（复用已有 clone，找不到才 `git clone --depth 1`）。
-  - 若发现 `@dsh-external/dsh-client-ui-skin-deep-whale-manager`、`@dsh-external/dsh-client-ui-skin-maid-atelier` 或 `@dsh-external/dsh-client-ui-skin-orca-link`：它们是 `0.1.3` 前的占位 scope 身份，必须先移除全部已安装旧键，再添加对应的 `@smalltailqwq/*` 包；新旧身份禁止并存。
+  - 若发现 `@dsh-external/dsh-client-ui-skin-deep-whale-manager`、`@dsh-external/dsh-client-ui-skin-maid-atelier` 或 `@dsh-external/dsh-client-ui-skin-orca-link`：它们是 `0.1.3` 前的占位 scope 身份，必须先移除全部已安装旧键，再添加对应的 `@wjingshan/*` 包；新旧身份禁止并存。
   - 若发现 `@dsh-external/dsh-deep-whale`（历史“聚合根包”，只存在于未合并的实验分支）：先移除它，再按三包安装，禁止与三包并存。
 - **用户明确要求“更新/检查更新” → 场景 C 更新**：才对比远端/重新解析。
 - **用户要求加载本地修改或测试指定提交 → 场景 D 验证开发版本**：保护当前工作区和正在运行的 DSH。
@@ -67,7 +67,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 ### 1. 确定安装来源
 
-- **正式安装（推荐）**：无需 clone，按 README 从 npm 添加三个 `@smalltailqwq/*` 包；未指定 dist-tag 时使用稳定的 `latest`。安装全部三个包，把 manager 常驻、两套皮肤都装上，互斥交给首次重启时的 manager 兜底，不需要预置脚本。需要直接跟随仓库 `main` 时才使用三个 GitHub `#path:` spec（要求 pnpm ≥ 9，PowerShell 下必须单引号包裹）。
+- **正式安装（推荐）**：无需 clone，按 README 从 npm 添加三个 `@wjingshan/*` 包；未指定 dist-tag 时使用稳定的 `latest`。安装全部三个包，把 manager 常驻、两套皮肤都装上，互斥交给首次重启时的 manager 兜底，不需要预置脚本。需要直接跟随仓库 `main` 时才使用三个 GitHub `#path:` spec（要求 pnpm ≥ 9，PowerShell 下必须单引号包裹）。
 - **本地开发 / 指定提交 / 弱网**：定位或 clone 仓库，然后按"独立子包安装"流程分别 add skin-manager 与目标皮肤的**子目录**绝对路径。**禁止 add 仓库根目录**（仓库根不是包，无 `package.json`，会直接失败）。本地 link 没有一行命令的自动兜底时序，add 之前先运行技能自带脚本预置互斥（见下）。
 - 只装一套皮肤（可带 manager）时没有互斥问题：patch 无行即启用，开箱即用。
 
@@ -93,7 +93,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 - **正式安装**：
   ```sh
-  dsh plugin --profile <name> add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile <name> add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile <name> add '@smalltailqwq/dsh-client-ui-skin-orca-link'
+  dsh plugin --profile <name> add '@wjingshan/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile <name> add '@wjingshan/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile <name> add '@wjingshan/dsh-client-ui-skin-orca-link'
   ```
   PowerShell 下把 `&&` 换成 `;`，包名保持单引号。三条 add 之间不手写 patch——首次重启时 skin-manager 兜底负责回退与写入互斥行。
 - **独立子包（本地开发/弱网）**：add 之前先预置互斥（add 后再写会留下叠加窗口）：
@@ -105,7 +105,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 ### 6. 验证生效
 
-- `dsh plugin --profile <name> list`：正式安装应看到三个 `@smalltailqwq/*` npm 依赖；GitHub 路径应看到三个 `github:` 依赖；本地流程应看到三/两个 `link:` 依赖。
+- `dsh plugin --profile <name> list`：正式安装应看到三个 `@wjingshan/*` npm 依赖；GitHub 路径应看到三个 `github:` 依赖；本地流程应看到三/两个 `link:` 依赖。
 - `dsh --profile <name> --dump-config` 一次输出：manager 行 `disabled: false`；皮肤恰一套 `false`（或首次重启前的过渡态——干净环境两套都无 disabled 行，启动兜底后才会写入；若 home 层残留互斥行则直接沿用）。
 - 走重启安全闸门完成冷启动，并核对启动页 client roster：manager 与当前启用皮肤必须存在（`/plugins/<真实包名>/client.js`）。不得用配置树、裸包名匹配或 API 返回替代此项。
 - 安装了 skin-manager 时，`GET /api/dsh/skins` 能返回目录即可；**不要**核对定制卡片等页面细节。
@@ -116,7 +116,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 默认**不做任何网络同步**——已安装就原样使用。仅当用户明确表达"更新皮肤/检查更新"时：
 
-1. **npm / GitHub 依赖（正式安装）**：`dsh plugin --profile <name> update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link`（npm 依赖重新解析 `latest`，GitHub 依赖重新解析仓库最新提交；不带包名的全量 update 也可以），再用 `plugin list` 与 `--dump-config` 验证。
+1. **npm / GitHub 依赖（正式安装）**：`dsh plugin --profile <name> update @wjingshan/dsh-client-ui-skin-deep-whale-manager @wjingshan/dsh-client-ui-skin-maid-atelier @wjingshan/dsh-client-ui-skin-orca-link`（npm 依赖重新解析 `latest`，GitHub 依赖重新解析仓库最新提交；不带包名的全量 update 也可以），再用 `plugin list` 与 `--dump-config` 验证。
 2. **本地 link**：才执行 `git fetch origin`、比较并 `git pull --ff-only`。
 3. bundle 内容更新通常热加载；只有包身份或插件图变化才重启。
 
@@ -131,7 +131,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 - 本仓库皮肤是纯展示层 client 插件：不注入服务、不发 Cordis 事件、不触达模型请求；素材以数据 URI 内嵌于 bundle，激活不依赖远程资源。
 - 皮肤可热切换，`wiring.id` 即 patch 层控制的插件 id；皮肤中心/互斥切换机制兼容。
-- **skin-manager 插件**（`@smalltailqwq/dsh-client-ui-skin-deep-whale-manager`）在设置面板注册"皮肤管理"分类：发现已安装皮肤（`GET /api/dsh/skins`，依据是 profile 依赖中导出有效 `skin.json`——`package` 匹配包名——的包）；一键激活（`POST /api/dsh/skins { target }`，同源校验 + catalog 校验 + 两 patch 层原子写入回滚）、皮肤定制声明渲染。启动时若按 profile→home 优先级计算出同时启用两套及以上皮肤，管理器会自动原子切到“官方默认”并写入互斥行；已有零套或一套启用的合法选择保持不变。安装皮肤后管理器自动发现,无需额外配置。
+- **skin-manager 插件**（`@wjingshan/dsh-client-ui-skin-deep-whale-manager`）在设置面板注册"皮肤管理"分类：发现已安装皮肤（`GET /api/dsh/skins`，依据是 profile 依赖中导出有效 `skin.json`——`package` 匹配包名——的包）；一键激活（`POST /api/dsh/skins { target }`，同源校验 + catalog 校验 + 两 patch 层原子写入回滚）、皮肤定制声明渲染。启动时若按 profile→home 优先级计算出同时启用两套及以上皮肤，管理器会自动原子切到“官方默认”并写入互斥行；已有零套或一套启用的合法选择保持不变。安装皮肤后管理器自动发现,无需额外配置。
 - 皮肤子包本身**不带**默认 `disabled`（patch 无行 = 启用）；互斥的责任在管理器（启动兜底 + 原子切换），不要求用户预置脚本。预置脚本仅用于本地 link 流程与恢复工具。
-- npm 一行安装 = 三个 `@smalltailqwq/*` 包，默认使用 `latest`；GitHub `#path:` 子包是跟随 `main` 的备用来源（仓库根不是包），要求 **pnpm ≥ 9**，PowerShell 中 `#` 是注释起始，spec 必须单引号；更新命令里 `@` 开头 token 加引号更稳。
+- npm 一行安装 = 三个 `@wjingshan/*` 包，默认使用 `latest`；GitHub `#path:` 子包是跟随 `main` 的备用来源（仓库根不是包），要求 **pnpm ≥ 9**，PowerShell 中 `#` 是注释起始，spec 必须单引号；更新命令里 `@` 开头 token 加引号更稳。
 - 仓库 README 提供安装/更新/互斥/验证/排查的完整说明；反馈问题走仓库 issue，不要联系画师本人。

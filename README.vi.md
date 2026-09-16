@@ -17,9 +17,9 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 
 | Giao diện | Tên package | Mô tả | Giấy phép |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | Xưởng hầu biển sâu: nền hai hầu gái, giao diện ren xanh biển sâu và thanh bên chibi | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | ORCA LINK: khoang cơ khí trắng ngọc, nhân vật orca-girl và tín hiệu liên kết xanh điện | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | Trình quản lý giao diện: khám phá, chuyển đổi và tùy chỉnh theo giao diện tự khai báo | MIT |
+| [maid-atelier](maid-atelier/) | `@wjingshan/dsh-client-ui-skin-maid-atelier` | Xưởng hầu biển sâu: nền hai hầu gái, giao diện ren xanh biển sâu và thanh bên chibi | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@wjingshan/dsh-client-ui-skin-orca-link` | ORCA LINK: khoang cơ khí trắng ngọc, nhân vật orca-girl và tín hiệu liên kết xanh điện | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [skin-manager](skin-manager/) | `@wjingshan/dsh-client-ui-skin-deep-whale-manager` | Trình quản lý giao diện: khám phá, chuyển đổi và tùy chỉnh theo giao diện tự khai báo | MIT |
 
 ## Chủ sở hữu bản quyền
 
@@ -41,33 +41,33 @@ Ba package phân phối (trình quản lý + hai giao diện) đã được phá
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 **PowerShell** (`#` bắt đầu chú thích, spec phải bọc trong dấu nháy; dùng `;` thay cho `&&`):
 
 ```powershell
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 Chỉ muốn dùng một giao diện thì xóa dòng không cần (khuyến nghị giữ skin-manager vì chuyển đổi và xung đột đều dựa vào nó).
 
 Lần đầu cài đặt là thêm package mới, cần khởi động lại DSH một lần. Khi khởi động lại, skin-manager sẽ phát hiện "hai giao diện cùng bật" và **tự động hoàn nguyên về mặc định chính thức**, nên lần đầu cài sẽ không bị chồng giao diện; sau đó mở «Cài đặt → Quản lý giao diện» nhấn «Chuyển» trên giao diện mong muốn — tải lại nóng sẽ áp dụng ngay. Các lần chuyển sau không cần khởi động lại hay AI hỗ trợ.
 
-> Để theo dõi trực tiếp nhánh GitHub `main`, dùng `github:Small-tailqwq/dsh-deep-whale#path:/<thư-mục-con>` (yêu cầu pnpm ≥ 9). Phát triển cục bộ xem [Cài đặt package con độc lập](#cài-đặt-package-con-độc-lập-phát-triển-và-dự-phòng-mạng-yếu). npm, GitHub và link cục bộ là các nguồn khác nhau cho cùng tên package; lần `add` cuối cùng sẽ thắng.
+> Để theo dõi trực tiếp nhánh GitHub `main`, dùng `github:wjingshan/dsh-deep-whale#path:/<thư-mục-con>` (yêu cầu pnpm ≥ 9). Phát triển cục bộ xem [Cài đặt package con độc lập](#cài-đặt-package-con-độc-lập-phát-triển-và-dự-phòng-mạng-yếu). npm, GitHub và link cục bộ là các nguồn khác nhau cho cùng tên package; lần `add` cuối cùng sẽ thắng.
 
 ### Cập nhật
 
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
+dsh plugin --profile web update @wjingshan/dsh-client-ui-skin-deep-whale-manager @wjingshan/dsh-client-ui-skin-maid-atelier @wjingshan/dsh-client-ui-skin-orca-link
 ```
 
 **PowerShell** (token bắt đầu bằng `@` nên thêm ngoặc kép):
 
 ```powershell
-dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web update '@wjingshan/dsh-client-ui-skin-deep-whale-manager' '@wjingshan/dsh-client-ui-skin-maid-atelier' '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 Dependency npm mặc định theo `latest`; `update` sẽ phân giải lại phiên bản hiện được gắn tag đó. Dependency GitHub sẽ phân giải lại commit mới nhất. Bạn cũng có thể chạy `dsh plugin --profile web update` không kèm tên package (cập nhật toàn bộ profile; tương đương nếu chỉ cài các package này). Nội dung bundle cập nhật qua tải lại nóng cấu hình; chỉ khi thêm/xóa package mới cần khởi động lại.
@@ -89,7 +89,7 @@ Sau khi thêm package mới, khởi động lại DSH một lần. Tùy chọn g
 Dán đoạn sau vào bất kỳ AI nào (hoặc chính dsh). [INSTALL.md](INSTALL.md) là điểm vào chuẩn: AI sẽ đọc và được dẫn đến kỹ năng `dsh-skin-install` đi kèm — cài đặt thông thường chạy cùng lệnh một dòng ở trên, còn các luồng di chuyển cũ, phát triển cục bộ, kiểm tra commit cụ thể thì theo quy trình kỹ năng (dàn xếp xung đột trước, link đường dẫn tuyệt đối, xác minh khởi động lạnh).
 
 ```
-Đọc https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md và cài đặt các giao diện từ kho này theo hướng dẫn
+Đọc https://github.com/wjingshan/dsh-deep-whale/INSTALL.md và cài đặt các giao diện từ kho này theo hướng dẫn
 ```
 
 ### Cơ chế xung đột giao diện (bắt buộc đọc)
@@ -106,7 +106,7 @@ Dán đoạn sau vào bất kỳ AI nào (hoặc chính dsh). [INSTALL.md](INSTA
 > Người dùng thông thường không cần phần này: cài đặt npm một dòng không cần clone. Phần này dành cho phát triển cục bộ, kiểm tra commit cụ thể, hoặc khi registry không khả dụng. Dependency npm/GitHub và link cục bộ tham chiếu cùng tên package — chọn một và nhất quán.
 
 ```sh
-git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone ở bất kỳ đâu (shallow là đủ, bỏ qua lịch sử)
+git clone --depth 1 https://github.com/wjingshan/dsh-deep-whale   # clone ở bất kỳ đâu (shallow là đủ, bỏ qua lịch sử)
 node <đường dẫn tuyệt đối clone>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
 dsh plugin --profile web add <đường dẫn tuyệt đối clone>/skin-manager   # bảng quản lý giao diện thường trực (khuyến nghị)
 dsh plugin --profile web add <đường dẫn tuyệt đối clone>/maid-atelier   # Xưởng hầu biển sâu
@@ -154,14 +154,14 @@ Triệu chứng: nút cài đặt biến mất, thanh bị trang trí che hoặc
 ### Xác minh sau cài đặt
 
 ```sh
-dsh plugin --profile web list          # phải thấy ba dependency @smalltailqwq/dsh-client-ui-skin-*
+dsh plugin --profile web list          # phải thấy ba dependency @wjingshan/dsh-client-ui-skin-*
 dsh --profile web --dump-config        # dòng manager disabled: false; hai giao diện xung đột: đúng một cái false
 ```
 
 > Ngay sau cài đặt một dòng, **trước khi khởi động lại lần đầu**, `--dump-config` phụ thuộc vào lớp patch của bạn: môi trường sạch thì cả hai giao diện chưa có dòng xung đột (mặc định bật — trạng thái chuyển tiếp bình thường; skin-manager sẽ ghi dòng xung đột khi khởi động lại lần đầu). Nếu lớp home đã có dòng xung đột từ lần cài trước, trạng thái đó được tái sử dụng. Sau khởi động lạnh, phải kiểm tra danh sách client trong console trình duyệt (chỉ có entry cấu hình không chứng minh bundle trình duyệt đã đăng ký). Trang HTML khởi động phải tham chiếu `/plugins/<tên package thật>/client.js` cho manager và giao diện đang bật; carrier khác nhau theo phiên bản DSH (bản cũ đặt trong JSON `window.__DSH_BOOT__`, 0.1.1rc2+ dùng thẻ `<script src>` trực tiếp), dòng lệnh sau hoạt động cho cả hai:
 
 ```js
-document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
+document.documentElement.outerHTML.match(/\/plugins\/@wjingshan\/[^"'\s]+/g) ?? []
 ```
 
 Kết quả phải chứa manager và package giao diện đang bật; giao diện bị tắt có thể không xuất hiện. Tải lại trình duyệt để thấy giao diện; bật/tắt giao diện qua tải lại nóng cấu hình, không cần khởi động lại dsh (chỉ khi thêm/xóa package mới cần khởi động lại).
@@ -181,8 +181,8 @@ Kết quả phải chứa manager và package giao diện đang bật; giao di�
 
 Cảm ơn các nhà phát triển sau đã đóng góp cho dsh-deep-whale:
 
-<a href="https://github.com/Small-tailqwq/dsh-deep-whale/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Small-tailqwq/dsh-deep-whale" />
+<a href="https://github.com/wjingshan/dsh-deep-whale/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=wjingshan/dsh-deep-whale" />
 </a>
 
 ### PR giá trị nhưng chưa được gộp

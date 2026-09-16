@@ -17,9 +17,9 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 | 皮肤 | 包名 | 说明 | 许可 |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、虎鲸娘角色与电蓝链路信号 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | 通用皮肤发现、切换与皮肤自声明配置面板 | MIT |
+| [maid-atelier](maid-atelier/) | `@wjingshan/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@wjingshan/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、虎鲸娘角色与电蓝链路信号 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [skin-manager](skin-manager/) | `@wjingshan/dsh-client-ui-skin-deep-whale-manager` | 通用皮肤发现、切换与皮肤自声明配置面板 | MIT |
 
 ## 版权所有人
 
@@ -41,33 +41,33 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 **PowerShell**（用 `;` 分隔命令）：
 
 ```powershell
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 只想用其中一套皮肤时，把不需要的那行删掉（skin-manager 建议保留，切换与互斥都靠它）。
 
 首次安装是新增插件包，需要重启一次 DSH。重启时 skin-manager 会检测“两套皮肤同时启用”并**自动原子回退到官方默认**，所以首次安装不会出现皮肤叠加窗口；随后打开「设置 → 皮肤管理」点击目标皮肤「切换」即热重载生效，此后切换不再需要重启，也不需要 AI 参与。
 
-> 需要直接跟随 GitHub `main` 时，也可用 `github:Small-tailqwq/dsh-deep-whale#path:/<子目录>`（需要 pnpm ≥ 9）；本地开发见[独立子包安装](#独立子包安装本地开发与弱网备用)。npm、GitHub 与本地 link 是同一包名的不同来源，混用时以最后一次 `add` 为准。
+> 需要直接跟随 GitHub `main` 时，也可用 `github:wjingshan/dsh-deep-whale#path:/<子目录>`（需要 pnpm ≥ 9）；本地开发见[独立子包安装](#独立子包安装本地开发与弱网备用)。npm、GitHub 与本地 link 是同一包名的不同来源，混用时以最后一次 `add` 为准。
 
 ### 更新
 
 **Linux / macOS / WSL:**
 
 ```sh
-dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
+dsh plugin --profile web update @wjingshan/dsh-client-ui-skin-deep-whale-manager @wjingshan/dsh-client-ui-skin-maid-atelier @wjingshan/dsh-client-ui-skin-orca-link
 ```
 
 **PowerShell**（`@` 开头 token 建议加引号）：
 
 ```powershell
-dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
+dsh plugin --profile web update '@wjingshan/dsh-client-ui-skin-deep-whale-manager' '@wjingshan/dsh-client-ui-skin-maid-atelier' '@wjingshan/dsh-client-ui-skin-orca-link'
 ```
 
 npm 依赖默认跟随 `latest`；`update` 重新解析该标签当前指向的版本。GitHub 依赖则重新解析仓库最新提交。也可以不带包名执行 `dsh plugin --profile web update`（更新 profile 全部依赖，只装了本仓库皮肤时效果相同）。bundle 内容更新走配置热重载；只有新增/删除插件包才需要重启。
@@ -89,7 +89,7 @@ dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-man
 把下面这段话发给任意 AI（或 dsh 本体）即可。[INSTALL.md](INSTALL.md) 是标准安装入口：AI 会读到它后引导到仓库自带的 `dsh-skin-install` 技能——普通安装执行的是上面这一行命令，迁移旧安装、本地开发、测试指定提交等场景则按技能流程处理（预置互斥、绝对路径 link、冷启动验证），比手敲更稳。
 
 ```
-读取 https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md 并按其中的指引安装本仓库皮肤
+读取 https://github.com/wjingshan/dsh-deep-whale/INSTALL.md 并按其中的指引安装本仓库皮肤
 ```
 
 ### 皮肤互斥机制（必读）
@@ -106,7 +106,7 @@ dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-man
 > 普通用户不需要使用本节：npm 一行安装无需 clone。本节用于本地开发、指定提交测试，或 registry 网络不可用时。npm/GitHub 依赖与本地 link 针对同一包名，用哪种就执行哪种，不要混跑。
 
 ```sh
-git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置（浅克隆足够，跳过历史）
+git clone --depth 1 https://github.com/wjingshan/dsh-deep-whale   # clone 到任意位置（浅克隆足够，跳过历史）
 node <clone 的绝对路径>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
 dsh plugin --profile web add <clone 的绝对路径>/skin-manager   # 常驻皮肤管理面板（推荐）
 dsh plugin --profile web add <clone 的绝对路径>/maid-atelier   # 深海女仆工坊
@@ -154,14 +154,14 @@ dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
 ### 安装后验证
 
 ```sh
-dsh plugin --profile web list          # 应看到三个 @smalltailqwq/dsh-client-ui-skin-* 依赖
+dsh plugin --profile web list          # 应看到三个 @wjingshan/dsh-client-ui-skin-* 依赖
 dsh --profile web --dump-config        # manager 行 disabled: false；两套皮肤互斥：skins 恰一套 false
 ```
 
 > 一行安装后、**尚未重启前** `--dump-config` 的状态取决于你的 patch 层：干净环境下两套皮肤都还没有互斥行（默认启用，是正常过渡态——首次重启时 skin-manager 兜底回退并写入互斥行）；若 home 层残留过互斥行（之前装过本仓库皮肤又卸载），则直接沿用该状态。冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）。启动页 HTML 必须引用 manager 与启用皮肤的 `/plugins/<真实包名>/client.js`；不同 DSH 版本载体不同（旧版在 `window.__DSH_BOOT__` JSON 里，0.1.1rc2+ 是直接 `<script src>` 标签），下面这条两种版本都能用：
 
 ```js
-document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
+document.documentElement.outerHTML.match(/\/plugins\/@wjingshan\/[^"'\s]+/g) ?? []
 ```
 
 结果必须包含 manager 与当前启用的皮肤包名；被停用的皮肤可以不出现。刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。
@@ -181,8 +181,8 @@ document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) 
 
 感谢以下开发者对 dsh-deep-whale 的贡献：
 
-<a href="https://github.com/Small-tailqwq/dsh-deep-whale/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Small-tailqwq/dsh-deep-whale" />
+<a href="https://github.com/wjingshan/dsh-deep-whale/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=wjingshan/dsh-deep-whale" />
 </a>
 
 ### 有价值但未合入的 PR

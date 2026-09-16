@@ -1,5 +1,5 @@
 {
-  "name": "@smalltailqwq/dsh-client-ui-skin-maid-atelier",
+  "name": "@wjingshan/dsh-client-ui-skin-maid-atelier",
   "description": "Hot-pluggable Deep-sea maid atelier skin with character backdrop and ornamental navy UI for the dsh web GUI",
   "version": "0.1.3",
   "type": "module",
@@ -20,18 +20,18 @@
     }
   },
   "scripts": {
-    "build": "tsdown && node ../scripts/write-skin-build.mjs . Small-tailqwq/dsh-deep-whale",
+    "build": "tsdown && node ../scripts/write-skin-build.mjs . wjingshan/dsh-deep-whale",
     "test": "vitest run"
   },
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Small-tailqwq/dsh-deep-whale.git",
+    "url": "git+https://github.com/wjingshan/dsh-deep-whale.git",
     "directory": "maid-atelier"
   },
-  "homepage": "https://github.com/Small-tailqwq/dsh-deep-whale/tree/main/maid-atelier#readme",
+  "homepage": "https://github.com/wjingshan/dsh-deep-whale/tree/main/maid-atelier#readme",
   "bugs": {
-    "url": "https://github.com/Small-tailqwq/dsh-deep-whale/issues"
+    "url": "https://github.com/wjingshan/dsh-deep-whale/issues"
   },
   "publishConfig": {
     "access": "public",
