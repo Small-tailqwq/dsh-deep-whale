@@ -3843,11 +3843,6 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
    can now be resized. Fitting candidates stay inside the assistant bubble;
    table-card marks this renderer-owned wrapper only while its natural table
    width exceeds the assistant bubble's current content box. */
-/* RC1 removes the host's reserved scrollbar padding on :hover/:focus-visible.
-   A fitting wide-table candidate has no scrollbar to replace that space, so
-   the box edge moves away from the pointer and enters a layout feedback loop.
-   Keep only that native branch's gutter stable; overflowing candidates receive
-   the frame attribute below and already own a constant scroll geometry. */
 body[data-dsh-maid-atelier]
   [data-chat-flow-kind='assistant-step'] :global(.md-table-wide):not([data-maid-table-frame]) {
   /* The host's breakout includes asymmetric leading padding. Centering the
@@ -3856,7 +3851,6 @@ body[data-dsh-maid-atelier]
   max-width: 100%;
   margin-inline: 0;
   padding-inline: 0;
-  padding-bottom: var(--dsh-scrollbar-width, 8px);
 }
 
 body[data-dsh-maid-atelier]
@@ -4305,6 +4299,7 @@ body[data-dsh-maid-atelier]
    root and child doubles the tint and blur. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
   [data-variant='bash']:not(:has([data-disclosure-row])),
+  [data-chat-flow-kind='system-prompt'] [data-disclosure-row],
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row]
 ) {
   width: max-content;
@@ -4322,6 +4317,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] :is(
   [data-variant='bash']:not(:has([data-disclosure-row])),
+  [data-chat-flow-kind='system-prompt'] [data-disclosure-row],
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row]
 ) {
   width: max-content;

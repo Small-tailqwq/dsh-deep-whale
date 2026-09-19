@@ -1528,8 +1528,8 @@ describe('Maid Atelier skin apply', () => {
     const expandedRule = CSS.match(/\[data-maid-table-expanded\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     // Fitting .md-table-wide wrappers keep the host's layout. table-card.ts
     // adds this attribute and control in place only after measured overflow;
-    // the native branch retains a stable gutter across host hover states.
-    expect(nativeRule).toContain('padding-bottom: var(--dsh-scrollbar-width, 8px)')
+    // The host owns scrollbar reservation across hover states.
+    expect(nativeRule).not.toContain('padding-bottom:')
     expect(nativeRule).not.toContain('overflow-x:')
     expect(frameRule).toContain('width: max-content')
     expect(frameRule).toContain('max-width: 100%')
