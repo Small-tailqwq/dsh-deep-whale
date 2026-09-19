@@ -1277,6 +1277,37 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-sidebar-right-panel='fulls
   background: #182850;
 }
 
+/* DSH 0.1.6 mounts the plugin manager as a keyed `main` panel: it REPLACES the
+   conversation inside the chat column, so it carries none of the `[data-phase]`
+   hooks the row lift above relies on. Its root is a static box, and a static
+   in-flow block paints BELOW both decorated layers the skin seats in that
+   column — the absolutely positioned character stage (z 0) and the top curtain
+   (z 1) — so the page header, the group headings and the whole second-level
+   detail page were hidden behind the palace art, and whatever did show sat
+   under the 48/76px trim band. Lifting the root to z 2 clears both and keeps
+   the band off a management page; the reading floor and the darker label pair
+   keep the dense copy off the artwork, the same treatment the details column
+   already gets. The panel root owns the scrollport, so the floor covers the
+   full column at any scroll offset. Host overlays (Modal, Toast, Menu) portal
+   to body, so the new stacking context traps nothing. */
+body[data-dsh-maid-atelier] [data-plugin-panel] {
+  position: relative;
+  z-index: 2;
+  background: rgba(242, 246, 253, 0.94);
+  --dsw-alias-label-primary: #172347;
+  --dsw-alias-label-secondary: #4d5d7f;
+  --dsw-alias-label-tertiary: #52658c;
+  --dsw-alias-label-caption: #55688c;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-plugin-panel] {
+  background: rgba(11, 23, 55, 0.94);
+  --dsw-alias-label-primary: #e7ecf7;
+  --dsw-alias-label-secondary: #bdc9e3;
+  --dsw-alias-label-tertiary: #96a6c9;
+  --dsw-alias-label-caption: #8b9bbd;
+}
+
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-row] {
   background: rgba(18, 36, 77, 0.78);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
@@ -3291,7 +3322,7 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(+ *) 
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-slot='conversation.composer.dock'] > * {
+  [data-composer-card] + div[class*='dock'] {
   color: #4a5d82;
   background: linear-gradient(
     90deg,
@@ -3309,7 +3340,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-slot='conversation.composer.dock'] > * {
+  [data-composer-card] + div[class*='dock'] {
   color: #aebdde;
   background: linear-gradient(
     90deg,
@@ -3324,6 +3355,14 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-slot='conversation.composer.dock'] > * [class*='sep'] {
   color: rgba(174, 189, 222, 0.5);
+}
+
+/* The alpha dock owns both statistics and ContextMeter, whose dialog portals
+   to body. Keep one backdrop layer on their shared surface. */
+body[data-dsh-maid-atelier]
+  [data-composer-card] + div[class*='dock'] [data-slot='conversation.composer.dock'] > * {
+  background: transparent;
+  backdrop-filter: none;
 }
 
 /* ChatView exposes data-chat-flow in every loading and content state. Give
@@ -4154,7 +4193,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row='true'] {
+  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row] {
   border-radius: 7px;
   background: linear-gradient(
     90deg,
@@ -4165,7 +4204,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row='true'] {
+  :is([data-variant], [data-chat-flow-kind='context']) [data-disclosure-row] {
   border-radius: 7px;
   background: linear-gradient(
     90deg,
@@ -4179,7 +4218,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
    tool `data-variant` wrapper. Preserve their native full-width layout while
    giving a collapsed run header the same translucent wash as other tools. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-workflow-run] > :not([data-open='true']) > [data-disclosure-row='true'] {
+  [data-workflow-run] > :not([data-open='true']) > [data-disclosure-row] {
   background: linear-gradient(
     90deg,
     rgba(248, 250, 255, 0.32),
@@ -4190,7 +4229,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-workflow-run] > :not([data-open='true']) > [data-disclosure-row='true'] {
+  [data-workflow-run] > :not([data-open='true']) > [data-disclosure-row] {
   background: linear-gradient(
     90deg,
     rgba(10, 20, 48, 0.58),
@@ -4253,7 +4292,7 @@ body[data-dsh-maid-atelier]
   :is(
     [data-variant] > :not([data-open='true']),
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > :not([data-open='true'])
-  ) > [data-disclosure-row='true'] {
+  ) > [data-disclosure-row] {
   width: max-content;
   max-width: 100%;
   align-self: flex-start;
@@ -4267,7 +4306,10 @@ body[data-dsh-maid-atelier]
    terminal/IO card below stays opaque and needs no filter. Keep a theme-tinted
    background like the think rows so dark backdrop art cannot make the text
    unreadable. */
-body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-variant='bash'] {
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
+  [data-variant='bash'],
+  [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row]
+) {
   width: max-content;
   max-width: 100%;
   align-self: flex-start;
@@ -4281,7 +4323,10 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-variant='bash'] {
   backdrop-filter: blur(8px) saturate(0.92);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-variant='bash'] {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is(
+  [data-variant='bash'],
+  [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row]
+) {
   width: max-content;
   max-width: 100%;
   align-self: flex-start;
@@ -4333,7 +4378,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
     [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
     [data-workflow-run] > [data-open='true']
-  ) > [data-disclosure-row='true'] {
+  ) > [data-disclosure-row] {
   background: transparent;
   backdrop-filter: none;
 }
@@ -4343,13 +4388,13 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
     [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
     [data-workflow-run] > [data-open='true']
-  ) > [data-disclosure-row='true'] {
+  ) > [data-disclosure-row] {
   background: transparent;
   backdrop-filter: none;
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] {
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row] {
   display: inline-flex;
   width: max-content;
   max-width: 100%;
@@ -4365,7 +4410,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] {
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row] {
   display: inline-flex;
   width: max-content;
   max-width: 100%;
@@ -4381,7 +4426,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row] + * {
   display: inline-block;
   width: max-content;
   max-width: 100%;
@@ -4400,7 +4445,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-variant='think'] > [data-open='true'] > [data-disclosure-row='true'] + * {
+  [data-variant='think'] > [data-open='true'] > [data-disclosure-row] + * {
   display: inline-block;
   width: max-content;
   max-width: 100%;
@@ -4416,6 +4461,38 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   backdrop-filter: blur(8px) saturate(0.92);
   color: #c7d2e9;
   line-height: 1.65;
+}
+
+/* Present uses its own tool owner, outside data-variant. Expanded output and
+   changed-file rows need a shared reading floor, not nested blur layers. */
+body[data-dsh-maid-atelier] :is(
+  [data-tool='present'] > [data-open='true'],
+  [data-changed-files]
+) {
+  background: linear-gradient(135deg, rgba(248, 250, 255, 0.64), rgba(248, 250, 255, 0.44));
+  -webkit-backdrop-filter: blur(8px) saturate(0.92);
+  backdrop-filter: blur(8px) saturate(0.92);
+  --dsw-alias-label-secondary: #2f4778;
+  --dsw-alias-label-tertiary: #405273;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is(
+  [data-tool='present'] > [data-open='true'],
+  [data-changed-files]
+) {
+  background: linear-gradient(135deg, rgba(10, 20, 48, 0.76), rgba(18, 31, 67, 0.54));
+  --dsw-alias-label-secondary: #d3ddf2;
+  --dsw-alias-label-tertiary: #b8c5e1;
+}
+
+body[data-dsh-maid-atelier] [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row] {
+  width: max-content;
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+body[data-dsh-maid-atelier] [data-tool='present'] > [data-open='true'] {
+  border-radius: 10px;
 }
 
 /* Running reasoning becomes a restrained gold-and-periwinkle service sweep.

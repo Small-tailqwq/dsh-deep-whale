@@ -721,6 +721,45 @@
   border: 0;
 }
 
+/* The Plugins page renders this between a bundle's package.json one-liner and
+   its rows, so it reads as a supplement to that line rather than a repeat: the
+   name in the reader's language, the other name demoted, then the tagline. */
+.intro {
+  display: grid;
+  gap: 4px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.introName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.introAlt {
+  color: var(--dsw-alias-label-tertiary);
+  font-weight: 400;
+}
+
+.introTagline {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.introHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
 @media (max-width: 720px) {
   .skinGrid {
     grid-template-columns: 1fr;

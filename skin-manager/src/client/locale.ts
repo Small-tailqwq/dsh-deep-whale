@@ -94,6 +94,13 @@ const zhCopy = {
   stateSwitching: '切换中',
   stateSwitch: '切换',
   compatibility: (version: string) => `已适配 DSH ${version}`,
+  // The Plugins page shows a bundle's one-liner from package.json, one static
+  // string per package. These three carry the same introduction in the reader's
+  // language into that page's bundle-configuration slot, and name the manager
+  // itself there, where no skin.json exists to read.
+  bundleIntroHint: '切换与详细选项在「设置 → 皮肤管理」中。',
+  selfName: '皮肤管理器',
+  selfTagline: '集中发现、启用与定制 DSH Web 皮肤',
   versionUnread: '尚未读取',
   versionUnavailable: '版本信息不可用',
   localCommit: '本地提交',
@@ -172,6 +179,9 @@ const enCopy: typeof zhCopy = {
   stateSwitching: 'Switching',
   stateSwitch: 'Switch',
   compatibility: (version: string) => `Verified on DSH ${version}`,
+  bundleIntroHint: 'Switching and detailed options live in Settings → Skins.',
+  selfName: 'Skin Manager',
+  selfTagline: 'Discover, activate, and customize DSH Web skins from one place',
   versionUnread: 'Not read yet',
   versionUnavailable: 'Version info unavailable',
   localCommit: 'Local commit',

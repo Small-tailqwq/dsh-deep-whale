@@ -84,11 +84,13 @@ describe('generic skin switch patch', () => {
       writeFileSync(skinJson, JSON.stringify({
         id: 'deepcel', name: 'Deepcel', package: '@test/deepcel', bodyAttr: 'data-deepcel',
         wiring: { id: 'ui-skin-deepcel' }, dshCompatibility: '0.1.1rc2', order: 7,
+        tagline: '一款模仿 excel 的 dsh 皮肤', taglineEn: 'A spreadsheet-style DSH skin',
       }))
       expect(discoverInstalledSkins(patch)).toEqual([
         {
           id: 'deepcel', name: 'Deepcel', package: '@test/deepcel', wiringId: 'ui-skin-deepcel',
           bodyAttr: 'data-deepcel', dshCompatibility: '0.1.1rc2', order: 7,
+          tagline: '一款模仿 excel 的 dsh 皮肤', taglineEn: 'A spreadsheet-style DSH skin',
         },
       ])
     } finally {

@@ -9,6 +9,8 @@ export interface SkinCatalogEntry {
   name: string
   nameEn?: string
   tagline?: string
+  /** English tagline for the English UI; falls back to `tagline` when a skin omits it. */
+  taglineEn?: string
   package: string
   wiringId: string
   bodyAttr: string

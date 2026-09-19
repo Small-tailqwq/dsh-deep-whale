@@ -1619,7 +1619,7 @@ describe('Maid Atelier skin apply', () => {
       /:not\(\[data-ds-dark-theme\]\)\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const rowRule = CSS.match(
-      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row='true'\]\s*\{([^}]*)\}/s,
+      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(variantRule).toContain('--dsw-alias-label-secondary: #2f4778')
     expect(variantRule).toContain('--dsw-alias-label-tertiary: #405273')
@@ -1629,22 +1629,22 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("[data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']")
     expect(CSS).toMatch(/:is\(\s*\[data-variant\](?::not\(\[data-variant='think'\]\))? > \[data-open='true'\],[\s\S]*?\)\s*\{[^}]*rgba\(248, 250, 255, 0\.5\)/)
     expect(CSS).not.toMatch(/\[data-variant\] > \[data-open='true'\][^{}]*backdrop-filter: blur\(3px\)/)
-    expect(CSS).toMatch(/:is\([\s\S]*?\) > \[data-disclosure-row='true'\]\s*\{[^}]*background: transparent[^}]*backdrop-filter: none/s)
-    expect(CSS).toMatch(/\[data-variant='think'\][^{]*\[data-disclosure-row='true'\] \+ \*\s*\{[^}]*color: #34486f[^}]*line-height: 1\.65/s)
+    expect(CSS).toMatch(/:is\([\s\S]*?\) > \[data-disclosure-row\]\s*\{[^}]*background: transparent[^}]*backdrop-filter: none/s)
+    expect(CSS).toMatch(/\[data-variant='think'\][^{]*\[data-disclosure-row\] \+ \*\s*\{[^}]*color: #34486f[^}]*line-height: 1\.65/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\]\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\)\s*\{[^}]*#d3ddf2[^}]*#b8c5e1/s)
-    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row='true'\]\s*\{[^}]*rgba\(10, 20, 48, 0\.58\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row\]\s*\{[^}]*rgba\(10, 20, 48, 0\.58\)/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant='think'\][^{]*\+ \*\s*\{[^}]*color: #c7d2e9/s)
   })
 
   it('keeps the light-theme composer statistics legible over the backdrop', () => {
     const dockRule = CSS.match(
-      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-slot='conversation\.composer\.dock'\] > \*\s*\{([^}]*)\}/s,
+      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(dockRule).toContain('color: #4a5d82')
     expect(dockRule).toContain('rgba(248, 250, 255, 0.3)')
     expect(dockRule).toContain('backdrop-filter: blur(2px)')
     expect(CSS).toMatch(/\[data-slot='conversation\.composer\.dock'\] > \* \[class\*='sep'\]\s*\{[^}]*rgba\(74, 93, 130, 0\.55\)/s)
-    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-slot='conversation\.composer\.dock'\] > \*\s*\{[^}]*color: #aebdde[^}]*rgba\(10, 20, 48, 0\.48\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{[^}]*color: #aebdde[^}]*rgba\(10, 20, 48, 0\.48\)/s)
   })
 
   it('resets the light-theme subagent catalog inherited from the navy header', () => {
@@ -2511,5 +2511,57 @@ describe('Maid Atelier skin apply', () => {
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
     expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe(light)
+  })
+
+  it('lifts the 0.1.6 plugin manager panel above the character stage', () => {
+    // The plugin manager is a keyed `main` panel: it replaces the conversation
+    // inside the chat column, so it carries none of the `[data-phase]` hooks the
+    // stage lift relies on, and its static content painted UNDER the skin's two
+    // decorated layers in that column (page header, group headings and the whole
+    // second-level page were invisible; what did show sat under the trim band).
+    // Every rule that reaches the panel root is collected from the stylesheet
+    // and matched against this fixture, so an equivalent rewrite still has to
+    // declare the lift above both layers and the reading floor.
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div class="fixture_centerCol">
+        <div data-skin-chrome="character-stage"></div>
+        <div data-slot="main" style="display: contents">
+          <section class="fixture_page" data-plugin-panel>
+            <header class="fixture_pageHead"></header>
+            <section class="fixture_group"></section>
+            <div class="fixture_detail" data-plugin-detail="pkg"></div>
+          </section>
+        </div>
+      </div>
+    `
+    const panel = document.querySelector<HTMLElement>('[data-plugin-panel]')!
+    const declarations = (dark: boolean): string => {
+      document.body.toggleAttribute('data-ds-dark-theme', dark)
+      return flatCssRules(CSS)
+        .filter((rule) => rule.selector.startsWith('body[data-dsh-maid-atelier]'))
+        .filter((rule) => {
+          try {
+            return panel.matches(rule.selector)
+          } catch {
+            return false
+          }
+        })
+        .map((rule) => rule.body)
+        .join('\n')
+    }
+    const light = declarations(false)
+    expect(light).toContain('position: relative;')
+    // Above the character stage (z 0) and the top curtain (z 1), below the
+    // skin's interactive tiers (21 / 40 / 1000).
+    expect(light).toContain('z-index: 2;')
+    expect(light).toContain('background: rgba(242, 246, 253, 0.94);')
+    expect(light).toContain('--dsw-alias-label-tertiary: #52658c;')
+    const dark = declarations(true)
+    expect(dark).toContain('background: rgba(11, 23, 55, 0.94);')
+    expect(dark).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    document.body.removeAttribute('data-ds-dark-theme')
+    document.body.removeAttribute('data-dsh-maid-atelier')
+    document.body.innerHTML = ''
   })
 })

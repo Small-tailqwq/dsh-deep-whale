@@ -35,6 +35,7 @@ interface SkinManifest {
   name?: unknown
   nameEn?: unknown
   tagline?: unknown
+  taglineEn?: unknown
   package?: unknown
   bodyAttr?: unknown
   dshCompatibility?: unknown
@@ -136,6 +137,7 @@ function catalogEntry(manifest: SkinManifest, installedPackage: string): SkinCat
     name,
     ...(typeof manifest.nameEn === 'string' ? { nameEn: manifest.nameEn } : {}),
     ...(typeof manifest.tagline === 'string' ? { tagline: manifest.tagline } : {}),
+    ...(typeof manifest.taglineEn === 'string' ? { taglineEn: manifest.taglineEn } : {}),
     package: packageName,
     wiringId,
     bodyAttr,

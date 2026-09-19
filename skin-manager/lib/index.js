@@ -89,6 +89,7 @@ function catalogEntry(manifest, installedPackage) {
 		name,
 		...typeof manifest.nameEn === "string" ? { nameEn: manifest.nameEn } : {},
 		...typeof manifest.tagline === "string" ? { tagline: manifest.tagline } : {},
+		...typeof manifest.taglineEn === "string" ? { taglineEn: manifest.taglineEn } : {},
 		package: packageName,
 		wiringId,
 		bodyAttr,

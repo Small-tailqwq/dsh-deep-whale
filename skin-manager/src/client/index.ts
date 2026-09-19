@@ -1,7 +1,8 @@
 /** Browser half: one official settings section plus the shared preference runtime. */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SkinCatalogEntry } from '../contract.ts'
-import { SkinManager, requestSkinSwitch } from './SkinManager.tsx'
+import { SkinManager, fetchSkinCatalog, requestSkinSwitch } from './SkinManager.tsx'
+import { installBundleIntros } from './bundle-intro.tsx'
 import { currentUiLang, skinManagerCopy } from './locale.ts'
 import { PreferencesStore } from './preferences.ts'
 import { SkinCustomizationRegistry } from './runtime.ts'
@@ -9,7 +10,7 @@ import './skin-manager.module.css'
 
 interface SlotsContext extends Context {
   slots: {
-    inject(name: string, register: () => unknown): void
+    inject(name: string, register: () => unknown): unknown
     register(options: Record<string, unknown>, component: unknown): unknown
   }
 }
@@ -41,4 +42,10 @@ export function apply(ctx: SlotsContext): void {
     label: () => skinManagerCopy(currentUiLang()).navLabel,
     inject: () => ({ registry, active: activeSkin, switchSkin: requestSkinSwitch }),
   }, SkinManager))
+
+  // The Plugins page's own one-liner for a bundle is `package.json#description`,
+  // one static string it never localizes for third parties. `plugins.bundle.config`
+  // is the slot contract's answer for a bundle's own content, so the manager fills
+  // it with each installed skin's declared name and tagline in the reader's language.
+  ctx.effect(() => installBundleIntros(ctx.slots, fetchSkinCatalog), 'ui-skin-manager: bundle introductions')
 }

@@ -162,6 +162,71 @@ body[data-dsh-orca-link] [data-chat-flow] *::after {
   border-radius: 0 !important;
 }
 
+/* Switch: a machined breaker slot instead of the host's capsule with a ball.
+   The shape contract squares the track but never reaches the thumb, so the
+   control shipped as a round white ball floating in a hard rectangle — and
+   because the light palette's accent IS graphite, the ON state was a dark
+   block that read like the OFF one. Both parts are rectilinear here: OFF is a
+   hollow block resting in a recessed slot, ON is the same block travelled
+   right, filled with the accent, in an accent-tinted slot behind an accent
+   frame. Geometry stays the host's 36x20 with a 1px frame and a 1px inset, so
+   the 16px travel, hit box, layout and the `aria-checked` state source are all
+   unchanged.
+
+   Unlike the shape contract this deliberately reaches into the settings
+   dialog: that dialog already carries its own universal rectilinear zeroing
+   (`[data-slot='sidebar.settings'] [role='dialog'] *`), so the switch inside it
+   is square either way and excluding the section would give one control two
+   designs. Only the hands-off seats keep the host's own switch. */
+body[data-dsh-orca-link] :where([role='switch']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) {
+  box-sizing: border-box;
+  width: 36px;
+  height: 20px;
+  padding: 1px;
+  border: 1px solid var(--orca-line);
+  border-radius: 0 !important;
+  background: color-mix(in srgb, var(--orca-ink) 7%, var(--dsw-input-solid));
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+body[data-dsh-orca-link] :where([role='switch'][aria-checked='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) {
+  border-color: color-mix(in srgb, var(--orca-blue) 62%, transparent);
+  background: color-mix(in srgb, var(--orca-blue) 18%, var(--dsw-input-solid));
+}
+
+body[data-dsh-orca-link] :where([role='switch']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) > [class*='thumb'] {
+  box-sizing: border-box;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--orca-muted);
+  border-radius: 0 !important;
+  background: var(--orca-surface-strong);
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+body[data-dsh-orca-link] :where([role='switch'][aria-checked='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) > [class*='thumb'] {
+  transform: translateX(16px);
+  border-color: var(--orca-blue);
+  background: var(--orca-blue);
+}
+
 /* Command shells own their rounded frame outside the listbox. Keep the
    popupSelect relation local to the composer overlay, including empty lists. */
 body[data-dsh-orca-link] [data-trigger-menu],
@@ -218,6 +283,15 @@ body[data-dsh-orca-link] [data-dockkit-tab-menu] {
   background: var(--dsw-input-solid);
   border-color: var(--orca-line);
   box-shadow: var(--orca-shadow);
+}
+
+/* The 0.1.6 plugin manager is one of those reading panes: a keyed `main` panel
+   that replaces the conversation in the centre column with dense card and
+   detail copy. Same floor, from the same token, so the scene never fights the
+   management text for readability. */
+body[data-dsh-orca-link] [data-plugin-panel] {
+  background: var(--dsw-input-solid);
+  color: var(--orca-ink);
 }
 
 /* Stats include noninteractive span pills as well as buttons. Their own
@@ -1435,11 +1509,20 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
    reports the plugin identity, so it doubles as the general opt-in for a
    plugin-injected block. Both must stay out of the native-button takeover
    below: that takeover hides every child of a matching button, and a plugin
-   row that copies the host's own button class is exactly the case it reaches. */
+   row that copies the host's own button class is exactly the case it reaches.
+
+   0.1.6 adds a third row of the same shape: the official global panel list
+   (`nav.panelList`, the Plugins entry) sits between New Session and the
+   browsing region, so every injected row now inherits a flow anchor 44px
+   lower. It is an official row rather than an injected one, but it lands in
+   the same place for the same reason, and it must clear the stage for one
+   more: the wide stage's transparent New Session hit plane is painted at
+   z-index 2 over the whole portrait area, which both hid the row behind the
+   artwork and swallowed its clicks. */
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
   > :first-child
-  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
+  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
   position: relative;
   z-index: 3;
   margin-top: calc(var(--orca-stage, 300px) - 116px);
@@ -1452,7 +1535,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
    original margin still does the stage push. */
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
-  > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]))
+  > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))
   [class*='regionArea'] {
   margin-top: 0;
 }
@@ -1465,6 +1548,18 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
   > :first-child
   > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry])
+  ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
+  margin-top: 0;
+}
+
+/* With the official panel row above them the injected entries are no longer
+   the first row under New Session: that row already paid the stage offset, so
+   the entry that follows it must not pay a second one. Same intent as the
+   sibling rule above, different predecessor. */
+body[data-dsh-orca-link][data-orca-sidebar-wide]
+  [data-slot='sidebar']
+  > :first-child
+  > nav[class*='panelList']
   ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
   margin-top: 0;
 }
@@ -3087,11 +3182,11 @@ body[data-dsh-orca-link] {
   }
   /* The portrait stage is retired in this layout, so the entries' stage-sized
      offset would leave a blank band above the plugin rows; reset it with the
-     rest of the stage chrome. */
+     rest of the stage chrome. The official panel row rides the same offset. */
   body[data-dsh-orca-link][data-orca-sidebar-wide]
     [data-slot='sidebar']
     > :first-child
-    > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
+    > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
     margin-top: 0;
   }
   body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before { display: none; }
@@ -3134,6 +3229,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .lightSceneLayer,
   body[data-dsh-orca-link] .darkSceneLayer,
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before,
+  body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell] { opacity: 0.55; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }

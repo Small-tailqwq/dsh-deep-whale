@@ -4,6 +4,7 @@
   "nameEn": "Abyssal Maid Atelier",
   "author": "Small-tailqwq",
   "tagline": "双女仆背景、深海蓝蕾丝界面与 Q 版侧栏",
+  "taglineEn": "Twin-maid backdrop, deep-sea lace interface, and a chibi sidebar",
   "description": "一套面向 DeepSeek Harness WebUI 的高定制动漫角色皮肤。它使用双女仆工坊场景作为对话区背景，以深海蓝、陶瓷白、长春花蓝和柔金构成可热切换的 UI 覆盖层，并为加载、思考和工具运行状态预留稳定动画钩子。",
   "tags": [
     "anime",
