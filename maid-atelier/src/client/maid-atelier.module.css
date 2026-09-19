@@ -4300,14 +4300,11 @@ body[data-dsh-maid-atelier]
   backdrop-filter: blur(8px) saturate(0.92);
 }
 
-/* The bash toolview registers its own row without the shared DisclosureRow
-   (data-variant='bash' IS the single-line row itself). Its collapsed state is
-   transparent over the palace art, so blur that strip directly; the expanded
-   terminal/IO card below stays opaque and needs no filter. Keep a theme-tinted
-   background like the think rows so dark backdrop art cannot make the text
-   unreadable. */
+/* Shell views with a DisclosureRow already receive its reading surface above.
+   Only standalone shell rows need a surface on the tool root; painting both
+   root and child doubles the tint and blur. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
-  [data-variant='bash'],
+  [data-variant='bash']:not(:has([data-disclosure-row])),
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row]
 ) {
   width: max-content;
@@ -4324,7 +4321,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] :is(
-  [data-variant='bash'],
+  [data-variant='bash']:not(:has([data-disclosure-row])),
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row]
 ) {
   width: max-content;
