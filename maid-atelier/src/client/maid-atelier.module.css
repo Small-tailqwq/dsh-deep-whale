@@ -3365,11 +3365,12 @@ body[data-dsh-maid-atelier]
   backdrop-filter: none;
 }
 
-/* ChatView exposes data-chat-flow in every loading and content state. Give
-   Trajectory, Timeline, and other inspect-only views the full canvas while
-   leaving the resident composer DOM and its draft state mounted. */
+/* ChatView exposes data-chat-flow in every loading and content state. Older
+   Better Display readers use their own root instead; keep their composer even
+   before any turns render. Inspect-only views still get the full canvas while
+   the resident composer DOM and its draft state remain mounted. */
 body[data-dsh-maid-atelier] [data-phase='active']
-  [data-conversation-scroll]:not(:has([data-chat-flow]))
+  [data-conversation-scroll]:not(:has([data-chat-flow], [data-dsh-better-display]))
   > [data-composer-seat] {
   display: none;
 }

@@ -1708,10 +1708,38 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('gives inspect-only overlay views the full canvas without the composer seat', () => {
-    const inspectRule = CSS.match(
-      /\[data-phase='active'\]\s*\[data-conversation-scroll\]:not\(:has\(\[data-chat-flow\]\)\)\s*> \[data-composer-seat\]\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    expect(inspectRule).toContain('display: none')
+    const hideRules = flatCssRules(CSS).filter(rule =>
+      rule.selector.includes('[data-conversation-scroll]')
+      && rule.selector.endsWith('> [data-composer-seat]')
+      && /display:\s*none/.test(rule.body),
+    )
+    expect(hideRules.length).toBeGreaterThan(0)
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `<section data-phase="active">
+      <div data-conversation-scroll><div data-composer-seat></div></div>
+    </section>`
+    const scroll = document.querySelector('[data-conversation-scroll]')!
+    const seat = scroll.querySelector('[data-composer-seat]')!
+    const hidden = () => hideRules.some(rule => seat.matches(rule.selector))
+    expect(hidden()).toBe(true)
+
+    const view = document.createElement('div')
+    scroll.prepend(view)
+    view.setAttribute('data-chat-flow', '')
+    expect(hidden()).toBe(false)
+
+    view.removeAttribute('data-chat-flow')
+    view.setAttribute('data-dsh-better-display', '0.1.1')
+    expect(hidden()).toBe(false) // Reader loading/empty state has no turns.
+    view.innerHTML = '<section data-reader-turn="1"></section>'
+    expect(hidden()).toBe(false)
+    view.setAttribute('data-chat-flow', '')
+    expect(hidden()).toBe(false) // Newer Reader also publishes the native hook.
+
+    view.remove()
+    expect(hidden()).toBe(true) // Switching back to an inspect-only view.
+    document.querySelector('[data-phase]')!.setAttribute('data-phase', 'hero')
+    expect(hidden()).toBe(false)
   })
 
   it('lets the lower sidebar swag own the bottom boundary without a rectangular tint seam', () => {
