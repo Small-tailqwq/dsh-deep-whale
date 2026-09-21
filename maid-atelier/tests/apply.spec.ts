@@ -830,13 +830,13 @@ describe('Maid Atelier skin apply', () => {
       /\[data-skin-chrome='composer-lace'\]::after\s*\{[^}]*right: 54px[^}]*var\(--maid-composer-lace-art\)[^}]*background-position: right top/s,
     )
     expect(CSS).toMatch(
-      /\[data-skin-chrome='composer-lace'\]::before,[\s\S]*?\[data-skin-chrome='composer-lace'\]::after\s*\{[^}]*width: calc\(50% - 96px\)/s,
+      /\[data-skin-chrome='composer-lace'\]::before,[\s\S]*?\[data-skin-chrome='composer-lace'\]::after\s*\{[^}]*width: max\(0px, calc\(50% - 81px\)\)/s,
     )
     expect(CSS).toMatch(
-      /\[data-maid-composer-lace-center\]\s*\{[^}]*left: calc\(50% - 42px\)[^}]*width: 84px[^}]*var\(--maid-composer-lace-art\)[^}]*background-position: left top/s,
+      /\[data-maid-composer-lace-center\]\s*\{[^}]*left: calc\(50% - 27px\)[^}]*width: 54px[^}]*var\(--maid-composer-lace-art\)[^}]*background-position: center top[^}]*background-repeat: no-repeat/s,
     )
     expect(CSS).toMatch(
-      /\[data-maid-composer-lace-center\]\s*\{[^}]*background-size: auto 33px[^}]*background-repeat: repeat-x/s,
+      /\[data-skin-chrome='composer-lace'\]::before,[\s\S]*?\[data-maid-composer-lace-center\]\s*\{[^}]*background-size: 54px 33px[^}]*background-repeat: repeat-x/s,
     )
     expect(CSS).not.toContain('max-width: min(100%, 720px)')
   })
