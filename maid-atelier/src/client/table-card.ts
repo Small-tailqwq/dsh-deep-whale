@@ -77,6 +77,11 @@ function setLeasedAttribute(element: HTMLElement, attribute: string, owner: symb
   if (attributes.size === 0) attributeLeases.delete(element)
 }
 
+/** Labels follow the host language at the moment each control is created. */
+function tableLabel(zh: string, en: string): string {
+  return (document.documentElement.lang || navigator.language || 'en').toLowerCase().startsWith('zh') ? zh : en
+}
+
 function acquireControl(wrapper: HTMLElement, owner: symbol, activate: () => void): HTMLButtonElement {
   let lease = controlLeases.get(wrapper)
   if (lease === undefined) {
@@ -84,8 +89,8 @@ function acquireControl(wrapper: HTMLElement, owner: symbol, activate: () => voi
     button.type = 'button'
     button.setAttribute(CONTROL_ATTRIBUTE, '')
     button.dataset.skinOwner = SKIN_OWNER
-    button.setAttribute('aria-label', '展开表格预览')
-    button.title = '展开表格预览'
+    button.setAttribute('aria-label', tableLabel('展开表格预览', 'Expand table preview'))
+    button.title = button.getAttribute('aria-label')!
     const owners = new Map<symbol, () => void>()
     const onClick = (event: MouseEvent): void => {
       if (!wrapper.hasAttribute(EXPANDABLE_ATTRIBUTE)) return
@@ -280,7 +285,7 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     const close = document.createElement('button')
     close.type = 'button'
     close.dataset.maidTableClose = ''
-    close.setAttribute('aria-label', '关闭展开表格')
+    close.setAttribute('aria-label', tableLabel('关闭展开表格', 'Close expanded table'))
 
     const scroller = document.createElement('div')
     scroller.dataset.maidTableExpandedScroller = ''

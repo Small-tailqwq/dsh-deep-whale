@@ -9,6 +9,7 @@ import { installMaidTableCards } from '../src/client/table-card.ts'
 
 describe('installMaidTableCards', () => {
   afterEach(() => {
+    document.documentElement.lang = ''
     vi.unstubAllGlobals()
     document.body.innerHTML = ''
   })
@@ -52,6 +53,7 @@ describe('installMaidTableCards', () => {
     bubble.append(card)
     document.body.append(bubble)
 
+    document.documentElement.lang = 'zh-CN'
     const runtime = installMaidTableCards({} as never)
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
 

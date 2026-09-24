@@ -1,4 +1,8 @@
-/** Host loader entry for the browser-only skin plugin. */
+import type { Context } from '@deepseek-ai/cordis'
+import { installSkinAssets } from '../../shared/skin-assets.ts'
+import files from '../assets/runtime/manifest.json'
 
-/** Provides no host-side behavior. */
-export function apply(): void {}
+/** Serve only this package's immutable presentation assets while the skin is enabled. */
+export function apply(ctx: Context): void {
+  installSkinAssets(ctx, 'maid-atelier', new URL('../assets/runtime/', import.meta.url), files)
+}

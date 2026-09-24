@@ -26,3 +26,9 @@ Artwork usage terms (LICENSE-ARTWORK): CC BY-NC-SA 4.0 —— 署名 (attributio
 
 Software code is covered by LICENSE (MIT). Artwork copyright remains with the
 respective authors above, including embedded and transformed copies.
+
+The host SVG test fixtures in tests/fixtures/dsh-0.1.7-alpha.1-icons.json are
+rendered from deepseek-ai/deepseek-harness at commit
+c36a83ff6bb95e3f82cf79f9be7c724270a8aa61, copyright (c) 2026 DeepSeek,
+under the MIT License reproduced in tests/fixtures/DSH-LICENSE. These test
+fixtures are separate from the character artwork licensed above.

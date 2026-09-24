@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
+import { hashSkinAssets } from './skin-asset-inputs.mjs'
 
 const [skinRootArg, repository] = process.argv.slice(2)
 
@@ -40,6 +41,7 @@ if (!skinRootArg || !repository || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(re
     hash.update(normalized)
   }
 
+  hashSkinAssets(hash, skinRoot)
   const output = `${JSON.stringify({
     schema: 1,
     fingerprint: hash.digest('hex'),

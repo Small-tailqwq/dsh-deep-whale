@@ -36,19 +36,21 @@ function conversationRoot(body: HTMLElement): HTMLElement | null {
   return null
 }
 
-function lastFlowRow(flow: HTMLElement): HTMLElement | null {
-  const rows = Array.from(flow.children).filter((child): child is HTMLElement => (
-    child instanceof HTMLElement && child.hasAttribute('data-chat-flow-kind')
-  ))
-  return rows.at(-1) ?? null
-}
-
-function lastMeaningfulFlowRow(flow: HTMLElement): HTMLElement | null {
-  const rows = Array.from(flow.children).filter((child): child is HTMLElement => (
-    child instanceof HTMLElement && child.dataset.chatFlowKind !== undefined
-      && child.dataset.chatFlowKind !== 'turn-tail'
-  ))
-  return rows.at(-1) ?? null
+function lastFlowRow(flow: HTMLElement, skipTail = false): HTMLElement | null {
+  // Process groups retain their rows under a nested flow, including while
+  // folded. Only descend into that host-owned group, never tool preview DOM.
+  for (let index = flow.children.length - 1; index >= 0; index -= 1) {
+    const child = flow.children[index]
+    if (!(child instanceof HTMLElement)) continue
+    if (child.hasAttribute('data-chat-flow-kind')) {
+      if (!skipTail || child.dataset.chatFlowKind !== 'turn-tail') return child
+    } else if (child.hasAttribute('data-step-process')) {
+      const content = child.querySelector<HTMLElement>(':scope > [data-step-process-body] > [data-step-process-content][data-chat-flow]')
+      const row = content === null ? null : lastFlowRow(content, skipTail)
+      if (row !== null) return row
+    }
+  }
+  return null
 }
 
 function resolveStatus(root: HTMLElement | null): LinkStatus {
@@ -73,8 +75,8 @@ function resolveStatus(root: HTMLElement | null): LinkStatus {
   const flow = root.querySelector<HTMLElement>('[data-chat-flow]')
   if (flow === null) return 'ready'
   const tail = lastFlowRow(flow)
-  const meaningful = lastMeaningfulFlowRow(flow)
-  if (meaningful?.querySelector("[data-state='error'], [data-state='interrupted']") !== null) return 'fault'
+  const meaningful = lastFlowRow(flow, true)
+  if (meaningful !== null && meaningful.querySelector("[data-state='error'], [data-state='interrupted']") !== null) return 'fault'
   if (tail?.dataset.chatFlowKind === 'turn-tail') return 'complete'
   return 'ready'
 }

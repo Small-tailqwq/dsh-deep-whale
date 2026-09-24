@@ -28,6 +28,7 @@ chain is credited:
    网页与应用图标（assets/icons/，2026-09-07）：由 Small-tailqwq 提供三张
    鲸鱼娘表情原图；保留原图，通过本地脚本抠除浅色背景并处理边缘，等比缩放及
    透明留边生成 PNG / ICO，沿用以上署名链。处理脚本为 scripts/build-maid-icons.py。
+   插件菜单图标 assets/plugin-icon.png 为其中 delighted-192.png 的原字节副本。
 
 Artwork usage terms (LICENSE-ARTWORK): CC BY-NC-SA 4.0 —— 署名 (attribution) 必须保留以上完整创作链；
 非商业性使用 (non-commercial only)；衍生作品必须以相同方式共享 (share-alike)。
