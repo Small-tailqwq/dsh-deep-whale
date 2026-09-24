@@ -37,3 +37,7 @@
 ## 四、保留
 
 - **#14**（公告牌）、**#20**（安全提醒）：不动
+
+## 五、未来计划
+
+- **立绘状态机（按会话状态切换立绘）** —— 思路来源 [PR #138](https://github.com/Small-tailqwq/dsh-deep-whale/pull/138)（[@wjingshan](https://github.com/wjingshan)）。读宿主 DOM 已有的 `data-state`（`running` / `error` / `stopped`）让右女仆在思考、完成、泄气三态之间换立绘。当前不排期：缺三张配套立绘（美术投入与 #23 同类），且该 PR 把目标绑在 `[data-maid-character='right']` 上，与既有「按模型切换立绘」（`pro→left`、`flash→right`）和「闪光眼镜」（`vision` 顶替 `right`）冲突，这些配置下立绘不可见。落地时立绘方向可与二创作者 ZipZipPipe（本皮肤立绘来源，见 `maid-atelier/NOTICE`）协商；功能实现后在本仓库为 @wjingshan 挂名。
