@@ -1,7 +1,10 @@
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
 import { createOrcaSettingsNavigation } from './settings-navigation.ts'
 
-const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog']"
+// Through DSH 0.1.7-rc.1 the panel mounts inside the settings slot; from rc.2 it
+// portals to <body> and names itself with `data-shortcut-modal='settings'`.
+const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']"
+const SETTINGS_OWNER_SELECTOR = "[data-slot='sidebar.settings'], [role='dialog'][data-shortcut-modal='settings']"
 const SETTINGS_OPEN_ATTRIBUTE = 'data-orca-settings-open'
 const CORDIS_PANEL_SELECTOR = "[data-slot='sidebar.footer.action'] [data-cordis-panel]"
 const CORDIS_OPEN_ATTRIBUTE = 'data-orca-cordis-panel-open'
@@ -50,7 +53,7 @@ export function installOrcaSettingsOverlay(body: HTMLElement): () => void {
     if (hasMutationOutsideTerminal(records)) {
       synchronize(records.some(record => record.type === 'childList'
         && record.target instanceof Element
-        && record.target.closest("[data-slot='sidebar.settings']") !== null))
+        && record.target.closest(SETTINGS_OWNER_SELECTOR) !== null))
     }
     synchronizeTheme()
   })

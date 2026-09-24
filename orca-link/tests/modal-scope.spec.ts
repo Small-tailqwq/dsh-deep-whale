@@ -6,9 +6,15 @@ const css = readFileSync(
   'utf8',
 )
 
+// DSH 0.1.7-rc.1 mounts the settings panel inside its slot; rc.2 portals it to
+// <body>. Every settings selector accepts both mounts through these forms.
+const SETTINGS_OVERLAY = ":is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))"
+const SETTINGS_DIALOG = ":is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings'])"
+const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 describe('ORCA modal style boundaries', () => {
   it('limits settings layout and animation to the settings host', () => {
-    const settingsHost = "body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation']"
+    const settingsHost = `body[data-dsh-orca-link][data-orca-settings-open] ${SETTINGS_OVERLAY}`
     const unscopedDialogHost = /body\[data-dsh-orca-link\](?:\[[^\n]+\])?\s+(?!\[data-slot='sidebar\.settings'\])\[role='presentation'\]:has\(> \[role='dialog'\]\)/
 
     expect(css).toContain(settingsHost)
@@ -18,7 +24,7 @@ describe('ORCA modal style boundaries', () => {
 
   it('restores the centered desktop layout only through its customization attribute', () => {
     const centeredRule = css.match(
-      /data-dsh-whale-orca-settings-layout='centered'[\s\S]*?\[role='presentation'\]\s*\{([^}]*)\}/,
+      new RegExp(`data-dsh-whale-orca-settings-layout='centered'[\\s\\S]*?${escape(SETTINGS_OVERLAY)}\\s*\\{([^}]*)\\}`),
     )?.[1] ?? ''
     expect(centeredRule).toContain('justify-content: center')
     expect(centeredRule).toContain('align-items: center')
@@ -38,7 +44,7 @@ describe('ORCA modal style boundaries', () => {
   })
 
   it('keeps the settings provider picker out of generic dialogs', () => {
-    expect(css).toContain("[data-slot='sidebar.settings'] [role='dialog'] select")
+    expect(css).toContain(`${SETTINGS_DIALOG} select`)
     expect(css).not.toContain("body[data-dsh-orca-link] [role='dialog'] select")
   })
 
@@ -78,13 +84,13 @@ describe('ORCA modal style boundaries', () => {
 
   it('lifts every settings select into a flex row so bare picker icons center', () => {
     const baseSelectRule = css.match(
-      /@supports \(appearance: base-select\)\s*\{[\s\S]*?\[data-slot='sidebar\.settings'\] \[role='dialog'\] select\s*\{([^}]*)\}/s,
+      new RegExp(`@supports \\(appearance: base-select\\)\\s*\\{[\\s\\S]*?${escape(SETTINGS_DIALOG)} select\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     const pickerIconRule = css.match(
-      /\[data-slot='sidebar\.settings'\] \[role='dialog'\] select::picker-icon\s*\{([^}]*)\}/s,
+      new RegExp(`${escape(SETTINGS_DIALOG)} select::picker-icon\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     const optionRule = css.match(
-      /\[data-slot='sidebar\.settings'\] \[role='dialog'\] select option\s*\{([^}]*)\}/s,
+      new RegExp(`${escape(SETTINGS_DIALOG)} select option\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     // Bare selects (customization card, hour/minute pickers) are display:
     // contents-free flex rows; without it ::picker-icon aligns to the text

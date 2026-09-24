@@ -395,16 +395,17 @@ describe('Maid Atelier skin apply', () => {
     `
     fiber = await mount()
     const settingsSlot = document.querySelector<HTMLElement>("[data-slot='sidebar.settings']")!
+    // DSH 0.1.7-rc.1 SettingsPanel: the overlay mounts inside the settings slot,
+    // holding the mask and the dialog as siblings.
     const overlay = document.createElement('div')
     overlay.setAttribute('role', 'presentation')
     const mask = document.createElement('div')
     mask.className = 'fixture_mask'
-    overlay.append(mask)
-    document.body.append(overlay)
     const dialog = document.createElement('div')
     dialog.setAttribute('role', 'dialog')
     dialog.setAttribute('aria-modal', 'true')
-    settingsSlot.append(dialog)
+    overlay.append(mask, dialog)
+    settingsSlot.append(overlay)
     await flushMutations()
 
     const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
@@ -412,9 +413,49 @@ describe('Maid Atelier skin apply', () => {
     expect(copy?.nextElementSibling).toBe(mask)
     expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
 
-    dialog.remove()
+    overlay.remove()
     await flushMutations()
     expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
+  })
+
+  it('follows the DSH 0.1.7-rc.2 settings panel portaled beside #root', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div>
+          <div><div data-slot="sidebar.settings"><button aria-expanded="false">Settings</button></div></div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+    // A body-level modal of the same shape opened first must not take the frame.
+    const shortcuts = document.createElement('div')
+    shortcuts.setAttribute('role', 'presentation')
+    shortcuts.innerHTML = '<div class="fixture_mask"></div><div role="dialog" aria-modal="true" data-shortcut-modal="shortcuts"></div>'
+    document.body.append(shortcuts)
+    // rc.2 SettingsRoot: createPortal(overlay, document.body) with the panel
+    // named by `data-shortcut-modal="settings"`.
+    const overlay = document.createElement('div')
+    overlay.setAttribute('role', 'presentation')
+    const mask = document.createElement('div')
+    mask.className = 'fixture_mask'
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    dialog.dataset.shortcutModal = 'settings'
+    overlay.append(mask, dialog)
+    document.body.append(overlay)
+    await flushMutations()
+
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
+    const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
+    expect(copy?.parentElement).toBe(overlay)
+    expect(copy?.nextElementSibling).toBe(mask)
+
+    overlay.remove()
+    await flushMutations()
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
+    expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
+    shortcuts.remove()
   })
 
   it('anchors the public rc.6 settings slot to the real sidebar footer', async () => {
@@ -2083,14 +2124,16 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('keeps the settings panel translucent above the dimmed composer', () => {
+    // rc.1 mounts the overlay in the settings slot; rc.2 portals it to <body>.
+    const overlay = /:is\(\[data-slot='sidebar\.settings'\] \[role='presentation'\], :where\(body\) > \[role='presentation'\]:where\(:has\(> \[role='dialog'\]\[data-shortcut-modal='settings'\]\)\)\)/.source
     const settingsSurfaceRule = CSS.match(
-      /\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+      new RegExp(`${overlay}\\s*> \\[role='dialog'\\]\\[aria-modal='true'\\]\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     const settingsSurfaceBackingRule = CSS.match(
-      /\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]::before\s*\{([^}]*)\}/s,
+      new RegExp(`${overlay}\\s*> \\[role='dialog'\\]\\[aria-modal='true'\\]::before\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     const darkSettingsSurfaceRule = CSS.match(
-      /\[data-ds-dark-theme\]\s+\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+      new RegExp(`\\[data-ds-dark-theme\\]\\s+${overlay}\\s*> \\[role='dialog'\\]\\[aria-modal='true'\\]\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     expect(settingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68)')
     expect(settingsSurfaceRule).toContain('background: transparent')
