@@ -7,6 +7,8 @@
 - 启动时兜底检测 profile→home 两层的有效启停状态；若两套及以上皮肤会同时启用，原子回退到官方默认；
 - 渲染活动皮肤通过版本化协议主动暴露的开关、下拉、复选组、滑杆、颜色与可见时段配置项；当前声明使用 v2，manager 仍兼容已发布的完整 v1 声明，包括颜色、复选组、条件显示与旧值映射；
 - 通用的“不那么二次元模式”：按本机时间设置多个显示或隐藏时段。
+- DSH 0.1.7+ 会自动停用未声明支持当前版本的皮肤；管理页会标出这类皮肤，点「切换」并确认后，通过 DSH 自己的放行接口只放行"这个皮肤版本 + 这个 DSH 版本"，不会自动放行；
+- 窄屏（宽度小于 1024px，与 DSH 自身的侧栏折叠断点一致）下，再点一次已打开的「插件」等全局面板入口即可回到原来的对话。
 
 > 若已安装 `@linxin666/dsh-web-all`（dsh-web），请使用 dsh-web 自带的皮肤中心/安装入口及其 `maid-atelier`、`orca-link` 适配版，不要安装本管理器或执行下面的 standalone 安装命令。两种发行方式不能在同一 profile 中叠装。
 
@@ -18,7 +20,7 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manage
 
 PowerShell 版本见仓库 README。未指定 dist-tag 时 npm 使用 `latest`。首次安装后重启一次 DSH；首次重启时管理器兜底检测到两套及以上皮肤同时启用会原子回退官方默认，之后在“设置 → 皮肤管理”切换。本地开发时对 skin-manager 与皮肤目录分别以绝对路径 link，不要与 npm 安装混跑（同一包名，后 add 覆盖）。
 
-切换与启动兜底都会同步改写当前 Web profile 与优先级更高的 home patch 中的标准 `dsh-skin managed` 区段；区段外的用户 YAML 保持不变。已有零套或一套皮肤启用时，启动兜底不写文件。自定义配置按 `skinId` 保存在浏览器 `localStorage`，不会修改模型请求或 DSH 服务。
+切换与启动兜底都会同步改写当前 Web profile 与优先级更高的 home patch 中的标准 `dsh-skin managed` 区段；区段外的用户 YAML 保持不变。区段只拥有已发现皮肤与 `ui-skin-*` 的行：DSH 0.1.7+ 把设置（如 `ui-theme`）追加到 patch 末尾而落进区段时，这些非皮肤行在重建时会原样移到区段之前。已有零套或一套皮肤启用时，启动兜底不写文件。自定义配置按 `skinId` 保存在浏览器 `localStorage`，不会修改模型请求或 DSH 服务。
 
 ## 皮肤接入
 

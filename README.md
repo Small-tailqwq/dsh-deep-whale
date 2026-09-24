@@ -72,6 +72,16 @@ dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-man
 
 npm 依赖默认跟随 `latest`；`update` 重新解析该标签当前指向的版本。GitHub 依赖则重新解析仓库最新提交。也可以不带包名执行 `dsh plugin --profile web update`（更新 profile 全部依赖，只装了本仓库皮肤时效果相同）。bundle 内容更新走配置热重载；只有新增/删除插件包才需要重启。
 
+### 升级 DSH 后皮肤不见了？
+
+从 DSH 0.1.7-rc.1 开始，每个包都能在 `package.json` 里声明自己支持的 DSH 版本，DSH 启动时不会加载版本不符的插件。本仓库的两套皮肤只声明支持当前适配过的小版本（例如 `>=0.1.7-rc.1 <0.1.8-0`）：DSH 升级而皮肤还没跟上时，皮肤会被自动停用，界面回到官方默认，不会出现"输入框消失、没法让 AI 帮忙修"的情况。皮肤管理器只声明最低版本，升级 DSH 后照常可用。
+
+遇到这种情况，先按上面的命令更新皮肤。想在新版 DSH 上先凑合用旧皮肤，就打开「设置 → 皮肤管理」：被停用的皮肤会标着「未声明支持当前的 DSH x.y.z，已被自动停用」，点「切换」并确认即可。确认只对"这个皮肤版本 + 这个 DSH 版本"生效，皮肤或 DSH 任意一方换了版本都会重新检查；不喜欢随时切回「官方默认」。命令行等价操作：
+
+```sh
+dsh plugin --profile web allow-version @smalltailqwq/dsh-client-ui-skin-orca-link@<皮肤版本> --dsh-version <DSH 版本> --accept-risk
+```
+
 ### 从旧占位 scope 迁移
 
 `0.1.3` 之前从 GitHub 安装的版本使用 `@dsh-external/*` 依赖键；它只是本项目过去的源码占位符。必须先移除三个旧键，再运行上面的 npm 一行安装，否则 DSH 可能同时保留两组插件身份：

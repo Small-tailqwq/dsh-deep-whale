@@ -22,7 +22,8 @@ import css from './skin-manager.module.css'
 export interface SkinManagerInjected {
   registry: SkinCustomizationRegistry
   active(catalog: SkinCatalogEntry[]): SkinTarget | 'unknown'
-  switchSkin(target: SkinTarget): Promise<void>
+  /** `acceptRisk` grants the exact skin/DSH version pair the host otherwise refuses. */
+  switchSkin(target: SkinTarget, acceptRisk?: boolean): Promise<void>
 }
 
 const shortDate = (iso: string | null): string => iso === null ? '' : iso.slice(0, 10)
@@ -598,9 +599,14 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   }, [])
 
   const choose = (target: SkinTarget): void => {
+    // A skin outside its declared DSH range stays disabled by the host until
+    // the user accepts that exact version pair; never grant it silently.
+    const blocked = catalog.find(skin => skin.id === target)?.compatibility
+    const acceptRisk = blocked !== undefined && !blocked.exempted
+    if (acceptRisk && !window.confirm(copy.incompatibleConfirm(blocked.runtimeVersion))) return
     setSwitching(target)
     setError(null)
-    void switchSkin(target).catch((reason) => {
+    void switchSkin(target, acceptRisk).catch((reason) => {
       setSwitching(null)
       setError(reason instanceof Error ? reason.message : String(reason))
     })
@@ -677,6 +683,13 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
                   {secondaryName !== undefined && <small>{secondaryName}</small>}
                   <small>{current === skin.id ? copy.stateCurrent : switching === skin.id ? copy.stateSwitching : copy.stateSwitch}</small>
                 </button>
+                {skin.compatibility !== undefined && (
+                  <small className={skin.compatibility.exempted ? css.compatibility : css.incompatible} data-skin-incompatible={skin.compatibility.exempted ? 'allowed' : 'blocked'}>
+                    {skin.compatibility.exempted
+                      ? copy.incompatibleAllowed(skin.compatibility.runtimeVersion)
+                      : copy.incompatibleBlocked(skin.compatibility.runtimeVersion)}
+                  </small>
+                )}
                 {skin.dshCompatibility && (
                   <small className={css.compatibility}>{copy.compatibility(skin.dshCompatibility)}</small>
                 )}
@@ -924,12 +937,12 @@ export async function fetchSkinVersions(): Promise<Map<string, SkinVersionInfo>>
 }
 
 /** Same-origin host switch with a bounded refresh handoff. */
-export async function requestSkinSwitch(target: SkinTarget): Promise<void> {
+export async function requestSkinSwitch(target: SkinTarget, acceptRisk = false): Promise<void> {
   const response = await fetch(SKIN_MANAGER_ROUTE, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ target }),
+    body: JSON.stringify(acceptRisk ? { target, acceptRisk: true } : { target }),
   })
   const result = await response.json() as { ok?: boolean, error?: string }
   if (!response.ok || result.ok !== true) throw new Error(result.error ?? `HTTP ${response.status}`)

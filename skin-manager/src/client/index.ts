@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SkinCatalogEntry } from '../contract.ts'
 import { SkinManager, fetchSkinCatalog, requestSkinSwitch } from './SkinManager.tsx'
 import { installBundleIntros } from './bundle-intro.tsx'
+import { installPanelToggle, type PanelLayout } from './panel-toggle.ts'
 import { currentUiLang, skinManagerCopy } from './locale.ts'
 import { PreferencesStore } from './preferences.ts'
 import { SkinCustomizationRegistry } from './runtime.ts'
@@ -43,9 +44,12 @@ export function apply(ctx: SlotsContext): void {
     inject: () => ({ registry, active: activeSkin, switchSkin: requestSkinSwitch }),
   }, SkinManager))
 
-  // The Plugins page's own one-liner for a bundle is `package.json#description`,
-  // one static string it never localizes for third parties. `plugins.bundle.config`
-  // is the slot contract's answer for a bundle's own content, so the manager fills
-  // it with each installed skin's declared name and tagline in the reader's language.
+  // The Plugins page localizes each package's own title, description and icon;
+  // the manager adds only the host build each skin declares as verified.
   ctx.effect(() => installBundleIntros(ctx.slots, fetchSkinCatalog), 'ui-skin-manager: bundle introductions')
+
+  // Narrow frames have no way back from a global panel but the drawer's
+  // session list; a second tap on the active entry returns to the conversation.
+  ctx.effect(() => installPanelToggle(document, () => (ctx as unknown as { get(name: string): unknown }).get('layout') as PanelLayout | undefined),
+    'ui-skin-manager: narrow panel toggle')
 }

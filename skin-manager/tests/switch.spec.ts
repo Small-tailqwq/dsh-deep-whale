@@ -43,6 +43,59 @@ describe('generic skin switch patch', () => {
     expect(next).toContain('- id: ui-skin-deepcel\n  disabled: false')
   })
 
+  it('keeps host settings rows that DSH appended inside the managed block', () => {
+    /* DSH 0.1.7+ appends settings to the end of the profile patch, i.e. into this block. */
+    const original = [
+      '- id: user-plugin',
+      '  disabled: false',
+      '',
+      MANAGED_START,
+      '- id: ui-skin-maid',
+      '  disabled: false',
+      '- id: ui-skin-deepcel',
+      '  disabled: true',
+      '- id: ui-skin-retired',
+      '  disabled: true',
+      '- id: ui-theme',
+      '  config:',
+      '    preference: light',
+      '',
+      '    note: kept across blank lines',
+      '# welcome notice state',
+      '- id: ui-settings-general',
+      '  config:',
+      '    welcomeAccepted: true',
+      '- config:',
+      '    model: deepseek-chat',
+      '  id: agent-default-model',
+      MANAGED_END,
+      '',
+    ].join('\n')
+    const once = switchPatch(original, 'deepcel', catalog)
+    const twice = switchPatch(once, 'maid-atelier', catalog)
+    for (const next of [once, twice]) {
+      const [outside, managed] = next.split(MANAGED_START)
+      expect(outside).toContain('- id: user-plugin')
+      expect(outside).toContain('- id: ui-theme\n  config:\n    preference: light\n\n    note: kept across blank lines')
+      expect(outside).toContain('# welcome notice state\n- id: ui-settings-general\n  config:\n    welcomeAccepted: true')
+      expect(outside).toContain('- config:\n    model: deepseek-chat\n  id: agent-default-model')
+      expect(outside).not.toContain('ui-skin-')
+      expect(managed).not.toMatch(/ui-theme|ui-settings-general|agent-default-model/)
+      expect(next.split(MANAGED_START)).toHaveLength(2)
+      expect(next.match(/- id: ui-theme/g)).toHaveLength(1)
+    }
+    expect(twice).toContain('- id: ui-skin-maid\n  disabled: false')
+    expect(twice).toContain('- id: ui-skin-deepcel\n  disabled: true')
+    expect(twice).not.toContain('ui-skin-retired')
+  })
+
+  it('drops the empty sequence when hoisted rows follow it', () => {
+    const source = `[]\n\n${MANAGED_START}\n- id: ui-theme\n  config:\n    preference: dark\n${MANAGED_END}\n`
+    const next = switchPatch(source, 'maid-atelier', catalog)
+    expect(next).not.toMatch(/^\[\]/m)
+    expect(next).toContain('- id: ui-theme\n  config:\n    preference: dark')
+  })
+
   it('official disables every discovered skin', () => {
     const managed = renderManagedBlock('official', catalog)
     expect(managed.match(/disabled: true/g)).toHaveLength(2)
@@ -93,6 +146,42 @@ describe('generic skin switch patch', () => {
           tagline: '一款模仿 excel 的 dsh 皮肤', taglineEn: 'A spreadsheet-style DSH skin',
         },
       ])
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps a skin installed under a legacy alias dependency key visible', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-skin-alias-'))
+    const patch = join(directory, 'cordis.patch.yml')
+    const packageDir = join(directory, 'node_modules', '@test', 'legacy-alias')
+    try {
+      mkdirSync(packageDir, { recursive: true })
+      writeFileSync(join(directory, 'package.json'), JSON.stringify({ dependencies: { '@test/legacy-alias': 'link:real-name' } }))
+      writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name: '@test/real-name', version: '0.0.0' }))
+      writeFileSync(join(packageDir, 'skin.json'), JSON.stringify({
+        id: 'aliased', name: 'Aliased', package: '@test/real-name', bodyAttr: 'data-aliased',
+        wiring: { id: 'ui-skin-aliased' },
+      }))
+      expect(discoverInstalledSkins(patch).map(skin => skin.package)).toEqual(['@test/real-name'])
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('drops a skin manifest that does not name its own package', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dsh-skin-identity-'))
+    const patch = join(directory, 'cordis.patch.yml')
+    const packageDir = join(directory, 'node_modules', '@test', 'impostor')
+    try {
+      mkdirSync(packageDir, { recursive: true })
+      writeFileSync(join(directory, 'package.json'), JSON.stringify({ dependencies: { '@test/impostor': 'link:other' } }))
+      writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name: '@test/real-name', version: '0.0.0' }))
+      writeFileSync(join(packageDir, 'skin.json'), JSON.stringify({
+        id: 'impostor', name: 'Impostor', package: '@test/other', bodyAttr: 'data-impostor',
+        wiring: { id: 'ui-skin-impostor' },
+      }))
+      expect(discoverInstalledSkins(patch)).toEqual([])
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
