@@ -91,11 +91,17 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   const timers = new Set<ReturnType<typeof setTimeout>>()
   let activeDrag: ActiveDrag | null = null
 
-  const prefersChinese = (
+  // Read at labelling time: the host settles <html lang> after the skin
+  // applies, and a later language switch relabels live controls below.
+  const prefersChinese = (): boolean => (
     doc.documentElement.lang
     || view?.navigator.language
     || 'en'
   ).toLowerCase().startsWith('zh')
+  const handleLabel = (side: Side): string => prefersChinese()
+    ? `${side === 'left' ? '向右' : '向左'}拖动以收起输入框`
+    : `Drag ${side === 'left' ? 'right' : 'left'} to hide composer`
+  const restoreLabel = (): string => prefersChinese() ? '显示输入框' : 'Show composer'
 
   const schedule = (callback: () => void, delay: number): void => {
     const timer = setTimeout(() => {
@@ -209,7 +215,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     const button = doc.createElement('button')
     button.type = 'button'
     button.setAttribute(RESTORE_ATTRIBUTE, '')
-    button.setAttribute('aria-label', prefersChinese ? '显示输入框' : 'Show composer')
+    button.setAttribute('aria-label', restoreLabel())
     const core = doc.createElement('span')
     core.setAttribute('data-orca-composer-restore-core', '')
     core.setAttribute('aria-hidden', 'true')
@@ -369,10 +375,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     const handle = doc.createElement('button')
     handle.type = 'button'
     handle.setAttribute(HANDLE_ATTRIBUTE, side)
-    const label = prefersChinese
-      ? `${side === 'left' ? '向右' : '向左'}拖动以收起输入框`
-      : `Drag ${side === 'left' ? 'right' : 'left'} to hide composer`
-    handle.setAttribute('aria-label', label)
+    handle.setAttribute('aria-label', handleLabel(side))
     handle.addEventListener('pointerdown', event => { beginDrag(event, binding, side, handle) })
     handle.addEventListener('lostpointercapture', event => {
       if (activeDrag === null || event.pointerId !== activeDrag.pointerId) return
@@ -491,6 +494,15 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     attributes: true,
     attributeFilter: ['data-phase'],
   })
+  const langObserver = new MutationObserver(() => {
+    bindings.forEach((binding) => {
+      for (const handle of binding.handles) {
+        handle.setAttribute('aria-label', handleLabel(handle.getAttribute(HANDLE_ATTRIBUTE) as Side))
+      }
+      binding.restore?.setAttribute('aria-label', restoreLabel())
+    })
+  })
+  langObserver.observe(doc.documentElement, { attributes: true, attributeFilter: ['lang'] })
   doc.addEventListener('pointermove', onPointerMove, { passive: false })
   doc.addEventListener('pointerup', onPointerUp, true)
   doc.addEventListener('pointercancel', onPointerCancel, true)
@@ -502,6 +514,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
 
   return () => {
     observer.disconnect()
+    langObserver.disconnect()
     doc.removeEventListener('pointermove', onPointerMove)
     doc.removeEventListener('pointerup', onPointerUp, true)
     doc.removeEventListener('pointercancel', onPointerCancel, true)

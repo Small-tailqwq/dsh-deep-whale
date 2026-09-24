@@ -2,6 +2,13 @@
 
 <!-- dsh-agent-scaffold:v1 -->
 
+## Branch and release workflow
+
+- `dev` 是开发分支，可以提前适配尚未进入 rc 的 DSH alpha 版本。对应宿主版本进入 rc 后，再通过 `dev → main` PR 审阅并发布这些适配。
+- `dev` 同时承载 `main` 的修复：修复验证完成后先提交到 `dev`，再通过面向 `main` 的 PR 使用 GitHub review 机制审阅。
+- 创建修复 PR 前检查相对 `main` 的完整差异。若 `dev` 混有尚未进入 rc 的 alpha 适配或其他不属于该修复的改动，从 `main` 创建独立修复分支，只提取已在 `dev` 验证的修复，并重新生成产物、验证；不得为修复 PR 将这些未发布改动整体带入 `main`，也不得改写 `dev` 历史来清除它们。
+- 只有小型文档改动，或用户明确授权直接提交到 `main` 的改动，才可跳过 PR 直接提交到 `main`。一般性的修复、提交或发布授权不等于授权绕过 PR review。
+
 ## Code Review Rules
 
 ### Skin lifecycle
@@ -11,6 +18,7 @@
 ### Product compatibility
 
 - This repository ships presentation-only skins. Flag changes that alter DSH services, events, or model requests; require remote runtime assets; block native controls or overlays; or rely on unstable DOM selectors without a safe fallback. Safe path: scope CSS and DOM decoration to the active skin and preserve native behavior across light and dark themes, narrow and wide sidebars, conversation and workspace views, and browser and desktop layouts.
+- 两套皮肤的 `package.json` 用可选 peer `@deepseek-ai/dsh` 声明已适配的小版本（当前 `>=0.1.7-rc.1 <0.1.8-0`）；DSH 0.1.7+ 在范围外自动停用皮肤，由皮肤管理器提供按精确版本的手动放行。适配下一个 DSH 小版本（含 `dev` 上的 alpha 预适配）时必须同步放宽上限，否则皮肤在新宿主上会被停用。皮肤管理器只写下限，保持可用。`skin-manager/tests/package-meta.spec.ts` 固定这些范围。
 - `skin.json.dshCompatibility` records the latest explicitly verified DSH build in `x.y.zrcN` form. Routine fixes do not change it; whenever a skin is adapted or revalidated for a newer DSH build, update every affected manifest before building. `skin.build.json` 由各皮肤包目录内的 `npm run build` 生成（`tsdown` 后接 `scripts/write-skin-build.mjs`）；绝不可手改其 fingerprint。两套皮肤各有该清单与指纹文件，skin-manager 没有 `skin.json`，其 build 只跑 `tsdown`。
 
 ### Distribution and attribution
@@ -20,12 +28,14 @@
 ## Repository layout
 
 - `maid-atelier/` 与 `orca-link/`：两套独立皮肤包，结构一致：
-  - `src/`：插件源码（`src/client/` 为浏览器半边，`src/index.ts` 为 node 半边空 apply）
+  - `src/`：插件源码（`src/client/` 为浏览器半边，`src/index.ts` 为 node 半边静态图片路由）
   - `build/`：`tsdown.client.ts`（clientBundle 管道，`portableCssModuleIds: true`）+ `web-platform.ts`
   - `lib/`：提交的构建产物（`client.js` + `index.js`；`*.js.map` 不入库）
   - `skin.json`：皮肤清单（id/name/package/wiring/bodyAttr/preview/order）
+  - `assets/runtime/`：内容哈希命名的 PNG/WebP 与构建生成的资源清单；随包分发并计入构建指纹，维护方式见 `docs/asset-delivery.md`
   - `cordis.patch.yml`：bundle patch（`dsh.bundle.patch`，insert 皮肤行）
   - `NOTICE` / `LICENSE` / `LICENSE-ARTWORK`：署名链、MIT 代码许可与 CC BY-NC-SA 4.0 美术许可
+- 三个发行包都带 `locale/{en,zh}.json`（`meta.title` / `meta.description`）与 `package.json#icon`：DSH 0.1.7+ 插件菜单据此显示本地化名称、简介与图标，须经 `./locale/*.json` 导出并列入 `files`；`skin-manager/tests/package-meta.spec.ts` 校验该契约。女仆图标由 `scripts/build-maid-icons.py` 同步生成。
 - `skin-manager/`：第三发行包，不是皮肤（无 `skin.json`，无 `build/` 与 `preview/`；`src/index.ts` 是真实 node 半边），提供发现已安装皮肤、切换互斥与定制声明的管理面板。`lib/` 同为提交型产物。
 - `.agents/skills/`：仓库专属 `dsh-skin-install`；镜像的 `dsh-skin-upgrade`；本机桥接的
   `dsh-note-maintainer` / `dsh-plugin-verify` / `dsh-boot-error-verify`。实际声明见 `.agents/dsh-scaffold.json`；桥接技能正文里的仓库相对路径（如 `shared/web-platform.json`）按脚手架仓库解析，本仓库宿主模块表在 `maid-atelier/build/web-platform.ts` 与 `orca-link/build/web-platform.ts`。

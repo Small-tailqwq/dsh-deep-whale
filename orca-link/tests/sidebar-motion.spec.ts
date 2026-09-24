@@ -41,7 +41,7 @@ describe('ORCA LINK sidebar motion', () => {
     )?.groups?.selector ?? ''
     expect(lifted).toContain("button[data-dsh-part='sidebar-entry']")
     expect(lifted).toContain('[data-plugin-entry]')
-    expect(css).toContain("> :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]))")
+    expect(css).toContain("> :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))")
     expect(css).toContain('> :not([role=\'tooltip\'], [data-orca-link-wordmark], [data-plugin-entry])')
     expect(css).toContain(
       "button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > *",
@@ -52,7 +52,31 @@ describe('ORCA LINK sidebar motion', () => {
       /@media \(max-width: 900px\) \{[\s\S]*?\n\}/,
     )?.[0] ?? ''
     expect(narrow).not.toBe('')
-    expect(narrow).toMatch(/:is\(button\[data-dsh-part='sidebar-entry'\], \[data-plugin-entry\]\)/)
+    expect(narrow).toMatch(/:is\(button\[data-dsh-part='sidebar-entry'\], \[data-plugin-entry\], nav\[class\*='panelList'\]\)/)
+  })
+
+  // 0.1.6 registers the first `sidebar.panellist` entry, so the official
+  // `nav.panelList` row renders between New Session and the browsing region for
+  // the first time. Left alone it landed on the portrait stage inside the
+  // transparent New Session hit plane (z-index 2), which both misplaced the row
+  // and swallowed its clicks; the injected-entry offsets also inherit a flow
+  // anchor one row lower.
+  it('lifts the official panel row out of the stage and above the hit plane', () => {
+    const lifted = css.match(
+      /body\[data-dsh-orca-link\]\[data-orca-sidebar-wide\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
+    )?.groups?.selector ?? ''
+    expect(lifted).toContain("nav[class*='panelList']")
+    // The declaration block that follows the first `nav[class*=…]` selector.
+    const fromSelector = css.slice(css.indexOf("nav[class*='panelList']"))
+    const declarations = fromSelector.slice(fromSelector.indexOf('{') + 1, fromSelector.indexOf('}'))
+    expect(declarations).toContain('z-index: 3;')
+    expect(declarations).toContain('margin-top: calc(var(--orca-stage, 300px) - 116px);')
+    // A row following the official one must not pay the stage offset twice.
+    expect(css).toContain(
+      "> nav[class*='panelList']\n  ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {",
+    )
+    // The New Session hit plane stays on the rung below the lifted rows.
+    expect(css).toContain('> button:not([data-dsh-part=\'sidebar-entry\'], [data-plugin-entry] *) {')
   })
 
 })

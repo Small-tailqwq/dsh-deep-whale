@@ -12,7 +12,7 @@ import { resolve } from 'node:path'
 import { apply } from '../src/client/index.ts'
 
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
-const TURN_MARK_SELECTOR = "[data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]"
+const TURN_MARK_SELECTOR = "[data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]"
 
 function unpairedFullRoundRules(css: string): string[] {
   const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, ' ')
@@ -105,21 +105,60 @@ afterEach(async () => {
 })
 
 describe('Maid Atelier skin apply', () => {
-  it('targets the Alpha turn rail by its chat-flow relationship in every locale', async () => {
+  it('styles the resident alpha1 header and its session fragment without styling nested panel headers', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div data-slot="conversation.header"><header id="chrome">
+        <div data-conversation-header-leading></div>
+        <div data-slot="conversation.session.header">
+          <div><span>Current session</span><div role="dialog"><header id="nested"></header></div></div>
+          <div role="tablist" data-conversation-tabs><button role="tab" aria-selected="true" id="tab"></button></div>
+        </div>
+      </header></div>
+    `
+    const rules = flatCssRules(CSS)
+    const chrome = rules.find(rule => rule.body.includes('--dsw-alias-bg-base: rgba(5, 14, 43, 0.96)'))!
+    expect(document.querySelector('#chrome')!.matches(chrome.selector)).toBe(true)
+    expect(document.querySelector('#nested')!.matches(chrome.selector)).toBe(false)
+    const selected = rules.find(rule => rule.selector.includes("[aria-selected='true']") && rule.body.includes('color: #fff7e6'))!
+    expect(document.querySelector('#tab')!.matches(selected.selector)).toBe(true)
+  })
+
+  it('keeps a closed alpha1 right panel transparent while its floating tab retains a reading floor', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div data-sidebar-right-panel="fullscreen" id="panel">
+        <div data-dockkit-host="float"><section data-dockkit-float="files" id="float"></section></div>
+      </div>
+    `
+    const rules = flatCssRules(CSS)
+    const floor = rules.find(rule => rule.selector.includes("[data-sidebar-right-panel='fullscreen']") && rule.body.includes('background: #ebf0fa'))!
+    const panel = document.querySelector('#panel')!
+    expect(panel.matches(floor.selector)).toBe(false)
+    panel.setAttribute('data-sidebar-right-open', '')
+    expect(panel.matches(floor.selector)).toBe(true)
+    const floating = rules.find(rule => rule.body.includes('--dsw-alias-bg-base: #ebf0fa'))!
+    expect(document.querySelector('#float')!.matches(floating.selector)).toBe(true)
+  })
+
+  it('targets the alpha2 turn rail outside the transcript in every locale and follow state', async () => {
     document.body.innerHTML = `
       <div data-phase="active">
         <div>
           <div data-conversation-scroll>
-            <div class="turn-slot">
-              <nav aria-label="Turn navigation">
-                <div><div>
-                  <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
-                  <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
-                  <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
-                </div></div>
-              </nav>
+            <div class="chat-frame">
+              <div class="turn-slot">
+                <nav aria-label="Turn navigation">
+                  <div><div>
+                    <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
+                    <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
+                    <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
+                  </div></div>
+                </nav>
+              </div>
+              <div data-chat-following-tail><div class="chat-scroll"><div data-chat-flow></div></div></div>
+              <div><button type="button" aria-label="Return to bottom"></button></div>
             </div>
-            <div data-chat-flow></div>
           </div>
           <div data-width-handle="left" data-side="left"></div>
           <div data-width-handle="right" data-side="right"></div>
@@ -128,6 +167,8 @@ describe('Maid Atelier skin apply', () => {
     `
 
     fiber = await mount()
+    expect(document.querySelectorAll(TURN_MARK_SELECTOR)).toHaveLength(3)
+    document.querySelector('[data-chat-following-tail]')!.removeAttribute('data-chat-following-tail')
     expect(document.querySelectorAll(TURN_MARK_SELECTOR)).toHaveLength(3)
     expect(CSS).toContain(TURN_MARK_SELECTOR)
     expect(CSS).not.toContain("nav[aria-label='轮次导航']")
@@ -232,7 +273,7 @@ describe('Maid Atelier skin apply', () => {
     fiber = await mount()
 
     const mascot = document.querySelector<HTMLImageElement>("[data-skin-chrome='sidebar-mascot']")
-    expect(mascot?.src).toContain('data:image/webp;base64,')
+    expect(mascot?.src).toContain('/skin-assets/maid-atelier/')
     const corners = document.querySelector("[data-skin-chrome='sidebar-corners']")
     expect(corners?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
     const brand = document.querySelector("button[class*='brand'] > svg")
@@ -321,6 +362,9 @@ describe('Maid Atelier skin apply', () => {
     `
     fiber = await mount()
     await flushMutations()
+    // The viewport watcher's first frame is scheduled at mount; let it land
+    // before measuring so only the terminal mutation is observed.
+    await new Promise(resolve => requestAnimationFrame(resolve))
     const querySelector = vi.spyOn(document, 'querySelector')
 
     document.querySelector('[data-terminal-row]')!.textContent = 'x'.repeat(32)
@@ -464,7 +508,7 @@ describe('Maid Atelier skin apply', () => {
   it('installs the palace through a skin-owned variable and restores prior body styles', async () => {
     document.body.style.setProperty('--maid-palace-art', 'legacy')
     fiber = await mount()
-    expect(document.body.style.getPropertyValue('--maid-palace-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-palace-art')).toContain('/skin-assets/maid-atelier/')
     expect(document.body.style.getPropertyValue('--maid-palace-art')).not.toContain('linear-gradient')
     // The palace is no longer painted on body: the conversation-column stage
     // owns it (see the character-stage rule), so body carries only the custom
@@ -534,7 +578,7 @@ describe('Maid Atelier skin apply', () => {
     expect(characters?.[0]?.dataset.maidCharacter).toBe('left')
     expect(characters?.[1]?.dataset.maidCharacter).toBe('right')
     expect(characters?.[2]?.dataset.maidCharacter).toBe('vision')
-    expect([...characters ?? []].every(character => character.src.startsWith('data:image/webp;base64,'))).toBe(true)
+    expect([...characters ?? []].every(character => character.src.includes('/skin-assets/maid-atelier/'))).toBe(true)
     await fiber.dispose()
     expect(document.querySelector("[data-skin-chrome='character-stage']")).toBeNull()
   }, 10_000)
@@ -672,24 +716,24 @@ describe('Maid Atelier skin apply', () => {
     document.body.style.setProperty('--maid-new-session-art', 'legacy')
     document.body.style.setProperty('--maid-workspace-ribbon-art', 'legacy-ribbon')
     fiber = await mount()
-    expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-bottom-trim-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-bottom-crest-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-bow-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-cap-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-fill-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-fill-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-cap-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-composer-lace-art')).toContain('data:image/png;base64,')
+    expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-bottom-trim-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-bottom-crest-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-bow-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-new-session-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-swag-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-sidebar-corner-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-composer-frame-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-cap-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-left-fill-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-fill-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-composer-ribbon-right-cap-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-composer-lace-art')).toContain('/skin-assets/maid-atelier/')
     expect(document.querySelector("[data-composer-card] > [data-skin-chrome='composer-lace']")).not.toBeNull()
     expect(document.querySelector('[data-maid-composer-lace-center]')).not.toBeNull()
-    expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('data:image/webp;base64,')
-    expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toContain('data:image/webp;base64,')
+    expect(document.body.style.getPropertyValue('--maid-settings-frame-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-workspace-crest-art')).toContain('/skin-assets/maid-atelier/')
+    expect(document.body.style.getPropertyValue('--maid-workspace-ribbon-art')).toContain('/skin-assets/maid-atelier/')
     expect(document.querySelector("[data-skin-ornament='crest']")).toBeNull()
     await fiber.dispose()
     expect(document.body.style.getPropertyValue('--maid-top-trim-art')).toBe('')
@@ -1528,8 +1572,8 @@ describe('Maid Atelier skin apply', () => {
     const expandedRule = CSS.match(/\[data-maid-table-expanded\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     // Fitting .md-table-wide wrappers keep the host's layout. table-card.ts
     // adds this attribute and control in place only after measured overflow;
-    // the native branch retains a stable gutter across host hover states.
-    expect(nativeRule).toContain('padding-bottom: var(--dsh-scrollbar-width, 8px)')
+    // The host owns scrollbar reservation across hover states.
+    expect(nativeRule).not.toContain('padding-bottom:')
     expect(nativeRule).not.toContain('overflow-x:')
     expect(frameRule).toContain('width: max-content')
     expect(frameRule).toContain('max-width: 100%')
@@ -1619,7 +1663,7 @@ describe('Maid Atelier skin apply', () => {
       /:not\(\[data-ds-dark-theme\]\)\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const rowRule = CSS.match(
-      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row='true'\]\s*\{([^}]*)\}/s,
+      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(variantRule).toContain('--dsw-alias-label-secondary: #2f4778')
     expect(variantRule).toContain('--dsw-alias-label-tertiary: #405273')
@@ -1629,22 +1673,22 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("[data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true']")
     expect(CSS).toMatch(/:is\(\s*\[data-variant\](?::not\(\[data-variant='think'\]\))? > \[data-open='true'\],[\s\S]*?\)\s*\{[^}]*rgba\(248, 250, 255, 0\.5\)/)
     expect(CSS).not.toMatch(/\[data-variant\] > \[data-open='true'\][^{}]*backdrop-filter: blur\(3px\)/)
-    expect(CSS).toMatch(/:is\([\s\S]*?\) > \[data-disclosure-row='true'\]\s*\{[^}]*background: transparent[^}]*backdrop-filter: none/s)
-    expect(CSS).toMatch(/\[data-variant='think'\][^{]*\[data-disclosure-row='true'\] \+ \*\s*\{[^}]*color: #34486f[^}]*line-height: 1\.65/s)
+    expect(CSS).toMatch(/:is\([\s\S]*?\) > \[data-disclosure-row\]\s*\{[^}]*background: transparent[^}]*backdrop-filter: none/s)
+    expect(CSS).toMatch(/\[data-variant='think'\][^{]*\[data-disclosure-row\] \+ \*\s*\{[^}]*color: #34486f[^}]*line-height: 1\.65/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\]\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\)\s*\{[^}]*#d3ddf2[^}]*#b8c5e1/s)
-    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row='true'\]\s*\{[^}]*rgba\(10, 20, 48, 0\.58\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row\]\s*\{[^}]*rgba\(10, 20, 48, 0\.58\)/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant='think'\][^{]*\+ \*\s*\{[^}]*color: #c7d2e9/s)
   })
 
   it('keeps the light-theme composer statistics legible over the backdrop', () => {
     const dockRule = CSS.match(
-      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-slot='conversation\.composer\.dock'\] > \*\s*\{([^}]*)\}/s,
+      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(dockRule).toContain('color: #4a5d82')
     expect(dockRule).toContain('rgba(248, 250, 255, 0.3)')
     expect(dockRule).toContain('backdrop-filter: blur(2px)')
     expect(CSS).toMatch(/\[data-slot='conversation\.composer\.dock'\] > \* \[class\*='sep'\]\s*\{[^}]*rgba\(74, 93, 130, 0\.55\)/s)
-    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-slot='conversation\.composer\.dock'\] > \*\s*\{[^}]*color: #aebdde[^}]*rgba\(10, 20, 48, 0\.48\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{[^}]*color: #aebdde[^}]*rgba\(10, 20, 48, 0\.48\)/s)
   })
 
   it('resets the light-theme subagent catalog inherited from the navy header', () => {
@@ -1708,10 +1752,38 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('gives inspect-only overlay views the full canvas without the composer seat', () => {
-    const inspectRule = CSS.match(
-      /\[data-phase='active'\]\s*\[data-conversation-scroll\]:not\(:has\(\[data-chat-flow\]\)\)\s*> \[data-composer-seat\]\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    expect(inspectRule).toContain('display: none')
+    const hideRules = flatCssRules(CSS).filter(rule =>
+      rule.selector.includes('[data-conversation-scroll]')
+      && rule.selector.endsWith('> [data-composer-seat]')
+      && /display:\s*none/.test(rule.body),
+    )
+    expect(hideRules.length).toBeGreaterThan(0)
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `<section data-phase="active">
+      <div data-conversation-scroll><div data-composer-seat></div></div>
+    </section>`
+    const scroll = document.querySelector('[data-conversation-scroll]')!
+    const seat = scroll.querySelector('[data-composer-seat]')!
+    const hidden = () => hideRules.some(rule => seat.matches(rule.selector))
+    expect(hidden()).toBe(true)
+
+    const view = document.createElement('div')
+    scroll.prepend(view)
+    view.setAttribute('data-chat-flow', '')
+    expect(hidden()).toBe(false)
+
+    view.removeAttribute('data-chat-flow')
+    view.setAttribute('data-dsh-better-display', '0.1.1')
+    expect(hidden()).toBe(false) // Reader loading/empty state has no turns.
+    view.innerHTML = '<section data-reader-turn="1"></section>'
+    expect(hidden()).toBe(false)
+    view.setAttribute('data-chat-flow', '')
+    expect(hidden()).toBe(false) // Newer Reader also publishes the native hook.
+
+    view.remove()
+    expect(hidden()).toBe(true) // Switching back to an inspect-only view.
+    document.querySelector('[data-phase]')!.setAttribute('data-phase', 'hero')
+    expect(hidden()).toBe(false)
   })
 
   it('lets the lower sidebar swag own the bottom boundary without a rectangular tint seam', () => {
@@ -1725,7 +1797,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps internal tool-card headers out of the navy page-header treatment', () => {
     const pageHeaderRule = CSS.match(
-      /\[data-slot='conversation.session.header'\] > header\s*\{([^}]*)\}/s,
+      /\[data-slot='conversation.header'\] > header\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const terminalRule = CSS.match(/\[data-terminal\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const darkTerminalRule = CSS.match(
@@ -1971,7 +2043,7 @@ describe('Maid Atelier skin apply', () => {
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const conversationHeaderRule = CSS.match(
-      /\[data-slot='conversation.session.header'\] > header\s*\{([^}]*)\}/s,
+      /\[data-slot='conversation.header'\] > header\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const composerRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const obscuredComposerRule = CSS.match(
@@ -2236,23 +2308,31 @@ describe('Maid Atelier skin apply', () => {
     expect(accentRule).toContain('inset: 7px auto 7px 5px')
   })
 
-  it('skins the official running StateDot as a recognizable atelier jewel chase', () => {
+  it('keeps the official StateDot circle pair and pauses its arc on phones and reduced motion', () => {
     const runningDotRule = CSS.match(
       /\[data-maid-session-row\] svg\[data-state='ongoing'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const runningCellRule = CSS.match(
-      /\[data-maid-session-row\] svg\[data-state='ongoing'\] > rect\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
+    // StateDot.tsx at c36a83ff: both circles live in the rotating group;
+    // animation and arc geometry come from the host's CSS module.
+    document.body.innerHTML = `<div data-maid-session-row>
+      <svg data-state="ongoing" viewBox="0 0 24 24"><g>
+        <circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="9.5"/>
+      </g></svg>
+    </div>`
+    const runningChildren = "[data-maid-session-row] svg[data-state='ongoing'] > g > circle"
+    const phoneRules = [...CSS.matchAll(
+      /@media \(max-width: 700px\)\s*\{([\s\S]*?)\n\}/g,
+    )].map(match => match[1]).join('\n')
     const reducedMotionRules = [...CSS.matchAll(
       /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/g,
     )].map(match => match[1]).join('\n')
     expect(runningDotRule).toContain('width: 12px')
     expect(runningDotRule).toContain('radial-gradient')
     expect(runningDotRule).toContain('shape-rendering: geometricPrecision')
-    expect(runningCellRule).toContain('fill: currentColor')
-    expect(runningCellRule).toContain('animation: maidAtelierSessionJewelChase 1s linear infinite')
-    expect(CSS).toContain('@keyframes maidAtelierSessionJewelChase')
-    expect(reducedMotionRules).toContain("svg[data-state='ongoing'] > rect")
+    expect(document.querySelectorAll(runningChildren)).toHaveLength(2)
+    expect(phoneRules).toContain(runningChildren)
+    expect(phoneRules).toContain('animation: maidAtelierSessionJewelPulse')
+    expect(reducedMotionRules).toContain(runningChildren)
     expect(reducedMotionRules).toMatch(/svg\[data-state='ongoing'\]\s*\{[^}]*animation: none[^}]*will-change: auto/s)
     expect(reducedMotionRules).toContain('animation: none')
   })
@@ -2506,10 +2586,62 @@ describe('Maid Atelier skin apply', () => {
     await flushMutations()
     const dark = document.body.style.getPropertyValue('--maid-palace-art')
     expect(dark).not.toBe(light)
-    expect(dark).toContain('data:image/webp;base64,')
+    expect(dark).toContain('/skin-assets/maid-atelier/')
     expect(dark).not.toContain('linear-gradient')
     delete document.body.dataset.dsDarkTheme
     await flushMutations()
     expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe(light)
+  })
+
+  it('lifts the 0.1.6 plugin manager panel above the character stage', () => {
+    // The plugin manager is a keyed `main` panel: it replaces the conversation
+    // inside the chat column, so it carries none of the `[data-phase]` hooks the
+    // stage lift relies on, and its static content painted UNDER the skin's two
+    // decorated layers in that column (page header, group headings and the whole
+    // second-level page were invisible; what did show sat under the trim band).
+    // Every rule that reaches the panel root is collected from the stylesheet
+    // and matched against this fixture, so an equivalent rewrite still has to
+    // declare the lift above both layers and the reading floor.
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div class="fixture_centerCol">
+        <div data-skin-chrome="character-stage"></div>
+        <div data-slot="main" style="display: contents">
+          <section class="fixture_page" data-plugin-panel>
+            <header class="fixture_pageHead"></header>
+            <section class="fixture_group"></section>
+            <div class="fixture_detail" data-plugin-detail="pkg"></div>
+          </section>
+        </div>
+      </div>
+    `
+    const panel = document.querySelector<HTMLElement>('[data-plugin-panel]')!
+    const declarations = (dark: boolean): string => {
+      document.body.toggleAttribute('data-ds-dark-theme', dark)
+      return flatCssRules(CSS)
+        .filter((rule) => rule.selector.startsWith('body[data-dsh-maid-atelier]'))
+        .filter((rule) => {
+          try {
+            return panel.matches(rule.selector)
+          } catch {
+            return false
+          }
+        })
+        .map((rule) => rule.body)
+        .join('\n')
+    }
+    const light = declarations(false)
+    expect(light).toContain('position: relative;')
+    // Above the character stage (z 0) and the top curtain (z 1), below the
+    // skin's interactive tiers (21 / 40 / 1000).
+    expect(light).toContain('z-index: 2;')
+    expect(light).toContain('background: rgba(242, 246, 253, 0.94);')
+    expect(light).toContain('--dsw-alias-label-tertiary: #52658c;')
+    const dark = declarations(true)
+    expect(dark).toContain('background: rgba(11, 23, 55, 0.94);')
+    expect(dark).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    document.body.removeAttribute('data-ds-dark-theme')
+    document.body.removeAttribute('data-dsh-maid-atelier')
+    document.body.innerHTML = ''
   })
 })

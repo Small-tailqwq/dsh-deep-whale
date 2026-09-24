@@ -172,6 +172,12 @@
   font-size: 11px;
 }
 
+.incompatible {
+  color: var(--dsw-alias-state-warn-label);
+  padding-inline: 2px;
+  font-size: 11px;
+}
+
 .versionHash {
   appearance: none;
   padding: 0;
@@ -719,6 +725,14 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* The verified-host line on a skin's Plugins detail page. */
+.introHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 @media (max-width: 720px) {

@@ -12,8 +12,18 @@ import { resolve } from 'node:path'
 import { apply } from '../src/client/index.ts'
 import { installOrcaPageIcons } from '../src/client/page-icons.ts'
 
+// Complete SVGs rendered from the pinned official source; no host checkout is needed at test time.
+const HOST_ICONS: Array<{ component: string; name: string; svg: string }> = JSON.parse(
+  readFileSync(resolve(process.cwd(), 'tests/fixtures/dsh-0.1.7-alpha.1-icons.json'), 'utf8'),
+).icons
+function hostIcon(component: string, attributes = ''): string {
+  const fixture = HOST_ICONS.find(icon => icon.component === component)
+  if (!fixture) throw new Error(`Missing host fixture: ${component}`)
+  return fixture.svg.replace('<svg ', `<svg ${attributes} `)
+}
+
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/orca-link.module.css'), 'utf8')
-const TURN_MARK_SELECTOR = "[data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]"
+const TURN_MARK_SELECTOR = "[data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]"
 
 let fiber: Fiber | undefined
 
@@ -42,7 +52,7 @@ describe('Orca Link skin apply', () => {
     expect(rule).not.toContain('overflow-x:')
   })
 
-  it('targets the Alpha turn rail by its chat-flow relationship in every locale', async () => {
+  it('targets the alpha2 turn rail outside the transcript in every locale and follow state', async () => {
     document.body.innerHTML = `
       <div data-phase="active">
         <div>
@@ -55,12 +65,15 @@ describe('Orca Link skin apply', () => {
               </div></div>
             </nav>
           </div>
-          <div data-chat-flow></div>
+          <div data-chat-following-tail><div class="chat-scroll"><div data-chat-flow></div></div></div>
+          <div><button type="button" aria-label="Return to bottom"></button></div>
         </div>
       </div>
     `
 
     fiber = await mount()
+    expect(document.querySelectorAll(TURN_MARK_SELECTOR)).toHaveLength(3)
+    document.querySelector('[data-chat-following-tail]')!.removeAttribute('data-chat-following-tail')
     expect(document.querySelectorAll(TURN_MARK_SELECTOR)).toHaveLength(3)
     expect(CSS).toContain(TURN_MARK_SELECTOR)
     expect(CSS).not.toContain("nav[aria-label='轮次导航']")
@@ -80,10 +93,10 @@ describe('Orca Link skin apply', () => {
     expect(document.body.querySelectorAll('[data-skin-chrome="light-scene"] > div')).toHaveLength(2)
     expect(document.body.querySelectorAll('[data-skin-chrome="dark-scene"] > div')).toHaveLength(2)
     expect(document.body.textContent).toContain('ORCA LINK')
-    expect(document.body.style.getPropertyValue('--orca-link-light-hero-art')).toContain('data:image/webp')
-    expect(document.body.style.getPropertyValue('--orca-link-light-active-art')).toContain('data:image/webp')
-    expect(document.body.style.getPropertyValue('--orca-link-dark-hero-art')).toContain('data:image/webp')
-    expect(document.body.style.getPropertyValue('--orca-link-dark-active-art')).toContain('data:image/webp')
+    expect(document.body.style.getPropertyValue('--orca-link-light-hero-art')).toContain('/skin-assets/orca-link/')
+    expect(document.body.style.getPropertyValue('--orca-link-light-active-art')).toContain('/skin-assets/orca-link/')
+    expect(document.body.style.getPropertyValue('--orca-link-dark-hero-art')).toContain('/skin-assets/orca-link/')
+    expect(document.body.style.getPropertyValue('--orca-link-dark-active-art')).toContain('/skin-assets/orca-link/')
     expect(document.body.style.getPropertyValue('--orca-link-sidebar-art')).toBe('')
     const favicon = document.head.querySelector<HTMLLinkElement>('link[rel="icon"]')
     expect(favicon).not.toBeNull()
@@ -144,8 +157,8 @@ describe('Orca Link skin apply', () => {
       // start-menu icons from them, and a `sizes: "any"` SVG entry lets the
       // update path pick an icon it cannot rasterise.
       icons: [
-        { src: expect.stringMatching(/^data:image\/png;base64,/), sizes: '192x192', type: 'image/png', purpose: 'any' },
-        { src: expect.stringMatching(/^data:image\/png;base64,/), sizes: '512x512', type: 'image/png', purpose: 'any' },
+        { src: expect.stringMatching(/^http:\/\/localhost:3000\/skin-assets\/orca-link\/[a-f0-9]{64}\.png$/), sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: expect.stringMatching(/^http:\/\/localhost:3000\/skin-assets\/orca-link\/[a-f0-9]{64}\.png$/), sizes: '512x512', type: 'image/png', purpose: 'any' },
       ],
     })
 
@@ -218,7 +231,7 @@ describe('Orca Link skin apply', () => {
     expect(character?.parentElement).toBe(pane)
     expect(character?.dataset.orcaLinkStatus).toBe('standby')
     expect(character?.querySelector<HTMLElement>('[data-orca-link-character-sprite]')?.style.getPropertyValue('--orca-link-status-atlas'))
-      .toContain('data:image/webp')
+      .toContain('/skin-assets/orca-link/')
     expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('336px')
     expect(document.body.style.getPropertyValue('--orca-sidebar-art-width')).toBe('336px')
     expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
@@ -326,11 +339,20 @@ describe('Orca Link skin apply', () => {
 
     scroll.querySelector('[data-plan-review-key]')?.parentElement?.remove()
     scroll.querySelector('[data-chat-flow]')!.innerHTML = `
-      <div data-chat-flow-kind="assistant-step"><div data-state="error"></div></div>
+      <div data-step-process data-chat-group-key="process">
+        <div><button data-process-activity="tools" aria-expanded="false"></button></div>
+        <div data-step-process-body hidden="until-found"><div data-step-process-content data-chat-flow>
+          <div data-chat-flow-kind="assistant-step"><div data-state="error"></div></div>
+        </div></div>
+      </div>
       <div data-chat-flow-kind="turn-tail"></div>
     `
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(label.textContent).toBe('LINK FAULT')
+
+    scroll.querySelector('[data-chat-flow]')!.innerHTML = ''
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(label.textContent).toBe('SESSION READY')
 
     scroll.querySelector('[data-chat-flow]')!.innerHTML = '<div data-chat-flow-kind="user"></div>'
     await new Promise(resolve => { setTimeout(resolve, 0) })
@@ -358,11 +380,44 @@ describe('Orca Link skin apply', () => {
     expect(document.title).toBe('original')
   })
 
+  it('redraws all target host glyphs without changing their owned SVG children', async () => {
+    document.body.innerHTML = HOST_ICONS.map((icon, index) => `<span data-target-icon="${index}">${icon.svg}</span>`).join('')
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('[data-target-icon] > svg'))
+    const originals = svgs.map(svg => svg.innerHTML)
+    fiber = await mount()
+    for (const [index, svg] of svgs.entries()) {
+      const fixture = HOST_ICONS[index]!
+      expect(svg.getAttribute('data-orca-link-icon'), fixture.component).toBe(fixture.name)
+      const art = svg.querySelector('g[data-orca-link-icon-art]')!
+      expect(art?.querySelectorAll('path, rect').length, fixture.component).toBeGreaterThan(0)
+      expect(svg.querySelectorAll(':scope > g[data-orca-link-icon-art]')).toHaveLength(1)
+    }
+    await fiber.dispose()
+    svgs.forEach((svg, index) => { expect(svg.innerHTML, HOST_ICONS[index]!.component).toBe(originals[index]) })
+    expect(document.querySelector('[data-orca-link-icon]')).toBeNull()
+  })
+
+  it('updates a retained pin after an attribute change and releases an unrecognized replacement', async () => {
+    document.body.innerHTML = hostIcon('IconPinOutlineRegular')
+    const svg = document.querySelector<SVGElement>('svg')!
+    const hostPaths = Array.from(svg.querySelectorAll('path'))
+    fiber = await mount()
+    expect(svg.getAttribute('data-orca-link-icon')).toBe('pin')
+    hostPaths[0]!.setAttribute('fill', 'currentColor')
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(svg.getAttribute('data-orca-link-icon')).toBe('pin-filled')
+    hostPaths.forEach(path => { path.setAttribute('d', 'M0 0h1') })
+    await new Promise(resolve => { setTimeout(resolve, 0) })
+    expect(svg.hasAttribute('data-orca-link-icon')).toBe(false)
+    expect(svg.querySelector('[data-orca-link-icon-art]')).toBeNull()
+    expect(Array.from(svg.querySelectorAll('path'))).toEqual(hostPaths)
+  })
+
   it('redraws matched host icons in place and retracts them on dispose', async () => {
     document.body.innerHTML = `
-      <button type="button" aria-label="发送消息"><svg viewBox="0 0 16 16"><path d="M8.3125 0.980183C8.66767 1.0531 8.97902 1.20418 9.2627 1.43233"></path></svg></button>
-      <button type="button" aria-label="关闭"><svg viewBox="0 0 14 14"><path d="M10.6074 4.40278L8.00975 6.99973"></path></svg></button>
-      <button type="button" aria-label="添加文件"><svg viewBox="0 0 16 16"><path d="M5.5498 9.75V5H6.9502V9.75C6.9502 10.3299 7.4201 10.7998 8 10.7998"></path></svg></button>
+      <button type="button" aria-label="发送消息">${hostIcon('ComposerSend')}</button>
+      <button type="button" aria-label="关闭">${hostIcon('IconCloseFillRegular')}</button>
+      <button type="button" aria-label="添加文件">${hostIcon('IconPaperclipOutlineRegular')}</button>
       <svg viewBox="0 0 16 16"><path d="M0 0h16v16H0z"></path></svg>
     `
     const send = document.querySelector<SVGElement>('[aria-label="发送消息"] svg')!
@@ -377,11 +432,9 @@ describe('Orca Link skin apply', () => {
     expect(sendArt?.getAttribute('stroke-linejoin')).toBe('miter')
     expect(sendArt?.querySelectorAll('path').length).toBeGreaterThan(0)
     expect(close.getAttribute('data-orca-link-icon')).toBe('close')
-    // 14-unit viewBox scales the 16-unit design grid down.
-    expect(close.querySelector('g[data-orca-link-icon-art]')?.getAttribute('transform')).toBe('translate(0 0) scale(0.875)')
-    // 0.1.5's composer attach button carries this glyph; the redraw must stay a
-    // two-loop clip (tilted for separation at 14px) rather than degrading back
-    // to a bare bracket.
+    // The current close glyph uses the same 16-unit art grid.
+    expect(close.querySelector('g[data-orca-link-icon-art]')?.getAttribute('transform')).toBeNull()
+    // Keep the two-loop clip tilted for separation at its small display size.
     expect(paperclip.getAttribute('data-orca-link-icon')).toBe('paperclip')
     const clipPath = paperclip.querySelector('g[data-orca-link-icon-art] path')!
     expect(clipPath.getAttribute('d')).toContain('a2.75 2.75')
@@ -394,13 +447,12 @@ describe('Orca Link skin apply', () => {
   })
 
   it('redraws the composer command button as a prompt while other plus icons stay plus', async () => {
-    // 0.1.5's composer toolbar puts the command trigger next to the attach
-    // button; a plus there reads as a second add/attach control.
+    // The command trigger shares its host glyph with other plus controls.
     document.body.innerHTML = `
       <div data-composer-seat>
-        <button type="button" aria-label="指令" aria-haspopup="listbox"><svg viewBox="0 0 16 16"><path d="M8.64453 1.5V7.34961H14.5V8.65039"></path></svg></button>
+        <button type="button" aria-label="指令" aria-haspopup="listbox">${hostIcon('IconPlusOutlineMedium')}</button>
       </div>
-      <button type="button" aria-label="新建会话"><svg viewBox="0 0 16 16"><path d="M8.64453 1.5V7.34961H14.5V8.65039"></path></svg></button>
+      <button type="button" aria-label="新建会话">${hostIcon('IconPlusOutlineMedium')}</button>
     `
     fiber = await mount()
     const command = document.querySelector<SVGElement>('[data-composer-seat] svg')!
@@ -417,10 +469,10 @@ describe('Orca Link skin apply', () => {
     // draws a wrench for tool kinds.
     document.body.innerHTML = `
       <div data-variant="code" data-tool="unknown-tool" data-state="done">
-        <svg viewBox="0 0 16 16"><path d="M6.1 3.1Q6.6 7.8 11.3 8.3"></path></svg>
+        ${hostIcon('IconSparkleRegular')}
       </div>
       <div data-chat-flow-kind="assistant-step">
-        <svg viewBox="0 0 16 16"><path d="M6.1 3.1Q6.6 7.8 11.3 8.3"></path></svg>
+        ${hostIcon('IconSparkleRegular')}
       </div>
     `
     fiber = await mount()
@@ -439,9 +491,9 @@ describe('Orca Link skin apply', () => {
     expect(document.querySelectorAll('[data-orca-link-icon]').length).toBe(0)
   })
 
-  it('redraws the 0.1.5 meridian globe instead of its retired ellipse key', async () => {
+  it('redraws the target globe', async () => {
     document.body.innerHTML = `
-      <svg viewBox="0 0 14 14"><path d="M7.00018 0.353516C10.6708 0.353535 13.6468 3.32958"></path></svg>
+      ${hostIcon('IconGlobeOutlineRegular')}
     `
     fiber = await mount()
     const globe = document.querySelector('svg')!
@@ -451,11 +503,11 @@ describe('Orca Link skin apply', () => {
 
   it('distinguishes all permission and workspace folder icons', async () => {
     document.body.innerHTML = `
-      <svg data-test="read" viewBox="0 0 16 16"><path d="M12.1654 5.7552L8.9447"></path></svg>
-      <svg data-test="write" viewBox="0 0 16 16"><path d="M8.08887 0.251709C8.20479"></path></svg>
-      <svg data-test="full" viewBox="0 0 16 16"><path d="M9.10094 4.5V8.75939"></path></svg>
-      <svg data-test="open" viewBox="0 0 16 16"><path d="M5.19629 1.57104C5.81144"></path></svg>
-      <svg data-test="closed" viewBox="0 0 16 16"><path d="M5.05582 0.518756L4.50669 0.86654"></path></svg>
+      ${hostIcon('PermissionIconReadOnlyRegular', 'data-test="read"')}
+      ${hostIcon('PermissionIconWorkspaceWriteRegular', 'data-test="write"')}
+      ${hostIcon('PermissionIconFullAccessRegular', 'data-test="full"')}
+      ${hostIcon('IconFolderOpenRegular', 'data-test="open"')}
+      ${hostIcon('IconFolderCloseRegular', 'data-test="closed"')}
     `
     fiber = await mount()
     const icon = (name: string): string | null => document.querySelector(`[data-test="${name}"]`)?.getAttribute('data-orca-link-icon') ?? null
@@ -468,14 +520,14 @@ describe('Orca Link skin apply', () => {
 
   it('redraws the agent-protocol glyphs: queue send, todo, question, goal, delete', async () => {
     document.body.innerHTML = `
-      <button type="button" aria-label="发送"><svg viewBox="0 0 14 14"><path d="M7.24707 1.01771C7.52897 1.07653"></path></svg></button>
-      <button type="button" aria-label="编辑"><svg viewBox="0 0 16 16"><path d="M9.94076 1.34942C10.7047 0.90231"></path></svg></button>
-      <button type="button" aria-label="删除"><svg viewBox="0 0 16 16"><path d="M14.4782 4.84067L14.2138 10.1152"></path></svg></button>
-      <svg viewBox="0 0 14 14"><path d="M13.3277 9.69629V10.976H7.28086"></path></svg>
-      <svg viewBox="0 0 14 14"><path d="M12.5757 7.00012C12.5757 3.92085"></path></svg>
-      <svg viewBox="0 0 16 16"><path d="M8 0C8.31451 0 8.62464 0.019379"></path></svg>
-      <svg viewBox="0 0 16 16"><path d="M5.05582 0.518756L4.50669 0.86654"></path></svg>
-      <svg viewBox="0 0 14 14"><path d="M5.5 2.15137L5.92383 2.57617"></path></svg>
+      <button type="button" aria-label="发送">${hostIcon('IconSendOutlineRegular')}</button>
+      <button type="button" aria-label="编辑">${hostIcon('IconEditOutlineRegular')}</button>
+      <button type="button" aria-label="删除">${hostIcon('IconTrashOutlineRegular')}</button>
+      ${hostIcon('IconChecklistOutlineRegular')}
+      ${hostIcon('IconQuestionOutlineRegular')}
+      ${hostIcon('IconGoalOutlineRegular')}
+      ${hostIcon('IconFolderCloseRegular')}
+      ${hostIcon('IconChevronRightOutlineRegular')}
     `
     fiber = await mount()
     const names = Array.from(document.querySelectorAll('[data-orca-link-icon]'))
@@ -489,14 +541,10 @@ describe('Orca Link skin apply', () => {
   })
 
   it('redraws the thought row as a tailed balloon and the context-injection row as a syringe', async () => {
-    // The thought glyph shipped as a square with an inner cross, in a 14px and a
-    // 16px host variant; both now draw the balloon. The context-injection row's
-    // glyph had no key at all and kept the host's rounded box with an insert
-    // arrow, which is the gap this redraw closes.
     document.body.innerHTML = `
-      <svg viewBox="0 0 14 14"><path d="M7.06431 5.93342C7.68763 6.43904"></path></svg>
-      <svg viewBox="0 0 16 16"><path d="M11.9512 1.13281C12.401 1.20666 12.8093 1.34164"></path></svg>
-      <svg viewBox="0 0 16 16"><path d="M8.00192 6.64454C8.75026 7.25169"></path></svg>
+      ${hostIcon('IconThinkOutlineRegular')}
+      ${hostIcon('IconContextInjectionOutlineRegular')}
+      ${hostIcon('IconThinkOutlineMedium')}
     `
     fiber = await mount()
     const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
@@ -511,7 +559,7 @@ describe('Orca Link skin apply', () => {
     ])
     // The host drawing stays in place; the stylesheet hides it while the skin
     // is active, so the redraw must not replace the host node.
-    expect(think.querySelector(':scope > path')?.getAttribute('d')).toBe('M7.06431 5.93342C7.68763 6.43904')
+    expect(think.querySelector(':scope > path')?.getAttribute('d')).toBe(new DOMParser().parseFromString(hostIcon('IconThinkOutlineRegular'), 'image/svg+xml').querySelector('path')?.getAttribute('d'))
 
     const injection = svgs[1]!
     const injectionArt = injection.querySelector('g[data-orca-link-icon-art]')!
@@ -528,20 +576,9 @@ describe('Orca Link skin apply', () => {
   })
 
   it('redraws the token-usage cylinder and the session-stats dial as rectilinear art', async () => {
-    // Both glyphs sit in the composer stats dock (and the token one again in the
-    // turn-usage row) and neither had a key, so they kept the host drawing: a
-    // cylinder with an elliptical head, and a dial with a needle.
     document.body.innerHTML = `
-      <svg viewBox="0 0 16 16">
-        <ellipse cx="8" cy="3.6" rx="5.75" ry="2.4" stroke="currentColor" stroke-width="1.25"></ellipse>
-        <path d="M2.25 3.6V12.3A5.75 2.4 0 0 0 13.75 12.3V3.6" stroke="currentColor" stroke-width="1.25"></path>
-        <path d="M2.25 7.95A5.75 2.4 0 0 0 13.75 7.95" stroke="currentColor" stroke-width="1.25"></path>
-      </svg>
-      <svg viewBox="0 0 16 16">
-        <path d="M3.49 13.26A6.375 6.375 0 1 1 12.51 13.26" stroke="currentColor" stroke-width="1.25"></path>
-        <path d="M8 8.75L11.4 5.35" stroke="currentColor" stroke-width="1.25"></path>
-        <circle cx="8" cy="8.75" r="1.55" fill="currentColor"></circle>
-      </svg>
+      ${hostIcon('IconDatabaseOutlineRegular')}
+      ${hostIcon('IconGaugeOutlineRegular')}
     `
     fiber = await mount()
     const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
@@ -568,17 +605,11 @@ describe('Orca Link skin apply', () => {
   })
 
   it('redraws the timestamp clock and keeps every theme icon drawn', async () => {
-    // The clock had no key at all. The theme row was worse than a missing
-    // redraw: sun, moon and monitor already had keys but no art, so the
-    // stylesheet hid the host drawing and left those controls blank.
     document.body.innerHTML = `
-      <svg viewBox="0 0 16 16">
-        <circle cx="8" cy="8" r="6.375" stroke="currentColor" stroke-width="1.25"></circle>
-        <path d="M8 4.4V8.3L10.7 9.85" stroke="currentColor" stroke-width="1.25"></path>
-      </svg>
-      <svg viewBox="0 0 16 16"><path d="M11.3496 8C11.3496 6.14985 9.85015 4.65039" fill="currentColor"></path></svg>
-      <svg viewBox="0 0 16 16"><path d="M13.2764 9.52324C12.5607 9.97754 11.7177 10.242" fill="currentColor"></path></svg>
-      <svg viewBox="0 0 16 16"><path d="M12.1665 13.5811V14.7803H3.66651V13.5811H12.1665Z" fill="currentColor"></path></svg>
+      ${hostIcon('IconClockOutlineRegular')}
+      ${hostIcon('IconLightOutlineRegular')}
+      ${hostIcon('IconDarkOutlineRegular')}
+      ${hostIcon('IconFollowsystemOutlineRegular')}
     `
     fiber = await mount()
     const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
@@ -610,32 +641,10 @@ describe('Orca Link skin apply', () => {
     expect(document.querySelectorAll('[data-orca-link-icon]').length).toBe(0)
   })
 
-  it('redraws every todo state as rectilinear status art', async () => {
-    document.body.innerHTML = `
-      <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6.4" stroke="currentColor" stroke-dasharray="2.4 2.4"></circle></svg>
-      <svg viewBox="0 0 14 14"><defs><linearGradient id="todo-progress" x1="2.5" y1="12" x2="10.5" y2="3.5"></linearGradient></defs><circle cx="7" cy="7" r="6.4" stroke="url(#todo-progress)"></circle></svg>
-      <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6.4"></circle><path d="M10.9631 5.71411L7.70154 8.97571"></path></svg>
-    `
-    fiber = await mount()
-    const states = Array.from(document.querySelectorAll<SVGElement>('[data-orca-link-icon]'))
-    expect(states.map(svg => svg.getAttribute('data-orca-link-icon')))
-      .toEqual(['todo-pending', 'todo-progress', 'todo-completed'])
-    for (const svg of states) {
-      const art = svg.querySelector('g[data-orca-link-icon-art]')
-      expect(art?.getAttribute('stroke-linejoin')).toBe('miter')
-      expect(art?.querySelector('circle')).toBeNull()
-    }
-    const progressCells = states[1]?.querySelectorAll('rect[data-orca-link-todo-progress-cell]')
-    expect(progressCells).toHaveLength(9)
-    expect(Array.from(progressCells ?? []).map(cell => cell.getAttribute('data-orca-link-todo-progress-cell')))
-      .toEqual(['0', '1', '2', '3', '4', '5', '6', '7', '8'])
-    await fiber.dispose()
-  })
-
   it('re-matches a retained composer svg when send changes to stop', async () => {
     document.body.innerHTML = `
       <button type="button" aria-label="发送消息">
-        <svg viewBox="0 0 16 16"><path d="M8.3125 0.980183C8.66767 1.08443"></path></svg>
+        ${hostIcon('ComposerSend')}
       </button>
     `
     const svg = document.querySelector<SVGElement>('svg')!
@@ -658,7 +667,7 @@ describe('Orca Link skin apply', () => {
 
   it('reconciles only SVGs inside the changed subtree', async () => {
     document.body.innerHTML = `
-      <svg viewBox="0 0 16 16"><path d="M8.3125 0.980183C8.66767 1.08443"></path></svg>
+      ${hostIcon('ComposerSend')}
     `
     const existing = document.querySelector<SVGElement>('svg')!
     fiber = await mount()
@@ -668,7 +677,7 @@ describe('Orca Link skin apply', () => {
 
     const added = document.createElement('div')
     added.innerHTML = `
-      <svg viewBox="0 0 16 16"><path d="M9.94076 1.34942C10.7047 0.90231"></path></svg>
+      ${hostIcon('IconEditOutlineRegular')}
     `
     document.body.append(added)
     await new Promise(resolve => { setTimeout(resolve, 0) })
@@ -677,13 +686,13 @@ describe('Orca Link skin apply', () => {
     expect(added.querySelector('svg')?.getAttribute('data-orca-link-icon')).toBe('edit')
   })
 
-  it('centers art on a portrait viewBox with a uniform fit scale', async () => {
+  it('fits the target large check glyph with a uniform scale', async () => {
     document.body.innerHTML = `
-      <svg viewBox="0 0 8 14"><path d="M6.54199 8.62824C6.54199 8.44193"></path></svg>
+      ${hostIcon('IconCheckCircleFillRegular')}
     `
     fiber = await mount()
     const art = document.querySelector('g[data-orca-link-icon-art]')!
-    expect(art.getAttribute('transform')).toBe('translate(0 3) scale(0.5)')
+    expect(art.getAttribute('transform')).toBe('translate(0 0) scale(2.25)')
     await fiber.dispose()
   })
 
@@ -693,7 +702,7 @@ describe('Orca Link skin apply', () => {
     document.body.innerHTML = `
       <svg viewBox="0 0 14 14" aria-label="上下文已用 50%">
         <circle class="host_track" cx="7" cy="7" r="5.5"></circle>
-        <circle class="host_fill" cx="7" cy="7" r="5.5" stroke-dasharray="17.28 17.28" transform="rotate(-90 7 7)"></circle>
+        <circle class="host_fill" cx="7" cy="7" r="5.5" stroke-dasharray="17.28 34.56" transform="rotate(-90 7 7)"></circle>
       </svg>
     `
     const gauge = document.querySelector('svg')!
@@ -706,13 +715,13 @@ describe('Orca Link skin apply', () => {
     expect(cells[18]?.getAttribute('opacity')).toBe('0.12')
     const ring = gauge.querySelector('circle[stroke-dasharray]')!
     // 15%: five solid cells and the boundary cell fading in at 0.4.
-    ring.setAttribute('stroke-dasharray', '5.184 29.376')
+    ring.setAttribute('stroke-dasharray', '5.184 34.56')
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(cells[4]?.getAttribute('opacity')).toBe('1')
     expect(cells[5]?.getAttribute('opacity')).toBe('0.4')
     expect(cells[6]?.getAttribute('opacity')).toBe('0.12')
     // 100%: the full field is lit.
-    ring.setAttribute('stroke-dasharray', '34.56 0')
+    ring.setAttribute('stroke-dasharray', '34.56 34.56')
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(cells[35]?.getAttribute('opacity')).toBe('1')
     await fiber.dispose()

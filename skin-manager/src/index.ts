@@ -9,7 +9,9 @@ import { homedir } from 'node:os'
 import { basename, dirname, join as joinPath, relative as relativePath, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget, type SkinUpdateState, type SkinVersionCommit, type SkinVersionInfo, type SkinVersionSource } from './contract.ts'
+import { hashSkinAssets } from '../../scripts/skin-asset-inputs.mjs'
+import { evaluateSkinCompatibility, readDshRuntimeVersion, readProfileExemptions } from './compatibility.ts'
+import { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinCompatibility, type SkinTarget, type SkinUpdateState, type SkinVersionCommit, type SkinVersionInfo, type SkinVersionSource } from './contract.ts'
 
 export { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget } from './contract.ts'
 export * from './protocol.ts'
@@ -30,11 +32,32 @@ type HostContext = Context & {
   webServer: { register(route: WebRoute): () => void }
 }
 
+/** The slice of DSH 0.1.7's `pluginManager` service that owns exact-version grants. */
+interface VersionExemptionService {
+  setVersionExemption(packageVersion: string, runtimeVersion: string, enabled: boolean, acceptRisk?: boolean): Promise<{
+    application: string
+    error?: { code: string, diagnostic?: string }
+  }>
+}
+
+/**
+ * Grant through the host so its file lock, validation and reload apply; the
+ * manager never writes `compatibility.json` itself.
+ */
+async function grantThroughHost(ctx: HostContext, compatibility: SkinCompatibility): Promise<void> {
+  const service = (ctx as unknown as { get(name: string): unknown }).get('pluginManager') as VersionExemptionService | undefined
+  if (service === undefined || typeof service.setVersionExemption !== 'function') throw new Error('exemption-unavailable')
+  const result = await service.setVersionExemption(compatibility.package, compatibility.runtimeVersion, true, true)
+  if (result.error !== undefined) throw new Error(result.error.diagnostic || result.error.code)
+  if (result.application === 'failed') throw new Error('exemption-failed')
+}
+
 interface SkinManifest {
   id?: unknown
   name?: unknown
   nameEn?: unknown
   tagline?: unknown
+  taglineEn?: unknown
   package?: unknown
   bodyAttr?: unknown
   dshCompatibility?: unknown
@@ -104,18 +127,35 @@ function packageNames(manifestPath: string): string[] {
   }
 }
 
-function skinManifestPath(profileManifest: string, packageName: string): string | null {
+/** One skin.json manifest plus the package name its own directory declares. */
+interface LocatedSkin {
+  manifestPath: string
+  packageName: string
+}
+
+function skinManifestPath(profileManifest: string, packageName: string): LocatedSkin | null {
   const require = createRequire(profileManifest)
+  // The installed directory's own manifest is the identity source: a `link:`
+  // dependency may carry a legacy alias key instead of the published package
+  // name, which must not hide an otherwise valid installed skin.
+  const located = (manifestPath: string): LocatedSkin => {
+    try {
+      const own = JSON.parse(readFileSync(joinPath(dirname(manifestPath), 'package.json'), 'utf8')) as { name?: unknown }
+      if (typeof own.name === 'string' && own.name !== '') return { manifestPath, packageName: own.name }
+    } catch {
+      // A directory without a readable manifest keeps the dependency key.
+    }
+    return { manifestPath, packageName }
+  }
   try {
-    return require.resolve(`${packageName}/skin.json`)
+    return located(require.resolve(`${packageName}/skin.json`))
   } catch {
     try {
-      const packageJson = require.resolve(`${packageName}/package.json`)
-      const candidate = joinPath(dirname(packageJson), 'skin.json')
-      return existsSync(candidate) ? candidate : null
+      const candidate = joinPath(dirname(require.resolve(`${packageName}/package.json`)), 'skin.json')
+      return existsSync(candidate) ? located(candidate) : null
     } catch {
       const candidate = joinPath(dirname(profileManifest), 'node_modules', ...packageName.split('/'), 'skin.json')
-      return existsSync(candidate) ? candidate : null
+      return existsSync(candidate) ? located(candidate) : null
     }
   }
 }
@@ -136,6 +176,7 @@ function catalogEntry(manifest: SkinManifest, installedPackage: string): SkinCat
     name,
     ...(typeof manifest.nameEn === 'string' ? { nameEn: manifest.nameEn } : {}),
     ...(typeof manifest.tagline === 'string' ? { tagline: manifest.tagline } : {}),
+    ...(typeof manifest.taglineEn === 'string' ? { taglineEn: manifest.taglineEn } : {}),
     package: packageName,
     wiringId,
     bodyAttr,
@@ -146,20 +187,38 @@ function catalogEntry(manifest: SkinManifest, installedPackage: string): SkinCat
   }
 }
 
-/** Discover every installed package that exposes a valid skin.json manifest. */
-export function discoverInstalledSkins(profilePatch = resolveProfilePatch()): SkinCatalogEntry[] {
+/**
+ * Discover every installed package that exposes a valid skin.json manifest.
+ * @param runtimeVersion - the running DSH version; when known, entries the
+ * host's admission check refuses carry `compatibility`.
+ */
+export function discoverInstalledSkins(
+  profilePatch = resolveProfilePatch(),
+  runtimeVersion: string | undefined = readDshRuntimeVersion(),
+): SkinCatalogEntry[] {
   const profileManifest = joinPath(dirname(profilePatch), 'package.json')
+  const exemptions = runtimeVersion === undefined ? {} : readProfileExemptions(dirname(profilePatch))
   const found: SkinCatalogEntry[] = []
   const ids = new Set<string>()
   const wiringIds = new Set<string>()
   for (const packageName of packageNames(profileManifest)) {
-    const path = skinManifestPath(profileManifest, packageName)
-    if (path === null) continue
+    const skin = skinManifestPath(profileManifest, packageName)
+    if (skin === null) continue
     try {
-      const entry = catalogEntry(JSON.parse(readFileSync(path, 'utf8')) as SkinManifest, packageName)
+      const entry = catalogEntry(JSON.parse(readFileSync(skin.manifestPath, 'utf8')) as SkinManifest, skin.packageName)
       if (entry === null || ids.has(entry.id) || wiringIds.has(entry.wiringId)) continue
       ids.add(entry.id)
       wiringIds.add(entry.wiringId)
+      if (runtimeVersion !== undefined) {
+        let manifest: unknown
+        try {
+          manifest = JSON.parse(readFileSync(joinPath(dirname(skin.manifestPath), 'package.json'), 'utf8'))
+        } catch {
+          // No package manifest means no peer declaration for the host to judge.
+        }
+        const compatibility = evaluateSkinCompatibility(manifest, runtimeVersion, exemptions)
+        if (compatibility !== undefined) entry.compatibility = compatibility
+      }
       found.push(entry)
     } catch {
       // One malformed third-party manifest must not hide other installed skins.
@@ -174,13 +233,13 @@ export function discoverSkinDirectories(profilePatch = resolveProfilePatch()): M
   const dirs = new Map<string, string>()
   const wiringIds = new Set<string>()
   for (const packageName of packageNames(profileManifest)) {
-    const path = skinManifestPath(profileManifest, packageName)
-    if (path === null) continue
+    const skin = skinManifestPath(profileManifest, packageName)
+    if (skin === null) continue
     try {
-      const entry = catalogEntry(JSON.parse(readFileSync(path, 'utf8')) as SkinManifest, packageName)
+      const entry = catalogEntry(JSON.parse(readFileSync(skin.manifestPath, 'utf8')) as SkinManifest, skin.packageName)
       if (entry === null || dirs.has(entry.id) || wiringIds.has(entry.wiringId)) continue
       wiringIds.add(entry.wiringId)
-      dirs.set(entry.id, dirname(path))
+      dirs.set(entry.id, dirname(skin.manifestPath))
     } catch {
       // One malformed third-party manifest must not hide other installed skins.
     }
@@ -293,6 +352,7 @@ export function computeSkinFingerprint(dir: string): string | null {
       hash.update(`${input}\0${Buffer.byteLength(normalized)}\0`)
       hash.update(normalized)
     }
+    hashSkinAssets(hash, dir)
     return hash.digest('hex')
   } catch {
     return null
@@ -611,15 +671,76 @@ export async function inspectSkinVersion(
   }
 }
 
-/** Remove exactly one manager-owned block while preserving all user YAML. */
-export function stripManagedBlock(source: string): string {
+/** Read the direct `id` of one top-level patch record (`- id: x` or a later `id:` property). */
+function recordId(record: string[]): string | undefined {
+  const head = record.find(line => /^-(\s|$)/.test(line))
+  if (head === undefined) return undefined
+  const idValue = /^id:\s*(['"]?)([^'"#\s]+)\1\s*(?:#.*)?$/
+  const first = head.replace(/^-\s*/, '').match(idValue)
+  if (first !== null) return first[2]
+  const propertyIndent = head.length - head.replace(/^-\s*/, '').length
+  for (const line of record.slice(record.indexOf(head) + 1)) {
+    if (line.trim() === '' || line.trimStart().startsWith('#')) continue
+    const indent = line.length - line.trimStart().length
+    if (indent !== propertyIndent) continue
+    const property = line.trimStart().match(idValue)
+    if (property !== null) return property[2]
+  }
+  return undefined
+}
+
+/**
+ * Split the managed block body into top-level records and keep those the
+ * manager does not own. DSH 0.1.7+ appends settings rows (`ui-theme`, ...) to
+ * the end of the profile patch, which lands them inside this block; they must
+ * survive a switch.
+ */
+function foreignRecords(body: string, isOwned: (id: string) => boolean): string[] {
+  const records: string[][] = []
+  let current: string[] = []
+  for (const line of body.split(/\r?\n/).map(line => line.replace(/[ \t]+$/, ''))) {
+    if (/^-(\s|$)/.test(line)) {
+      /* Column-0 comments right before a record introduce it, not the previous one. */
+      let lead = current.length
+      while (lead > 0 && (current[lead - 1] === '' || current[lead - 1]!.startsWith('#'))) lead--
+      const intro = current.splice(lead).filter(text => text !== '')
+      if (current.length > 0) records.push(current)
+      current = [...intro, line]
+    } else {
+      current.push(line)
+    }
+  }
+  if (current.length > 0) records.push(current)
+  return records
+    .filter(record => {
+      /* The manager only writes `- id:` rows; loose comments are its own. */
+      if (!record.some(line => /^-(\s|$)/.test(line))) return false
+      const id = recordId(record)
+      return id === undefined || !isOwned(id)
+    })
+    .map(record => record.join('\n').replace(/\s+$/, ''))
+}
+
+/** A manager-owned row is any discovered skin wiring id or a `ui-skin-*` row. */
+function ownsRecord(ownedIds: ReadonlySet<string>): (id: string) => boolean {
+  return id => ownedIds.has(id) || (id.startsWith('ui-skin-') && id !== name)
+}
+
+/**
+ * Remove exactly one manager-owned block while preserving all user YAML.
+ * Records inside the block that belong to someone else (for example settings
+ * rows DSH appended to the end of the file) are moved in front of it.
+ */
+export function stripManagedBlock(source: string, ownedIds: ReadonlySet<string> = new Set()): string {
   const start = source.indexOf(MANAGED_START)
   if (start < 0) return source
   const end = source.indexOf(MANAGED_END, start)
   if (end < 0) throw new Error('managed-section-is-incomplete')
   const before = source.slice(0, start).replace(/[ \t]+$/gm, '').replace(/\s+$/, '')
+  const body = source.slice(start + MANAGED_START.length, end)
+  const foreign = foreignRecords(body, ownsRecord(ownedIds)).join('\n')
   const after = source.slice(end + MANAGED_END.length).replace(/^\s+/, '')
-  return [before, after].filter(Boolean).join('\n\n')
+  return [before, foreign, after].filter(Boolean).join('\n\n')
 }
 
 /** Render mutual exclusion for all discovered skins; official disables all. */
@@ -634,11 +755,13 @@ export function renderManagedBlock(target: SkinTarget, catalog: SkinCatalogEntry
 
 /** Compose a new patch without touching content outside the managed block. */
 export function switchPatch(source: string, target: SkinTarget, catalog: SkinCatalogEntry[]): string {
-  const stripped = stripManagedBlock(source).replace(/\s+$/, '')
+  const owned = new Set(catalog.map(skin => skin.wiringId))
+  const stripped = stripManagedBlock(source, owned).replace(/\s+$/, '')
+  /* A top-level empty sequence (`[]`) can never coexist with the rows appended below. */
+  const emptySequence = /^\[\]\s*(?:#.*)?$/
   const lines = stripped.split(/\r?\n/)
-  const yamlLines = lines.filter(line => line.trim() !== '' && !line.trimStart().startsWith('#'))
-  const unmanaged = yamlLines.length === 1 && yamlLines[0]!.trim() === '[]'
-    ? lines.filter(line => line.trim() !== '[]').join('\n').replace(/\s+$/, '')
+  const unmanaged = lines.some(line => emptySequence.test(line))
+    ? lines.filter(line => !emptySequence.test(line)).join('\n').replace(/\s+$/, '')
     : stripped
   return `${unmanaged === '' ? '' : `${unmanaged}\n\n`}${renderManagedBlock(target, catalog)}\n`
 }
@@ -792,6 +915,7 @@ export function makeSkinManagerRoute(
   catalogProvider: () => SkinCatalogEntry[] = () => discoverInstalledSkins(),
   applyTarget: (target: SkinTarget, catalog: SkinCatalogEntry[]) => void = (target, catalog) => useSkin(target, resolvePatchTargets(), catalog),
   dirProvider: () => Map<string, string> = () => new Map(),
+  grantExemption: (compatibility: SkinCompatibility) => Promise<void> = async () => { throw new Error('exemption-unavailable') },
 ): WebRoute {
   const versionCache = new Map<string, { at: number, value: SkinVersionInfo }>()
   const branchCache = new Map<string, { at: number, value: string }>()
@@ -875,6 +999,16 @@ export function makeSkinManagerRoute(
         if (target !== 'official' && !catalog.some(skin => skin.id === target)) {
           throw new Error('invalid-skin-target')
         }
+        // The host keeps an out-of-range skin disabled whatever the patch says,
+        // so switching to it needs the user's explicit, exact-version grant.
+        const compatibility = catalog.find(skin => skin.id === target)?.compatibility
+        if (compatibility !== undefined && !compatibility.exempted) {
+          if ((body as { acceptRisk?: unknown }).acceptRisk !== true) {
+            json(res, 409, { ok: false, error: 'incompatible-version', compatibility })
+            return
+          }
+          await grantExemption(compatibility)
+        }
         applyTarget(target as SkinTarget, catalog)
         json(res, 200, { ok: true, target })
       } catch (error) {
@@ -899,6 +1033,7 @@ export function apply(ctx: HostContext): void {
       catalog,
       (target, installed) => useSkin(target, patchPaths, installed),
       () => discoverSkinDirectories(profilePatch),
+      compatibility => grantThroughHost(ctx, compatibility),
     ))
   }, 'ui-skin-manager: startup guard and catalog/activation route')
 }

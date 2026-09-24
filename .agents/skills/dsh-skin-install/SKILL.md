@@ -129,7 +129,7 @@ DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可
 
 ## 已知要点（判断用，非写死事实）
 
-- 本仓库皮肤是纯展示层 client 插件：不注入服务、不发 Cordis 事件、不触达模型请求；素材以数据 URI 内嵌于 bundle，激活不依赖远程资源。
+- 本仓库皮肤是纯展示层 client 插件：不注入服务、不发 Cordis 事件、不触达模型请求；图片素材随包分发于 `assets/runtime/`，由皮肤 node 半边的同源路由提供，激活不依赖远程资源；新增/升级后若图片 404，说明宿主进程仍持有旧 node 半边，需要按重启安全闸门重启。
 - 皮肤可热切换，`wiring.id` 即 patch 层控制的插件 id；皮肤中心/互斥切换机制兼容。
 - **skin-manager 插件**（`@smalltailqwq/dsh-client-ui-skin-deep-whale-manager`）在设置面板注册"皮肤管理"分类：发现已安装皮肤（`GET /api/dsh/skins`，依据是 profile 依赖中导出有效 `skin.json`——`package` 匹配包名——的包）；一键激活（`POST /api/dsh/skins { target }`，同源校验 + catalog 校验 + 两 patch 层原子写入回滚）、皮肤定制声明渲染。启动时若按 profile→home 优先级计算出同时启用两套及以上皮肤，管理器会自动原子切到“官方默认”并写入互斥行；已有零套或一套启用的合法选择保持不变。安装皮肤后管理器自动发现,无需额外配置。
 - 皮肤子包本身**不带**默认 `disabled`（patch 无行 = 启用）；互斥的责任在管理器（启动兜底 + 原子切换），不要求用户预置脚本。预置脚本仅用于本地 link 流程与恢复工具。

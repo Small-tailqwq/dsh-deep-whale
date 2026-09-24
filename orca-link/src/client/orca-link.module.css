@@ -86,6 +86,25 @@ body[data-dsh-orca-link] {
   --dsw-input-solid: #fbf7ef !important;
 }
 
+/* Fullscreen ornaments are body children, so the host's portal no-drag rule
+   would erase the window drag band even with pointer-events:none. Reset only
+   passive chrome; native and skin-owned controls keep their no-drag regions.
+   !important outranks the host rule's :not(#root) specificity. */
+html[data-platform='darwin'] body[data-dsh-orca-link]
+  > :is([data-skin-chrome='light-scene'], [data-skin-chrome='dark-scene'], [data-skin-chrome='spine'], [data-skin-chrome='standby']) {
+  -webkit-app-region: initial !important;
+}
+
+body[data-dsh-orca-link] [data-turn-trigger] {
+  border-color: var(--orca-line);
+  border-radius: 0;
+  background: var(--orca-surface-strong);
+}
+
+body[data-dsh-orca-link] [data-turn-trigger]:hover {
+  border-color: var(--orca-blue);
+}
+
 /* ORCA shape contract: keep interactive surfaces and skin chrome rectilinear
    without matching every generated DOM node. The former universal descendant
    and pseudo-element rules made xterm's high-churn row renderer repeatedly
@@ -162,6 +181,109 @@ body[data-dsh-orca-link] [data-chat-flow] *::after {
   border-radius: 0 !important;
 }
 
+/* Switch: a machined breaker slot instead of the host's capsule with a ball.
+   The shape contract squares the track but never reaches the thumb, so the
+   control shipped as a round white ball floating in a hard rectangle — and
+   because the light palette's accent IS graphite, the ON state was a dark
+   block that read like the OFF one. Both parts are rectilinear here: OFF is a
+   hollow block resting in a recessed slot, ON is the same block travelled
+   right, filled with the accent, in an accent-tinted slot behind an accent
+   frame. Geometry stays the host's 36x20 with a 1px frame and a 1px inset, so
+   the 16px travel, hit box, layout and the `aria-checked` state source are all
+   unchanged.
+
+   Unlike the shape contract this deliberately reaches into the settings
+   dialog: that dialog already carries its own universal rectilinear zeroing
+   (`[data-slot='sidebar.settings'] [role='dialog'] *`), so the switch inside it
+   is square either way and excluding the section would give one control two
+   designs. Only the hands-off seats keep the host's own switch. */
+body[data-dsh-orca-link] :where([role='switch']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) {
+  box-sizing: border-box;
+  width: 36px;
+  height: 20px;
+  padding: 1px;
+  border: 1px solid var(--orca-line);
+  border-radius: 0 !important;
+  background: color-mix(in srgb, var(--orca-ink) 7%, var(--dsw-input-solid));
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+body[data-dsh-orca-link] :where([role='switch'][aria-checked='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) {
+  border-color: color-mix(in srgb, var(--orca-blue) 62%, transparent);
+  background: color-mix(in srgb, var(--orca-blue) 18%, var(--dsw-input-solid));
+}
+
+body[data-dsh-orca-link] :where([role='switch']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) > [class*='thumb'] {
+  box-sizing: border-box;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--orca-muted);
+  border-radius: 0 !important;
+  background: var(--orca-surface-strong);
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+body[data-dsh-orca-link] :where([role='switch'][aria-checked='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+) > [class*='thumb'] {
+  transform: translateX(16px);
+  border-color: var(--orca-blue);
+  background: var(--orca-blue);
+}
+
+/* Portaled announcements and previews sit outside every seat the role list
+   above reaches. The host toast is `body > [role='alert']` driven by its own
+   `--dsh-toast-hold`, the hover card carries `--dsh-hover-preview-fade`; both
+   inline properties are the components' timing contracts, so they identify
+   the surfaces without generated class names. The toast becomes a squared
+   ORCA panel with the signal edge the menus use; its fade and position stay
+   the host's. */
+body[data-dsh-orca-link] > [role='alert'][style*='--dsh-toast-hold'] {
+  border: 1px solid var(--orca-line);
+  border-radius: 0 !important;
+  background: #fbf7ef;
+  color: var(--orca-ink);
+  box-shadow: inset 2px 0 var(--orca-blue), var(--orca-shadow);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] > [role='alert'][style*='--dsh-toast-hold'] {
+  background: #0f151f;
+}
+
+body[data-dsh-orca-link] > [role='alert'][style*='--dsh-toast-hold'] button {
+  color: var(--orca-blue);
+}
+
+body[data-dsh-orca-link] > [style*='--dsh-hover-preview-fade'] {
+  border: 1px solid var(--orca-line);
+  border-radius: 0 !important;
+}
+
+/* Status tags (Tag's `data-tone`) are pills in the host; the Plugins page is
+   a management surface with no high-churn content, so it takes the same
+   whole-subtree rectilinear pass the settings dialog already has. */
+body[data-dsh-orca-link] [data-tone],
+body[data-dsh-orca-link] [data-plugin-panel] *,
+body[data-dsh-orca-link] [data-plugin-panel] *::before,
+body[data-dsh-orca-link] [data-plugin-panel] *::after {
+  border-radius: 0 !important;
+}
+
 /* Command shells own their rounded frame outside the listbox. Keep the
    popupSelect relation local to the composer overlay, including empty lists. */
 body[data-dsh-orca-link] [data-trigger-menu],
@@ -190,21 +312,26 @@ body[data-dsh-orca-link] [data-slot='conversation.session.header.utilities']
 }
 
 /* Reading panes need their own opaque floor: the page's translucent base
-   intentionally reveals the scene and is unsuitable for fullscreen content. */
-body[data-dsh-orca-link] [data-sidebar-right-panel],
-body[data-dsh-orca-link] [data-sidebar-right-float-host] [data-dockkit-float] {
+   intentionally reveals the scene and is unsuitable for fullscreen content.
+   The floor follows the open state only. Since DSH 0.1.7 the panel container
+   stays mounted and visible while collapsed — only the docked items inside it
+   slide out — so an opaque container would paint a full-height band over the
+   conversation's right edge. DSH 0.1.6 hid the whole container, which is why
+   the unconditional rule used to be invisible. */
+body[data-dsh-orca-link] [data-sidebar-right-panel][data-sidebar-right-open],
+body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
   background: var(--dsw-input-solid);
   color: var(--orca-ink);
   border-color: var(--orca-line);
   border-radius: 0 !important;
 }
 
-body[data-dsh-orca-link] [data-sidebar-right-float-host] [data-dockkit-float] {
+body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
   box-shadow: var(--orca-shadow);
 }
 
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-strip],
-body[data-dsh-orca-link] [data-sidebar-right-float-host] [data-dockkit-float-grip] {
+body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float-grip] {
   background: color-mix(in srgb, var(--orca-blue) 5%, var(--dsw-input-solid));
   border-bottom-color: var(--orca-line);
 }
@@ -218,6 +345,38 @@ body[data-dsh-orca-link] [data-dockkit-tab-menu] {
   background: var(--dsw-input-solid);
   border-color: var(--orca-line);
   box-shadow: var(--orca-shadow);
+}
+
+/* The 0.1.6 plugin manager is one of those reading panes: a keyed `main` panel
+   that replaces the conversation in the centre column with dense card and
+   detail copy. Same floor, from the same token, so the scene never fights the
+   management text for readability. */
+body[data-dsh-orca-link] [data-plugin-panel] {
+  background: var(--dsw-input-solid);
+  color: var(--orca-ink);
+}
+
+/* Process groups have their own disclosure title outside DisclosureRow. */
+body[data-dsh-orca-link] [data-step-process] > div > button[data-process-activity] {
+  padding: 5px 8px;
+  border-left: 2px solid var(--orca-line);
+  background: var(--orca-surface-strong);
+  color: var(--orca-graphite);
+}
+
+body[data-dsh-orca-link] [data-step-process] > div > button[data-process-activity]:is(:hover, :focus-visible, [aria-expanded='true']) {
+  border-left-color: var(--orca-blue);
+  color: var(--orca-ink);
+}
+
+body[data-dsh-orca-link] [data-slot='settings.launcher'] button[data-collapsed][aria-haspopup='menu'] {
+  border: 1px solid var(--orca-line);
+  background: var(--orca-surface-strong);
+}
+
+body[data-dsh-orca-link] [data-slot='settings.launcher'] button[data-collapsed][aria-haspopup='menu']:is(:hover, :focus-visible, [aria-expanded='true']) {
+  border-color: var(--orca-blue);
+  background: var(--dsw-input-solid);
 }
 
 /* Stats include noninteractive span pills as well as buttons. Their own
@@ -1435,11 +1594,20 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
    reports the plugin identity, so it doubles as the general opt-in for a
    plugin-injected block. Both must stay out of the native-button takeover
    below: that takeover hides every child of a matching button, and a plugin
-   row that copies the host's own button class is exactly the case it reaches. */
+   row that copies the host's own button class is exactly the case it reaches.
+
+   0.1.6 adds a third row of the same shape: the official global panel list
+   (`nav.panelList`, the Plugins entry) sits between New Session and the
+   browsing region, so every injected row now inherits a flow anchor 44px
+   lower. It is an official row rather than an injected one, but it lands in
+   the same place for the same reason, and it must clear the stage for one
+   more: the wide stage's transparent New Session hit plane is painted at
+   z-index 2 over the whole portrait area, which both hid the row behind the
+   artwork and swallowed its clicks. */
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
   > :first-child
-  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
+  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
   position: relative;
   z-index: 3;
   margin-top: calc(var(--orca-stage, 300px) - 116px);
@@ -1452,7 +1620,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
    original margin still does the stage push. */
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
-  > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]))
+  > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))
   [class*='regionArea'] {
   margin-top: 0;
 }
@@ -1465,6 +1633,18 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
   > :first-child
   > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry])
+  ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
+  margin-top: 0;
+}
+
+/* With the official panel row above them the injected entries are no longer
+   the first row under New Session: that row already paid the stage offset, so
+   the entry that follows it must not pay a second one. Same intent as the
+   sibling rule above, different predecessor. */
+body[data-dsh-orca-link][data-orca-sidebar-wide]
+  [data-slot='sidebar']
+  > :first-child
+  > nav[class*='panelList']
   ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
   margin-top: 0;
 }
@@ -3025,40 +3205,6 @@ body[data-dsh-orca-link] [data-orca-link-icon] > :not([data-orca-link-icon-art])
   display: none;
 }
 
-/* Todo progress borrows the context-usage pixel field: the frame stays still
-   while cells fill bottom-up, then clear for the next cycle. This explicitly
-   retires the host's rotating-ring animation from the retained SVG element. */
-body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] {
-  animation: none !important;
-}
-
-body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell] {
-  opacity: 0.12;
-  animation-duration: 2.4s;
-  animation-timing-function: steps(1, end);
-  animation-iteration-count: infinite;
-}
-
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='0'] { animation-name: orcaTodoFill0; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='1'] { animation-name: orcaTodoFill1; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='2'] { animation-name: orcaTodoFill2; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='3'] { animation-name: orcaTodoFill3; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='4'] { animation-name: orcaTodoFill4; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='5'] { animation-name: orcaTodoFill5; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='6'] { animation-name: orcaTodoFill6; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='7'] { animation-name: orcaTodoFill7; }
-body[data-dsh-orca-link] [data-orca-link-todo-progress-cell='8'] { animation-name: orcaTodoFill8; }
-
-@keyframes orcaTodoFill0 { 0%, 7.999% { opacity: 0.12; } 8%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill1 { 0%, 15.999% { opacity: 0.12; } 16%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill2 { 0%, 23.999% { opacity: 0.12; } 24%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill3 { 0%, 31.999% { opacity: 0.12; } 32%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill4 { 0%, 39.999% { opacity: 0.12; } 40%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill5 { 0%, 47.999% { opacity: 0.12; } 48%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill6 { 0%, 55.999% { opacity: 0.12; } 56%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill7 { 0%, 63.999% { opacity: 0.12; } 64%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-@keyframes orcaTodoFill8 { 0%, 71.999% { opacity: 0.12; } 72%, 89.999% { opacity: 1; } 90%, 100% { opacity: 0.12; } }
-
 body[data-dsh-orca-link] {
   --aion-bg-base: var(--orca-surface-strong);
   --aion-bg-1: var(--orca-surface);
@@ -3087,11 +3233,11 @@ body[data-dsh-orca-link] {
   }
   /* The portrait stage is retired in this layout, so the entries' stage-sized
      offset would leave a blank band above the plugin rows; reset it with the
-     rest of the stage chrome. */
+     rest of the stage chrome. The official panel row rides the same offset. */
   body[data-dsh-orca-link][data-orca-sidebar-wide]
     [data-slot='sidebar']
     > :first-child
-    > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
+    > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
     margin-top: 0;
   }
   body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before { display: none; }
@@ -3115,7 +3261,6 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before { transition: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
   body[data-dsh-orca-link] .signalDot,
-  body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell],
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > :first-child,
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'],
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
@@ -3134,8 +3279,8 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .lightSceneLayer,
   body[data-dsh-orca-link] .darkSceneLayer,
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before,
+  body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
-  body[data-dsh-orca-link] [data-orca-link-icon='todo-progress'] [data-orca-link-todo-progress-cell] { opacity: 0.55; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
   body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after { display: none; }
@@ -3213,33 +3358,35 @@ body[data-dsh-orca-link]
   animation: orcaLinkWidthHandleSignal 920ms steps(4, end) infinite;
 }
 
-body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
+/* The rail precedes the transcript root; root > scroll > flow stays present
+   even when data-chat-following-tail is removed while reading history. */
+body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]::before {
   border-radius: 0;
   background: rgba(115, 88, 63, 0.56);
 }
 
-body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
+body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
   background: #9b8061;
   box-shadow: 0 0 5px rgba(115, 88, 63, 0.46);
 }
 
-body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
+body[data-dsh-orca-link]:not([data-ds-dark-theme]) [data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
   background: #73583f;
   box-shadow:
     0 0 0 1px rgba(255, 252, 246, 0.92),
     0 0 5px rgba(115, 88, 63, 0.38);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]::before {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]::before {
   background: color-mix(in srgb, var(--orca-muted) 74%, transparent);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]:is(:hover, :focus-visible)::before {
   background: var(--orca-cyan);
   box-shadow: 0 0 6px color-mix(in srgb, var(--orca-cyan) 72%, transparent);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label][aria-current='true']::before {
   background: var(--orca-cyan);
   box-shadow:
     0 0 0 1px #f7fbff,
@@ -3278,6 +3425,4 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [class$='_cardId'] {
 body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar.settings'] [class$='_cardId'] {
   color: var(--orca-muted);
 }
-
-
 

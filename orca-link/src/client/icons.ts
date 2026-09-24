@@ -14,10 +14,9 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  *
  * Keys are distinctive fragments of the host path data as rendered by
  * @deepseek-ai/dsh-client-ui-primitives (verified against that package's
- * icons/index.tsx and the live GUI). Unmatched glyphs — the brand wordmark,
- * hero glow, whale mark, and the pre-expanded tree-corner connector, which
- * is already rectilinear — keep the host drawing, as do the alarm clock, the
- * Cordis plugin badge and the 16px right-up arrow, which no redraw claims yet.
+ * icons/index.tsx at c36a83ff6bb9, including its Regular/Medium variants).
+ * Unmatched drawings, such as the brand wordmark and hero artwork, keep
+ * their host geometry.
  */
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
@@ -34,15 +33,6 @@ const ICON_ART: Record<string, string> = {
     '<path d="M2.25 2.25h3.75v11.5H2.25z" fill="currentColor" stroke="none"/>',
     '<path d="M11.75 8H7.75M9.75 5.5 7.25 8l2.5 2.5"/>',
   ].join(''),
-  'panel-expand': [
-    '<path d="M2.25 2.25h11.5v11.5H2.25z"/>',
-    '<path d="M10 2.25h3.75v11.5H10z" fill="currentColor" stroke="none"/>',
-    '<path d="M4.25 8h4M6.25 5.5 8.75 8l-2.5 2.5"/>',
-  ].join(''),
-  'panel-bottom': [
-    '<path d="M1.75 2h12.5v12H1.75z"/>',
-    '<path d="M3.25 10h9.5v2.5H3.25z" fill="currentColor" stroke="none"/>',
-  ].join(''),
   'new-session': [
     '<path d="M2.25 2.25h11.5v11.5H2.25z"/>',
     '<path d="M8 5.25v5.5M5.25 8h5.5"/>',
@@ -55,7 +45,6 @@ const ICON_ART: Record<string, string> = {
     '<path d="M2 4.75h12M2 8h12M2 11.25h12"/>',
     '<path d="M4.75 4h2.5v1.5h-2.5zM8.75 7.25h2.5v1.5h-2.5zM6.25 10.5h2.5v1.5h-2.5z" fill="currentColor" stroke="none"/>',
   ].join(''),
-  folder: ['<path d="M2 3.5h4.25L8 5.25h6V13.5H2z"/>'].join(''),
   'folder-closed': [
     '<path d="M2 3.5h4.25L8 5.25h6v8.25H2z"/>',
     '<path d="M4 8h8"/>',
@@ -278,25 +267,6 @@ const ICON_ART: Record<string, string> = {
     '<path d="M2 2h3.5v3.5H2zM2 10h3.5v3.5H2z"/>',
     '<path d="M7.5 3.75h6M7.5 11.75h6"/>',
   ].join(''),
-  'todo-pending': [
-    '<path d="M2.25 6V2.25H6M10 2.25h3.75V6M13.75 10v3.75H10M6 13.75H2.25V10"/>',
-  ].join(''),
-  'todo-progress': [
-    '<path d="M2.25 2.25h11.5v11.5H2.25z"/>',
-    '<rect data-orca-link-todo-progress-cell="0" x="4" y="10" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="1" x="7" y="10" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="2" x="10" y="10" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="3" x="4" y="7" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="4" x="7" y="7" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="5" x="10" y="7" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="6" x="4" y="4" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="7" x="7" y="4" width="2" height="2" fill="currentColor" stroke="none"/>',
-    '<rect data-orca-link-todo-progress-cell="8" x="10" y="4" width="2" height="2" fill="currentColor" stroke="none"/>',
-  ].join(''),
-  'todo-completed': [
-    '<path d="M2.25 2.25h11.5v11.5H2.25z"/>',
-    '<path d="M4.75 8.25 7 10.5l4.5-5"/>',
-  ].join(''),
   'list-pen': [
     '<path d="M2.25 2h8L13.5 5.25V7.5"/>',
     '<path d="M4.75 5.5h6M4.75 9h4.5"/>',
@@ -324,6 +294,45 @@ const ICON_ART: Record<string, string> = {
     '<path d="M1.75 1.75h12.5V5H1.75zM2.75 5v9.25h10.5V5"/>',
     '<path d="M5.75 8h4.5v2.5h-4.5z"/>',
   ].join(''),
+  'alarm-clock': [
+    '<path d="M3.5 4h9v9h-9zM2 3l2-2M12 1l2 2M5 13l-1 2M11 13l1 2M8 6v3h2"/>',
+  ].join(''),
+  'archive-check': [
+    '<path d="M1.75 2h12.5v3H1.75zM2.75 5v9h10.5V5M5 9l2 2 4-4"/>',
+  ].join(''),
+  'check-circle': ['<path d="M2.25 2.25h11.5v11.5H2.25zM4.5 8l2.5 2.5 4.5-5"/>'].join(''),
+  'chevrons-up-down': ['<path d="M4.5 6 8 2.5 11.5 6M4.5 10 8 13.5 11.5 10"/>'].join(''),
+  'close-circle': ['<path d="M2.25 2.25h11.5v11.5H2.25zM5.5 5.5l5 5M10.5 5.5l-5 5"/>'].join(''),
+  compact: ['<path d="M2 2.5h12v11H2zM4 5l3 3-3 3M12 5 9 8l3 3"/>'].join(''),
+  'compare-split': ['<path d="M1.75 2.25h4.5v11.5h-4.5zM9.75 2.25h4.5v11.5h-4.5z"/>'].join(''),
+  plugin: ['<path d="M4.75 4.75h6.5v6.5h-6.5zM6.5 1.5v3.25M9.5 1.5v3.25M6.5 11.25v3.25M9.5 11.25v3.25M1.5 6.5h3.25M1.5 9.5h3.25M11.25 6.5h3.25M11.25 9.5h3.25"/>'].join(''),
+  'deliver-doc': ['<path d="M3 1.75h7L13 4.75v9.5H3zM9.5 1.75V5H13M5 7h4M5 10l2 2 4-4"/>'].join(''),
+  'flat-list': ['<path d="M6 3.5h8M6 8h8M6 12.5h8M2 2.5h2v2H2zM2 7h2v2H2zM2 11.5h2v2H2z"/>'].join(''),
+  info: ['<path d="M2.25 2.25h11.5v11.5H2.25zM8 7v4M7 4.5h2"/>'].join(''),
+  microphone: ['<path d="M5.5 1.75h5v8h-5zM2.5 7.5v4h11v-4M8 11.5v3M5.5 14.5h5"/>'].join(''),
+  nowrap: ['<path d="M2 2v12M14 2v12M4 5h6M4 8h8M9.5 5.5 12 8l-2.5 2.5M4 11h3"/>'].join(''),
+  'paper-plane': ['<path d="M1.75 6.75 14.25 1.75 9.25 14.25 6.75 9.25zM6.75 9.25l7.5-7.5"/>'].join(''),
+  pin: ['<path d="M5 1.75h6V4l-1 1v3l2.5 2v1H3.5v-1L6 8V5L5 4zM8 11v3.5"/>'].join(''),
+  'pin-filled': [
+    '<path d="M5 1.75h6V4l-1 1v3l2.5 2v1H3.5v-1L6 8V5L5 4z" fill="currentColor"/>',
+    '<path d="M8 11v3.5"/>',
+  ].join(''),
+  'plugin-pinwheel': ['<path d="M6.5 6.5h3v3h-3zM6.5 6.5V2h6v4.5h-3M9.5 9.5V14h-6V9.5h3M6.5 9.5H2v-6h4.5M9.5 6.5H14v6H9.5"/>'].join(''),
+  'sliders-two': ['<path d="M2 5h5M10 5h4M2 11h3M8 11h6M7 3.5h3v3H7zM5 9.5h3v3H5z"/>'].join(''),
+  // The connector uses its native 9x11 grid so adjoining tree stems meet.
+  'tree-corner': ['<path d="M.5 0V10h8"/>'].join(''),
+  unarchive: ['<path d="M1.75 2h12.5v3H1.75zM2.75 5v9h10.5V5M8 12V7M5.5 9.5 8 7l2.5 2.5"/>'].join(''),
+  'warning-triangle': ['<path d="M8 1.75 14.25 13.5H1.75zM8 6v3M8 10.5v1"/>'].join(''),
+  'workspace-tree': ['<path d="M1.75 2.25h12.5v11.5H1.75zM4.5 5v6h7M4.5 8h7M8 8v3"/>'].join(''),
+  wrap: ['<path d="M2 2v12M14 2v12M4 5h6v5H6M8 8l-2 2 2 2"/>'].join(''),
+  'wrap-lines': ['<path d="M2 3h12M2 7h12v5H8M10 10l-2 2 2 2M2 11h3"/>'].join(''),
+  'dock-center': ['<path d="M1.75 2.25h12.5v11.5H1.75z"/><path d="M4 4.5h8v7H4z" fill="currentColor"/>'].join(''),
+  'dock-left': ['<path d="M1.75 2.25h12.5v11.5H1.75z"/><path d="M1.75 2.25H8v11.5H1.75z" fill="currentColor"/>'].join(''),
+  'dock-right': ['<path d="M1.75 2.25h12.5v11.5H1.75z"/><path d="M8 2.25h6.25v11.5H8z" fill="currentColor"/>'].join(''),
+  'dock-top': ['<path d="M1.75 2.25h12.5v11.5H1.75z"/><path d="M1.75 2.25h12.5V8H1.75z" fill="currentColor"/>'].join(''),
+  'dock-bottom': ['<path d="M1.75 2.25h12.5v11.5H1.75z"/><path d="M1.75 8h12.5v5.75H1.75z" fill="currentColor"/>'].join(''),
+  'sandbox-on': ['<path d="M2.5 2.5h11v8L8 14l-5.5-3.5zM5 7.5l2 2 4-4"/>'].join(''),
+  'sandbox-off': ['<path d="M2.5 2.5h11v8L8 14l-5.5-3.5zM5.5 5.5l5 5M10.5 5.5l-5 5"/>'].join(''),
   usage: ['<rect x="2.5" y="2.5" width="11" height="11"/>'].join(''),
 }
 
@@ -361,107 +370,111 @@ function buildUsageCells(): SVGGElement {
   return cells
 }
 
-/** Host path-data fragments (as rendered, single-spaced) to icon names. */
+/** Target glyph fragments from DSH 0.1.7-alpha.1 (c36a83ff6bb9).
+ * Shared contours are keyed by their distinguishing drawing, not the frame.
+ * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
-  // Sidebar and shell chrome.
-  ['M9.67272 0.522841C10.8339', 'panel-collapse'],
-  ['M8.00003 0.3237C3.76075', 'new-session'],
-  ['M11.894845 6.647401C11.894845 3.725463', 'search'],
-  ['M3.55246 0L3.55246 2.44252', 'add-workspace'],
-  ['M5.19629 1.57104C5.81144', 'folder-open'],
-  ['M5.05582 0.518756L4.50669 0.86654', 'folder-closed'],
-  ['x="3.25" y="10"', 'panel-bottom'],
-  ['x="10.5" y="3.25"', 'panel-expand'],
-  // Settings dialog.
-  ['clip0_1450_63327', 'gear'],
-  ['clip0_2580_121189', 'gear'],
-  ['M10.3232 9.18164C11.2868', 'sliders'],
-  ['mask0_agent_preset_16', 'agent-preset'],
-  ['M11.3496 8C11.3496 6.14985', 'sun'],
-  ['M13.2764 9.52324C12.5607', 'moon'],
-  ['M12.1665 13.5811V14.7803H3.66651', 'monitor'],
-  ['M12.0997 8.54554C12.2905', 'data'],
-  // Composer and message actions. Send16 appears with two float-drift
-  // revisions (0.980183 deployed build, 0.981587 primitives source).
-  ['M8.3125 0.980183C8.66767', 'send'],
-  ['M8.3125 0.981587C8.66767', 'send'],
-  ['M7.24707 1.01771C7.52897', 'send'],
-  ['M7.00049 0.199829C3.24488', 'queue'],
-  ['M8.64453 1.5V7.34961H14.5V8.65039', 'plus'],
-  ['M12.1654 5.7552L8.9447', 'permission-read'],
-  ['M8.08887 0.251709C8.20479', 'permission-write'],
-  ['M9.10094 4.5V8.75939', 'permission-full'],
-  ['M8.20554 0.899994L14.7901 3.36857', 'shield'],
-  ['M4 4l8 8M12 4l-8 8', 'close'],
-  ['M10.6074 4.40278L8.00975', 'close'],
-  ['M14.1168 13.197L13.197 14.1167', 'close'],
-  ['M6.14929 4.02032C7.11197', 'copy'],
-  ['M9.94076 1.34942C10.7047', 'edit'],
-  ['M14.4782 4.84067L14.2138 10.1152', 'trash'],
-  ['M7.92136 0.349152C10.3744', 'refresh'],
-  ['M1.272 6.21348C1.70645 3.08888', 'refresh'],
-  ['M8.27868 0.811572C8.81991', 'thumb-up'],
-  ['M14.0593 12.922L15.0976 10.1247', 'thumb-up'],
-  ['M7.72451 15.1086C7.18929', 'thumb-down'],
-  ['M1.92838 3.06811L0.88799 5.87104', 'thumb-down'],
-  ['M13.0762 1.37207C14.0846', 'branch'],
-  ['M12.3368 1.53569L11.931 4.43172', 'code'],
-  ['M11.2426 4.80473V6.10551H4.75819', 'browse'],
-  // Composer stats dock and the turn-usage row: the token-usage cylinder and
-  // the session-stats dial. Neither had a key, so both kept the host drawing.
-  ['<ellipse cx="8" cy="3.6" rx="5.75" ry="2.4"', 'database'],
-  ['M2.25 3.6V12.3A5.75 2.4', 'database'],
-  ['M3.49 13.26A6.375 6.375 0 1 1 12.51 13.26', 'gauge'],
-  ['<circle cx="8" cy="8" r="6.375"', 'clock'],
-  ['M8 4.4V8.3L10.7 9.85', 'clock'],
-  // Conversation rows: the thought balloon (14px and 16px host variants) and
-  // the context-injection disclosure, which had no key and kept the host drawing.
-  ['M11.9512 1.13281C12.401 1.20666', 'context-injection'],
-  ['M7.06431 5.93342C7.68763', 'think'],
-  ['M8.00192 6.64454C8.75026', 'think'],
-  ['x="3" y="3" width="10" height="10" rx="3"', 'stop'],
-  ['M2 4.88C2 3.68009', 'stop'],
-  ['M15.3695 11.411L15.1234 12.8866', 'download'],
-  ['M5.5498 9.75V5H6.9502', 'paperclip'],
-  ['M2.871 13.1286', 'loading'],
-  // Agent protocol nodes: todo, question, goal, skills.
-  ['M13.3277 9.69629V10.976H7.28086', 'checklist'],
-  ['stroke-dasharray="2.4 2.4"', 'todo-pending'],
-  ['x1="2.5" y1="12" x2="10.5" y2="3.5"', 'todo-progress'],
-  ['M10.9631 5.71411L7.70154 8.97571', 'todo-completed'],
-  ['M12.5757 7.00012C12.5757 3.92085', 'question'],
-  ['M8 0C8.31451 0 8.62464', 'goal'],
-  ['M10.8239 3.54733V4.78443H4.63437', 'list-pen'],
-  ['M6.1 3.1Q6.6 7.8 11.3 8.3', 'sparkle'],
-  ['M16 8L10.8571 12V10.552', 'inspect'],
-  ['M12.5113 15.4067C12.4395 15.6249', 'skill'],
-  ['M15.8659 2.05975C17.2603', 'archive'],
-  // Generic affordances.
-  ['M4.55146 8.00001C4.55146 8.63513', 'ellipsis'],
-  ['M4.25 2.82782L4.25 11.1722', 'caret-right'],
-  ['M11.8486 5.5L11.4238 5.92383', 'chevron-down'],
-  ['M2.15137 8.5L2.57617 8.07617L5.30273 5.34863', 'chevron-up'],
-  ['M8.5 2.15137L8.07617 2.57617', 'chevron-left'],
-  ['M5.5 2.15137L5.92383 2.57617', 'chevron-right'],
-  ['M15.0498 3.92579', 'check'],
-  ['M11.5635 4.58984', 'check'],
-  ['M4.5 6.25 6.75 8 4.5 9.75', 'terminal'],
-  ['M11.4818 5.57813C11.4818 4.45301', 'terminal'],
-  // ic_ds_globe_outline_14: the 0.1.5 build draws a filled meridian globe; the
-  // ellipse-ring form is kept for hosts that still ship it.
-  ['ellipse cx="8" cy="8" rx="2.8" ry="6.5"', 'globe'],
-  ['M7.00018 0.353516C10.6708', 'globe'],
-  ['M8.19727 5.86969', 'link'],
-  ['M9.94133 6.50173', 'link'],
-  ['M7.95889 1.52285C7.95888 0.826234', 'share'],
-  ['M6.54199 8.62824', 'right-up'],
-  ['M13.588429 5.147807', 'right-up'],
-  ['M14.9943 1.92389V3.32428H1.00598', 'enhance'],
-  ['M14.1446 8C14.1446 4.6062', 'play'],
-  ['M14.1448 8.00024', 'pause'],
-  ['M2.58875 12.3407L6.59167 8.33777', 'fullscreen'],
-  ['M6.3002 3.32843L7.69986 3.32843', 'warning'],
-  ['M11.0307 5.46369C11.0305 3.78995', 'user'],
+  ["d=\"M6.51867 12.3282C7.29816", 'agent-preset'], // IconAgentPresetOutlineMedium
+  ["d=\"M4.09372 11.9895L3.11865", 'alarm-clock'], // IconAlarmClockOutlineMedium
+  ["d=\"M9 12H13\"", 'terminal'], // IconApiOutlineMedium
+  ["d=\"M2.95 5.7v4.8a2.9 2.9 0 ", 'archive-check'], // IconArchiveCheckOutlineMedium
+  ["d=\"M6.5 9.5H9.5\"", 'archive'], // IconArchiveOutlineMedium
+  ["d=\"M1.01503 8.0001L5.6964 8", 'branch'], // IconBranchOutlineMedium
+  ["d=\"M12.5 1.32617C13.3039 1.32617 14 1.95171 14 2.77637V13.2246C13.9", 'browse'], // IconBrowseOutlineMedium
+  ["d=\"M28.1936 14.6936L19.8066", 'check-circle'], // IconCheckCircleFillMedium
+  ["d=\"M12.5303 6.53027L8.80273", 'check-circle'], // IconCheckCircleOutlineMedium
+  ["d=\"M2.25 8.5L5.49732 11.747", 'check'], // IconCheckOutlineMedium
+  ["d=\"M7.5 4.5H13.5\"", 'checklist'], // IconChecklistOutlineMedium
+  ["d=\"M4 6L7.29289 9.29289C7.6", 'chevron-down'], // IconChevronDownOutlineMedium
+  ["d=\"M10 4L6.70711 7.29289C6.", 'chevron-left'], // IconChevronLeftOutlineMedium
+  ["d=\"M6 12L9.29289 8.70711C9.", 'chevron-right'], // IconChevronRightOutlineMedium
+  ["d=\"M12 10L8.70711 6.70711C8", 'chevron-up'], // IconChevronUpOutlineMedium
+  ["d=\"m5.1 6 2.9-2.9L10.9 6\"", 'chevrons-up-down'], // IconChevronsUpDownOutlineMedium
+  ["d=\"M8 4V8.5L11.25 10.25\"", 'clock'], // IconClockOutlineMedium
+  ["d=\"M15 8A7 7 0 1 1 1 8A7 7 ", 'close-circle'], // IconCloseCircleFillMedium
+  ["d=\"M3.5 3.5L12.5 12.5\"", 'close'], // IconCloseFillMedium
+  ["d=\"M2.5 2.5L13.5 13.5\"", 'close'], // IconCloseOutlineMedium
+  ["d=\"M2.39868 5.5H14.0681\"", 'code'], // IconCodeOutlineMedium
+  ["d=\"M8 1.5C8.85359 1.5 9.698", 'compact'], // IconCompactOutlineMedium
+  ["d=\"M6 1.5H2.5C1.94772 1.5 1", 'compare-split'], // IconCompareSplitOutlineMedium
+  ["d=\"M8 0.5V7.5\"", 'context-injection'], // IconContextInjectionOutlineMedium
+  ["d=\"M11.9792 1.53296C13.36 1", 'copy'], // IconCopyOutlineMedium
+  ["d=\"M3.16143 6.59068L1.75205", 'plugin'], // IconCordisPluginOutlineMedium
+  ["d=\"M14.1127 8.70663C14.2576", 'moon'], // IconDarkOutlineMedium
+  ["d=\"M7.8667 0.349609C8.96906", 'data'], // IconDataOutlineMedium
+  ["d=\"M2 3.80371V11.7848\"", 'database'], // IconDatabaseOutlineMedium
+  ["d=\"M11.8798 9.55347V2.71525", 'deliver-doc'], // IconDeliverDocMedium
+  ["d=\"M2.46302 8.06749L3.60171", 'thumb-down'], // IconDislikeFillMedium
+  ["d=\"M8 1.95317V10.0469\"", 'download'], // IconDownloadOutlineMedium
+  ["d=\"M8.85596 2.69971H4.19971", 'edit'], // IconEditOutlineMedium
+  ["d=\"M3 9C3.55228 9 4 8.55228", 'ellipsis'], // IconEllipsisOutlineMedium
+  ["d=\"M1.98486 13.0463H8.4627\"", 'enhance'], // IconEnhanceOutlineMedium
+  ["d=\"M6 3.5h7.5M6 8h7.5M6 12.", 'flat-list'], // IconFlatListOutlineMedium
+  ["d=\"M1.50439 3.11059C1.50439", 'folder-closed'], // IconFolderCloseMedium
+  ["d=\"M2.55912 7.93683C2.67584", 'folder-open'], // IconFolderOpenMedium
+  ["d=\"M12.3994 13.5986H2.04956", 'folder-open'], // IconFolderOpenOutlineMedium
+  ["d=\"M5 14.5H11\"", 'monitor'], // IconFollowsystemOutlineMedium
+  ["d=\"M2.33154 9.40576V13.1685", 'fullscreen'], // IconFullscreenOutlineMedium
+  ["d=\"M3.4041 13.096C2.49514 1", 'gauge'], // IconGaugeOutlineMedium
+  ["d=\"M2.34619 8H13.6538\"", 'globe'], // IconGlobeOutlineMedium
+  ["d=\"M11.5 8C11.5001 8.69227 ", 'goal'], // IconGoalOutlineMedium
+  ["d=\"M12.5757 7.00012C12.5757", 'info'], // IconInfoOutlineMedium
+  ["d=\"M4.67398 4.25061L1.36094", 'inspect'], // IconInspectOutlineMedium
+  ["d=\"M13.3899 8H15.1499\"", 'sun'], // IconLightOutlineMedium
+  ["d=\"M13.537 8.12098L12.3983 ", 'thumb-up'], // IconLikeFillMedium
+  ["d=\"M6.59961 9.40051C6.82779", 'link'], // IconLinkOutlineMedium
+  ["d=\"M8.97212 14.3693C9.17511", 'list-pen'], // IconListPenOutlineMedium
+  ["d=\"M12.596 12.596C11.687 13", 'loading'], // IconLoadingOutlineMedium
+  ["d=\"M2.35 8.675C3.075 11.3 5", 'microphone'], // IconMicrophoneOutlineMedium
+  ["d=\"M8 5V11\"", 'new-session'], // IconNewChatOutlineMedium
+  ["d=\"M12.3535 7.64645C12.5487", 'nowrap'], // IconNowrapFillMedium
+  ["d=\"M5.5 1.5V14.5\"", 'panel-collapse'], // IconPanelLeftOutlineMedium
+  ["d=\"M4.74024 9.11029L1.82882", 'paper-plane'], // IconPaperPlaneOutlineMedium
+  ["d=\"M12.75 4.5V9.5C12.75 10.", 'paperclip'], // IconPaperclipOutlineMedium
+  ["d=\"M6.5 5V11\"", 'pause'], // IconPauseOutlineMedium
+  ["d=\"M3.25 7.16357C3.20417 7.", 'sliders'], // IconPersonalizationOutlineMedium
+  ['d="M9.96976 1.70572L13.1554', 'pin'], // IconPinOutline / IconPinFill
+  ["d=\"M10.3329 7.91346C10.3996", 'play'], // IconPlayOutlineMedium
+  ["d=\"M7.84457 5.06199C11.6605", 'plugin-pinwheel'], // IconPluginPinwheelOutlineMedium
+  ["d=\"M8 2V14\"", 'plus'], // IconPlusOutlineMedium
+  ["d=\"M5.54492 2.06738C5.91034", 'add-workspace'], // IconProjectAddOutlineMedium
+  ["d=\"M8 10.7416V11.7416\"", 'question'], // IconQuestionOutlineMedium
+  ["d=\"M5 9H8\"", 'queue'], // IconQueueOutlineMedium
+  ["d=\"M14.4999 1.5V5.1H10.8999\"", 'refresh'], // IconRefreshOutlineMedium
+  ["d=\"M11.7256 2.77441C12.5538", 'right-up'], // IconRightUpOutlineMedium
+  ["d=\"M6.58727 11.8586C9.55061", 'search'], // IconSearchOutlineMedium
+  ["d=\"M6.97211 1.94476C7.55785", 'send'], // IconSendOutlineMedium
+  ["d=\"M8 9.75012C8.9665 9.7501", 'gear'], // IconSettingsOutlineMedium
+  ["d=\"M14.1256 7.58723C14.3483", 'share'], // IconShareOutlineMedium
+  ["<path d=\"M6.80132 2.14853C7.70663 1.80917 8.70422 1.80919 9.60952 2.14859L14.1296 3.84317V7.11961C14.1296 11.6089 10.7615 13.5975 8.20543 14.5779C5.64931 13.5975 2.28052 11.6089 2.28052 7.11961V3.84317L6.80132 2.14853Z\" stroke=\"currentColor\" stroke-linejoin=\"round\">", 'shield'], // IconShieldOutlineMedium
+  ["d=\"M12.1404 1.19446C12.9442", 'skill'], // IconSkillOutlineMedium
+  ["d=\"M2.3 11h1.65M7.85 11h5.8", 'sliders-two'], // IconSlidersTwoOutlineMedium
+  ["d=\"M5.875 3C5.875 6.33333 7", 'sparkle'], // IconSparkleMedium
+  ["d=\"M12.5 2.5H3.5C2.94772 2.", 'stop'], // IconStopFillMedium
+  ["d=\"M10.7554 5.24466C13.9891", 'think'], // IconThinkOutlineMedium
+  ["d=\"M5.41602 3.88833V2.47962", 'trash'], // IconTrashOutlineMedium
+  ["d=\"M0.5 0V7C0.5 7.79565 0.8", 'tree-corner'], // IconTreeCornerMedium
+  ["d=\"M5.5 4.5C5.5 4.40714 5.5", 'caret-right'], // IconTriangleRightFillMedium
+  ["d=\"M15.8659 2.05975C17.2603", 'unarchive'], // IconUnarchiveOutlineMedium
+  ["d=\"M8 8.5C9.65685 8.5 11 7.", 'user'], // IconUserOutlineMedium
+  ["d=\"M8 10.708V11.708\"", 'warning'], // IconWarningOutlineMedium
+  ["d=\"M8 6v3m0 2.33h.01\"", 'warning-triangle'], // IconWarningTriangleOutlineMedium
+  ["d=\"M8.7 8.1v3M11.2 8.1v3\"", 'workspace-tree'], // IconWorkspaceTreeOutlineMedium
+  ["d=\"M10.9999 8C10.9999 6.895", 'wrap'], // IconWrapFillMedium
+  ["d=\"M2.3457 11.7369H6.4849\"", 'wrap-lines'], // IconWrapLinesOutlineMedium
+  ["d=\"M8 4.39209V9.89209\"", 'permission-full'], // PermissionIconFullAccessMedium
+  ["d=\"M5.08545 8.13775L7.18455", 'permission-read'], // PermissionIconReadOnlyMedium
+  ["d=\"M6.4209 1.68067C7.43922 ", 'permission-write'], // PermissionIconWorkspaceWriteMedium
+  ["d=\"M8.3125 0.980183C8.66767", 'send'], // ComposerSend
+  ["<rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"3\" fill=\"currentColor\">", 'stop'], // ComposerStop
+  ["d=\"M8 1.5V14.5\"", 'compare-split'], // DockSplit
+  ["d=\"M4.56 3.48H11.44A1.6 1.6", 'dock-center'], // DockZonecenter
+  ["d=\"M4 0.523H8V15.477H4A4 4 ", 'dock-left'], // DockZoneleft
+  ["d=\"M8 0.523H12A4 4 0 0 1 16", 'dock-right'], // DockZoneright
+  ["d=\"M0 8V4.523A4 4 0 0 1 4 0", 'dock-top'], // DockZonetop
+  ["d=\"M0 8H16V11.477A4 4 0 0 1", 'dock-bottom'], // DockZonebottom
+  ["d=\"M12.1654 5.7552L8.9447 9", 'sandbox-on'], // SandboxEnabled
+  ["d=\"M10.6074 4.40278L8.00975", 'sandbox-off'], // SandboxDisabled
 ]
 
 function normalizeHtml(html: string): string {
@@ -492,6 +505,9 @@ function matchIcon(html: string): string | null {
  * the host itself draws for tools.
  */
 function contextualName(svg: SVGElement, name: string): string {
+  if (name === 'pin') {
+    return svg.querySelector(':scope > path')?.getAttribute('fill') === 'currentColor' ? 'pin-filled' : name
+  }
   if (name === 'sparkle') {
     return svg.closest('[data-tool]') !== null ? 'wrench' : name
   }
@@ -504,8 +520,8 @@ function contextualName(svg: SVGElement, name: string): string {
  * The context meter's ring: a track circle plus a dashed progress circle. Its
  * class name is a CSS-module hash that moves with the host's build (path,
  * toolchain and content all feed it), so the drawing — not the class — is the
- * stable identity. The host draws a dashed ring in exactly two places, and the
- * todo-pending glyph has one circle, so the pair is unambiguous.
+ * identity. StateDot also has two circles, but drives its arc from CSS rather
+ * than the progress circle's stroke-dasharray attribute.
  */
 function isUsageRing(svg: SVGElement): boolean {
   return svg.querySelectorAll('circle').length === 2
@@ -539,7 +555,7 @@ function artTransform(svg: SVGElement): string {
 
 function buildArt(name: string, svg: SVGElement): SVGGElement {
   const art = document.createElementNS(SVG_NS, 'g')
-  const transform = artTransform(svg)
+  const transform = name === 'tree-corner' ? '' : artTransform(svg)
   art.setAttribute(ICON_ART_ATTRIBUTE, '')
   art.setAttribute('fill', 'none')
   art.setAttribute('stroke', 'currentColor')
@@ -557,12 +573,12 @@ function usageCircle(svg: SVGElement): SVGElement | null {
     .find((circle) => circle.hasAttribute('stroke-dasharray')) ?? null
 }
 
-/** Host ring dash fraction (dash / full circumference), clamped to 0..1. */
+/** ContextMeter emits the filled arc followed by the full circumference. */
 function usageFraction(circle: Element): number | null {
   const parts = (circle.getAttribute('stroke-dasharray') ?? '').match(/[\d.]+/g)
   if (!parts || parts.length < 2) return null
   const dash = Number.parseFloat(parts[0] ?? '0')
-  const total = dash + Number.parseFloat(parts[1] ?? '0')
+  const total = Number.parseFloat(parts[1] ?? '0')
   if (!Number.isFinite(total) || total <= 0) return null
   return Math.min(Math.max(dash / total, 0), 1)
 }
@@ -635,15 +651,20 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     // drawing instead of treating our first marker as permanently final.
     const currentName = svg.getAttribute(ICON_ATTRIBUTE)
     const nextName = resolveIconName(svg)
-    if (nextName !== null && nextName !== currentName) {
-      if (currentName?.startsWith('permission-') && !nextName.startsWith('permission-')) {
+    if (nextName !== currentName) {
+      if (currentName?.startsWith('permission-') && !nextName?.startsWith('permission-')) {
         svg.closest('button, [role="menuitem"]')?.removeAttribute('data-orca-permission')
       }
       art.remove()
       svg.removeAttribute(ICON_ATTRIBUTE)
-      applyToSvg(svg)
+      if (nextName !== null) applyToSvg(svg)
       return
     }
+
+    const transform = currentName === 'tree-corner' ? '' : artTransform(svg)
+    if (transform) {
+      if (art.getAttribute('transform') !== transform) art.setAttribute('transform', transform)
+    } else art.removeAttribute('transform')
 
     // A retained usage SVG may receive a replacement host ring. Observe the
     // new ring without keeping the detached ring alive.
@@ -683,6 +704,7 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     if (!hasMutationOutsideTerminal(records)) return
     const changed = new Set<SVGElement>()
     for (const record of records) {
+      if (belongsToArt(record.target)) continue
       const nodes = [...record.addedNodes, ...record.removedNodes]
       // Appending or replacing our own art creates child-list records too;
       // they must not schedule a second reconciliation pass.
@@ -693,7 +715,10 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     changed.forEach(reconcileSvg)
     pruneUsageObservers()
   })
-  mountObserver.observe(body, { childList: true, subtree: true })
+  mountObserver.observe(body, {
+    childList: true, subtree: true, attributes: true,
+    attributeFilter: ['d', 'fill', 'stroke', 'viewBox'],
+  })
 
   return () => {
     mountObserver.disconnect()

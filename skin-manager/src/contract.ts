@@ -9,12 +9,31 @@ export interface SkinCatalogEntry {
   name: string
   nameEn?: string
   tagline?: string
+  /** English tagline for the English UI; falls back to `tagline` when a skin omits it. */
+  taglineEn?: string
   package: string
   wiringId: string
   bodyAttr: string
   /** Latest DSH build explicitly verified by the skin maintainer (x.y.zrcN). */
   dshCompatibility?: string
   order: number
+  /**
+   * Present when the running DSH version falls outside the skin's declared
+   * dsh peer range. Without an exemption the host keeps the skin disabled
+   * whatever the patch says.
+   */
+  compatibility?: SkinCompatibility
+}
+
+/** A skin the running DSH version does not satisfy, as the host's admission check judges it. */
+export interface SkinCompatibility {
+  /** Exact `package@version` the host's exemptions are keyed by. */
+  package: string
+  runtimeVersion: string
+  /** Only the dsh peer ranges the running version fails. */
+  peers: Record<string, string>
+  /** Whether the profile holds an exact grant, so the host admits the skin anyway. */
+  exempted: boolean
 }
 
 /** A git commit or deterministic build identity rendered for one installed skin package. */
