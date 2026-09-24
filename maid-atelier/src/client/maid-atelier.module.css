@@ -3115,6 +3115,23 @@ body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
   animation: none;
 }
 
+/* Safari 26 (macOS 26) clips a `position: fixed` descendant of the sidebar
+   column by that ancestor's `overflow`, and the clip is paint-only: the
+   settings overlay stays hit-testable but never draws, so clicking where the
+   panel's controls are keeps working while nothing is visible (upstream issue
+   #142). Which slice survives is pure geometry — the panel is 800px centered,
+   so once `(viewport - 800) / 2` passes the sidebar's right edge the panel
+   disappears entirely. Release the clip while the dialog owns the viewport;
+   the projected body state restores it the moment the panel unmounts, so no
+   other state changes. Scoped to the settings slot's own ancestor chain so the
+   sidebar's real scroll/truncation containers keep their overflow. */
+body[data-dsh-maid-atelier][data-maid-settings-open] :is([data-pane='sidebar'], [class*='sidebarCol']),
+body[data-dsh-maid-atelier][data-maid-settings-open] :is([data-pane='sidebar'], [class*='sidebarCol']) *:has([data-slot='sidebar.settings']),
+body[data-dsh-maid-atelier][data-maid-settings-open] [data-slot='sidebar.settings'],
+body[data-dsh-maid-atelier][data-maid-settings-open] [class*='frame']:has([data-slot='sidebar.settings']) {
+  overflow: visible !important;
+}
+
 body[data-dsh-maid-atelier] [data-phase='hero']
   [data-composer-card] button[class*='primary'] {
   width: 44px;
