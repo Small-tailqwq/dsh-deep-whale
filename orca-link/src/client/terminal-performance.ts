@@ -1,4 +1,4 @@
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 const TERMINAL_SELECTOR = '[data-dsh-better-sidebar] .xterm'
 const TERMINAL_WIDTH_LOCK_ATTRIBUTE = 'data-orca-terminal-width-locked'
@@ -147,7 +147,7 @@ export function installOrcaTerminalPerformance(body: HTMLElement): () => void {
   }
 
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) synchronize()
+    if (hasMutationOutsideTranscript(records)) synchronize()
   })
   observer.observe(body, { childList: true, subtree: true })
   synchronize()

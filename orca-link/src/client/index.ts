@@ -12,7 +12,7 @@ import { installOrcaCustomization } from './customization.ts'
 import { installOrcaHeadlineTypewriter } from './headline-typewriter.ts'
 import { installOrcaIcons } from './icons.ts'
 import { installOrcaLinkStatus } from './link-status.ts'
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 import { installOrcaPageIcons } from './page-icons.ts'
 import { installOrcaPricingLight } from './pricing-light.ts'
 import { installOrcaRailSearch } from './rail-search.ts'
@@ -144,7 +144,7 @@ export function apply(ctx: Context): void {
 
   let wordmarkRow: Element | null = null
   const wordmarkObserver = new MutationObserver((records) => {
-    if (!hasMutationOutsideTerminal(records)) return
+    if (!hasMutationOutsideTranscript(records)) return
     // Conversation updates cannot replace chrome inside a connected logo row.
     if (wordmarkRow?.isConnected && !records.some(record => wordmarkRow!.contains(record.target))) return
     mountDshWordmark()

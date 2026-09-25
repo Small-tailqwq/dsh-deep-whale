@@ -263,6 +263,10 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
     }
     if (changed.every(belongsToHighChurnSubtree)) return false
     const targetElement = record.target instanceof Element ? record.target : undefined
+    // The transcript lives in the scrollport too, and a streaming reply edits
+    // it on every batch. Only its arrival (which targets the scrollport)
+    // matters here; edits inside it cannot touch a seat.
+    if ((targetElement?.closest(CHAT_FLOW_SELECTOR) ?? null) !== null) return false
     return (targetElement?.closest(SEAT_SELECTOR) ?? null) !== null
       || (targetElement?.closest(SCROLLPORT_SELECTOR) ?? null) !== null
       || changed.some(node => (

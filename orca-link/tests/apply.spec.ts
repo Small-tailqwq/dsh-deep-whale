@@ -42,6 +42,10 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
+// Transcript-only batches reach the link signal on one coalesced trailing
+// pass (link-status.ts), so waits cover that window.
+const settleLinkStatus = (): Promise<void> => new Promise(resolve => { setTimeout(resolve, 140) })
+
 describe('Orca Link skin apply', () => {
   it('keeps the upstream RC1 wide-table gutter stable across interaction states', () => {
     const rule = CSS.match(
@@ -313,28 +317,28 @@ describe('Orca Link skin apply', () => {
       </div>
       <div data-composer-seat><div data-composer-input contenteditable="true" data-phase="plain"></div></div>
     `
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(signal.dataset.orcaLinkStatus).toBe('complete')
     expect(document.body.dataset.orcaLinkStatus).toBe('complete')
     expect(label.textContent).toBe('TASK COMPLETE')
 
     scroll.querySelector('[data-chat-flow]')?.append(Object.assign(document.createElement('div'), { innerHTML: '<span data-state="running"></span>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('TASK RUNNING')
 
     scroll.querySelector("[data-state='running']")?.remove()
     scroll.append(Object.assign(document.createElement('div'), { innerHTML: '<div data-approval-key="approval"></div>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('AUTH REQUEST')
 
     scroll.querySelector('[data-approval-key]')?.parentElement?.remove()
     scroll.append(Object.assign(document.createElement('div'), { innerHTML: '<div data-question-key="question"></div>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('INPUT REQUIRED')
 
     scroll.querySelector('[data-question-key]')?.parentElement?.remove()
     scroll.append(Object.assign(document.createElement('div'), { innerHTML: '<div data-plan-review-key="review"></div>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('PLAN REVIEW')
 
     scroll.querySelector('[data-plan-review-key]')?.parentElement?.remove()
@@ -347,28 +351,28 @@ describe('Orca Link skin apply', () => {
       </div>
       <div data-chat-flow-kind="turn-tail"></div>
     `
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK FAULT')
 
     scroll.querySelector('[data-chat-flow]')!.innerHTML = ''
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('SESSION READY')
 
     scroll.querySelector('[data-chat-flow]')!.innerHTML = '<div data-chat-flow-kind="user"></div>'
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('SESSION READY')
 
     const composerInput = scroll.querySelector<HTMLElement>('[data-composer-input]')!
     composerInput.dataset.phase = 'submitting'
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK SYNC')
     composerInput.dataset.phase = 'plain'
     composerInput.setAttribute('aria-disabled', 'true')
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK OFFLINE')
 
     root.dataset.phase = 'hero'
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK ACTIVE')
   })
 

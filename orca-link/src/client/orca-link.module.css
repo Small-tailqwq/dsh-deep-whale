@@ -2778,9 +2778,12 @@ body[data-dsh-orca-link] .signalChip[data-orca-link-status='offline'] .signalDot
   0%, 100% { opacity: 1; transform: scaleX(1); }
   50% { opacity: 0.38; transform: scaleX(0.5); }
 }
+/* Opacity only: the dot's static glow fades with it. Animating box-shadow
+   here repainted the chip on every frame for as long as the sidebar was
+   wide, i.e. all the time; an opacity animation stays on the compositor. */
 @keyframes orcaSignalPulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(32, 199, 232, 0.7); }
-  50% { opacity: 0.45; box-shadow: 0 0 3px rgba(32, 199, 232, 0.35); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 /* Pricing traffic light under the DSH wordmark: three lamps mirror the

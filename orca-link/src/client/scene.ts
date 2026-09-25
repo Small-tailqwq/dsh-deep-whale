@@ -9,7 +9,7 @@
  * @module @deepseek-ai/dsh-client-ui-skin-orca-link/client/scene
  */
 
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 const CONVERSATION_SCROLL_SELECTOR = '[data-conversation-scroll]'
 
@@ -31,7 +31,7 @@ export function installOrcaScene(body: HTMLElement): () => void {
   }
 
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) sync()
+    if (hasMutationOutsideTranscript(records)) sync()
   })
   observer.observe(body, {
     childList: true,

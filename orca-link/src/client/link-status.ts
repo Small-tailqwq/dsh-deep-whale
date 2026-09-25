@@ -1,4 +1,4 @@
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTerminal, hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 export type LinkStatus =
   | 'standby'
@@ -26,6 +26,7 @@ const STATUS_LABELS: Record<LinkStatus, string> = {
 }
 
 const SIGNAL_SELECTOR = '[data-orca-link-signal]'
+const TRANSCRIPT_COALESCE_MS = 120
 const SIGNAL_LABEL_SELECTOR = '[data-orca-link-signal-label]'
 
 function conversationRoot(body: HTMLElement): HTMLElement | null {
@@ -99,8 +100,25 @@ export function installOrcaLinkStatus(body: HTMLElement): () => void {
     if (label !== null && label.textContent !== STATUS_LABELS[status]) label.textContent = STATUS_LABELS[status]
   }
 
+  // resolveStatus reads the transcript (running rows, the turn tail, errors)
+  // with several whole-conversation queries. A streaming reply rewrites the
+  // transcript on every batch, so transcript-only batches are coalesced into
+  // one trailing pass per window; anything outside it (phase, composer,
+  // approval and question cards) still resolves immediately.
+  let transcriptTimer: ReturnType<typeof setTimeout> | undefined
+  const flushTranscript = (): void => {
+    transcriptTimer = undefined
+    synchronize()
+  }
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) synchronize()
+    if (!hasMutationOutsideTerminal(records)) return
+    if (hasMutationOutsideTranscript(records)) {
+      if (transcriptTimer !== undefined) clearTimeout(transcriptTimer)
+      transcriptTimer = undefined
+      synchronize()
+      return
+    }
+    transcriptTimer ??= setTimeout(flushTranscript, TRANSCRIPT_COALESCE_MS)
   })
   observer.observe(body, {
     childList: true,
@@ -118,6 +136,7 @@ export function installOrcaLinkStatus(body: HTMLElement): () => void {
 
   return () => {
     observer.disconnect()
+    if (transcriptTimer !== undefined) clearTimeout(transcriptTimer)
     if (originalBodyStatus === null) body.removeAttribute('data-orca-link-status')
     else body.setAttribute('data-orca-link-status', originalBodyStatus)
     const chip = body.querySelector<HTMLElement>(SIGNAL_SELECTOR)

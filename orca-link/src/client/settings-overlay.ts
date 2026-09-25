@@ -1,4 +1,4 @@
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 import { createOrcaSettingsNavigation } from './settings-navigation.ts'
 
 // Through DSH 0.1.7-rc.1 the panel mounts inside the settings slot; from rc.2 it
@@ -57,7 +57,7 @@ export function installOrcaSettingsOverlay(body: HTMLElement): () => void {
     body.toggleAttribute(CORDIS_OPEN_ATTRIBUTE, body.querySelector(CORDIS_PANEL_SELECTOR) !== null)
   }
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) {
+    if (hasMutationOutsideTranscript(records)) {
       synchronize(records.some(record => record.type === 'childList'
         && record.target instanceof Element
         && record.target.closest(SETTINGS_OWNER_SELECTOR) !== null))

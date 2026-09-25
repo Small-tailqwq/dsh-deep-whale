@@ -1,5 +1,5 @@
 import { COMPOSER_HANDLES_ATTRIBUTE, observeOrcaFeature, orcaFeatureEnabled } from './customization.ts'
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 const COMPOSER_SEAT_SELECTOR = '[data-composer-seat]'
 const COMPOSER_CARD_SELECTOR = "[data-composer-card]:not([class*='cardWorkspaceTrigger'])"
@@ -523,7 +523,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   }
 
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) synchronize()
+    if (hasMutationOutsideTranscript(records)) synchronize()
   })
   observer.observe(body, {
     childList: true,

@@ -1,5 +1,5 @@
 import { HEADLINE_TYPEWRITER_ATTRIBUTE, observeOrcaFeature, orcaFeatureEnabled } from './customization.ts'
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 // 0.1.5-alpha.1 replaced the hero's `.headlineText` span with a `.titleGroup`
 // flex unit holding the title text plus the preview badge; the typewriter owns
@@ -178,7 +178,7 @@ export function installOrcaHeadlineTypewriter(body: HTMLElement): () => void {
   }
 
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) sync()
+    if (hasMutationOutsideTranscript(records)) sync()
   })
   observer.observe(body, { attributes: true, childList: true, characterData: true, subtree: true })
   const disposeSwitch = observeOrcaFeature(body.ownerDocument, [HEADLINE_TYPEWRITER_ATTRIBUTE], sync)
