@@ -23,6 +23,12 @@ const REBOUND_LIFETIME_MS = 420
 const COLLAPSE_LIFETIME_MS = 440
 const RESTORE_LIFETIME_MS = 520
 const RESTORE_SIZE = 28
+// The chip's bracket ornaments (::before / ::after) reach 6px past each side.
+const RESTORE_ORNAMENT = 6
+const RESTORE_CLEARANCE = 8
+// The host's "back to bottom" button (ui-chat `.toBottom`, 34px round) sits
+// 16px above the composer, flush with the content column's right edge.
+const TO_BOTTOM_SELECTOR = "button[class*='toBottom']"
 
 type Side = 'left' | 'right'
 
@@ -150,8 +156,13 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     const rect = cardRect ?? binding.card.getBoundingClientRect()
     if (rootRect.width <= 0 || rootRect.height <= 0 || rect.width <= 0 || rect.height <= 0) return
 
+    // Park the chip inside the band the collapsed card vacates, not above it:
+    // the host's back-to-bottom button owns the lane 16px above the composer,
+    // and a chip anchored 36px above the card sat right on top of it. The
+    // anchor stays independent of that button so the chip never jumps when it
+    // mounts or unmounts; positionRestore only nudges on a real collision.
     const left = clamp(rect.right - 16 - RESTORE_SIZE, rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
-    const top = clamp(rect.top - 36, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
+    const top = clamp(rect.top + 12, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
     binding.anchor = {
       leftRatio: (left - rootRect.left) / rootRect.width,
       topRatio: (top - rootRect.top) / rootRect.height,
@@ -167,8 +178,18 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     const rootRect = binding.root.getBoundingClientRect()
     const left = clamp(rootRect.left + rootRect.width * anchor.leftRatio,
       rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
-    const top = clamp(rootRect.top + rootRect.height * anchor.topRatio,
+    let top = clamp(rootRect.top + rootRect.height * anchor.topRatio,
       rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
+    const toBottom = binding.root.querySelector<HTMLElement>(TO_BOTTOM_SELECTOR)?.getBoundingClientRect()
+    if (
+      toBottom !== undefined && toBottom.width > 0 && toBottom.height > 0
+      && left - RESTORE_ORNAMENT < toBottom.right + RESTORE_CLEARANCE
+      && left + RESTORE_SIZE + RESTORE_ORNAMENT > toBottom.left - RESTORE_CLEARANCE
+      && top < toBottom.bottom + RESTORE_CLEARANCE
+      && top + RESTORE_SIZE > toBottom.top - RESTORE_CLEARANCE
+    ) {
+      top = clamp(toBottom.bottom + RESTORE_CLEARANCE, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
+    }
     button.style.left = `${left}px`
     button.style.top = `${top}px`
 

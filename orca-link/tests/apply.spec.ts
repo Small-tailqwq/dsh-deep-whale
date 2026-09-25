@@ -1178,8 +1178,10 @@ describe('Orca Link skin apply', () => {
     expect(document.querySelector<HTMLElement>('[data-composer-input]')?.textContent).toBe('保留这段草稿')
     const restore = document.querySelector<HTMLButtonElement>('[data-orca-composer-restore]')!
     expect(restore).not.toBeNull()
+    // Parked inside the band the card vacated, below the host's back-to-bottom
+    // lane (16px above the composer) instead of 36px above the card.
     expect(restore.style.left).toBe('656px')
-    expect(restore.style.top).toBe('364px')
+    expect(restore.style.top).toBe('412px')
     expect(restore.hasAttribute('title')).toBe(false)
 
     const toBottom = document.createElement('button')
@@ -1187,11 +1189,23 @@ describe('Orca Link skin apply', () => {
     // build-specific hash, so the fixture must not freeze one.
     toBottom.className = 'fixture_toBottom'
     toBottom.setAttribute('aria-label', '回到底部')
-    toBottom.getBoundingClientRect = () => ({ left: 650, top: 330, right: 684, bottom: 364, width: 34, height: 34 } as DOMRect)
+    // Host geometry: 34px, flush right, its bottom 16px above the composer.
+    toBottom.getBoundingClientRect = () => ({ left: 666, top: 350, right: 700, bottom: 384, width: 34, height: 34 } as DOMRect)
     scrollport.append(toBottom)
     await new Promise(resolve => { setTimeout(resolve, 0) })
+    // Its arrival does not move the chip: the anchor never followed it.
     expect(restore.style.left).toBe('656px')
-    expect(restore.style.top).toBe('364px')
+    expect(restore.style.top).toBe('412px')
+
+    // A host that drops the button into the chip's band still cannot stack
+    // them: the chip steps below it (bottom + 8px clearance).
+    toBottom.getBoundingClientRect = () => ({ left: 666, top: 396, right: 700, bottom: 430, width: 34, height: 34 } as DOMRect)
+    window.dispatchEvent(new Event('resize'))
+    expect(restore.style.left).toBe('656px')
+    expect(restore.style.top).toBe('438px')
+    toBottom.getBoundingClientRect = () => ({ left: 666, top: 350, right: 700, bottom: 384, width: 34, height: 34 } as DOMRect)
+    window.dispatchEvent(new Event('resize'))
+    expect(restore.style.top).toBe('412px')
 
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -100 }))
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: 100 }))
