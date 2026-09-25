@@ -1440,7 +1440,10 @@ describe('Maid Atelier skin apply', () => {
       /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\]\s*\[data-phase='hero'\] \[class\*='previewBadge'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(titleRule).toContain('color: #fffaf0')
-    expect(titleRule).toContain('-webkit-text-stroke: 0.35px')
+    // A stroke traces the overlapping contours inside CJK glyphs and greys
+    // the fill; legibility comes from the shadow stack only.
+    expect(titleRule).not.toContain('-webkit-text-stroke:')
+    expect(titleRule).toContain('0 1px 0 rgba(4, 11, 34, 0.96)')
     expect(titleRule).toContain('0 3px 7px rgba(0, 0, 0, 0.86)')
     expect(badgeRule).toContain('color: #f0dfba')
     expect(badgeRule).toContain('rgba(7, 18, 52, 0.58)')

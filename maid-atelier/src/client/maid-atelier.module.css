@@ -2997,7 +2997,11 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   color: #fffaf0;
   font-weight: 650;
   letter-spacing: 0.02em;
-  -webkit-text-stroke: 0.35px rgba(4, 11, 34, 0.9);
+  /* No text stroke here. CJK glyphs are built from overlapping contours,
+     and a stroke traces every one of them, overlaps inside the glyph
+     included, while eating half its width into the fill. At hero size the
+     dark 0.35px outline turned the white strokes grey and notched. The
+     shadow stack alone keeps the title legible over the night palace. */
   text-shadow:
     0 1px 0 rgba(4, 11, 34, 0.96),
     0 3px 7px rgba(0, 0, 0, 0.86),
