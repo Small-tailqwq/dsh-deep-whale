@@ -235,6 +235,12 @@ const ICON_ART: Record<string, string> = {
     '<path d="M6.25 2.25h3.5v3.5h-3.5z" fill="currentColor" stroke="none"/>',
     '<path d="M2.5 13.75v-2l1.75-2.5h7.5l1.75 2.5v2"/>',
   ].join(''),
+  // Users (0.1.7): the user figure shifted left, a second outlined one behind.
+  users: [
+    '<path d="M4.25 2.75h3.5v3.5h-3.5z" fill="currentColor" stroke="none"/>',
+    '<path d="M1.25 13.75v-2l1.5-2.25h6.5l1.5 2.25v2"/>',
+    '<path d="M10.25 3h3v3h-3M12 9.5l1.25 2v2.25"/>',
+  ].join(''),
   stop: ['<path d="M3.75 3.75h8.5v8.5h-8.5z" fill="currentColor" stroke="none"/>'].join(''),
   // Two nested loops with the inner wire between them, tilted 45° so the three
   // parallel wires stay separated at the 14px button size. The previous
@@ -390,7 +396,8 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ["d=\"M6 12L9.29289 8.70711C9.", 'chevron-right'], // IconChevronRightOutlineMedium
   ["d=\"M12 10L8.70711 6.70711C8", 'chevron-up'], // IconChevronUpOutlineMedium
   ["d=\"m5.1 6 2.9-2.9L10.9 6\"", 'chevrons-up-down'], // IconChevronsUpDownOutlineMedium
-  ["d=\"M8 4V8.5L11.25 10.25\"", 'clock'], // IconClockOutlineMedium
+  ["d=\"M8 4V8.5L11.25 10.25\"", 'clock'], // IconClockOutlineMedium (<= 0.1.6)
+  ["d=\"M8 4.31V8.46L11 10.08", 'clock'], // IconClockOutlineMedium (0.1.7)
   ["d=\"M15 8A7 7 0 1 1 1 8A7 7 ", 'close-circle'], // IconCloseCircleFillMedium
   ["d=\"M3.5 3.5L12.5 12.5\"", 'close'], // IconCloseFillMedium
   ["d=\"M2.5 2.5L13.5 13.5\"", 'close'], // IconCloseOutlineMedium
@@ -456,7 +463,9 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ["d=\"M0.5 0V7C0.5 7.79565 0.8", 'tree-corner'], // IconTreeCornerMedium
   ["d=\"M5.5 4.5C5.5 4.40714 5.5", 'caret-right'], // IconTriangleRightFillMedium
   ["d=\"M15.8659 2.05975C17.2603", 'unarchive'], // IconUnarchiveOutlineMedium
-  ["d=\"M8 8.5C9.65685 8.5 11 7.", 'user'], // IconUserOutlineMedium
+  ["d=\"M8 8.5C9.65685 8.5 11 7.", 'user'], // IconUserOutlineMedium (<= 0.1.6)
+  ["d=\"M8 8.25C9.51878 8.25 10.75 7.01878 10.75", 'user'], // IconUserOutlineMedium (0.1.7)
+  ["d=\"M6 8.25C7.51878 8.25 8.75 7.01878 8.75", 'users'], // IconUsersOutlineMedium
   ["d=\"M8 10.708V11.708\"", 'warning'], // IconWarningOutlineMedium
   ["d=\"M8 6v3m0 2.33h.01\"", 'warning-triangle'], // IconWarningTriangleOutlineMedium
   ["d=\"M8.7 8.1v3M11.2 8.1v3\"", 'workspace-tree'], // IconWorkspaceTreeOutlineMedium

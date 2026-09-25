@@ -173,6 +173,38 @@ body[data-dsh-orca-link] :where(
   border-radius: 0 !important;
 }
 
+/* The element list above only reaches interactive roles, so host surfaces
+   drawn as plain divs from the radius scale kept their curves: cards, panels,
+   and component variables derived from it, such as the side panel's guide
+   entries (`--dsl-guide-entry-radius: var(--dsw-radius-xl)`), where the
+   split-menu "New terminal" entry is a div beside two square buttons.
+   Zeroing the scale itself squares every token-drawn surface, present and
+   future, with no per-node selector cost. The hands-off seats of the element
+   contract get the host scale back (ui-theme 0.1.7 values) so plugin controls
+   there keep their own geometry. */
+body[data-dsh-orca-link] {
+  --dsw-radius-xs: 0px;
+  --dsw-radius-sm: 0px;
+  --dsw-radius-md: 0px;
+  --dsw-radius-lg: 0px;
+  --dsw-radius-xl: 0px;
+  --dsw-radius-panel: 0px;
+}
+
+body[data-dsh-orca-link] :is(
+  [data-slot='conversation.input.left'],
+  [data-slot='conversation.input.right'],
+  [data-slot='sidebar.footer.action'],
+  [data-slot='settings.section']
+) {
+  --dsw-radius-xs: 4px;
+  --dsw-radius-sm: 8px;
+  --dsw-radius-md: 12px;
+  --dsw-radius-lg: 16px;
+  --dsw-radius-xl: 20px;
+  --dsw-radius-panel: 28px;
+}
+
 /* Keep chat bubbles rectilinear in every theme, matching the ORCA shape
    contract even when the host ships rounded user-message bubbles. */
 body[data-dsh-orca-link] [data-chat-flow] *,
@@ -2578,6 +2610,76 @@ body[data-dsh-orca-link] [data-question-key] [class*='_checkbox']::before {
   border-radius: 0 !important;
 }
 
+/* Todo glyphs. DSH 0.1.7 draws each todo state with the shared StateDot (a
+   round dot, or a rotating ring while in progress) inside
+   `li[data-status] > .glyph`, so the SVG-path redraws in icons.ts that used
+   to catch the old todo icons no longer match anything. Hide the dot and
+   paint ORCA's straight-line set on the glyph box itself, keyed on the host's
+   status attribute: corner brackets while pending, a ticked frame when done,
+   and in progress the context-usage pixel field, whose cells fill bottom-up
+   on a stepped 2.4s cycle (one 16px pseudo-element, clip-path steps only). */
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status] > [class*='_glyph'] {
+  position: relative;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status] > [class*='_glyph'] > * {
+  display: none;
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status] > [class*='_glyph']::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 6V2.25H6M10 2.25h3.75V6M13.75 10v3.75H10M6 13.75H2.25V10'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 6V2.25H6M10 2.25h3.75V6M13.75 10v3.75H10M6 13.75H2.25V10'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='completed'] > [class*='_glyph'] {
+  color: var(--dsw-alias-label-secondary);
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='completed'] > [class*='_glyph']::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Cpath d='M4.75 8.25 7 10.5l4.5-5'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Cpath d='M4.75 8.25 7 10.5l4.5-5'/%3E%3C/svg%3E");
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph'] {
+  color: var(--orca-blue);
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph']::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Crect x='4' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Crect x='4' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3C/svg%3E");
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Crect x='4' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Crect x='4' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px);
+  animation: orcaTodoFill 2.4s step-end infinite;
+}
+
+@keyframes orcaTodoFill {
+  0% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
+  8% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 6.5px 12.5px, 6.5px 9.5px, 3.5px 9.5px); }
+  16% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 9.5px 12.5px, 9.5px 9.5px, 3.5px 9.5px); }
+  24% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 3.5px 9.5px, 3.5px 6.5px, 3.5px 6.5px); }
+  32% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 6.5px 9.5px, 6.5px 6.5px, 3.5px 6.5px); }
+  40% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 9.5px 9.5px, 9.5px 6.5px, 3.5px 6.5px); }
+  48% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 3.5px 6.5px, 3.5px 3.5px, 3.5px 3.5px); }
+  56% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 6.5px 6.5px, 6.5px 3.5px, 3.5px 3.5px); }
+  64% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 9.5px 6.5px, 9.5px 3.5px, 3.5px 3.5px); }
+  72% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 3.5px, 3.5px 3.5px, 3.5px 0.5px, 3.5px 0.5px); }
+  90% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
+  100% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
+}
+
 /* Recommendation badge: the host dark palette would fill and ink the tag with
    the same electric blue (#4d91ff on #4d91ff). Keep the accent fill and switch
    the dark label to inverted brand ink; the light theme keeps its host pair,
@@ -3498,6 +3600,11 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ * > * 
     > :has(> [data-conversation-scroll])
     > [data-width-handle][data-side]::after {
     animation: none;
+  }
+  body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph']::after {
+    animation: none;
+    clip-path: none;
+    opacity: 0.55;
   }
 }
 
