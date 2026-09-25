@@ -239,25 +239,19 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
   }
 }
 
-/* A continuously changing layout — a viewport resize or a right/bottom
-   workbench pushing the conversation column — gives transitions a new
-   destination every frame. Follow the resize directly, then restore
-   state-change motion. */
+/* A continuously changing layout — a viewport resize, the sidebar opening
+   or closing, or a right/bottom workbench pushing the conversation column —
+   gives transitions a new destination every frame. Follow the resize
+   directly, then restore state-change motion.
+
+   The filters stay. The chat column's ResizeObserver holds this marker for
+   every sidebar toggle, and dropping `filter` here made the figures lose their
+   grade and soft shadow for exactly that long: a brightness flash in the dark
+   theme and a flickering halo in the light one. Software renderers already
+   drop the filters for good through `data-maid-low-power` below. */
 body[data-dsh-maid-atelier][data-maid-layout-resizing]
   [data-maid-character] {
   transition: none;
-  filter: none;
-}
-
-/* Only the drop-shadow is dropped for the resize: its blur is what makes a
-   resizing layer expensive. The dark theme's colour grade is a plain colour
-   matrix and must stay, or the figures jump to full brightness for the length
-   of every sidebar open/close (the chat column's ResizeObserver holds the
-   resizing marker through the animation) and dim again 120ms after it:
-   the flicker the dark palace showed on each toggle. */
-body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-layout-resizing]
-  [data-maid-character] {
-  filter: brightness(0.84) saturate(0.92);
 }
 
 /* Chromium rejects failIfMajorPerformanceCaveat when it would fall back to a
@@ -2589,7 +2583,14 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active]::before {
   border-image-width: 0 36px 0 35px;
   border-image-repeat: stretch;
   filter: drop-shadow(0 5px 8px rgba(2, 8, 28, 0.4));
-  animation: maidAtelierWorkspaceRibbonEnter 420ms cubic-bezier(0.2, 0.74, 0.22, 1) both;
+  /* Two single-segment animations: the reveal runs one continuous
+     deceleration from the rolled edge through the swallowtail, and the slide
+     settles with its own slight overshoot. The former multi-stop keyframes
+     re-applied the easing per stop, so the reveal stalled at 70% and then
+     re-accelerated over the tail. */
+  animation:
+    maidAtelierWorkspaceRibbonEnter 440ms cubic-bezier(0.22, 0.78, 0.2, 1) both,
+    maidAtelierWorkspaceRibbonSettle 440ms cubic-bezier(0.3, 1.25, 0.6, 1) both;
   pointer-events: none;
 }
 
@@ -2603,29 +2604,23 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] 
 }
 
 @keyframes maidAtelierWorkspaceRibbonEnter {
-  0% {
+  from {
     opacity: 0;
     clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+}
+
+@keyframes maidAtelierWorkspaceRibbonSettle {
+  from {
     transform: translateX(-8px);
   }
 
-  60% {
-    opacity: 1;
-  }
-
-  70% {
-    clip-path: inset(0 12% 0 0);
-    transform: translateX(0);
-  }
-
-  92% {
-    clip-path: inset(0);
-    transform: translateX(2px);
-  }
-
-  100% {
-    opacity: 1;
-    clip-path: inset(0);
+  to {
     transform: translateX(0);
   }
 }

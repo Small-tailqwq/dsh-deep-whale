@@ -633,18 +633,9 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-layout-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(resizeRule).toContain('transition: none')
-    expect(resizeRule).toContain('filter: none')
-    // The dark grade survives the resize; only the drop-shadow blur goes, so
-    // toggling the sidebar does not flash the night figures to full brightness.
-    const darkResizeRule = CSS.match(
-      /\[data-ds-dark-theme\]\[data-maid-layout-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
-    const darkRule = CSS.match(
-      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[data-maid-character\] \{([^}]*)\}/s,
-    )?.[1] ?? ''
-    expect(darkRule).toContain('brightness(0.84)')
-    expect(darkResizeRule).toContain('filter: brightness(0.84) saturate(0.92)')
-    expect(darkResizeRule).not.toContain('drop-shadow')
+    // The filters stay through the resize: the sidebar toggle holds this
+    // marker, and dropping them flashed the dark grade and the light halo.
+    expect(resizeRule).not.toContain('filter')
 
     vi.useFakeTimers()
     try {
@@ -2330,12 +2321,16 @@ describe('Maid Atelier skin apply', () => {
     expect(ribbonShapeRule).toContain('border-image-width: 0 36px 0 35px')
     expect(ribbonShapeRule).toContain('border-image-repeat: stretch')
     expect(ribbonShapeRule).toContain('inset: -3px 0 -3px -12px')
-    expect(ribbonShapeRule).toContain('animation: maidAtelierWorkspaceRibbonEnter 420ms')
+    // One continuous reveal plus a separate settle: per-stop easing used to
+    // stall the reveal at 70% before the swallowtail.
+    expect(ribbonShapeRule).toContain('maidAtelierWorkspaceRibbonEnter 440ms cubic-bezier(0.22, 0.78, 0.2, 1) both')
+    expect(ribbonShapeRule).toContain('maidAtelierWorkspaceRibbonSettle 440ms')
     expect(ribbonShapeRule).not.toContain('background-size')
     expect(ribbonShapeRule).not.toContain('clip-path')
     expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonEnter')
     expect(CSS).toContain('clip-path: inset(0 100% 0 0)')
-    expect(CSS).toContain('clip-path: inset(0 12% 0 0)')
+    expect(CSS).not.toContain('clip-path: inset(0 12% 0 0)')
+    expect(CSS).toMatch(/@keyframes maidAtelierWorkspaceRibbonEnter \{\s*from \{[^}]*\}\s*to \{[^}]*\}\s*\}/)
     expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonContentEnter')
     expect(sessionRowRule).toContain('box-sizing: border-box')
     expect(sessionRowRule).toContain('width: 100%')
