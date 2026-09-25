@@ -287,10 +287,13 @@ export interface PricingLightClasses {
 
 const PRICE_LIGHT_SELECTOR = '[data-orca-link-price-light]'
 const SIDEBAR_PANE_SELECTOR = "[data-slot='sidebar'] > :first-child"
-/** The composer's model trigger label (ui-model-selection ModelSelect). */
-const MODEL_LABEL_SELECTOR = "[data-composer-card] button[aria-haspopup='menu'] [class*='triggerLabel']"
+/** ModelSelect is rendered inside this stable composer slot wrapper. */
+const MODEL_CONTROL_SELECTOR = "[data-slot='conversation.input.model'] button[aria-haspopup='menu']"
+/** The rendered name is preferred; title/ARIA cover host label-class changes. */
+const MODEL_LABEL_SELECTOR = "[class*='triggerLabel']"
 /** Set on the light while the selected model is not a DeepSeek model. */
 const OTHER_MODEL_ATTRIBUTE = 'data-orca-link-price-other-model'
+const PRICING_VISIBILITY_ATTRIBUTE = 'data-dsh-whale-orca-pricing'
 /**
  * Projected on body while the light sits in the Windows caption row, so the
  * caption menubar (a body-level shadow host) can step aside for it.
@@ -371,6 +374,22 @@ export function isDeepSeekModelLabel(label: string): boolean | undefined {
   return /deepseek/i.test(text)
 }
 
+/** Read the host model control even if its CSS-module label class changes. */
+function readModelLabel(control: HTMLElement): string {
+  const visibleLabel = control.querySelector<HTMLElement>(MODEL_LABEL_SELECTOR)?.textContent
+  const candidates = [visibleLabel, control.getAttribute('title'), control.getAttribute('aria-label'), control.textContent]
+  return candidates.find((candidate) => typeof candidate === 'string' && candidate.trim() !== '')?.trim() ?? ''
+}
+
+/** Whether the caption needs to reserve space for a light users can see. */
+function isPricingLightVisible(light: HTMLElement, doc: Document): boolean {
+  if (doc.documentElement.getAttribute(PRICING_VISIBILITY_ATTRIBUTE) === 'hidden') return false
+  const view = doc.defaultView
+  if (view === null) return true
+  const style = view.getComputedStyle(light)
+  return style.display !== 'none' && style.visibility !== 'hidden' && style.visibility !== 'collapse'
+}
+
 /**
  * Mount the pricing traffic light under the sidebar's DSH wordmark. The light
  * stays visible on both the collapsed rail and the expanded sidebar, so the
@@ -401,29 +420,38 @@ export function installOrcaPricingLight(
   let label: HTMLElement | null = null
   let tooltip: HTMLElement | null = null
   let deepSeekModel = true
-  let observedModelLabel: Element | null = null
+  let observedModelControl: HTMLElement | null = null
   const doc = body.ownerDocument
 
   const syncCaption = (): void => {
     const inCaption = light !== null && light.isConnected
       && deepSeekModel
+      && isPricingLightVisible(light, doc)
+      && !body.hasAttribute('data-orca-settings-open')
       && doc.documentElement.hasAttribute('data-windows-titlebar')
       && body.querySelector(COLLAPSED_FRAME_SELECTOR) !== null
     if (body.hasAttribute(CAPTION_ATTRIBUTE) !== inCaption) body.toggleAttribute(CAPTION_ATTRIBUTE, inCaption)
   }
 
   const syncModel = (): void => {
-    const modelLabel = body.querySelector(MODEL_LABEL_SELECTOR)
-    if (modelLabel !== observedModelLabel) {
+    const modelControl = body.querySelector<HTMLElement>(MODEL_CONTROL_SELECTOR)
+    if (modelControl !== observedModelControl) {
       modelObserver.disconnect()
-      observedModelLabel = modelLabel
-      // The label's text node is edited in place on a model switch, which the
-      // body childList observer below does not report.
-      if (modelLabel !== null) {
-        modelObserver.observe(modelLabel, { characterData: true, childList: true, subtree: true })
+      observedModelControl = modelControl
+      // ModelSelect edits the visible name in place. Observe the named slot's
+      // trigger so text, accessible-label fallbacks and label-class changes
+      // all keep the verdict current without scanning unrelated menu buttons.
+      if (modelControl !== null) {
+        modelObserver.observe(modelControl, {
+          attributes: true,
+          attributeFilter: ['aria-label', 'title', 'class'],
+          characterData: true,
+          childList: true,
+          subtree: true,
+        })
       }
     }
-    const verdict = modelLabel === null ? undefined : isDeepSeekModelLabel(modelLabel.textContent ?? '')
+    const verdict = modelControl === null ? undefined : isDeepSeekModelLabel(readModelLabel(modelControl))
     if (verdict !== undefined) deepSeekModel = verdict
     if (light !== null && light.hasAttribute(OTHER_MODEL_ATTRIBUTE) === deepSeekModel) {
       light.toggleAttribute(OTHER_MODEL_ATTRIBUTE, !deepSeekModel)
@@ -503,8 +531,16 @@ export function installOrcaPricingLight(
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['data-sidebar-collapsed'],
+    attributeFilter: ['data-sidebar-collapsed', 'data-orca-settings-open'],
   })
+
+  const visibilityObserver = new MutationObserver(syncCaption)
+  visibilityObserver.observe(doc.documentElement, {
+    attributes: true,
+    attributeFilter: [PRICING_VISIBILITY_ATTRIBUTE],
+  })
+  const view = doc.defaultView
+  view?.addEventListener('resize', syncCaption)
 
   // The host repoints <html lang> whenever the locale changes; re-render the
   // hover card copy in place instead of waiting for the next poll tick.
@@ -523,7 +559,9 @@ export function installOrcaPricingLight(
     window.clearInterval(interval)
     observer.disconnect()
     modelObserver.disconnect()
+    visibilityObserver.disconnect()
     langObserver.disconnect()
+    view?.removeEventListener('resize', syncCaption)
     body.querySelectorAll(PRICE_LIGHT_SELECTOR).forEach((element) => element.remove())
     body.removeAttribute(CAPTION_ATTRIBUTE)
   }

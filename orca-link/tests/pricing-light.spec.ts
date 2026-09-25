@@ -412,7 +412,8 @@ describe('ORCA LINK pricing light statutory holidays (issue #152)', () => {
 describe('ORCA LINK pricing light model and desktop caption', () => {
   const composer = (model: string): string => (
     '<div data-composer-card><div class="trailing">'
-    + `<button aria-haspopup="menu"><span class="u91W7W_triggerLabel">${model}</span></button>`
+    + '<button aria-haspopup="menu"><span class="u91W7W_triggerLabel">Balanced</span></button>'
+    + `<div data-slot="conversation.input.model"><button aria-haspopup="menu" title="${model}" aria-label="${model}"><span class="u91W7W_triggerLabel">${model}</span></button></div>`
     + '</div></div>'
   )
   const mountBody = (model: string, collapsed = false): void => {
@@ -421,11 +422,13 @@ describe('ORCA LINK pricing light model and desktop caption', () => {
       + `${composer(model)}</div>`
   }
   const light = (): HTMLElement => document.body.querySelector<HTMLElement>('[data-orca-link-price-light]')!
-  const modelText = (): Text => document.body.querySelector('[class*="triggerLabel"]')!.firstChild as Text
+  const modelText = (): Text => document.body.querySelector("[data-slot='conversation.input.model'] [class*='triggerLabel']")!.firstChild as Text
+  const modelControl = (): HTMLButtonElement => document.body.querySelector("[data-slot='conversation.input.model'] button")!
   const flush = (): Promise<void> => new Promise(resolve => { setTimeout(resolve, 0) })
 
   afterEach(() => {
     document.documentElement.removeAttribute('data-windows-titlebar')
+    document.documentElement.removeAttribute('data-dsh-whale-orca-pricing')
   })
 
   it('recognizes DeepSeek model labels and ignores host placeholders', () => {
@@ -460,6 +463,25 @@ describe('ORCA LINK pricing light model and desktop caption', () => {
     dispose()
   })
 
+  it('scopes model detection to its slot and falls back to title and ARIA labels', async () => {
+    mountBody('DeepSeek V4 Flash')
+    const dispose = installOrcaPricingLight(document.body, classes, () => beijing(5, 10, 0), true)
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(false)
+
+    // A changed CSS-module token falls back to the model control's title.
+    modelControl().querySelector('span')!.className = 'renamedLabel'
+    modelControl().setAttribute('title', 'Claude Sonnet 5')
+    await flush()
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(true)
+
+    // Accessible text is the last stable fallback when title is absent.
+    modelControl().removeAttribute('title')
+    modelControl().setAttribute('aria-label', 'DeepSeek V4 Pro')
+    await flush()
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(false)
+    dispose()
+  })
+
   it('keeps the light visible when no composer is mounted', () => {
     document.body.innerHTML = '<div data-slot="sidebar"><div><div></div></div></div>'
     const dispose = installOrcaPricingLight(document.body, classes, () => beijing(5, 10, 0), true)
@@ -475,6 +497,30 @@ describe('ORCA LINK pricing light model and desktop caption', () => {
 
     const frame = document.body.firstElementChild!
     frame.setAttribute('data-sidebar-collapsed', 'true')
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(true)
+
+    // A hidden user preference must not leave the caption menu shifted.
+    document.documentElement.setAttribute('data-dsh-whale-orca-pricing', 'hidden')
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+    document.documentElement.setAttribute('data-dsh-whale-orca-pricing', 'visible')
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(true)
+
+    // The responsive CSS hides the light at narrow widths; re-sync on resize.
+    light().style.display = 'none'
+    window.dispatchEvent(new Event('resize'))
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+    light().style.display = ''
+    window.dispatchEvent(new Event('resize'))
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(true)
+
+    // Full-screen skin settings hide the light as well.
+    document.body.setAttribute('data-orca-settings-open', '')
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+    document.body.removeAttribute('data-orca-settings-open')
     await flush()
     expect(document.body.hasAttribute('data-orca-price-caption')).toBe(true)
 
