@@ -3554,10 +3554,14 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(+ *) 
    would make it the bubble's containing block: the bubble then lands a whole
    viewport below the sticky seat, stretches the conversation scrollport, and
    the stick-to-bottom scroll carries the transcript away while hovering
-   (issue #151). Paint the glass on an isolated backing layer instead. */
+   (issue #151). Paint the glass on an isolated backing layer instead. The
+   dock is then its own stacking context, which also confines that bubble's
+   z-index: sit one layer above the card (z-index 21) so the bubble is not
+   painted beneath the card it overlaps. */
 body[data-dsh-maid-atelier] [data-composer-card] + div[class*='dock'] {
   --maid-dock-tint: rgba(248, 250, 255, 0.3);
   position: relative;
+  z-index: 22;
   isolation: isolate;
   color: #4a5d82;
 }
