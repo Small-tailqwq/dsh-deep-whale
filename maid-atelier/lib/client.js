@@ -316,6 +316,7 @@ window.__ModuleLoader__.load({
 				if (changed.length === 0) return record.target instanceof Element && record.target.closest(SEAT_SELECTOR$1) !== null;
 				if (changed.every(belongsToHighChurnSubtree)) return false;
 				const targetElement = record.target instanceof Element ? record.target : void 0;
+				if ((targetElement?.closest(CHAT_FLOW_SELECTOR$1) ?? null) !== null) return false;
 				return (targetElement?.closest(SEAT_SELECTOR$1) ?? null) !== null || (targetElement?.closest(SCROLLPORT_SELECTOR$1) ?? null) !== null || changed.some((node) => node instanceof Element && (node.matches([
 					SEAT_SELECTOR$1,
 					CARD_SELECTOR,
