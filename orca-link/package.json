@@ -63,6 +63,7 @@
     "skin.json",
     "skin.build.json",
     "preview",
+    "assets/icons/*.ico",
     "LICENSE",
     "LICENSE-ARTWORK",
     "NOTICE",

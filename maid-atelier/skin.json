@@ -26,5 +26,6 @@
     "light": "preview/light.webp",
     "dark": "preview/dark.webp"
   },
+  "desktopIcon": "assets/icons/delighted.ico",
   "order": 5
 }

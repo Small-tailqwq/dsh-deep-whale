@@ -566,6 +566,7 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   const [switching, setSwitching] = useState<SkinTarget | null>(null)
   const [copied, setCopied] = useState<'ok' | 'fail' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [desktopIcon, setDesktopIcon] = useState<DesktopIconStatus | undefined>(undefined)
   const live = useRef(true)
   const copyTimer = useRef<number | undefined>(undefined)
   const lang = useUiLang()
@@ -578,9 +579,10 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
     setLoading(true)
     // Catalog loading is the core path: optional local Git/fingerprint probes
     // must neither delay it nor discard a successful catalog result.
-    void fetchSkinCatalog().then((skins) => {
+    void fetchSkinCatalogState().then((state) => {
       if (!live.current) return
-      setCatalog(skins)
+      setCatalog(state.skins)
+      setDesktopIcon(state.desktopIcon)
     }).catch((reason) => {
       if (live.current) setError(reason instanceof Error ? reason.message : String(reason))
     }).finally(() => {
@@ -719,8 +721,57 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
           <p className={css.hint}>{copy.noSettings}</p>
         </section>
       )}
+      {desktopIcon !== undefined && <DesktopIconCard initial={desktopIcon} />}
       <BackupCard registry={registry} />
     </div>
+  )
+}
+
+/**
+ * Opt-in Windows desktop shortcut icon. The host only reports the status on
+ * the desktop shell, so the card never renders in a browser.
+ */
+function DesktopIconCard({ initial }: { initial: DesktopIconStatus }) {
+  const copy = skinManagerCopy(useUiLang())
+  const [enabled, setEnabled] = useState(initial.enabled)
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState<{ updated: number, failed: number } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const live = useRef(true)
+  useEffect(() => {
+    live.current = true
+    return () => {
+      live.current = false
+    }
+  }, [])
+  const toggle = (next: boolean): void => {
+    setPending(true)
+    setOutcome(null)
+    setError(null)
+    void requestDesktopIcon(next).then((result) => {
+      if (!live.current) return
+      setEnabled(result.enabled)
+      setOutcome(result)
+    }).catch((reason) => {
+      if (live.current) setError(reason instanceof Error ? reason.message : String(reason))
+    }).finally(() => {
+      if (live.current) setPending(false)
+    })
+  }
+  return (
+    <section className={css.card} data-dsh-skin-desktop-icon>
+      <h3>{copy.desktopIconTitle}</h3>
+      <Toggle
+        checked={enabled}
+        label={copy.desktopIconLabel}
+        description={copy.desktopIconDescription}
+        disabled={pending}
+        onChange={toggle}
+      />
+      {pending && <p className={css.hint}>{copy.desktopIconPending}</p>}
+      {outcome !== null && <p className={outcome.failed > 0 ? css.error : css.hint}>{copy.desktopIconDone(outcome.updated, outcome.failed)}</p>}
+      {error !== null && <p className={css.error}>{copy.actionFailed(error)}</p>}
+    </section>
   )
 }
 
@@ -896,14 +947,40 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
   )
 }
 
-/** Installed skin catalog; never waits for optional version probes. */
-export async function fetchSkinCatalog(): Promise<SkinCatalogEntry[]> {
+/** Present only when the host runs inside the Windows desktop shell. */
+export interface DesktopIconStatus {
+  enabled: boolean
+}
+
+/** Installed skin catalog plus host capabilities; never waits for optional version probes. */
+export async function fetchSkinCatalogState(): Promise<{ skins: SkinCatalogEntry[], desktopIcon?: DesktopIconStatus }> {
   const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: 'same-origin' })
-  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], error?: string }
+  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], desktopIcon?: { enabled?: unknown }, error?: string }
   if (!response.ok || result.ok !== true || !Array.isArray(result.skins)) {
     throw new Error(result.error ?? `HTTP ${response.status}`)
   }
-  return result.skins
+  return {
+    skins: result.skins,
+    ...(typeof result.desktopIcon?.enabled === 'boolean' ? { desktopIcon: { enabled: result.desktopIcon.enabled } } : {}),
+  }
+}
+
+/** Installed skin catalog; never waits for optional version probes. */
+export async function fetchSkinCatalog(): Promise<SkinCatalogEntry[]> {
+  return (await fetchSkinCatalogState()).skins
+}
+
+/** Turn the desktop shortcut icon sync on or off and report how many shortcuts changed. */
+export async function requestDesktopIcon(enabled: boolean): Promise<{ enabled: boolean, updated: number, failed: number }> {
+  const response = await fetch(SKIN_MANAGER_ROUTE, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'desktop-icon', enabled }),
+  })
+  const result = await response.json() as { ok?: boolean, desktopIcon?: { enabled: boolean, updated: number, failed: number }, error?: string }
+  if (!response.ok || result.ok !== true || result.desktopIcon === undefined) throw new Error(result.error ?? `HTTP ${response.status}`)
+  return result.desktopIcon
 }
 
 /** Local-only version rows (git probes / build metadata, no network). */

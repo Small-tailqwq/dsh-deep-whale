@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { hashSkinAssets } from '../../scripts/skin-asset-inputs.mjs'
 import { evaluateSkinCompatibility, readDshRuntimeVersion, readProfileExemptions } from './compatibility.ts'
+import { detectDesktopShell, DesktopIconSync, resolveSkinDesktopIcon, WindowIconHolder, type DesktopIconResult } from './desktop-icon.ts'
 import { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinCompatibility, type SkinTarget, type SkinUpdateState, type SkinVersionCommit, type SkinVersionInfo, type SkinVersionSource } from './contract.ts'
 
 export { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget } from './contract.ts'
@@ -63,6 +64,8 @@ interface SkinManifest {
   dshCompatibility?: unknown
   order?: unknown
   wiring?: { id?: unknown }
+  /** Package-relative `.ico` the Windows desktop shortcuts may show while the skin is active. */
+  desktopIcon?: unknown
 }
 
 /** Resolve the profile patch without inspecting credentials or unrelated files. */
@@ -245,6 +248,36 @@ export function discoverSkinDirectories(profilePatch = resolveProfilePatch()): M
     }
   }
   return dirs
+}
+
+/** Package ICO files that installed skins declare through `skin.json#desktopIcon`. */
+export function discoverSkinDesktopIcons(profilePatch = resolveProfilePatch()): Map<string, string> {
+  const icons = new Map<string, string>()
+  for (const [id, dir] of discoverSkinDirectories(profilePatch)) {
+    try {
+      const manifest = JSON.parse(readFileSync(joinPath(dir, 'skin.json'), 'utf8')) as SkinManifest
+      const file = resolveSkinDesktopIcon(dir, manifest.desktopIcon)
+      if (file !== null) icons.set(id, file)
+    } catch {
+      // A skin without a readable icon simply keeps the official shortcut icon.
+    }
+  }
+  return icons
+}
+
+/** The one skin the host will actually load after profile then home overrides, else official. */
+export function activeSkinTarget(sources: string[], catalog: SkinCatalogEntry[]): SkinTarget {
+  const enabled = enabledSkins(sources, catalog)
+    .filter(skin => skin.compatibility === undefined || skin.compatibility.exempted)
+  return enabled.length === 1 ? enabled[0]!.id : 'official'
+}
+
+/** Route seam for the opt-in desktop shortcut icon; absent outside the Windows desktop shell. */
+export interface DesktopIconControl {
+  enabled(): boolean
+  setEnabled(enabled: boolean): Promise<DesktopIconResult>
+  /** Called after a successful switch; must not throw. */
+  follow(target: SkinTarget): void
 }
 
 /* ------------------------------------------------------------------ */
@@ -916,6 +949,7 @@ export function makeSkinManagerRoute(
   applyTarget: (target: SkinTarget, catalog: SkinCatalogEntry[]) => void = (target, catalog) => useSkin(target, resolvePatchTargets(), catalog),
   dirProvider: () => Map<string, string> = () => new Map(),
   grantExemption: (compatibility: SkinCompatibility) => Promise<void> = async () => { throw new Error('exemption-unavailable') },
+  desktopIcon?: DesktopIconControl,
 ): WebRoute {
   const versionCache = new Map<string, { at: number, value: SkinVersionInfo }>()
   const branchCache = new Map<string, { at: number, value: string }>()
@@ -965,7 +999,11 @@ export function makeSkinManagerRoute(
         // The catalog must never wait for optional diagnostics: git probes and
         // GitHub calls have their own endpoints and load after render.
         if (req.method === 'GET') {
-          json(res, 200, { ok: true, skins: catalog })
+          json(res, 200, {
+            ok: true,
+            skins: catalog,
+            ...(desktopIcon === undefined ? {} : { desktopIcon: { enabled: desktopIcon.enabled() } }),
+          })
           return
         }
         if (req.method !== 'POST') {
@@ -986,6 +1024,13 @@ export function makeSkinManagerRoute(
             ...(installed.source === 'none' ? { note: '安装目录既不是 Git 仓库，也没有构建指纹（skin.build.json）' } : {}),
           }) as SkinVersionInfo))
           json(res, 200, { ok: true, versions })
+          return
+        }
+        if (action === 'desktop-icon') {
+          const enabled = (body as { enabled?: unknown }).enabled
+          if (desktopIcon === undefined) throw new Error('desktop-icon-unavailable')
+          if (typeof enabled !== 'boolean') throw new Error('invalid-desktop-icon-request')
+          json(res, 200, { ok: true, desktopIcon: await desktopIcon.setEnabled(enabled) })
           return
         }
         if (action === 'versions') {
@@ -1010,6 +1055,7 @@ export function makeSkinManagerRoute(
           await grantExemption(compatibility)
         }
         applyTarget(target as SkinTarget, catalog)
+        desktopIcon?.follow(target as SkinTarget)
         json(res, 200, { ok: true, target })
       } catch (error) {
         json(res, 400, { ok: false, error: error instanceof Error ? error.message : String(error) })
@@ -1029,11 +1075,65 @@ export function apply(ctx: HostContext): void {
     } catch (error) {
       console.error('[skin-manager] failed to enforce startup mutual exclusion', error)
     }
-    return ctx.webServer.register(makeSkinManagerRoute(
+    const desktopIcon = desktopIconControl(profilePatch, patchPaths, catalog)
+    const unregister = ctx.webServer.register(makeSkinManagerRoute(
       catalog,
       (target, installed) => useSkin(target, patchPaths, installed),
       () => discoverSkinDirectories(profilePatch),
       compatibility => grantThroughHost(ctx, compatibility),
+      desktopIcon?.control,
     ))
-  }, 'ui-skin-manager: startup guard and catalog/activation route')
+    return () => {
+      unregister()
+      desktopIcon?.dispose()
+    }
+  }, 'ui-skin-manager: startup guard, catalog/activation route and desktop icon')
+}
+
+/**
+ * Windows desktop shell only: the shortcut icon follows the active skin once
+ * the user opts in. Shortcuts deliberately keep the skin icon across restarts;
+ * only the switch, a return to the official look, or a skin without an icon
+ * restores them. Startup reconciles, which also repairs a reset by a DSH update.
+ * The window icon (taskbar thumbnail, Alt+Tab) lives only as long as this
+ * plugin: disposing stops the helper, which restores the previous icon.
+ */
+function desktopIconControl(
+  profilePatch: string,
+  patchPaths: string[],
+  catalog: () => SkinCatalogEntry[],
+): { control: DesktopIconControl, dispose(): void } | undefined {
+  const shell = detectDesktopShell()
+  if (shell === null) return undefined
+  const windowIcon = new WindowIconHolder()
+  let disposed = false
+  const sync = new DesktopIconSync(dirname(dirname(dirname(profilePatch))), shell, undefined, (file) => {
+    if (!disposed) windowIcon.set(file)
+  })
+  const source = (target: SkinTarget): { skinId: string, file: string } | null => {
+    if (target === 'official') return null
+    const file = discoverSkinDesktopIcons(profilePatch).get(target)
+    return file === undefined ? null : { skinId: target, file }
+  }
+  const current = (): SkinTarget => activeSkinTarget(
+    patchPaths.map(path => existsSync(path) ? readFileSync(path, 'utf8') : ''),
+    catalog(),
+  )
+  const report = (error: unknown): void => {
+    console.error('[skin-manager] desktop icon sync failed', error)
+  }
+  void Promise.resolve().then(() => sync.reconcile(source(current()))).catch(report)
+  return {
+    control: {
+      enabled: () => sync.enabled,
+      setEnabled: enabled => sync.setEnabled(enabled, source(current())),
+      follow: (target) => {
+        void Promise.resolve().then(() => sync.reconcile(source(target))).catch(report)
+      },
+    },
+    dispose: () => {
+      disposed = true
+      windowIcon.stop()
+    },
+  }
 }

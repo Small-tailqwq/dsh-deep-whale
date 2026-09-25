@@ -25,5 +25,6 @@
     "light": "preview/light.png",
     "dark": "preview/dark.png"
   },
+  "desktopIcon": "assets/icons/orca-link.ico",
   "order": 10
 }
