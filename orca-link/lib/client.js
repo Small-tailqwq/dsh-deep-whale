@@ -2337,10 +2337,13 @@ window.__ModuleLoader__.load({
 		}
 		const PRICE_LIGHT_SELECTOR = "[data-orca-link-price-light]";
 		const SIDEBAR_PANE_SELECTOR$1 = "[data-slot='sidebar'] > :first-child";
-		/** The composer's model trigger label (ui-model-selection ModelSelect). */
-		const MODEL_LABEL_SELECTOR = "[data-composer-card] button[aria-haspopup='menu'] [class*='triggerLabel']";
+		/** ModelSelect is rendered inside this stable composer slot wrapper. */
+		const MODEL_CONTROL_SELECTOR = "[data-slot='conversation.input.model'] button[aria-haspopup='menu']";
+		/** The rendered name is preferred; title/ARIA cover host label-class changes. */
+		const MODEL_LABEL_SELECTOR = "[class*='triggerLabel']";
 		/** Set on the light while the selected model is not a DeepSeek model. */
 		const OTHER_MODEL_ATTRIBUTE = "data-orca-link-price-other-model";
+		const PRICING_VISIBILITY_ATTRIBUTE = "data-dsh-whale-orca-pricing";
 		/**
 		* Projected on body while the light sits in the Windows caption row, so the
 		* caption menubar (a body-level shadow host) can step aside for it.
@@ -2430,6 +2433,23 @@ window.__ModuleLoader__.load({
 			if (text === "" || UNRESOLVED_MODEL_LABELS.has(text)) return void 0;
 			return /deepseek/i.test(text);
 		}
+		/** Read the host model control even if its CSS-module label class changes. */
+		function readModelLabel(control) {
+			return [
+				control.querySelector(MODEL_LABEL_SELECTOR)?.textContent,
+				control.getAttribute("title"),
+				control.getAttribute("aria-label"),
+				control.textContent
+			].find((candidate) => typeof candidate === "string" && candidate.trim() !== "")?.trim() ?? "";
+		}
+		/** Whether the caption needs to reserve space for a light users can see. */
+		function isPricingLightVisible(light, doc) {
+			if (doc.documentElement.getAttribute(PRICING_VISIBILITY_ATTRIBUTE) === "hidden") return false;
+			const view = doc.defaultView;
+			if (view === null) return true;
+			const style = view.getComputedStyle(light);
+			return style.display !== "none" && style.visibility !== "hidden" && style.visibility !== "collapse";
+		}
 		/**
 		* Mount the pricing traffic light under the sidebar's DSH wordmark. The light
 		* stays visible on both the collapsed rail and the expanded sidebar, so the
@@ -2455,24 +2475,30 @@ window.__ModuleLoader__.load({
 			let label = null;
 			let tooltip = null;
 			let deepSeekModel = true;
-			let observedModelLabel = null;
+			let observedModelControl = null;
 			const doc = body.ownerDocument;
 			const syncCaption = () => {
-				const inCaption = light !== null && light.isConnected && deepSeekModel && doc.documentElement.hasAttribute("data-windows-titlebar") && body.querySelector(COLLAPSED_FRAME_SELECTOR) !== null;
+				const inCaption = light !== null && light.isConnected && deepSeekModel && isPricingLightVisible(light, doc) && !body.hasAttribute("data-orca-settings-open") && doc.documentElement.hasAttribute("data-windows-titlebar") && body.querySelector(COLLAPSED_FRAME_SELECTOR) !== null;
 				if (body.hasAttribute(CAPTION_ATTRIBUTE) !== inCaption) body.toggleAttribute(CAPTION_ATTRIBUTE, inCaption);
 			};
 			const syncModel = () => {
-				const modelLabel = body.querySelector(MODEL_LABEL_SELECTOR);
-				if (modelLabel !== observedModelLabel) {
+				const modelControl = body.querySelector(MODEL_CONTROL_SELECTOR);
+				if (modelControl !== observedModelControl) {
 					modelObserver.disconnect();
-					observedModelLabel = modelLabel;
-					if (modelLabel !== null) modelObserver.observe(modelLabel, {
+					observedModelControl = modelControl;
+					if (modelControl !== null) modelObserver.observe(modelControl, {
+						attributes: true,
+						attributeFilter: [
+							"aria-label",
+							"title",
+							"class"
+						],
 						characterData: true,
 						childList: true,
 						subtree: true
 					});
 				}
-				const verdict = modelLabel === null ? void 0 : isDeepSeekModelLabel(modelLabel.textContent ?? "");
+				const verdict = modelControl === null ? void 0 : isDeepSeekModelLabel(readModelLabel(modelControl));
 				if (verdict !== void 0) deepSeekModel = verdict;
 				if (light !== null && light.hasAttribute(OTHER_MODEL_ATTRIBUTE) === deepSeekModel) light.toggleAttribute(OTHER_MODEL_ATTRIBUTE, !deepSeekModel);
 				syncCaption();
@@ -2540,8 +2566,15 @@ window.__ModuleLoader__.load({
 				childList: true,
 				subtree: true,
 				attributes: true,
-				attributeFilter: ["data-sidebar-collapsed"]
+				attributeFilter: ["data-sidebar-collapsed", "data-orca-settings-open"]
 			});
+			const visibilityObserver = new MutationObserver(syncCaption);
+			visibilityObserver.observe(doc.documentElement, {
+				attributes: true,
+				attributeFilter: [PRICING_VISIBILITY_ATTRIBUTE]
+			});
+			const view = doc.defaultView;
+			view?.addEventListener("resize", syncCaption);
 			const langObserver = new MutationObserver(() => {
 				if (light !== null && light.isConnected) render();
 			});
@@ -2555,7 +2588,9 @@ window.__ModuleLoader__.load({
 				window.clearInterval(interval);
 				observer.disconnect();
 				modelObserver.disconnect();
+				visibilityObserver.disconnect();
 				langObserver.disconnect();
+				view?.removeEventListener("resize", syncCaption);
 				body.querySelectorAll(PRICE_LIGHT_SELECTOR).forEach((element) => element.remove());
 				body.removeAttribute(CAPTION_ATTRIBUTE);
 			};
