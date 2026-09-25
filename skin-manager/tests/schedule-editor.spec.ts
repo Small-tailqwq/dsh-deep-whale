@@ -65,6 +65,16 @@ describe('schedule editor', () => {
     expect(html).not.toContain('type="checkbox"')
   })
 
+  it('lets the hour and minute selects share their pair instead of the fixed select column', () => {
+    // The generic select is a non-shrinking 240px column; inside a time pair
+    // that pushed the minute select and the Remove button out of view.
+    const rule = css.match(/\.timeSelect \.selectInput\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(rule).toContain('flex: 1 1 0')
+    expect(rule).toContain('width: auto')
+    expect(rule).toContain('min-width: 56px')
+    expect(css).toMatch(/\.rangeRow\s*\{[^}]*grid-template-columns: minmax\(128px, 1fr\) auto minmax\(128px, 1fr\) auto/)
+  })
+
   it('gives every select the host settings select geometry', () => {
     const html = markup(() => renderToStaticMarkup(createElement(ScheduleEditor, {
       setting,

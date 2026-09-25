@@ -566,9 +566,15 @@
   width: 100%;
 }
 
+/* The hour and minute selects share the pair's width. The generic select is
+   a fixed 240px, non-shrinking column (`flex: none`), so both halves must opt
+   back into flexing or the hour select takes the whole cell and pushes the
+   minute select (and the row's Remove button) out of view. 56px keeps "00"
+   plus the chevron legible. */
 .timeSelect .selectInput {
-  width: 100%;
-  min-width: 0;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 56px;
   max-width: none;
   padding: 0 24px 0 8px;
   background-position: right 8px center;
@@ -599,7 +605,8 @@
 
 .rangeRow {
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) auto minmax(100px, 1fr) auto;
+  /* Each time pair needs two 56px selects, the colon and its gap. */
+  grid-template-columns: minmax(128px, 1fr) auto minmax(128px, 1fr) auto;
   align-items: center;
   gap: 8px;
   color: var(--dsw-alias-label-secondary);
