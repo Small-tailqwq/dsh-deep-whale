@@ -412,13 +412,15 @@ describe('Maid Atelier skin apply', () => {
     expect(copy?.parentElement).toBe(overlay)
     expect(copy?.nextElementSibling).toBe(mask)
     expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
+    expect(document.body.hasAttribute('data-maid-settings-in-sidebar')).toBe(true)
 
     overlay.remove()
     await flushMutations()
     expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
+    expect(document.body.hasAttribute('data-maid-settings-in-sidebar')).toBe(false)
   })
 
-  it('follows the DSH 0.1.7-rc.2 settings panel portaled beside #root', async () => {
+  it('follows the DSH 0.1.7-rc.2 settings panel portaled beside #root without slot workarounds', async () => {
     document.body.innerHTML = `
       <div data-pane="sidebar">
         <div>
@@ -447,14 +449,15 @@ describe('Maid Atelier skin apply', () => {
     await flushMutations()
 
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
-    const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
-    expect(copy?.parentElement).toBe(overlay)
-    expect(copy?.nextElementSibling).toBe(mask)
+    // The portal is outside the sidebar tree: none of the slot-containment
+    // workarounds (frame copy, overflow and stacking releases) apply. A
+    // viewport-anchored copy drew a second frame above the Windows caption.
+    expect(document.body.hasAttribute('data-maid-settings-in-sidebar')).toBe(false)
+    expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
 
     overlay.remove()
     await flushMutations()
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
-    expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
     shortcuts.remove()
   })
 

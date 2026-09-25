@@ -703,8 +703,9 @@ html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link][data-orca-
    Through DSH 0.1.7-rc.1 SettingsPanel is not a document-root portal: the
    host mounts it inside the sidebar content root and it reaches the viewport
    with `position: fixed`. From rc.2 it portals to <body> beside #root and
-   carries `data-shortcut-modal='settings'`, so the releases below simply
-   match nothing there; the settings selectors accept both mounts.
+   carries `data-shortcut-modal='settings'`; the sidebar releases below key on
+   `data-orca-settings-in-sidebar` so they run for the slot mount only, and
+   the settings selectors accept both mounts.
    Every stacking context this skin adds along that ancestor chain — the
    content root's `isolation: isolate`, plus the promotions this block used to
    apply to the sidebar column and the dialog carrier — is a context the
@@ -742,7 +743,7 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open] [id='root'] {
    z-index says. Release the isolation together with the promotion while the
    dialog is open; the `position: relative` from that block stays, and
    relative + z-index auto is not a stacking context. */
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link][data-orca-settings-in-sidebar] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
   z-index: auto;
   isolation: auto;
 }
@@ -756,8 +757,11 @@ body[data-dsh-orca-link][data-orca-settings-open] :is([data-pane='sidebar'], [da
    absolutely positioned descendants, and in maid-atelier it also tripped
    Chromium into compositing a filtered layer over the mask's backdrop-filter
    (4d3e346). `overflow: visible` still carries its own weight: the column
-   clips at its own box regardless of stacking. */
-body[data-dsh-orca-link][data-orca-settings-open]
+   clips at its own box regardless of stacking. Both releases key on the
+   slot mount only (DSH through 0.1.7-rc.1): the rc.2 body portal is not in
+   the sidebar chain, and unclipping the column there only lets the sidebar
+   stage spill while settings is open. */
+body[data-dsh-orca-link][data-orca-settings-in-sidebar]
   [class*='sidebarCol'] {
   position: relative;
   z-index: auto;

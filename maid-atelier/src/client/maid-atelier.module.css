@@ -722,6 +722,18 @@ body[data-dsh-maid-atelier] [class*='logoRow'] {
     0 7px 18px rgba(2, 7, 25, 0.28);
 }
 
+/* The Windows desktop titlebar moves the toggle into the caption row and
+   flattens the logo row (`[data-windows-titlebar] .root .logoRow { height:
+   40px; margin: 0; padding: 0 }`, which outranks the rule above), so the brand
+   plate rose onto the sidebar frame's top rail. Restore the web geometry for
+   the expanded column; the collapsed column keeps the host's zero height. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    [class*='root']:not([class*='collapsed']) > [class*='logoRow'] {
+  height: 60px;
+  margin: 8px 8px 0;
+  padding: 8px 8px 10px;
+}
+
 /* Reuse the product's exact 182x24 vector wordmark. Porcelain ink keeps the
    DeepSeek paths crisp on navy, while the HARNESS plate uses the same gold
    accent as the surrounding frame and knocks its lettering back to navy. */
@@ -3096,7 +3108,7 @@ body[data-dsh-maid-atelier]
    invalidating the descendant :has() until the sidebar's own class changes.
    Keep relative positioning so fixed descendants retain their coordinates.
    The relational selector also covers other modal dialogs in the sidebar. */
-body[data-dsh-maid-atelier][data-maid-settings-open]
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
   > :not(
@@ -3172,11 +3184,14 @@ body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
    disappears entirely. Release the clip while the dialog owns the viewport;
    the projected body state restores it the moment the panel unmounts, so no
    other state changes. Scoped to the settings slot's own ancestor chain so the
-   sidebar's real scroll/truncation containers keep their overflow. */
-body[data-dsh-maid-atelier][data-maid-settings-open] :is([data-pane='sidebar'], [class*='sidebarCol']),
-body[data-dsh-maid-atelier][data-maid-settings-open] :is([data-pane='sidebar'], [class*='sidebarCol']) *:has([data-slot='sidebar.settings']),
-body[data-dsh-maid-atelier][data-maid-settings-open] [data-slot='sidebar.settings'],
-body[data-dsh-maid-atelier][data-maid-settings-open] [class*='frame']:has([data-slot='sidebar.settings']) {
+   sidebar's real scroll/truncation containers keep their overflow. Keyed on
+   the slot mount only (DSH through 0.1.7-rc.1): the rc.2 body portal is not
+   in this chain, and releasing the frame's overflow there shifted the
+   Windows desktop layout while settings was open. */
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] :is([data-pane='sidebar'], [class*='sidebarCol']),
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] :is([data-pane='sidebar'], [class*='sidebarCol']) *:has([data-slot='sidebar.settings']),
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [data-slot='sidebar.settings'],
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [class*='frame']:has([data-slot='sidebar.settings']) {
   overflow: visible !important;
 }
 

@@ -43,6 +43,23 @@ describe('Maid Atelier Windows caption controls', () => {
     expect(hover).toContain('transform: none')
   })
 
+  it('keeps the expanded brand plate inside the sidebar frame', () => {
+    const rule = CSS.match(
+      /html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\]\s*\[class\*='root'\]:not\(\[class\*='collapsed'\]\) > \[class\*='logoRow'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(rule).toContain('height: 60px')
+    expect(rule).toContain('margin: 8px 8px 0')
+    expect(rule).toContain('padding: 8px 8px 10px')
+  })
+
+  it('runs the slot-containment workarounds only for the in-sidebar settings mount', () => {
+    // Releasing the frame's overflow against the rc.2 body portal shifted the
+    // Windows layout while settings was open.
+    expect(CSS).not.toMatch(/\[data-maid-settings-open\][^{]*\[class\*='frame'\]:has\(\[data-slot='sidebar\.settings'\]\)/)
+    expect(CSS).toMatch(/\[data-maid-settings-in-sidebar\] \[class\*='frame'\]:has\(\[data-slot='sidebar\.settings'\]\)/)
+    expect(CSS).toMatch(/\[data-maid-settings-in-sidebar\]\s*:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :not\(/)
+  })
+
   it('does not key the caption treatment on the stale sidebar-size flag', () => {
     expect(CSS).not.toMatch(/data-windows-titlebar\][^{]*data-maid-sidebar-size/)
   })

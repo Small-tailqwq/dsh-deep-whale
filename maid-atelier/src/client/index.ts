@@ -63,7 +63,8 @@ const SETTINGS_MASK_SELECTOR = ":scope > [class*='mask']"
 // Through DSH 0.1.7-rc.1 the panel mounts inside the settings slot; from rc.2 it
 // portals to <body> beside #root and names itself with `data-shortcut-modal`.
 const SETTINGS_PORTAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true'][data-shortcut-modal='settings']"
-const SETTINGS_DIALOG_SELECTOR = `[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true'], ${SETTINGS_PORTAL_DIALOG_SELECTOR}`
+const SETTINGS_SLOT_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']"
+const SETTINGS_DIALOG_SELECTOR = `${SETTINGS_SLOT_DIALOG_SELECTOR}, ${SETTINGS_PORTAL_DIALOG_SELECTOR}`
 const SETTINGS_OWNER_SELECTOR = `[data-slot='sidebar.settings'], ${SETTINGS_PORTAL_DIALOG_SELECTOR}`
 const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
 const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
@@ -131,6 +132,9 @@ const PROJECTED_STATE_ATTRIBUTES = {
   activeConversation: 'data-maid-conversation-active',
   cordisPanelOpen: 'data-maid-cordis-panel-open',
   settingsOpen: 'data-maid-settings-open',
+  // Only the rc.1 slot mount puts the fixed panel inside the sidebar tree; the
+  // workarounds for that containment must not run against the rc.2 portal.
+  settingsInSidebar: 'data-maid-settings-in-sidebar',
   workspace: 'data-maid-workspace',
 } as const
 
@@ -749,6 +753,10 @@ export function apply(ctx: Context): void {
       PROJECTED_STATE_ATTRIBUTES.settingsOpen,
       document.querySelector(SETTINGS_DIALOG_SELECTOR) !== null,
     )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.settingsInSidebar,
+      document.querySelector(SETTINGS_SLOT_DIALOG_SELECTOR) !== null,
+    )
   }
 
   let observedChatArea: HTMLElement | undefined
@@ -832,12 +840,15 @@ export function apply(ctx: Context): void {
     composerPhase = next
   }
 
-  /* The settings mask is mounted inside a promoted sidebar descendant. Chrome
-     can omit sibling composited layers from that backdrop sample, so seat a
-     copy of the existing frame immediately before the mask while it is open. */
+  /* Through DSH 0.1.7-rc.1 the settings mask is mounted inside a promoted
+     sidebar descendant. Chrome can omit sibling composited layers from that
+     backdrop sample, so seat a copy of the existing frame immediately before
+     the mask while it is open. The rc.2 body portal samples the real frame
+     directly; a viewport-anchored copy there would sit above the Windows
+     caption offset and draw a second frame. */
   const syncSettingsBackdropFrame = (): void => {
     settingsNavigation.synchronize()
-    const dialog = document.querySelector(SETTINGS_DIALOG_SELECTOR)
+    const dialog = document.querySelector(SETTINGS_SLOT_DIALOG_SELECTOR)
     const mask = dialog?.parentElement?.querySelector<HTMLElement>(SETTINGS_MASK_SELECTOR) ?? null
     const overlay = mask?.parentElement
     if (overlay === undefined || overlay === null) {

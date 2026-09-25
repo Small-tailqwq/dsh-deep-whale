@@ -245,6 +245,7 @@ describe('ORCA LINK performance guards', () => {
     settings.append(dialog)
     await Promise.resolve()
     expect(document.body.hasAttribute('data-orca-settings-open')).toBe(true)
+    expect(document.body.hasAttribute('data-orca-settings-in-sidebar')).toBe(true)
 
     dialog.remove()
     await Promise.resolve()
@@ -265,6 +266,8 @@ describe('ORCA LINK performance guards', () => {
     document.body.append(overlay)
     await Promise.resolve()
     expect(document.body.hasAttribute('data-orca-settings-open')).toBe(true)
+    // The portal is outside the sidebar chain: no stacking or clipping release.
+    expect(document.body.hasAttribute('data-orca-settings-in-sidebar')).toBe(false)
 
     // Other body-level modals share the overlay shape but not the settings name.
     overlay.remove()
