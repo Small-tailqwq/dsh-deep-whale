@@ -278,6 +278,9 @@ window.__ModuleLoader__.load({
 		const COLLAPSE_LIFETIME_MS = 440;
 		const RESTORE_LIFETIME_MS = 520;
 		const RESTORE_SIZE = 28;
+		const RESTORE_ORNAMENT = 6;
+		const RESTORE_CLEARANCE = 8;
+		const TO_BOTTOM_SELECTOR = "button[class*='toBottom']";
 		function clamp(value, min, max) {
 			return Math.min(max, Math.max(min, value));
 		}
@@ -353,7 +356,7 @@ window.__ModuleLoader__.load({
 				const rect = cardRect ?? binding.card.getBoundingClientRect();
 				if (rootRect.width <= 0 || rootRect.height <= 0 || rect.width <= 0 || rect.height <= 0) return;
 				const left = clamp(rect.right - 16 - RESTORE_SIZE, rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8);
-				const top = clamp(rect.top - 36, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8);
+				const top = clamp(rect.top + 12, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8);
 				binding.anchor = {
 					leftRatio: (left - rootRect.left) / rootRect.width,
 					topRatio: (top - rootRect.top) / rootRect.height
@@ -366,7 +369,9 @@ window.__ModuleLoader__.load({
 				if (button === null || anchor === null) return;
 				const rootRect = binding.root.getBoundingClientRect();
 				const left = clamp(rootRect.left + rootRect.width * anchor.leftRatio, rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8);
-				const top = clamp(rootRect.top + rootRect.height * anchor.topRatio, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8);
+				let top = clamp(rootRect.top + rootRect.height * anchor.topRatio, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8);
+				const toBottom = binding.root.querySelector(TO_BOTTOM_SELECTOR)?.getBoundingClientRect();
+				if (toBottom !== void 0 && toBottom.width > 0 && toBottom.height > 0 && left - RESTORE_ORNAMENT < toBottom.right + RESTORE_CLEARANCE && left + RESTORE_SIZE + RESTORE_ORNAMENT > toBottom.left - RESTORE_CLEARANCE && top < toBottom.bottom + RESTORE_CLEARANCE && top + RESTORE_SIZE > toBottom.top - RESTORE_CLEARANCE) top = clamp(toBottom.bottom + RESTORE_CLEARANCE, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8);
 				button.style.left = `${left}px`;
 				button.style.top = `${top}px`;
 				if (sourceRect !== void 0) {
