@@ -862,6 +862,45 @@ body[data-dsh-maid-atelier] button[class*='newSession'] svg {
   stroke-width: 1.8;
 }
 
+/* The host centres the icon and label across the whole button (`width:
+   100cqw`) and, on hover, fades the mask's last 16px while the Ctrl + N hint
+   takes its flex slot on the right. The stock button leaves that slot in empty
+   space; between the ribbon's 40px end caps the serif label runs straight into
+   it and is cut to "新会". Centre the label in the mask instead, and let the
+   hint unfold from zero width so the label glides left to make room, with no
+   fade over the text. */
+body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionContent'] {
+  width: 100%;
+}
+
+body[data-dsh-maid-atelier] button[class*='newSession']:is(:hover, :focus-visible) [class*='newSessionLabelMask'] {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionShortcut'] {
+  max-width: 0;
+  overflow: hidden;
+  color: #5a6789;
+  font-family: var(--dsw-font-family, system-ui, sans-serif);
+  font-size: 12px;
+  white-space: nowrap;
+  transition:
+    max-width 180ms ease,
+    margin-inline-start 180ms ease,
+    opacity 150ms ease;
+}
+
+body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionShortcut'] kbd {
+  color: inherit;
+  font: inherit;
+}
+
+body[data-dsh-maid-atelier] button[class*='newSession']:is(:hover, :focus-visible) [class*='newSessionShortcut'] {
+  max-width: 6em;
+  margin-inline-start: 8px;
+}
+
 /* Windows desktop caption controls. With `html[data-windows-titlebar]` a
    collapsed sidebar is zero wide: the host hides the column's lists and pins
    its toggle and New Session button into the caption row as two 28px icons
@@ -886,7 +925,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
   padding: 0;
   border: 0;
   border-image: none;
-  border-radius: 50%;
+  border-radius: var(--maid-caption-control-radius);
   corner-shape: round;
   background: transparent;
   box-shadow: none;
@@ -905,9 +944,75 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
 html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
     :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
     :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']):is(:hover, :focus-visible) {
-  background: rgba(255, 252, 243, 0.12);
+  background: var(--maid-caption-hover);
+  color: var(--maid-caption-ink-hover);
   filter: none;
   transform: none;
+}
+
+/* One caption treatment for everything on the Windows titlebar. The desktop
+   shell's 应用 / 编辑 menubar (`[data-windows-menu]`, a body child with an
+   open shadow root) draws 6px rounded buttons from inherited tokens: resting
+   ink is --dsw-alias-label-secondary, hover is --dsw-alias-interactive-bg-hover
+   under --dsw-alias-label-primary. Those resolve to the porcelain content
+   palette on body, so the navy caption showed dim slate text that turned navy
+   on navy under the pointer. The menubar takes the sidebar's caption palette,
+   and the host's round (50%) toggle and New Session icons take the menubar's
+   6px corner, so every caption control hovers with one shape and one wash.
+   The caption row is navy in both themes (sidebar fill), so the palette is
+   theme-independent. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier] {
+  --maid-caption-control-radius: 6px;
+  --maid-caption-ink: #d7def0;
+  --maid-caption-ink-hover: #fff4d9;
+  --maid-caption-hover: rgba(255, 252, 243, 0.12);
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
+  --dsw-alias-label-secondary: var(--maid-caption-ink);
+  --dsw-alias-label-primary: var(--maid-caption-ink-hover);
+  --dsw-alias-interactive-bg-hover: var(--maid-caption-hover);
+}
+
+/* Minimise / maximise / close are Electron's native titleBarOverlay. The
+   desktop preload colours them from a hidden probe it appends to body
+   (`position:fixed; visibility:hidden; background-color:
+   var(--dsw-specific-sidebar-fill); color: var(--dsw-alias-label-primary)`)
+   and re-reads it whenever a stylesheet lands in <head>. On body the light
+   theme resolves label-primary to porcelain-page navy, so the native glyphs
+   were drawn navy on the navy caption. The probe has no attribute of its own;
+   its inline style is the only hook, and a miss simply leaves the stock
+   colours in place. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    > span[style*='--dsw-specific-sidebar-fill'][style*='--dsw-alias-label-primary'] {
+  --dsw-alias-label-primary: var(--maid-caption-ink-hover);
+}
+
+/* The expanded column pins the same toggle into the caption row (fixed at
+   left 12px, 28px round). This only squares the corner and matches the hover
+   wash; it keys on the host's collapse state like the rules above. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root']:not([class*='collapsed'])
+    > [class*='logoRow'] > button[class*='toggle'] {
+  border-radius: var(--maid-caption-control-radius);
+  corner-shape: round;
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root']:not([class*='collapsed'])
+    > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible) {
+  background: var(--maid-caption-hover);
+  color: var(--maid-caption-ink-hover);
+}
+
+/* The Windows frame rounds the conversation column's top-left corner
+   (`[data-windows-titlebar] .centerCol { border-radius:
+   var(--dsh-windows-content-radius) 0 0 0 }`, 16px) to tuck the stock grey
+   page under the caption. The skin paints one continuous palace stage behind
+   the brand plate and the caption row, so the corner only clipped the
+   artwork into a stray curve beside the plate. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) {
+  border-radius: 0;
 }
 
 /* The lower sidebar keeps the U-shaped textile ornament independent from the

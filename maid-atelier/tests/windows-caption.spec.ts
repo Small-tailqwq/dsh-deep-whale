@@ -28,7 +28,7 @@ describe('Maid Atelier Windows caption controls', () => {
     expect(rule).not.toBe('')
     for (const declaration of [
       'width: 28px', 'height: 28px', 'min-height: 28px', 'margin: 0', 'padding: 0',
-      'border: 0', 'border-image: none', 'border-radius: 50%', 'background: transparent',
+      'border: 0', 'border-image: none', 'border-radius: var(--maid-caption-control-radius)', 'background: transparent',
       'filter: none', 'transform: none', 'color: var(--dsw-alias-label-secondary)',
     ]) expect(rule).toContain(declaration)
   })
@@ -37,10 +37,54 @@ describe('Maid Atelier Windows caption controls', () => {
     expect(block(' svg')).toContain('color: inherit')
   })
 
-  it('keeps hover a round wash of the caption icon, not a lifted ribbon', () => {
+  it('keeps hover a flat caption wash, not a lifted ribbon', () => {
     const hover = block(':is\\(:hover, :focus-visible\\)')
-    expect(hover).toContain('background: rgba(255, 252, 243, 0.12)')
+    expect(hover).toContain('background: var(--maid-caption-hover)')
     expect(hover).toContain('transform: none')
+  })
+
+  it('shares one corner and palette with the desktop menubar', () => {
+    const tokens = CSS.match(/html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\]\s*\{([^}]*)\}/)?.[1] ?? ''
+    // The shell menubar's buttons are 6px rounded inside its shadow root.
+    expect(tokens).toContain('--maid-caption-control-radius: 6px')
+    expect(tokens).toContain('--maid-caption-hover: rgba(255, 252, 243, 0.12)')
+    const menu = CSS.match(/body\[data-dsh-maid-atelier\] > \[data-windows-menu\]\s*\{([^}]*)\}/)?.[1] ?? ''
+    // Resting ink, hover ink and hover wash are inherited tokens in the shadow
+    // root; the body-level porcelain palette made hovered labels navy on navy.
+    expect(menu).toContain('--dsw-alias-label-secondary: var(--maid-caption-ink)')
+    expect(menu).toContain('--dsw-alias-label-primary: var(--maid-caption-ink-hover)')
+    expect(menu).toContain('--dsw-alias-interactive-bg-hover: var(--maid-caption-hover)')
+    const expandedToggle = CSS.match(
+      /\[class\*='root'\]:not\(\[class\*='collapsed'\]\)\s*> \[class\*='logoRow'\] > button\[class\*='toggle'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(expandedToggle).toContain('border-radius: var(--maid-caption-control-radius)')
+  })
+
+  it('hands the native window controls a light glyph through the preload probe', () => {
+    const probe = CSS.match(
+      /body\[data-dsh-maid-atelier\]\s*> span\[style\*='--dsw-specific-sidebar-fill'\]\[style\*='--dsw-alias-label-primary'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(probe).toContain('--dsw-alias-label-primary: var(--maid-caption-ink-hover)')
+  })
+
+  it('drops the Windows frame corner on the conversation column', () => {
+    expect(CSS).toMatch(
+      /html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\] :is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\)\s*\{\s*border-radius: 0;/,
+    )
+  })
+
+  it('lets the new-session shortcut hint make room instead of masking the label', () => {
+    const shortcut = CSS.match(/button\[class\*='newSession'\] \[class\*='newSessionShortcut'\]\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(shortcut).toContain('max-width: 0')
+    const hovered = CSS.match(
+      /button\[class\*='newSession'\]:is\(:hover, :focus-visible\) \[class\*='newSessionShortcut'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(hovered).toContain('max-width: 6em')
+    const mask = CSS.match(
+      /button\[class\*='newSession'\]:is\(:hover, :focus-visible\) \[class\*='newSessionLabelMask'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(mask).toContain('mask-image: none')
+    expect(CSS).toMatch(/button\[class\*='newSession'\] \[class\*='newSessionContent'\]\s*\{\s*width: 100%;/)
   })
 
   it('keeps the expanded brand plate inside the sidebar frame', () => {

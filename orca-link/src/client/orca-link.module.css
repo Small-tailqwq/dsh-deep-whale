@@ -2026,6 +2026,28 @@ html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
   background: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
 }
 
+/* The rest of the Windows caption row follows the collapsed controls above.
+   The expanded column pins the same toggle at left 12px, but its hover was the
+   host icon button's 7% blue wash; the shell's 应用 / 编辑 menubar
+   (`[data-windows-menu]`, open shadow root) hovers with the same inherited
+   token. Both take the 14% graphite wash, and windows-menu.ts squares the
+   menubar's shadow-local 6px corner, so every caption control hovers alike. */
+html[data-windows-titlebar] body[data-dsh-orca-link] > [data-windows-menu] {
+  --dsw-alias-interactive-bg-hover: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link]
+    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
+}
+
+/* The Windows frame rounds the conversation column's top-left corner under
+   the caption (`--dsh-windows-content-radius`, 16px). ORCA's shape contract
+   is square throughout. */
+html[data-windows-titlebar] body[data-dsh-orca-link] :is([data-pane='conversation'], [class*='centerCol']) {
+  border-radius: 0;
+}
+
 /* Official rail tooltips are rendered beside their anchors instead of through
    a portal. Release only their collapsed-rail ancestor chain so fixed bubbles
    can leave the 36px action cell and the 55px sidebar shell. */
