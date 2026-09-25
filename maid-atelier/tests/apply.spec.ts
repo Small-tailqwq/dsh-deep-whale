@@ -1731,13 +1731,29 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the light-theme composer statistics legible over the backdrop', () => {
     const dockRule = CSS.match(
-      /:not\(\[data-ds-dark-theme\]\)[\s\S]*?\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\] \[data-composer-card\] \+ div\[class\*='dock'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const glassRule = CSS.match(
+      /body\[data-dsh-maid-atelier\] \[data-composer-card\] \+ div\[class\*='dock'\]::before\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(dockRule).toContain('color: #4a5d82')
-    expect(dockRule).toContain('rgba(248, 250, 255, 0.3)')
-    expect(dockRule).toContain('backdrop-filter: blur(2px)')
+    expect(dockRule).toContain('--maid-dock-tint: rgba(248, 250, 255, 0.3)')
+    expect(glassRule).toContain('var(--maid-dock-tint) 10%')
+    expect(glassRule).toContain('backdrop-filter: blur(2px)')
+    expect(glassRule).toContain('pointer-events: none')
     expect(CSS).toMatch(/\[data-slot='conversation\.composer\.dock'\] > \* \[class\*='sep'\]\s*\{[^}]*rgba\(74, 93, 130, 0\.55\)/s)
-    expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{[^}]*color: #aebdde[^}]*rgba\(10, 20, 48, 0\.48\)/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\]\s*\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{[^}]*--maid-dock-tint: rgba\(10, 20, 48, 0\.48\)[^}]*color: #aebdde/s)
+  })
+
+  it('keeps the ContextMeter dock from trapping its fixed tooltip (issue #151)', () => {
+    // The host tooltip is a non-portalled position: fixed bubble placed from
+    // viewport coordinates. Any containing-block property on the dock drops
+    // it a viewport lower inside the sticky seat and stretches the scrollport.
+    const dockRules = [...CSS.matchAll(/([^{}]*\[data-composer-card\] \+ div\[class\*='dock'\])\s*\{([^}]*)\}/g)]
+    expect(dockRules.length).toBeGreaterThanOrEqual(2)
+    for (const [, , body] of dockRules) {
+      expect(body).not.toMatch(/(?:^|[\s;])(?:backdrop-filter|filter|transform|perspective|contain|will-change|container-type)\s*:/)
+    }
   })
 
   it('resets the light-theme subagent catalog inherited from the navy header', () => {
