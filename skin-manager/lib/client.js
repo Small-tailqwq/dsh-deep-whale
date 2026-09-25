@@ -5,6 +5,7 @@ window.__ModuleLoader__.load({
 		var exports = module.exports;
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 		let react = require("react");
+		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		let react_jsx_runtime = require("react/jsx-runtime");
 		//#region src/contract.ts
 		/** Same-origin host route used for catalog discovery and activation. */
@@ -927,7 +928,7 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 		//#region \0dsh-css:../skin-manager/src/client/skin-manager.module.css.mjs
-		const css = ".orL4ja_section{color:var(--dsw-alias-label-primary);gap:14px;display:grid}.orL4ja_header h2,.orL4ja_card h3,.orL4ja_header p,.orL4ja_error{margin:0}.orL4ja_header{gap:6px;display:grid}.orL4ja_header p{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6}.orL4ja_card{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:10px;gap:10px;padding:14px;display:grid}.orL4ja_card h3{font-size:14px}.orL4ja_cardHeader{justify-content:space-between;align-items:center;gap:10px;display:flex}.orL4ja_checkButton{min-height:28px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 12px;font-size:12px}.orL4ja_checkButton:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}.orL4ja_checkButton:disabled{opacity:.55;cursor:default}.orL4ja_skinTile{align-self:start;gap:4px;min-width:0;display:grid}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));align-items:start;gap:8px;display:grid}.orL4ja_skinButton{width:100%}.orL4ja_defaultButton,.orL4ja_defaultActive{width:100%;min-height:44px;color:var(--dsw-alias-label-primary);border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;display:flex}.orL4ja_defaultButton>span,.orL4ja_defaultActive>span{text-align:left;gap:2px;display:grid}.orL4ja_defaultButton small,.orL4ja_defaultActive small{color:var(--dsw-alias-label-tertiary)}.orL4ja_defaultButton:disabled,.orL4ja_defaultActive:disabled{opacity:.75;cursor:default}.orL4ja_defaultActive{border-style:solid;border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_defaultState{flex:none;color:var(--dsw-alias-label-secondary)!important}.orL4ja_skinButton,.orL4ja_activeSkin{min-height:58px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-items:start;gap:3px;padding:10px;display:grid}.orL4ja_activeSkin{border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_skinButton small,.orL4ja_activeSkin small{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionRow{flex-wrap:wrap;align-items:center;gap:3px 8px;min-height:16px;padding-inline:2px;font-size:11px;line-height:1.5;display:flex}.orL4ja_compatibility{color:var(--dsw-alias-label-tertiary);padding-inline:2px;font-size:11px}.orL4ja_incompatible{color:var(--dsw-alias-state-warn-label);padding-inline:2px;font-size:11px}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:inherit;line-height:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;padding:0}.orL4ja_versionHash:hover{color:var(--dsw-alias-brand-primary)}.orL4ja_versionMuted{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary,#12a150)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-primary,#e08700)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow{justify-content:space-between;align-items:center;gap:12px;min-height:34px;display:flex}.orL4ja_toggleRow>span,.orL4ja_selectRow>span,.orL4ja_sliderRow>span,.orL4ja_colorRow>span{gap:2px;display:grid}.orL4ja_toggleRow small,.orL4ja_selectRow small,.orL4ja_sliderRow small,.orL4ja_colorRow small,.orL4ja_checkboxGroup small,.orL4ja_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}.orL4ja_toggleRow input{block-size:18px;inline-size:34px;accent-color:var(--dsw-alias-brand-primary)}.orL4ja_toggleSwitch{cursor:pointer;border-radius:999px;flex:none;justify-content:center;align-items:center;margin:-4px;padding:4px;display:inline-flex}.orL4ja_toggleSwitch input,.orL4ja_selectRow select,.orL4ja_rangeRow select{cursor:pointer}.orL4ja_selectRow select,.orL4ja_rangeRow input,.orL4ja_rangeRow select{box-sizing:border-box;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);border-radius:6px}.orL4ja_selectRow select{max-width:240px;padding-inline:8px}.orL4ja_selectRow select:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled,.orL4ja_toggleRow input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorControl{flex:none;grid-auto-flow:column;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;border-radius:6px;width:44px;height:30px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-brand-primary)}.orL4ja_colorButton:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorSwatch{border:1px solid #0000005c;width:100%;height:100%;display:block}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-brand-primary);outline:1px solid var(--dsw-alias-border-l2);outline-offset:2px;background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:0;padding:10px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border:1px solid var(--dsw-alias-border-l2);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:30px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border:1px solid var(--dsw-alias-border-l2);border-radius:50%;width:28px;height:28px}.orL4ja_colorHueRow input[type=range]{appearance:none;border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-secondary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);text-align:center;border-radius:4px;padding-inline:6px}.orL4ja_checkboxGroup{border-left:2px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);gap:8px;margin-left:12px;padding:10px 12px 12px;display:grid}.orL4ja_checkboxGroupHeading{gap:2px;display:grid}.orL4ja_checkboxGrid{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px 12px;display:grid}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_sliderRow{grid-template-columns:minmax(0,1fr) auto minmax(120px,220px);align-items:center;gap:10px;min-height:40px;display:grid}.orL4ja_sliderValue{min-width:3ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right}.orL4ja_sliderRow input[type=range]{-webkit-appearance:none;appearance:none;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;width:100%;height:20px;image-rendering:pixelated;border-radius:0;margin:0;padding:0}.orL4ja_sliderRow input[type=range]::-webkit-slider-runnable-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:14px;height:22px;margin-top:-8px;box-shadow:2px 2px #5127ff59}.orL4ja_sliderRow input[type=range]::-moz-range-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-moz-range-thumb{border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:10px;height:18px;box-shadow:2px 2px #5127ff59}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect select{text-align:center;width:100%;min-width:0;max-width:none;padding-inline:6px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{gap:8px;display:grid}.orL4ja_scheduleDetails{border-left:2px solid var(--dsw-alias-border-l2);gap:8px;margin-left:12px;padding:10px;display:grid}.orL4ja_rangeList{gap:6px;display:grid}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_rangeRow input{width:100%;padding-inline:7px}.orL4ja_rangeRow button,.orL4ja_addRange{min-height:30px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:4px 9px}.orL4ja_addRange{justify-self:start}.orL4ja_error{color:var(--dsw-alias-state-danger,#c43d3d);font-size:12px}.orL4ja_backupActions{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.orL4ja_backupButton{min-height:32px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:6px;padding:6px 14px;font-size:12px}.orL4ja_backupButton:hover:not(:disabled){border-color:var(--dsw-alias-brand-primary)}.orL4ja_backupButton:disabled{opacity:.55;cursor:default}.orL4ja_dropZone{border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);text-align:center;border-radius:8px;gap:4px;padding:14px;font-size:12px;line-height:1.5;transition:border-color .12s,color .12s,background .12s;display:grid}.orL4ja_dropZoneActive{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}.orL4ja_cardHeaderActions{align-items:center;gap:8px;display:flex}.orL4ja_resetButton{min-height:26px;color:var(--dsw-alias-label-tertiary);border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:0 0;border-radius:6px;padding:3px 10px;font-size:11px}.orL4ja_resetButton:hover:not(:disabled){color:var(--dsw-alias-state-danger,#c43d3d);border-color:var(--dsw-alias-state-danger,#c43d3d)}.orL4ja_fileInput{clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.orL4ja_introHint{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}@media (width<=720px){.orL4ja_skinGrid{grid-template-columns:1fr}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
+		const css = ".orL4ja_section{color:var(--dsw-alias-label-primary);gap:14px;display:grid}.orL4ja_header h2,.orL4ja_card h3,.orL4ja_header p,.orL4ja_error{margin:0}.orL4ja_header{gap:6px;display:grid}.orL4ja_header p{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6}.orL4ja_card{border:.5px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-lg,12px);background:var(--dsw-alias-bg-layer-1);gap:8px;padding:14px 16px;display:grid}.orL4ja_card h3{font-size:14px;font-weight:500;line-height:20px}.orL4ja_cardHeader{justify-content:space-between;align-items:center;gap:10px;display:flex}.orL4ja_skinTile{align-self:start;gap:4px;min-width:0;display:grid}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));align-items:start;gap:8px;display:grid}.orL4ja_skinButton{width:100%}.orL4ja_defaultButton,.orL4ja_defaultActive{width:100%;min-height:44px;color:var(--dsw-alias-label-primary);border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;display:flex}.orL4ja_defaultButton>span,.orL4ja_defaultActive>span{text-align:left;gap:2px;display:grid}.orL4ja_defaultButton small,.orL4ja_defaultActive small{color:var(--dsw-alias-label-tertiary)}.orL4ja_defaultButton:disabled,.orL4ja_defaultActive:disabled{opacity:.75;cursor:default}.orL4ja_defaultActive{border-style:solid;border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_defaultState{flex:none;color:var(--dsw-alias-label-secondary)!important}.orL4ja_skinButton,.orL4ja_activeSkin{min-height:58px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-items:start;gap:3px;padding:10px;display:grid}.orL4ja_activeSkin{border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_skinButton small,.orL4ja_activeSkin small{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionRow{flex-wrap:wrap;align-items:center;gap:3px 8px;min-height:16px;padding-inline:2px;font-size:11px;line-height:1.5;display:flex}.orL4ja_compatibility{color:var(--dsw-alias-label-tertiary);padding-inline:2px;font-size:11px}.orL4ja_incompatible{color:var(--dsw-alias-state-warn-label);padding-inline:2px;font-size:11px}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:inherit;line-height:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;padding:0}.orL4ja_versionHash:hover{color:var(--dsw-alias-brand-primary)}.orL4ja_versionMuted{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary,#12a150)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-primary,#e08700)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow{border-bottom:.5px solid var(--dsw-alias-border-l2);justify-content:space-between;align-items:center;gap:24px;min-height:32px;padding:12px 2px;display:flex}.orL4ja_toggleRow:last-child,.orL4ja_selectRow:last-child,.orL4ja_sliderRow:last-child,.orL4ja_colorRow:last-child,.orL4ja_schedule:last-child>.orL4ja_toggleRow{border-bottom:0}.orL4ja_rowText{flex:auto;gap:4px;min-width:0;display:grid}.orL4ja_rowTitle{color:var(--dsw-alias-label-primary);overflow-wrap:anywhere;font-size:14px;line-height:20px}.orL4ja_rowDescription,.orL4ja_hint{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px}.orL4ja_toggleRow>:last-child,.orL4ja_selectRow>:last-child,.orL4ja_colorRow>:last-child{flex:none}.orL4ja_selectInput{box-sizing:border-box;width:240px;min-width:0;max-width:100%;height:32px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-md);background-color:var(--dsw-alias-bg-layer-1);font:inherit;white-space:nowrap;text-overflow:ellipsis;appearance:none;cursor:pointer;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");background-position:right 12px center;background-repeat:no-repeat;background-size:12px 12px;flex:none;padding:0 32px 0 10px;font-size:14px;line-height:22px;overflow:hidden}.orL4ja_selectInput:focus{border-color:var(--dsw-alias-state-business-primary);outline:none}.orL4ja_selectInput:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled{opacity:.6;cursor:default}.orL4ja_colorControl{flex:none;grid-auto-flow:column;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;border-radius:6px;width:44px;height:30px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-brand-primary)}.orL4ja_colorButton:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorSwatch{border:1px solid #0000005c;width:100%;height:100%;display:block}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-brand-primary);outline:1px solid var(--dsw-alias-border-l2);outline-offset:2px;background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:0;padding:10px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border:1px solid var(--dsw-alias-border-l2);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:30px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border:1px solid var(--dsw-alias-border-l2);border-radius:50%;width:28px;height:28px}.orL4ja_colorHueRow input[type=range]{appearance:none;border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-secondary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);text-align:center;border-radius:4px;padding-inline:6px}.orL4ja_checkboxGroup{border-left:2px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);gap:8px;margin-left:12px;padding:10px 12px 12px;display:grid}.orL4ja_checkboxGrid{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px 12px;display:grid}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_sliderRow{grid-template-columns:minmax(0,1fr) auto minmax(120px,220px);align-items:center;gap:10px;min-height:40px;display:grid}.orL4ja_sliderValue{min-width:3ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right}.orL4ja_sliderRow input[type=range]{-webkit-appearance:none;appearance:none;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;width:100%;height:20px;image-rendering:pixelated;border-radius:0;margin:0;padding:0}.orL4ja_sliderRow input[type=range]::-webkit-slider-runnable-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:14px;height:22px;margin-top:-8px;box-shadow:2px 2px #5127ff59}.orL4ja_sliderRow input[type=range]::-moz-range-track{border:1px solid var(--dsw-alias-brand-primary);background:linear-gradient(#bdf6ff,#52bce2 55%,#3716b1);border-radius:0;height:8px}.orL4ja_sliderRow input[type=range]::-moz-range-thumb{border:2px solid var(--dsw-alias-brand-primary);background:#ff70c8;border-radius:0;width:10px;height:18px;box-shadow:2px 2px #5127ff59}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect .orL4ja_selectInput{background-position:right 8px center;width:100%;min-width:0;max-width:none;padding:0 24px 0 8px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{gap:8px;display:grid}.orL4ja_scheduleDetails{border-left:2px solid var(--dsw-alias-border-l2);gap:8px;margin-left:12px;padding:10px;display:grid}.orL4ja_rangeList{gap:6px;display:grid}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_addRange{justify-self:start}.orL4ja_error{color:var(--dsw-alias-state-danger,#c43d3d);font-size:12px}.orL4ja_backupActions{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.orL4ja_dropZone{border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);text-align:center;border-radius:8px;gap:4px;padding:14px;font-size:12px;line-height:1.5;transition:border-color .12s,color .12s,background .12s;display:grid}.orL4ja_dropZoneActive{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}.orL4ja_cardHeaderActions{align-items:center;gap:8px;display:flex}.orL4ja_resetButton:hover:not(:disabled){color:var(--dsw-alias-state-danger,#c43d3d);border-color:var(--dsw-alias-state-danger,#c43d3d)}.orL4ja_fileInput{clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.orL4ja_introHint{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}@media (width<=720px){.orL4ja_skinGrid{grid-template-columns:1fr}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
 		const tagId = "@smalltailqwq/dsh-client-ui-skin-deep-whale-manager/skin-manager.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -940,14 +941,11 @@ window.__ModuleLoader__.load({
 			"activeSkin": "orL4ja_activeSkin",
 			"addRange": "orL4ja_addRange",
 			"backupActions": "orL4ja_backupActions",
-			"backupButton": "orL4ja_backupButton",
 			"card": "orL4ja_card",
 			"cardHeader": "orL4ja_cardHeader",
 			"cardHeaderActions": "orL4ja_cardHeaderActions",
-			"checkButton": "orL4ja_checkButton",
 			"checkboxGrid": "orL4ja_checkboxGrid",
 			"checkboxGroup": "orL4ja_checkboxGroup",
-			"checkboxGroupHeading": "orL4ja_checkboxGroupHeading",
 			"checkboxOption": "orL4ja_checkboxOption",
 			"colorButton": "orL4ja_colorButton",
 			"colorControl": "orL4ja_colorControl",
@@ -974,9 +972,13 @@ window.__ModuleLoader__.load({
 			"rangeList": "orL4ja_rangeList",
 			"rangeRow": "orL4ja_rangeRow",
 			"resetButton": "orL4ja_resetButton",
+			"rowDescription": "orL4ja_rowDescription",
+			"rowText": "orL4ja_rowText",
+			"rowTitle": "orL4ja_rowTitle",
 			"schedule": "orL4ja_schedule",
 			"scheduleDetails": "orL4ja_scheduleDetails",
 			"section": "orL4ja_section",
+			"selectInput": "orL4ja_selectInput",
 			"selectRow": "orL4ja_selectRow",
 			"skinButton": "orL4ja_skinButton",
 			"skinGrid": "orL4ja_skinGrid",
@@ -986,7 +988,6 @@ window.__ModuleLoader__.load({
 			"timeColon": "orL4ja_timeColon",
 			"timeSelect": "orL4ja_timeSelect",
 			"toggleRow": "orL4ja_toggleRow",
-			"toggleSwitch": "orL4ja_toggleSwitch",
 			"versionHash": "orL4ja_versionHash",
 			"versionMuted": "orL4ja_versionMuted",
 			"versionOk": "orL4ja_versionOk",
@@ -1044,18 +1045,35 @@ window.__ModuleLoader__.load({
 				]
 			});
 		}
+		/** Title plus optional description, in the host settings row typography. */
+		function RowText({ label, description }) {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+				className: skin_manager_module_css_default.rowText,
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					className: skin_manager_module_css_default.rowTitle,
+					children: label
+				}), description && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", {
+					className: skin_manager_module_css_default.rowDescription,
+					children: description
+				})]
+			});
+		}
+		/**
+		* A boolean row drawn with the host's own Switch (ui-primitives, a platform
+		* module), so it matches the Plugins page and follows whatever each skin does
+		* to the product switch. Only the switch toggles; the row copy stays text.
+		*/
 		function Toggle({ checked, label, description, disabled = false, onChange }) {
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: skin_manager_module_css_default.toggleRow,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: label }), description && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: description })] }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("label", {
-					className: skin_manager_module_css_default.toggleSwitch,
-					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
-						type: "checkbox",
-						role: "switch",
-						checked,
-						disabled,
-						onChange: (event) => onChange(event.currentTarget.checked)
-					})
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
+					label,
+					description
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Switch, {
+					checked,
+					label,
+					disabled,
+					onChange
 				})]
 			});
 		}
@@ -1076,6 +1094,7 @@ window.__ModuleLoader__.load({
 				className: skin_manager_module_css_default.timeSelect,
 				children: [
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("select", {
+						className: skin_manager_module_css_default.selectInput,
 						"aria-label": copy.hourAria(label),
 						value: hour,
 						onChange: (event) => setHour(event.currentTarget.value),
@@ -1090,6 +1109,7 @@ window.__ModuleLoader__.load({
 						children: ":"
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("select", {
+						className: skin_manager_module_css_default.selectInput,
 						"aria-label": copy.minuteAria(label),
 						value: minute,
 						onChange: (event) => setMinute(event.currentTarget.value),
@@ -1126,7 +1146,8 @@ window.__ModuleLoader__.load({
 					children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
 							className: skin_manager_module_css_default.selectRow,
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: copy.schedulePolicy }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, { label: copy.schedulePolicy }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
+								className: skin_manager_module_css_default.selectInput,
 								value: value.outside,
 								onChange: (event) => onChange({
 									...value,
@@ -1157,8 +1178,9 @@ window.__ModuleLoader__.load({
 										value: range.end,
 										onChange: (end) => updateRange(index, { end })
 									}),
-									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-										type: "button",
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+										variant: "outline",
+										size: "sm",
 										onClick: () => onChange({
 											...value,
 											ranges: value.ranges.filter((_, current) => current !== index)
@@ -1168,8 +1190,9 @@ window.__ModuleLoader__.load({
 								]
 							}, index))
 						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+							variant: "outline",
+							size: "sm",
 							className: skin_manager_module_css_default.addRange,
 							disabled: value.ranges.length >= 24,
 							onClick: () => onChange({
@@ -1193,7 +1216,10 @@ window.__ModuleLoader__.load({
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
 				className: skin_manager_module_css_default.sliderRow,
 				children: [
-					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: label }), description && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: description })] }),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
+						label,
+						description
+					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
 						className: skin_manager_module_css_default.sliderValue,
 						children: [value, setting.unit ?? ""]
@@ -1344,7 +1370,10 @@ window.__ModuleLoader__.load({
 			};
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: skin_manager_module_css_default.colorRow,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: label }), description && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: description })] }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
+					label,
+					description
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 					className: skin_manager_module_css_default.colorControl,
 					children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("code", { children: value.toUpperCase() }),
@@ -1438,9 +1467,9 @@ window.__ModuleLoader__.load({
 			};
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: skin_manager_module_css_default.checkboxGroup,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-					className: skin_manager_module_css_default.checkboxGroupHeading,
-					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: label }), description && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: description })]
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
+					label,
+					description
 				}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 					className: skin_manager_module_css_default.checkboxGrid,
 					role: "group",
@@ -1470,7 +1499,11 @@ window.__ModuleLoader__.load({
 			});
 			if (setting.type === "select") return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
 				className: skin_manager_module_css_default.selectRow,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: label }), description && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: description })] }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("select", {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
+					label,
+					description
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("select", {
+					className: skin_manager_module_css_default.selectInput,
 					value,
 					disabled,
 					onChange: (event) => onChange(event.currentTarget.value),
@@ -1521,8 +1554,9 @@ window.__ModuleLoader__.load({
 				"data-skin-customization": definition.skinId,
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 					className: skin_manager_module_css_default.cardHeader,
-					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: definitionTitle(definition, lang) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: definitionTitle(definition, lang) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+						variant: "outline",
+						size: "sm",
 						className: skin_manager_module_css_default.resetButton,
 						onClick: onReset,
 						children: copy.resetSkinButton
@@ -1618,9 +1652,9 @@ window.__ModuleLoader__.load({
 						children: [
 							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: skin_manager_module_css_default.cardHeader,
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.installedTitle }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									className: skin_manager_module_css_default.checkButton,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.installedTitle }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+									variant: "outline",
+									size: "sm",
 									disabled: loading || checking,
 									onClick: checkVersions,
 									children: checking ? copy.checking : copy.checkUpdates
@@ -1902,15 +1936,15 @@ window.__ModuleLoader__.load({
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: skin_manager_module_css_default.backupActions,
 						children: [
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								className: skin_manager_module_css_default.backupButton,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "outline",
+								size: "sm",
 								onClick: onExport,
 								children: copy.exportButton
 							}),
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-								type: "button",
-								className: skin_manager_module_css_default.backupButton,
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "outline",
+								size: "sm",
 								onClick: onImportClick,
 								children: copy.importButton
 							}),
@@ -1933,9 +1967,9 @@ window.__ModuleLoader__.load({
 					}),
 					keptSkins.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 						className: skin_manager_module_css_default.backupActions,
-						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							className: skin_manager_module_css_default.backupButton,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+							variant: "outline",
+							size: "sm",
 							onClick: onClearKept,
 							children: copy.clearKeptButton(keptSkins.length)
 						})
