@@ -850,6 +850,54 @@ body[data-dsh-maid-atelier] button[class*='newSession'] svg {
   stroke-width: 1.8;
 }
 
+/* Windows desktop caption controls. With `html[data-windows-titlebar]` a
+   collapsed sidebar is zero wide: the host hides the column's lists and pins
+   its toggle and New Session button into the caption row as two 28px icons
+   (ui-sidebar `.collapsed .toggle` / `.collapsed .newSession`, fixed at
+   left 12px / 48px, centred on the titlebar). The skin's sidebar-size state
+   keeps its last non-zero value there — usually `wide` — so without this
+   block New Session kept the 58px ribbon button (sinking below the toggle,
+   a dark icon on the navy caption, and a 50% hover wash on a 28x58 box) and
+   a `rail` collapse turned the toggle into a 36px medallion. Both controls
+   take one caption treatment keyed on the host's own collapse state; the
+   host keeps position, size, hit area and no-drag. The column and root
+   parts lift these rules over the rail control list above, whose `:is()`
+   carries the settings-trigger selector's specificity. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']) {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-image: none;
+  border-radius: 50%;
+  corner-shape: round;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']) svg {
+  color: inherit;
+  filter: none;
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']):is(:hover, :focus-visible) {
+  background: rgba(255, 252, 243, 0.12);
+  filter: none;
+  transform: none;
+}
+
 /* The lower sidebar keeps the U-shaped textile ornament independent from the
    live Plan button. Its height follows the source aspect ratio, while the
    button uses fixed raster end caps and a stretchable center slice.

@@ -1975,6 +1975,53 @@ body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :
   transform: translate(-50%, -50%);
 }
 
+/* Windows desktop caption controls. With `html[data-windows-titlebar]` a
+   collapsed sidebar is zero wide: the host hides the column's lists and pins
+   its toggle and New Session button into the caption row as two 28px icons
+   (ui-sidebar `.collapsed .toggle` / `.collapsed .newSession`, fixed at
+   left 12px / 48px). New Session is a direct child of the sidebar root, so
+   the stage rule above (`> :not(...) { position: relative }`) pulled it back
+   into the zero-wide, clipped column, and the wide stage's portrait hit plane
+   and transparent glyph came with it: the button vanished. The skin's
+   wide/rail flag also keeps its last non-zero value here, so a rail collapse
+   hid the toggle's glyph behind a wordmark the zero-wide column clips away.
+   Both controls take one caption treatment keyed on the host's own collapse
+   state; the host keeps position, size, hit area and no-drag. */
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] {
+  position: fixed;
+  z-index: 30;
+  clip-path: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] > * {
+  opacity: 1;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']::before,
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']::after {
+  content: none;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='logoRow'] > button[class*='toggle'] > svg,
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] svg {
+  color: currentColor;
+  opacity: 1;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible),
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
+}
+
 /* Official rail tooltips are rendered beside their anchors instead of through
    a portal. Release only their collapsed-rail ancestor chain so fixed bubbles
    can leave the 36px action cell and the 55px sidebar shell. */
