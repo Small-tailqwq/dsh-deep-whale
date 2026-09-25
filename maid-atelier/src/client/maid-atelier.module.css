@@ -249,6 +249,17 @@ body[data-dsh-maid-atelier][data-maid-layout-resizing]
   filter: none;
 }
 
+/* Only the drop-shadow is dropped for the resize: its blur is what makes a
+   resizing layer expensive. The dark theme's colour grade is a plain colour
+   matrix and must stay, or the figures jump to full brightness for the length
+   of every sidebar open/close (the chat column's ResizeObserver holds the
+   resizing marker through the animation) and dim again 120ms after it:
+   the flicker the dark palace showed on each toggle. */
+body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-layout-resizing]
+  [data-maid-character] {
+  filter: brightness(0.84) saturate(0.92);
+}
+
 /* Chromium rejects failIfMajorPerformanceCaveat when it would fall back to a
    software renderer. Keep large transparent character layers cheap there. */
 body[data-dsh-maid-atelier][data-maid-low-power]

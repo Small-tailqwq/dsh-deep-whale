@@ -634,6 +634,17 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     expect(resizeRule).toContain('transition: none')
     expect(resizeRule).toContain('filter: none')
+    // The dark grade survives the resize; only the drop-shadow blur goes, so
+    // toggling the sidebar does not flash the night figures to full brightness.
+    const darkResizeRule = CSS.match(
+      /\[data-ds-dark-theme\]\[data-maid-layout-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const darkRule = CSS.match(
+      /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\] \[data-maid-character\] \{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(darkRule).toContain('brightness(0.84)')
+    expect(darkResizeRule).toContain('filter: brightness(0.84) saturate(0.92)')
+    expect(darkResizeRule).not.toContain('drop-shadow')
 
     vi.useFakeTimers()
     try {
