@@ -17,6 +17,7 @@ import {
   PreferencesImportError,
   serializePreferencesExport,
 } from './transfer.ts'
+import { Button, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './skin-manager.module.css'
 
 export interface SkinManagerInjected {
@@ -84,6 +85,21 @@ function VersionRow({ info, onCopied }: { info: SkinVersionInfo, onCopied(): voi
   )
 }
 
+/** Title plus optional description, in the host settings row typography. */
+function RowText({ label, description }: { label: string, description?: string }) {
+  return (
+    <span className={css.rowText}>
+      <span className={css.rowTitle}>{label}</span>
+      {description && <small className={css.rowDescription}>{description}</small>}
+    </span>
+  )
+}
+
+/**
+ * A boolean row drawn with the host's own Switch (ui-primitives, a platform
+ * module), so it matches the Plugins page and follows whatever each skin does
+ * to the product switch. Only the switch toggles; the row copy stays text.
+ */
 function Toggle({ checked, label, description, disabled = false, onChange }: {
   checked: boolean
   label: string
@@ -93,13 +109,8 @@ function Toggle({ checked, label, description, disabled = false, onChange }: {
 }) {
   return (
     <div className={css.toggleRow}>
-      <span>
-        <span>{label}</span>
-        {description && <small>{description}</small>}
-      </span>
-      <label className={css.toggleSwitch}>
-        <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={event => onChange(event.currentTarget.checked)} />
-      </label>
+      <RowText label={label} description={description} />
+      <Switch checked={checked} label={label} disabled={disabled} onChange={onChange} />
     </div>
   )
 }
@@ -124,13 +135,13 @@ function TimeSelect({ label, value, onChange }: {
   const setMinute = (minute: string): void => onChange(`${hour}:${minute}`)
   return (
     <span className={css.timeSelect}>
-      <select aria-label={copy.hourAria(label)} value={hour} onChange={event => setHour(event.currentTarget.value)}>
+      <select className={css.selectInput} aria-label={copy.hourAria(label)} value={hour} onChange={event => setHour(event.currentTarget.value)}>
         {Array.from({ length: 24 }, (_, hour) => (
           <option key={hour} value={padTime(hour)}>{padTime(hour)}</option>
         ))}
       </select>
       <span className={css.timeColon} aria-hidden="true">:</span>
-      <select aria-label={copy.minuteAria(label)} value={minute} onChange={event => setMinute(event.currentTarget.value)}>
+      <select className={css.selectInput} aria-label={copy.minuteAria(label)} value={minute} onChange={event => setMinute(event.currentTarget.value)}>
         {Array.from({ length: 60 }, (_, minute) => (
           <option key={minute} value={padTime(minute)}>{padTime(minute)}</option>
         ))}
@@ -161,8 +172,8 @@ export function ScheduleEditor({ setting, value, onChange }: {
       {value.enabled && (
         <div className={css.scheduleDetails}>
           <label className={css.selectRow}>
-            <span>{copy.schedulePolicy}</span>
-            <select value={value.outside} onChange={event => onChange({ ...value, outside: event.currentTarget.value as VisibilitySchedule['outside'] })}>
+            <RowText label={copy.schedulePolicy} />
+            <select className={css.selectInput} value={value.outside} onChange={event => onChange({ ...value, outside: event.currentTarget.value as VisibilitySchedule['outside'] })}>
               <option value="visible">{copy.policyHideInRanges}</option>
               <option value="hidden">{copy.policyShowInRanges}</option>
             </select>
@@ -181,18 +192,19 @@ export function ScheduleEditor({ setting, value, onChange }: {
                   value={range.end}
                   onChange={end => updateRange(index, { end })}
                 />
-                <button type="button" onClick={() => onChange({ ...value, ranges: value.ranges.filter((_, current) => current !== index) })}>{copy.removeRange}</button>
+                <Button variant="outline" size="sm" onClick={() => onChange({ ...value, ranges: value.ranges.filter((_, current) => current !== index) })}>{copy.removeRange}</Button>
               </div>
             ))}
           </div>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             className={css.addRange}
             disabled={value.ranges.length >= 24}
             onClick={() => onChange({ ...value, ranges: [...value.ranges, { start: '09:00', end: '12:00' }] })}
           >
             {copy.addRange}
-          </button>
+          </Button>
           <small className={css.hint}>{copy.scheduleHint}</small>
         </div>
       )}
@@ -210,10 +222,7 @@ function RangeEditor({ setting, label, description, value, disabled = false, onC
 }) {
   return (
     <label className={css.sliderRow}>
-      <span>
-        <span>{label}</span>
-        {description && <small>{description}</small>}
-      </span>
+      <RowText label={label} description={description} />
       <span className={css.sliderValue}>{value}{setting.unit ?? ''}</span>
       <input
         type="range"
@@ -360,10 +369,7 @@ function ColorEditor({ label, description, value, disabled = false, onChange }: 
 
   return (
     <div className={css.colorRow}>
-      <span>
-        <span>{label}</span>
-        {description && <small>{description}</small>}
-      </span>
+      <RowText label={label} description={description} />
       <div className={css.colorControl}>
         <code>{value.toUpperCase()}</code>
         <button
@@ -450,10 +456,7 @@ function CheckboxGroupEditor({ setting, label, description, value, disabled = fa
   }
   return (
     <div className={css.checkboxGroup}>
-      <span className={css.checkboxGroupHeading}>
-        <span>{label}</span>
-        {description && <small>{description}</small>}
-      </span>
+      <RowText label={label} description={description} />
       <div className={css.checkboxGrid} role="group" aria-label={label}>
         {setting.options.map(option => (
           <label className={css.checkboxOption} key={option.value}>
@@ -486,11 +489,8 @@ function SettingEditor({ setting, value, disabled = false, onChange }: {
   if (setting.type === 'select') {
     return (
       <label className={css.selectRow}>
-        <span>
-          <span>{label}</span>
-          {description && <small>{description}</small>}
-        </span>
-        <select value={value as string} disabled={disabled} onChange={event => onChange(event.currentTarget.value)}>
+        <RowText label={label} description={description} />
+        <select className={css.selectInput} value={value as string} disabled={disabled} onChange={event => onChange(event.currentTarget.value)}>
           {setting.options.map(option => <option key={option.value} value={option.value}>{optionLabel(option, lang)}</option>)}
         </select>
       </label>
@@ -531,13 +531,9 @@ function CustomizationCard({ definition, registry }: {
     <section className={css.card} data-skin-customization={definition.skinId}>
       <div className={css.cardHeader}>
         <h3>{definitionTitle(definition, lang)}</h3>
-        <button
-          type="button"
-          className={css.resetButton}
-          onClick={onReset}
-        >
+        <Button variant="outline" size="sm" className={css.resetButton} onClick={onReset}>
           {copy.resetSkinButton}
-        </button>
+        </Button>
       </div>
       {definition.settings.map(setting => {
         if (!settingVisible(setting, values)) return null
@@ -566,6 +562,7 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   const [switching, setSwitching] = useState<SkinTarget | null>(null)
   const [copied, setCopied] = useState<'ok' | 'fail' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [desktopIcon, setDesktopIcon] = useState<DesktopIconStatus | undefined>(undefined)
   const live = useRef(true)
   const copyTimer = useRef<number | undefined>(undefined)
   const lang = useUiLang()
@@ -578,9 +575,10 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
     setLoading(true)
     // Catalog loading is the core path: optional local Git/fingerprint probes
     // must neither delay it nor discard a successful catalog result.
-    void fetchSkinCatalog().then((skins) => {
+    void fetchSkinCatalogState().then((state) => {
       if (!live.current) return
-      setCatalog(skins)
+      setCatalog(state.skins)
+      setDesktopIcon(state.desktopIcon)
     }).catch((reason) => {
       if (live.current) setError(reason instanceof Error ? reason.message : String(reason))
     }).finally(() => {
@@ -642,14 +640,14 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
       <section className={css.card}>
         <div className={css.cardHeader}>
           <h3>{copy.installedTitle}</h3>
-          <button
-            type="button"
-            className={css.checkButton}
+          <Button
+            variant="outline"
+            size="sm"
             disabled={loading || checking}
             onClick={checkVersions}
           >
             {checking ? copy.checking : copy.checkUpdates}
-          </button>
+          </Button>
         </div>
         <button
           type="button"
@@ -719,8 +717,57 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
           <p className={css.hint}>{copy.noSettings}</p>
         </section>
       )}
+      {desktopIcon !== undefined && <DesktopIconCard initial={desktopIcon} />}
       <BackupCard registry={registry} />
     </div>
+  )
+}
+
+/**
+ * Opt-in Windows desktop shortcut icon. The host only reports the status on
+ * the desktop shell, so the card never renders in a browser.
+ */
+function DesktopIconCard({ initial }: { initial: DesktopIconStatus }) {
+  const copy = skinManagerCopy(useUiLang())
+  const [enabled, setEnabled] = useState(initial.enabled)
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState<{ updated: number, failed: number } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const live = useRef(true)
+  useEffect(() => {
+    live.current = true
+    return () => {
+      live.current = false
+    }
+  }, [])
+  const toggle = (next: boolean): void => {
+    setPending(true)
+    setOutcome(null)
+    setError(null)
+    void requestDesktopIcon(next).then((result) => {
+      if (!live.current) return
+      setEnabled(result.enabled)
+      setOutcome(result)
+    }).catch((reason) => {
+      if (live.current) setError(reason instanceof Error ? reason.message : String(reason))
+    }).finally(() => {
+      if (live.current) setPending(false)
+    })
+  }
+  return (
+    <section className={css.card} data-dsh-skin-desktop-icon>
+      <h3>{copy.desktopIconTitle}</h3>
+      <Toggle
+        checked={enabled}
+        label={copy.desktopIconLabel}
+        description={copy.desktopIconDescription}
+        disabled={pending}
+        onChange={toggle}
+      />
+      {pending && <p className={css.hint}>{copy.desktopIconPending}</p>}
+      {outcome !== null && <p className={outcome.failed > 0 ? css.error : css.hint}>{copy.desktopIconDone(outcome.updated, outcome.failed)}</p>}
+      {error !== null && <p className={css.error}>{copy.actionFailed(error)}</p>}
+    </section>
   )
 }
 
@@ -863,8 +910,8 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
       </div>
       <p className={css.hint}>{copy.backupIntro}</p>
       <div className={css.backupActions}>
-        <button type="button" className={css.backupButton} onClick={onExport}>{copy.exportButton}</button>
-        <button type="button" className={css.backupButton} onClick={onImportClick}>{copy.importButton}</button>
+        <Button variant="outline" size="sm" onClick={onExport}>{copy.exportButton}</Button>
+        <Button variant="outline" size="sm" onClick={onImportClick}>{copy.importButton}</Button>
         <input
           ref={fileInput}
           type="file"
@@ -884,9 +931,9 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
       </div>
       {keptSkins.length > 0 && (
         <div className={css.backupActions}>
-          <button type="button" className={css.backupButton} onClick={onClearKept}>
+          <Button variant="outline" size="sm" onClick={onClearKept}>
             {copy.clearKeptButton(keptSkins.length)}
-          </button>
+          </Button>
         </div>
       )}
       {notice !== null && (
@@ -896,14 +943,40 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
   )
 }
 
-/** Installed skin catalog; never waits for optional version probes. */
-export async function fetchSkinCatalog(): Promise<SkinCatalogEntry[]> {
+/** Present only when the host runs inside the Windows desktop shell. */
+export interface DesktopIconStatus {
+  enabled: boolean
+}
+
+/** Installed skin catalog plus host capabilities; never waits for optional version probes. */
+export async function fetchSkinCatalogState(): Promise<{ skins: SkinCatalogEntry[], desktopIcon?: DesktopIconStatus }> {
   const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: 'same-origin' })
-  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], error?: string }
+  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], desktopIcon?: { enabled?: unknown }, error?: string }
   if (!response.ok || result.ok !== true || !Array.isArray(result.skins)) {
     throw new Error(result.error ?? `HTTP ${response.status}`)
   }
-  return result.skins
+  return {
+    skins: result.skins,
+    ...(typeof result.desktopIcon?.enabled === 'boolean' ? { desktopIcon: { enabled: result.desktopIcon.enabled } } : {}),
+  }
+}
+
+/** Installed skin catalog; never waits for optional version probes. */
+export async function fetchSkinCatalog(): Promise<SkinCatalogEntry[]> {
+  return (await fetchSkinCatalogState()).skins
+}
+
+/** Turn the desktop shortcut icon sync on or off and report how many shortcuts changed. */
+export async function requestDesktopIcon(enabled: boolean): Promise<{ enabled: boolean, updated: number, failed: number }> {
+  const response = await fetch(SKIN_MANAGER_ROUTE, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'desktop-icon', enabled }),
+  })
+  const result = await response.json() as { ok?: boolean, desktopIcon?: { enabled: boolean, updated: number, failed: number }, error?: string }
+  if (!response.ok || result.ok !== true || result.desktopIcon === undefined) throw new Error(result.error ?? `HTTP ${response.status}`)
+  return result.desktopIcon
 }
 
 /** Local-only version rows (git probes / build metadata, no network). */

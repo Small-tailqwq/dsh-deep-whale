@@ -1,10 +1,12 @@
 import { ORCA_LINK_STATUS_ATLAS } from './art.ts'
 import type { LinkStatus } from './link-status.ts'
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 import { createOrcaWorkLight } from './work-light.ts'
 
 const CHARACTER_SELECTOR = '[data-orca-link-character]'
 const SIDEBAR_PANE_SELECTOR = "[data-slot='sidebar'] > :first-child"
+/** Projected by customization.ts from the character switch and the SFW schedule. */
+const CHARACTER_VISIBILITY_ATTRIBUTE = 'data-dsh-whale-orca-character'
 
 const FRAME_INTERVAL_MS_BY_STATUS: Record<LinkStatus, number> = {
   /* The new-session standby is deliberately slower than the 12fps working
@@ -317,19 +319,44 @@ export function installOrcaStatusCharacter(body: HTMLElement, classes: {
   }
 
   const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+  const doc = body.ownerDocument
+  // The loop only runs while a frame change could be seen: not in a
+  // background window, not while the manager (or the SFW schedule) has the
+  // character switched off, and not once a one-shot sequence has settled on
+  // its last cell. `complete` / `ready` are the usual idle states after a
+  // turn, and the loop used to redraw that settled cell every 83ms forever.
+  const animating = (): boolean => (
+    doc.visibilityState !== 'hidden'
+    && doc.documentElement.getAttribute(CHARACTER_VISIBILITY_ATTRIBUTE) !== 'hidden'
+    && prefersReducedMotion?.matches !== true
+    && !(ONE_SHOT_STATUSES.has(status) && sequenceIndex >= FRAME_SEQUENCES[status].length - 1)
+  )
+
   const tick = (): void => {
-    if (prefersReducedMotion?.matches !== true) sequenceIndex += 1
+    timeout = undefined
+    sequenceIndex += 1
     render()
     scheduleTick()
   }
 
   const scheduleTick = (): void => {
     if (timeout !== undefined) window.clearTimeout(timeout)
+    timeout = undefined
+    if (!animating()) return
     timeout = window.setTimeout(tick, statusFrameDuration(status, sequenceIndex))
   }
 
+  // Resume where the loop stopped once the character can be seen again.
+  const resume = (): void => {
+    if (timeout === undefined) scheduleTick()
+  }
+  const visibilityObserver = new MutationObserver(resume)
+  visibilityObserver.observe(doc.documentElement, { attributes: true, attributeFilter: [CHARACTER_VISIBILITY_ATTRIBUTE] })
+  doc.addEventListener('visibilitychange', resume)
+  prefersReducedMotion?.addEventListener?.('change', resume)
+
   const observer = new MutationObserver((records) => {
-    if (!hasMutationOutsideTerminal(records)) return
+    if (!hasMutationOutsideTranscript(records)) return
     const previousStatus = status
     render()
     if (status !== previousStatus) scheduleTick()
@@ -346,6 +373,9 @@ export function installOrcaStatusCharacter(body: HTMLElement, classes: {
   return () => {
     if (timeout !== undefined) window.clearTimeout(timeout)
     observer.disconnect()
+    visibilityObserver.disconnect()
+    doc.removeEventListener('visibilitychange', resume)
+    prefersReducedMotion?.removeEventListener?.('change', resume)
     body.querySelectorAll(CHARACTER_SELECTOR).forEach(element => element.remove())
   }
 }

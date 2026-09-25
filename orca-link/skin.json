@@ -15,7 +15,7 @@
   ],
   "accent": "#086cff",
   "bodyAttr": "data-dsh-orca-link",
-  "dshCompatibility": "0.1.7rc1",
+  "dshCompatibility": "0.1.7rc2",
   "package": "@smalltailqwq/dsh-client-ui-skin-orca-link",
   "wiring": {
     "id": "ui-skin-orca-link",
@@ -25,5 +25,6 @@
     "light": "preview/light.png",
     "dark": "preview/dark.png"
   },
+  "desktopIcon": "assets/icons/orca-link.ico",
   "order": 10
 }

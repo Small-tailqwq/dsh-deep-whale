@@ -21,6 +21,10 @@ author in the chain is credited:
    the same character reference. The maintenance references informed only the
    pose and simple presentation; no MIUI or Blue Archive artwork is bundled.
 
+   The desktop shortcut icon assets/icons/orca-link.ico is derived from the
+   512 px page icon (assets/runtime/<sha256>.png referenced as PAGE_ICON_512)
+   by scripts/build-orca-desktop-icon.py, and keeps the attribution chain above.
+
 Artwork usage terms (LICENSE-ARTWORK): CC BY-NC-SA 4.0 —— 署名 (attribution) 必须保留以上完整创作链；
 非商业性使用 (non-commercial only)；衍生作品必须以相同方式共享 (share-alike)。
 

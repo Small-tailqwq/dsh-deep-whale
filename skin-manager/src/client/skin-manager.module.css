@@ -24,15 +24,17 @@
 
 .card {
   display: grid;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 10px;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-lg, 12px);
   background: var(--dsw-alias-bg-layer-1);
 }
 
 .card h3 {
   font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
 }
 
 .cardHeader {
@@ -40,27 +42,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-}
-
-.checkButton {
-  min-height: 28px;
-  padding: 4px 12px;
-  color: var(--dsw-alias-label-secondary);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: var(--dsw-alias-bg-layer-2);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.checkButton:hover:not(:disabled) {
-  color: var(--dsw-alias-label-primary);
-  border-color: var(--dsw-alias-brand-primary);
-}
-
-.checkButton:disabled {
-  opacity: 0.55;
-  cursor: default;
 }
 
 .skinTile {
@@ -214,84 +195,96 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 34px;
+  gap: 24px;
+  min-height: 32px;
+  padding: 12px 2px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
 }
 
-.toggleRow > span,
-.selectRow > span,
-.sliderRow > span,
-.colorRow > span {
+.toggleRow:last-child,
+.selectRow:last-child,
+.sliderRow:last-child,
+.colorRow:last-child,
+.schedule:last-child > .toggleRow {
+  border-bottom: 0;
+}
+
+/* Settings row copy, as the host's General and Plugins rows set it: a
+   14/20 title and a 12/18 secondary description. The copy takes the free
+   width and wraps; the control beside it never shrinks. */
+.rowText {
   display: grid;
-  gap: 2px;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
 }
 
-.toggleRow small,
-.selectRow small,
-.sliderRow small,
-.colorRow small,
-.checkboxGroup small,
-.hint {
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.toggleRow input {
-  inline-size: 34px;
-  block-size: 18px;
-  accent-color: var(--dsw-alias-brand-primary);
-}
-
-/* The switch is its own click target: only the control (plus a small hit
-   slack) toggles it, not the whole row — labels stay text-only so a stray
-   click on the row's blank space cannot flip the setting. The negative
-   margin offsets the padding so the visual position is unchanged. */
-.toggleSwitch {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  padding: 4px;
-  margin: -4px;
-  cursor: pointer;
-  border-radius: 999px;
-}
-
-/* The checkbox itself keeps the UA default arrow cursor; without this the
-   hit slack shows the pointer hand while the control inside still shows the
-   plain cursor. Same for the selects: the product's own inputs declare
-   cursor: pointer. */
-.toggleSwitch input,
-.selectRow select,
-.rangeRow select {
-  cursor: pointer;
-}
-
-.selectRow select,
-.rangeRow input,
-.rangeRow select {
-  box-sizing: border-box;
-  min-height: 30px;
+.rowTitle {
   color: var(--dsw-alias-label-primary);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: var(--dsw-specific-input-major);
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
 }
 
-.selectRow select {
-  max-width: 240px;
-  padding-inline: 8px;
+.rowDescription,
+.hint {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.toggleRow > :last-child,
+.selectRow > :last-child,
+.colorRow > :last-child {
+  flex: none;
+}
+
+/* Closed selects take the host's own settings select (ui-settings-models
+   `.input.selectInput`): 32px, 0.5px l4 hairline, md radius, layer-1 fill and
+   the 12px chevron. Every select is one 240px column (narrower only when the
+   pane is), so rows line up and long option labels ellipsize instead of
+   wrapping or being squeezed by a long description. The `selectInput` name
+   keeps skins that dress the product's select dressing these too, height
+   included: maid-atelier keeps the host's 32px, ORCA LINK's own settings
+   select is 34px. Either way every select on the panel shares one height. */
+.selectInput {
+  box-sizing: border-box;
+  flex: none;
+  width: 240px;
+  min-width: 0;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 32px 0 10px;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background-color: var(--dsw-alias-bg-layer-1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  appearance: none;
+  cursor: pointer;
+}
+
+.selectInput:focus {
+  border-color: var(--dsw-alias-state-business-primary);
+  outline: none;
 }
 
 /* Dependent controls (e.g. webcam character while peak pricing is on) are
  * visually disabled but keep their value for when the dependency is toggled off. */
-.selectRow select:disabled,
+.selectInput:disabled,
 .sliderRow input:disabled,
-.colorRow input:disabled,
-.toggleRow input:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.colorRow input:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .colorControl {
@@ -470,11 +463,6 @@
   background: var(--dsw-alias-bg-layer-2);
 }
 
-.checkboxGroupHeading {
-  display: grid;
-  gap: 2px;
-}
-
 .checkboxGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
@@ -580,12 +568,18 @@
   width: 100%;
 }
 
-.timeSelect select {
-  width: 100%;
-  min-width: 0;
+/* The hour and minute selects share the pair's width. The generic select is
+   a fixed 240px, non-shrinking column (`flex: none`), so both halves must opt
+   back into flexing or the hour select takes the whole cell and pushes the
+   minute select (and the row's Remove button) out of view. 56px keeps "00"
+   plus the chevron legible. */
+.timeSelect .selectInput {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 56px;
   max-width: none;
-  padding-inline: 6px;
-  text-align: center;
+  padding: 0 24px 0 8px;
+  background-position: right 8px center;
 }
 
 .timeColon {
@@ -613,27 +607,12 @@
 
 .rangeRow {
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) auto minmax(100px, 1fr) auto;
+  /* Each time pair needs two 56px selects, the colon and its gap. */
+  grid-template-columns: minmax(128px, 1fr) auto minmax(128px, 1fr) auto;
   align-items: center;
   gap: 8px;
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
-}
-
-.rangeRow input {
-  width: 100%;
-  padding-inline: 7px;
-}
-
-.rangeRow button,
-.addRange {
-  min-height: 30px;
-  padding: 4px 9px;
-  color: var(--dsw-alias-label-secondary);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: var(--dsw-alias-bg-layer-2);
-  cursor: pointer;
 }
 
 .addRange {
@@ -651,26 +630,6 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-
-.backupButton {
-  min-height: 32px;
-  padding: 6px 14px;
-  color: var(--dsw-alias-label-primary);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: var(--dsw-alias-bg-layer-2);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.backupButton:hover:not(:disabled) {
-  border-color: var(--dsw-alias-brand-primary);
-}
-
-.backupButton:disabled {
-  opacity: 0.55;
-  cursor: default;
 }
 
 .dropZone {
@@ -699,17 +658,7 @@
   gap: 8px;
 }
 
-.resetButton {
-  min-height: 26px;
-  padding: 3px 10px;
-  color: var(--dsw-alias-label-tertiary);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: transparent;
-  font-size: 11px;
-  cursor: pointer;
-}
-
+/* A destructive action: the host outline Button, tinted only on hover. */
 .resetButton:hover:not(:disabled) {
   color: var(--dsw-alias-state-danger, #c43d3d);
   border-color: var(--dsw-alias-state-danger, #c43d3d);

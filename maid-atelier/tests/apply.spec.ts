@@ -395,26 +395,70 @@ describe('Maid Atelier skin apply', () => {
     `
     fiber = await mount()
     const settingsSlot = document.querySelector<HTMLElement>("[data-slot='sidebar.settings']")!
+    // DSH 0.1.7-rc.1 SettingsPanel: the overlay mounts inside the settings slot,
+    // holding the mask and the dialog as siblings.
     const overlay = document.createElement('div')
     overlay.setAttribute('role', 'presentation')
     const mask = document.createElement('div')
     mask.className = 'fixture_mask'
-    overlay.append(mask)
-    document.body.append(overlay)
     const dialog = document.createElement('div')
     dialog.setAttribute('role', 'dialog')
     dialog.setAttribute('aria-modal', 'true')
-    settingsSlot.append(dialog)
+    overlay.append(mask, dialog)
+    settingsSlot.append(overlay)
     await flushMutations()
 
     const copy = document.querySelector<HTMLElement>('[data-maid-settings-backdrop-frame]')
     expect(copy?.parentElement).toBe(overlay)
     expect(copy?.nextElementSibling).toBe(mask)
     expect(copy?.querySelectorAll('[data-skin-corner]')).toHaveLength(4)
+    expect(document.body.hasAttribute('data-maid-settings-in-sidebar')).toBe(true)
 
-    dialog.remove()
+    overlay.remove()
     await flushMutations()
     expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
+    expect(document.body.hasAttribute('data-maid-settings-in-sidebar')).toBe(false)
+  })
+
+  it('follows the DSH 0.1.7-rc.2 settings panel portaled beside #root without slot workarounds', async () => {
+    document.body.innerHTML = `
+      <div data-pane="sidebar">
+        <div>
+          <div><div data-slot="sidebar.settings"><button aria-expanded="false">Settings</button></div></div>
+        </div>
+      </div>
+    `
+    fiber = await mount()
+    // A body-level modal of the same shape opened first must not take the frame.
+    const shortcuts = document.createElement('div')
+    shortcuts.setAttribute('role', 'presentation')
+    shortcuts.innerHTML = '<div class="fixture_mask"></div><div role="dialog" aria-modal="true" data-shortcut-modal="shortcuts"></div>'
+    document.body.append(shortcuts)
+    // rc.2 SettingsRoot: createPortal(overlay, document.body) with the panel
+    // named by `data-shortcut-modal="settings"`.
+    const overlay = document.createElement('div')
+    overlay.setAttribute('role', 'presentation')
+    const mask = document.createElement('div')
+    mask.className = 'fixture_mask'
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    dialog.dataset.shortcutModal = 'settings'
+    overlay.append(mask, dialog)
+    document.body.append(overlay)
+    await flushMutations()
+
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(true)
+    // The portal is outside the sidebar tree: none of the slot-containment
+    // workarounds (frame copy, overflow and stacking releases) apply. A
+    // viewport-anchored copy drew a second frame above the Windows caption.
+    expect(document.body.hasAttribute('data-maid-settings-in-sidebar')).toBe(false)
+    expect(document.querySelector('[data-maid-settings-backdrop-frame]')).toBeNull()
+
+    overlay.remove()
+    await flushMutations()
+    expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
+    shortcuts.remove()
   })
 
   it('anchors the public rc.6 settings slot to the real sidebar footer', async () => {
@@ -589,7 +633,9 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-layout-resizing\]\s*\[data-maid-character\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(resizeRule).toContain('transition: none')
-    expect(resizeRule).toContain('filter: none')
+    // The filters stay through the resize: the sidebar toggle holds this
+    // marker, and dropping them flashed the dark grade and the light halo.
+    expect(resizeRule).not.toContain('filter')
 
     vi.useFakeTimers()
     try {
@@ -1396,7 +1442,10 @@ describe('Maid Atelier skin apply', () => {
       /body\[data-dsh-maid-atelier\]\[data-ds-dark-theme\]\s*\[data-phase='hero'\] \[class\*='previewBadge'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(titleRule).toContain('color: #fffaf0')
-    expect(titleRule).toContain('-webkit-text-stroke: 0.35px')
+    // A stroke traces the overlapping contours inside CJK glyphs and greys
+    // the fill; legibility comes from the shadow stack only.
+    expect(titleRule).not.toContain('-webkit-text-stroke:')
+    expect(titleRule).toContain('0 1px 0 rgba(4, 11, 34, 0.96)')
     expect(titleRule).toContain('0 3px 7px rgba(0, 0, 0, 0.86)')
     expect(badgeRule).toContain('color: #f0dfba')
     expect(badgeRule).toContain('rgba(7, 18, 52, 0.58)')
@@ -2083,14 +2132,16 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('keeps the settings panel translucent above the dimmed composer', () => {
+    // rc.1 mounts the overlay in the settings slot; rc.2 portals it to <body>.
+    const overlay = /:is\(\[data-slot='sidebar\.settings'\] \[role='presentation'\], :where\(body\) > \[role='presentation'\]:where\(:has\(> \[role='dialog'\]\[data-shortcut-modal='settings'\]\)\)\)/.source
     const settingsSurfaceRule = CSS.match(
-      /\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+      new RegExp(`${overlay}\\s*> \\[role='dialog'\\]\\[aria-modal='true'\\]\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     const settingsSurfaceBackingRule = CSS.match(
-      /\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]::before\s*\{([^}]*)\}/s,
+      new RegExp(`${overlay}\\s*> \\[role='dialog'\\]\\[aria-modal='true'\\]::before\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     const darkSettingsSurfaceRule = CSS.match(
-      /\[data-ds-dark-theme\]\s+\[data-slot='sidebar\.settings'\]\s+\[role='presentation'\]\s*> \[role='dialog'\]\[aria-modal='true'\]\s*\{([^}]*)\}/s,
+      new RegExp(`\\[data-ds-dark-theme\\]\\s+${overlay}\\s*> \\[role='dialog'\\]\\[aria-modal='true'\\]\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
     expect(settingsSurfaceRule).toContain('--dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68)')
     expect(settingsSurfaceRule).toContain('background: transparent')
@@ -2270,12 +2321,16 @@ describe('Maid Atelier skin apply', () => {
     expect(ribbonShapeRule).toContain('border-image-width: 0 36px 0 35px')
     expect(ribbonShapeRule).toContain('border-image-repeat: stretch')
     expect(ribbonShapeRule).toContain('inset: -3px 0 -3px -12px')
-    expect(ribbonShapeRule).toContain('animation: maidAtelierWorkspaceRibbonEnter 420ms')
+    // One continuous reveal plus a separate settle: per-stop easing used to
+    // stall the reveal at 70% before the swallowtail.
+    expect(ribbonShapeRule).toContain('maidAtelierWorkspaceRibbonEnter 440ms cubic-bezier(0.22, 0.78, 0.2, 1) both')
+    expect(ribbonShapeRule).toContain('maidAtelierWorkspaceRibbonSettle 440ms')
     expect(ribbonShapeRule).not.toContain('background-size')
     expect(ribbonShapeRule).not.toContain('clip-path')
     expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonEnter')
     expect(CSS).toContain('clip-path: inset(0 100% 0 0)')
-    expect(CSS).toContain('clip-path: inset(0 12% 0 0)')
+    expect(CSS).not.toContain('clip-path: inset(0 12% 0 0)')
+    expect(CSS).toMatch(/@keyframes maidAtelierWorkspaceRibbonEnter \{\s*from \{[^}]*\}\s*to \{[^}]*\}\s*\}/)
     expect(CSS).toContain('@keyframes maidAtelierWorkspaceRibbonContentEnter')
     expect(sessionRowRule).toContain('box-sizing: border-box')
     expect(sessionRowRule).toContain('width: 100%')

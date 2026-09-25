@@ -42,6 +42,10 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
+// Transcript-only batches reach the link signal on one coalesced trailing
+// pass (link-status.ts), so waits cover that window.
+const settleLinkStatus = (): Promise<void> => new Promise(resolve => { setTimeout(resolve, 140) })
+
 describe('Orca Link skin apply', () => {
   it('keeps the upstream RC1 wide-table gutter stable across interaction states', () => {
     const rule = CSS.match(
@@ -313,28 +317,28 @@ describe('Orca Link skin apply', () => {
       </div>
       <div data-composer-seat><div data-composer-input contenteditable="true" data-phase="plain"></div></div>
     `
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(signal.dataset.orcaLinkStatus).toBe('complete')
     expect(document.body.dataset.orcaLinkStatus).toBe('complete')
     expect(label.textContent).toBe('TASK COMPLETE')
 
     scroll.querySelector('[data-chat-flow]')?.append(Object.assign(document.createElement('div'), { innerHTML: '<span data-state="running"></span>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('TASK RUNNING')
 
     scroll.querySelector("[data-state='running']")?.remove()
     scroll.append(Object.assign(document.createElement('div'), { innerHTML: '<div data-approval-key="approval"></div>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('AUTH REQUEST')
 
     scroll.querySelector('[data-approval-key]')?.parentElement?.remove()
     scroll.append(Object.assign(document.createElement('div'), { innerHTML: '<div data-question-key="question"></div>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('INPUT REQUIRED')
 
     scroll.querySelector('[data-question-key]')?.parentElement?.remove()
     scroll.append(Object.assign(document.createElement('div'), { innerHTML: '<div data-plan-review-key="review"></div>' }))
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('PLAN REVIEW')
 
     scroll.querySelector('[data-plan-review-key]')?.parentElement?.remove()
@@ -347,28 +351,28 @@ describe('Orca Link skin apply', () => {
       </div>
       <div data-chat-flow-kind="turn-tail"></div>
     `
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK FAULT')
 
     scroll.querySelector('[data-chat-flow]')!.innerHTML = ''
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('SESSION READY')
 
     scroll.querySelector('[data-chat-flow]')!.innerHTML = '<div data-chat-flow-kind="user"></div>'
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('SESSION READY')
 
     const composerInput = scroll.querySelector<HTMLElement>('[data-composer-input]')!
     composerInput.dataset.phase = 'submitting'
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK SYNC')
     composerInput.dataset.phase = 'plain'
     composerInput.setAttribute('aria-disabled', 'true')
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK OFFLINE')
 
     root.dataset.phase = 'hero'
-    await new Promise(resolve => { setTimeout(resolve, 0) })
+    await settleLinkStatus()
     expect(label.textContent).toBe('LINK ACTIVE')
   })
 
@@ -1178,8 +1182,10 @@ describe('Orca Link skin apply', () => {
     expect(document.querySelector<HTMLElement>('[data-composer-input]')?.textContent).toBe('保留这段草稿')
     const restore = document.querySelector<HTMLButtonElement>('[data-orca-composer-restore]')!
     expect(restore).not.toBeNull()
-    expect(restore.style.left).toBe('656px')
-    expect(restore.style.top).toBe('364px')
+    // Parked inside the band the card vacated, below the host's back-to-bottom
+    // lane (16px above the composer) instead of 36px above the card.
+    expect(restore.style.left).toBe('653px')
+    expect(restore.style.top).toBe('412px')
     expect(restore.hasAttribute('title')).toBe(false)
 
     const toBottom = document.createElement('button')
@@ -1187,11 +1193,34 @@ describe('Orca Link skin apply', () => {
     // build-specific hash, so the fixture must not freeze one.
     toBottom.className = 'fixture_toBottom'
     toBottom.setAttribute('aria-label', '回到底部')
-    toBottom.getBoundingClientRect = () => ({ left: 650, top: 330, right: 684, bottom: 364, width: 34, height: 34 } as DOMRect)
+    // Host geometry: 34px, its right edge 16px inside the card (the card is
+    // 32px wider than the chat column), its bottom 16px above the composer.
+    // The chip was predicted onto the same centre line (667px).
+    toBottom.getBoundingClientRect = () => ({ left: 650, top: 350, right: 684, bottom: 384, width: 34, height: 34 } as DOMRect)
     scrollport.append(toBottom)
     await new Promise(resolve => { setTimeout(resolve, 0) })
-    expect(restore.style.left).toBe('656px')
-    expect(restore.style.top).toBe('364px')
+    // Its arrival does not move the chip: the anchor never followed it.
+    expect(restore.style.left).toBe('653px')
+    expect(restore.style.top).toBe('412px')
+
+    // A host that drops the button into the chip's band still cannot stack
+    // them: the chip steps below it (bottom + 8px clearance).
+    toBottom.getBoundingClientRect = () => ({ left: 650, top: 396, right: 684, bottom: 430, width: 34, height: 34 } as DOMRect)
+    window.dispatchEvent(new Event('resize'))
+    expect(restore.style.left).toBe('653px')
+    expect(restore.style.top).toBe('438px')
+    toBottom.getBoundingClientRect = () => ({ left: 650, top: 350, right: 684, bottom: 384, width: 34, height: 34 } as DOMRect)
+    window.dispatchEvent(new Event('resize'))
+    expect(restore.style.top).toBe('412px')
+
+    // Where the column padding wins (narrow stages) the button sits elsewhere;
+    // the chip follows its measured centre line instead of the prediction.
+    toBottom.getBoundingClientRect = () => ({ left: 640, top: 350, right: 674, bottom: 384, width: 34, height: 34 } as DOMRect)
+    window.dispatchEvent(new Event('resize'))
+    expect(restore.style.left).toBe('643px')
+    expect(restore.style.top).toBe('412px')
+    toBottom.getBoundingClientRect = () => ({ left: 650, top: 350, right: 684, bottom: 384, width: 34, height: 34 } as DOMRect)
+    window.dispatchEvent(new Event('resize'))
 
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: -100 }))
     scrollport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: 100 }))

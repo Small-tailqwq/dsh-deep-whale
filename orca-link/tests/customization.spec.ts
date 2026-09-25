@@ -25,6 +25,9 @@ describe('ORCA LINK customization declaration', () => {
       'background',
       'pricingLight',
       'centerSettings',
+      'scrollHideComposer',
+      'composerHandles',
+      'headlineTypewriter',
       'sfwMode',
     ])
     definition.apply({
@@ -34,10 +37,16 @@ describe('ORCA LINK customization declaration', () => {
         background: true,
         pricingLight: false,
         centerSettings: true,
+        scrollHideComposer: false,
+        composerHandles: true,
+        headlineTypewriter: false,
         sfwMode: { enabled: true, outside: 'visible', ranges: [] },
       },
       visibility: { sfwMode: false },
     })
+    expect(document.documentElement.getAttribute('data-dsh-whale-orca-composer-scroll-hide')).toBe('off')
+    expect(document.documentElement.getAttribute('data-dsh-whale-orca-composer-handles')).toBe('on')
+    expect(document.documentElement.getAttribute('data-dsh-whale-orca-headline-typewriter')).toBe('off')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-character')).toBe('hidden')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-background')).toBe('visible')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-pricing')).toBe('hidden')

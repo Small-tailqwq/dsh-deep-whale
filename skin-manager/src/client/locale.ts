@@ -117,6 +117,13 @@ const zhCopy = {
   actionFailed: (message: string) => `操作失败：${message}`,
   settingsTitle: '详细配置',
   noSettings: '当前皮肤尚未暴露可配置项；仍可在上方正常激活和切换。',
+  desktopIconTitle: '桌面图标',
+  desktopIconLabel: '桌面快捷方式跟随皮肤',
+  desktopIconDescription: '把桌面、开始菜单、任务栏和窗口缩略图上的 DeepSeek Harness 图标换成当前皮肤的图标；关闭或切回官方默认时还原。仅 Windows 桌面端，开始菜单会在几秒后刷新。',
+  desktopIconPending: '正在更新快捷方式…',
+  desktopIconDone: (updated: number, failed: number) => failed > 0
+    ? `已更新 ${updated} 个快捷方式，${failed} 个没有权限修改（例如所有用户共享的快捷方式）。`
+    : updated > 0 ? `已更新 ${updated} 个快捷方式。` : '快捷方式已是目标图标，或当前皮肤未提供桌面图标。',
   schedulePolicy: '规则方式',
   policyHideInRanges: '这些时段隐藏，其余时间显示',
   policyShowInRanges: '这些时段显示，其余时间隐藏',
@@ -198,6 +205,13 @@ const enCopy: typeof zhCopy = {
   actionFailed: (message: string) => `Operation failed: ${message}`,
   settingsTitle: 'Detailed Options',
   noSettings: 'The active skin exposes no configurable options yet; activation and switching above still work normally.',
+  desktopIconTitle: 'Desktop Icon',
+  desktopIconLabel: 'Shortcut icon follows the skin',
+  desktopIconDescription: "Show the active skin's icon for DeepSeek Harness on the desktop, Start menu, taskbar and window thumbnail; turning this off or returning to the official look restores it. Windows desktop app only; the Start menu refreshes after a few seconds.",
+  desktopIconPending: 'Updating shortcuts…',
+  desktopIconDone: (updated: number, failed: number) => failed > 0
+    ? `Updated ${updated} shortcut(s); ${failed} could not be changed without elevation (for example shortcuts shared by all users).`
+    : updated > 0 ? `Updated ${updated} shortcut(s).` : 'Shortcuts already show the target icon, or the active skin ships no desktop icon.',
   schedulePolicy: 'Rule mode',
   policyHideInRanges: 'Hide during these periods, show otherwise',
   policyShowInRanges: 'Show during these periods, hide otherwise',

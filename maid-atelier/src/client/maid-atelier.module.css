@@ -239,14 +239,19 @@ body[data-dsh-maid-atelier][data-maid-chat-active]
   }
 }
 
-/* A continuously changing layout — a viewport resize or a right/bottom
-   workbench pushing the conversation column — gives transitions a new
-   destination every frame. Follow the resize directly, then restore
-   state-change motion. */
+/* A continuously changing layout — a viewport resize, the sidebar opening
+   or closing, or a right/bottom workbench pushing the conversation column —
+   gives transitions a new destination every frame. Follow the resize
+   directly, then restore state-change motion.
+
+   The filters stay. The chat column's ResizeObserver holds this marker for
+   every sidebar toggle, and dropping `filter` here made the figures lose their
+   grade and soft shadow for exactly that long: a brightness flash in the dark
+   theme and a flickering halo in the light one. Software renderers already
+   drop the filters for good through `data-maid-low-power` below. */
 body[data-dsh-maid-atelier][data-maid-layout-resizing]
   [data-maid-character] {
   transition: none;
-  filter: none;
 }
 
 /* Chromium rejects failIfMajorPerformanceCaveat when it would fall back to a
@@ -722,6 +727,18 @@ body[data-dsh-maid-atelier] [class*='logoRow'] {
     0 7px 18px rgba(2, 7, 25, 0.28);
 }
 
+/* The Windows desktop titlebar moves the toggle into the caption row and
+   flattens the logo row (`[data-windows-titlebar] .root .logoRow { height:
+   40px; margin: 0; padding: 0 }`, which outranks the rule above), so the brand
+   plate rose onto the sidebar frame's top rail. Restore the web geometry for
+   the expanded column; the collapsed column keeps the host's zero height. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    [class*='root']:not([class*='collapsed']) > [class*='logoRow'] {
+  height: 60px;
+  margin: 8px 8px 0;
+  padding: 8px 8px 10px;
+}
+
 /* Reuse the product's exact 182x24 vector wordmark. Porcelain ink keeps the
    DeepSeek paths crisp on navy, while the HARNESS plate uses the same gold
    accent as the surrounding frame and knocks its lettering back to navy. */
@@ -848,6 +865,163 @@ body[data-dsh-maid-atelier] button[class*='newSession']:hover {
 body[data-dsh-maid-atelier] button[class*='newSession'] svg {
   color: #24345c;
   stroke-width: 1.8;
+}
+
+/* The host centres the icon and label across the whole button (`width:
+   100cqw`) and, on hover, fades the mask's last 16px while the Ctrl + N hint
+   takes its flex slot on the right. The stock button leaves that slot in empty
+   space; between the ribbon's 40px end caps the serif label runs straight into
+   it and is cut to "新会". Centre the label in the mask instead, and let the
+   hint unfold from zero width so the label glides left to make room, with no
+   fade over the text. */
+body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionContent'] {
+  width: 100%;
+}
+
+body[data-dsh-maid-atelier] button[class*='newSession']:is(:hover, :focus-visible) [class*='newSessionLabelMask'] {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionShortcut'] {
+  max-width: 0;
+  overflow: hidden;
+  color: #5a6789;
+  font-family: var(--dsw-font-family, system-ui, sans-serif);
+  font-size: 12px;
+  white-space: nowrap;
+  transition:
+    max-width 180ms ease,
+    margin-inline-start 180ms ease,
+    opacity 150ms ease;
+}
+
+/* The host's ShortcutKeys paints its own tertiary ink on the inner `.keys`
+   span (retinted pale inside the sidebar), so the ribbon ink has to reach
+   every descendant, not just the outer slot and the kbd cells. */
+body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionShortcut'] :is(span, kbd) {
+  color: inherit;
+  font: inherit;
+}
+
+body[data-dsh-maid-atelier] button[class*='newSession']:is(:hover, :focus-visible) [class*='newSessionShortcut'] {
+  /* Room for a rebound shortcut longer than Ctrl + N. */
+  max-width: 10em;
+  margin-inline-start: 8px;
+}
+
+/* Windows desktop caption controls. With `html[data-windows-titlebar]` a
+   collapsed sidebar is zero wide: the host hides the column's lists and pins
+   its toggle and New Session button into the caption row as two 28px icons
+   (ui-sidebar `.collapsed .toggle` / `.collapsed .newSession`, fixed at
+   left 12px / 48px, centred on the titlebar). The skin's sidebar-size state
+   keeps its last non-zero value there — usually `wide` — so without this
+   block New Session kept the 58px ribbon button (sinking below the toggle,
+   a dark icon on the navy caption, and a 50% hover wash on a 28x58 box) and
+   a `rail` collapse turned the toggle into a 36px medallion. Both controls
+   take one caption treatment keyed on the host's own collapse state; the
+   host keeps position, size, hit area and no-drag. The column and root
+   parts lift these rules over the rail control list above, whose `:is()`
+   carries the settings-trigger selector's specificity. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']) {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-image: none;
+  border-radius: var(--maid-caption-control-radius);
+  corner-shape: round;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']) svg {
+  color: inherit;
+  filter: none;
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']):is(:hover, :focus-visible) {
+  background: var(--maid-caption-hover);
+  color: var(--maid-caption-ink-hover);
+  filter: none;
+  transform: none;
+}
+
+/* One caption treatment for everything on the Windows titlebar. The desktop
+   shell's 应用 / 编辑 menubar (`[data-windows-menu]`, a body child with an
+   open shadow root) draws 6px rounded buttons from inherited tokens: resting
+   ink is --dsw-alias-label-secondary, hover is --dsw-alias-interactive-bg-hover
+   under --dsw-alias-label-primary. Those resolve to the porcelain content
+   palette on body, so the navy caption showed dim slate text that turned navy
+   on navy under the pointer. The menubar takes the sidebar's caption palette,
+   and the host's round (50%) toggle and New Session icons take the menubar's
+   6px corner, so every caption control hovers with one shape and one wash.
+   The caption row is navy in both themes (sidebar fill), so the palette is
+   theme-independent. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier] {
+  --maid-caption-control-radius: 6px;
+  --maid-caption-ink: #d7def0;
+  --maid-caption-ink-hover: #fff4d9;
+  --maid-caption-hover: rgba(255, 252, 243, 0.12);
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
+  --dsw-alias-label-secondary: var(--maid-caption-ink);
+  --dsw-alias-label-primary: var(--maid-caption-ink-hover);
+  --dsw-alias-interactive-bg-hover: var(--maid-caption-hover);
+}
+
+/* Minimise / maximise / close are Electron's native titleBarOverlay. The
+   desktop preload colours them from a hidden probe it appends to body
+   (`position:fixed; visibility:hidden; background-color:
+   var(--dsw-specific-sidebar-fill); color: var(--dsw-alias-label-primary)`)
+   and re-reads it whenever a stylesheet lands in <head>. On body the light
+   theme resolves label-primary to porcelain-page navy, so the native glyphs
+   were drawn navy on the navy caption. The probe has no attribute of its own;
+   its inline style is the only hook, and a miss simply leaves the stock
+   colours in place. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    > span[style*='--dsw-specific-sidebar-fill'][style*='--dsw-alias-label-primary'] {
+  --dsw-alias-label-primary: var(--maid-caption-ink-hover);
+}
+
+/* The expanded column pins the same toggle into the caption row (fixed at
+   left 12px, 28px round). This only squares the corner and matches the hover
+   wash; it keys on the host's collapse state like the rules above. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root']:not([class*='collapsed'])
+    > [class*='logoRow'] > button[class*='toggle'] {
+  border-radius: var(--maid-caption-control-radius);
+  corner-shape: round;
+}
+
+html[data-windows-titlebar] body[data-dsh-maid-atelier]
+    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root']:not([class*='collapsed'])
+    > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible) {
+  background: var(--maid-caption-hover);
+  color: var(--maid-caption-ink-hover);
+}
+
+/* The Windows frame rounds the conversation column's top-left corner
+   (`[data-windows-titlebar] .centerCol { border-radius:
+   var(--dsh-windows-content-radius) 0 0 0 }`, 16px) to tuck the stock grey
+   page under the caption. The skin paints one continuous palace stage behind
+   the brand plate and the caption row, so the corner only clipped the
+   artwork into a stray curve beside the plate. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) {
+  border-radius: 0;
 }
 
 /* The lower sidebar keeps the U-shaped textile ornament independent from the
@@ -2413,7 +2587,14 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active]::before {
   border-image-width: 0 36px 0 35px;
   border-image-repeat: stretch;
   filter: drop-shadow(0 5px 8px rgba(2, 8, 28, 0.4));
-  animation: maidAtelierWorkspaceRibbonEnter 420ms cubic-bezier(0.2, 0.74, 0.22, 1) both;
+  /* Two single-segment animations: the reveal runs one continuous
+     deceleration from the rolled edge through the swallowtail, and the slide
+     settles with its own slight overshoot. The former multi-stop keyframes
+     re-applied the easing per stop, so the reveal stalled at 70% and then
+     re-accelerated over the tail. */
+  animation:
+    maidAtelierWorkspaceRibbonEnter 440ms cubic-bezier(0.22, 0.78, 0.2, 1) both,
+    maidAtelierWorkspaceRibbonSettle 440ms cubic-bezier(0.3, 1.25, 0.6, 1) both;
   pointer-events: none;
 }
 
@@ -2427,29 +2608,23 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] 
 }
 
 @keyframes maidAtelierWorkspaceRibbonEnter {
-  0% {
+  from {
     opacity: 0;
     clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+}
+
+@keyframes maidAtelierWorkspaceRibbonSettle {
+  from {
     transform: translateX(-8px);
   }
 
-  60% {
-    opacity: 1;
-  }
-
-  70% {
-    clip-path: inset(0 12% 0 0);
-    transform: translateX(0);
-  }
-
-  92% {
-    clip-path: inset(0);
-    transform: translateX(2px);
-  }
-
-  100% {
-    opacity: 1;
-    clip-path: inset(0);
+  to {
     transform: translateX(0);
   }
 }
@@ -2832,7 +3007,11 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   color: #fffaf0;
   font-weight: 650;
   letter-spacing: 0.02em;
-  -webkit-text-stroke: 0.35px rgba(4, 11, 34, 0.9);
+  /* No text stroke here. CJK glyphs are built from overlapping contours,
+     and a stroke traces every one of them, overlaps inside the glyph
+     included, while eating half its width into the fill. At hero size the
+     dark 0.35px outline turned the white strokes grey and notched. The
+     shadow stack alone keeps the title legible over the night palace. */
   text-shadow:
     0 1px 0 rgba(4, 11, 34, 0.96),
     0 3px 7px rgba(0, 0, 0, 0.86),
@@ -3048,7 +3227,7 @@ body[data-dsh-maid-atelier]
    invalidating the descendant :has() until the sidebar's own class changes.
    Keep relative positioning so fixed descendants retain their coordinates.
    The relational selector also covers other modal dialogs in the sidebar. */
-body[data-dsh-maid-atelier][data-maid-settings-open]
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
   > div
   > :not(
@@ -3124,11 +3303,14 @@ body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
    disappears entirely. Release the clip while the dialog owns the viewport;
    the projected body state restores it the moment the panel unmounts, so no
    other state changes. Scoped to the settings slot's own ancestor chain so the
-   sidebar's real scroll/truncation containers keep their overflow. */
-body[data-dsh-maid-atelier][data-maid-settings-open] :is([data-pane='sidebar'], [class*='sidebarCol']),
-body[data-dsh-maid-atelier][data-maid-settings-open] :is([data-pane='sidebar'], [class*='sidebarCol']) *:has([data-slot='sidebar.settings']),
-body[data-dsh-maid-atelier][data-maid-settings-open] [data-slot='sidebar.settings'],
-body[data-dsh-maid-atelier][data-maid-settings-open] [class*='frame']:has([data-slot='sidebar.settings']) {
+   sidebar's real scroll/truncation containers keep their overflow. Keyed on
+   the slot mount only (DSH through 0.1.7-rc.1): the rc.2 body portal is not
+   in this chain, and releasing the frame's overflow there shifted the
+   Windows desktop layout while settings was open. */
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] :is([data-pane='sidebar'], [class*='sidebarCol']),
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] :is([data-pane='sidebar'], [class*='sidebarCol']) *:has([data-slot='sidebar.settings']),
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [data-slot='sidebar.settings'],
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [class*='frame']:has([data-slot='sidebar.settings']) {
   overflow: visible !important;
 }
 
@@ -4991,8 +5173,7 @@ body[data-dsh-maid-atelier] [role='tooltip'][data-side] {
    that bubble's containing block, so paint the glass on an isolated backing
    layer instead. */
 body[data-dsh-maid-atelier]
-  [data-slot='sidebar.settings']
-  [role='presentation']
+  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))
   > [role='dialog'][aria-modal='true'] {
   --dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68);
   isolation: isolate;
@@ -5000,8 +5181,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-slot='sidebar.settings']
-  [role='presentation']
+  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))
   > [role='dialog'][aria-modal='true']::before {
   content: '';
   position: absolute;
@@ -5013,8 +5193,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-slot='sidebar.settings']
-  [role='presentation']
+  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))
   > [role='dialog'][aria-modal='true'] {
   --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82);
 }
@@ -5034,7 +5213,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
    centering tax, crushed columns or clipped lower controls. */
 @media (max-width: 1099px), (max-height: 680px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: 100vw;
     width: 100dvw;
     max-width: none;
@@ -5049,18 +5228,18 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 
 /* Only the category list scrolls; its title and the reserved hint footer stay
    outside the scrollport. The glass hint never covers a navigation button. */
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
   position: relative;
   min-height: 0;
   padding-bottom: 28px;
   overflow: hidden;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
   flex-shrink: 0;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -5068,15 +5247,15 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation
   scrollbar-width: none;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
   display: none;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child > button {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child > button {
   flex-shrink: 0;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::before {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::before {
   content: '';
   position: absolute;
   bottom: 4px;
@@ -5093,7 +5272,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation
   pointer-events: none;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::after {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::after {
   content: '';
   position: absolute;
   bottom: 12px;
@@ -5107,25 +5286,25 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.settings'] > [role='presentation
   pointer-events: none;
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::before {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::before {
   border-color: rgba(211, 180, 119, 0.48);
   background: rgba(24, 40, 80, 0.65);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.08);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-maid-settings-more]::after {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::after {
   border-color: #d3b477;
 }
 
 /* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     flex-direction: column;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
     box-sizing: border-box;
     flex-direction: row;
     align-items: stretch;
@@ -5137,7 +5316,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] >
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: start;
@@ -5147,39 +5326,39 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] >
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
     align-self: flex-start;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav button {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav button {
     min-width: 0;
     height: 36px;
     padding: 7px 8px;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div {
     min-height: 0;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :first-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :first-child {
     min-height: 46px;
     height: auto;
     padding: 8px 10px;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child {
     padding: 0 14px 16px;
   }
 }
 
 @media (max-width: 420px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -5191,24 +5370,24 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] >
    uses the same row contract and stacks with it. */
 @media (max-width: 520px) {
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) {
     align-items: stretch;
     flex-direction: column;
   }
 
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_rowText'] {
     width: 100%;
     padding-right: 0;
   }
 
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) > :last-child,
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     box-sizing: border-box;
     width: 100%;
@@ -5216,13 +5395,13 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] >
   }
 
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     justify-content: space-between;
   }
 
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     :is([class$='_toggleRow'], [class$='_selectRow']) {
     align-items: stretch;
     flex-direction: column;
@@ -5230,13 +5409,13 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='sidebar.settings'] >
   }
 
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     :is([class$='_toggleRow'], [class$='_selectRow']) > span {
     width: 100%;
   }
 
   body[data-dsh-maid-atelier]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_selectRow'] select {
     box-sizing: border-box;
     width: 100%;
@@ -5558,13 +5737,13 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav button {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav button {
     min-height: 44px;
     height: auto;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :first-child > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :first-child > :last-child {
     min-width: 44px;
     min-height: 44px;
   }
@@ -5586,7 +5765,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div {
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 }

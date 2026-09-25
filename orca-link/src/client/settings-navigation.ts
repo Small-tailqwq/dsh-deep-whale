@@ -1,4 +1,6 @@
-const NAV_SELECTOR = "[data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav"
+// rc.1 mounts the panel in the settings slot; rc.2 portals it to <body>.
+const NAV_SELECTOR = "[data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav, "
+  + "body > [role='presentation'] > [role='dialog'][data-shortcut-modal='settings'] > nav"
 const MORE_ATTRIBUTE = 'data-orca-settings-more'
 interface SettingsNavigation {
   synchronize: () => void

@@ -59,8 +59,13 @@ const VIEWPORT_RESIZE_SETTLE_MS = 120
 const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
 const CONVERSATION_COLUMN_SELECTOR = ":is([data-pane='conversation'], [class*='centerCol'])"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
-const SETTINGS_MASK_SELECTOR = "[role='presentation'] > [class*='mask']"
-const SETTINGS_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']"
+const SETTINGS_MASK_SELECTOR = ":scope > [class*='mask']"
+// Through DSH 0.1.7-rc.1 the panel mounts inside the settings slot; from rc.2 it
+// portals to <body> beside #root and names itself with `data-shortcut-modal`.
+const SETTINGS_PORTAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true'][data-shortcut-modal='settings']"
+const SETTINGS_SLOT_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dialog'][aria-modal='true']"
+const SETTINGS_DIALOG_SELECTOR = `${SETTINGS_SLOT_DIALOG_SELECTOR}, ${SETTINGS_PORTAL_DIALOG_SELECTOR}`
+const SETTINGS_OWNER_SELECTOR = `[data-slot='sidebar.settings'], ${SETTINGS_PORTAL_DIALOG_SELECTOR}`
 const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
 const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
 const WORKSPACE_SELECTOR = "header [role='tablist']"
@@ -127,6 +132,9 @@ const PROJECTED_STATE_ATTRIBUTES = {
   activeConversation: 'data-maid-conversation-active',
   cordisPanelOpen: 'data-maid-cordis-panel-open',
   settingsOpen: 'data-maid-settings-open',
+  // Only the rc.1 slot mount puts the fixed panel inside the sidebar tree; the
+  // workarounds for that containment must not run against the rc.2 portal.
+  settingsInSidebar: 'data-maid-settings-in-sidebar',
   workspace: 'data-maid-workspace',
 } as const
 
@@ -136,6 +144,7 @@ const PROJECTED_STATE_SELECTOR = [
   WORKSPACE_SELECTOR,
   CORDIS_PANEL_SELECTOR,
   "[data-slot='sidebar.settings']",
+  SETTINGS_PORTAL_DIALOG_SELECTOR,
 ].join(', ')
 
 /** Workspace decoration flags, listed so diff application iterates a fixed order. */
@@ -744,6 +753,10 @@ export function apply(ctx: Context): void {
       PROJECTED_STATE_ATTRIBUTES.settingsOpen,
       document.querySelector(SETTINGS_DIALOG_SELECTOR) !== null,
     )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.settingsInSidebar,
+      document.querySelector(SETTINGS_SLOT_DIALOG_SELECTOR) !== null,
+    )
   }
 
   let observedChatArea: HTMLElement | undefined
@@ -827,15 +840,16 @@ export function apply(ctx: Context): void {
     composerPhase = next
   }
 
-  /* The settings mask is mounted inside a promoted sidebar descendant. Chrome
-     can omit sibling composited layers from that backdrop sample, so seat a
-     copy of the existing frame immediately before the mask while it is open. */
+  /* Through DSH 0.1.7-rc.1 the settings mask is mounted inside a promoted
+     sidebar descendant. Chrome can omit sibling composited layers from that
+     backdrop sample, so seat a copy of the existing frame immediately before
+     the mask while it is open. The rc.2 body portal samples the real frame
+     directly; a viewport-anchored copy there would sit above the Windows
+     caption offset and draw a second frame. */
   const syncSettingsBackdropFrame = (): void => {
     settingsNavigation.synchronize()
-    const dialog = document.querySelector(SETTINGS_DIALOG_SELECTOR)
-    const mask = dialog === null
-      ? null
-      : document.querySelector<HTMLElement>(SETTINGS_MASK_SELECTOR)
+    const dialog = document.querySelector(SETTINGS_SLOT_DIALOG_SELECTOR)
+    const mask = dialog?.parentElement?.querySelector<HTMLElement>(SETTINGS_MASK_SELECTOR) ?? null
     const overlay = mask?.parentElement
     if (overlay === undefined || overlay === null) {
       settingsBackdropFrame?.remove()
@@ -969,10 +983,14 @@ export function apply(ctx: Context): void {
           || appNodes.some(node => nodeTouches(node, CONVERSATION_COLUMN_SELECTOR)))) {
         chatStructureChanged = true
       }
-      // The settings mask is owned by this slot. Chat subtree replacements
-      // cannot change it and must not scan their descendants for mask classes.
+      // The settings mask is owned by the settings slot (rc.1) or by the
+      // body-level portal (rc.2). Chat subtree replacements cannot change it
+      // and must not scan their descendants for mask classes; the portal is
+      // only probed through its own direct children.
       if (!settingsStateChanged && appNodes.length > 0 && target !== undefined
-        && target.closest("[data-slot='sidebar.settings']") !== null) {
+        && (target.closest(SETTINGS_OWNER_SELECTOR) !== null
+          || (target === body && appNodes.some(node => (node as Element)
+            .querySelector(`:scope > ${SETTINGS_PORTAL_DIALOG_SELECTOR}`) !== null)))) {
         settingsStateChanged = true
       }
       if (!projectedStateChanged && appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))

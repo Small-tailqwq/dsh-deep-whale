@@ -173,6 +173,38 @@ body[data-dsh-orca-link] :where(
   border-radius: 0 !important;
 }
 
+/* The element list above only reaches interactive roles, so host surfaces
+   drawn as plain divs from the radius scale kept their curves: cards, panels,
+   and component variables derived from it, such as the side panel's guide
+   entries (`--dsl-guide-entry-radius: var(--dsw-radius-xl)`), where the
+   split-menu "New terminal" entry is a div beside two square buttons.
+   Zeroing the scale itself squares every token-drawn surface, present and
+   future, with no per-node selector cost. The hands-off seats of the element
+   contract get the host scale back (ui-theme 0.1.7 values) so plugin controls
+   there keep their own geometry. */
+body[data-dsh-orca-link] {
+  --dsw-radius-xs: 0px;
+  --dsw-radius-sm: 0px;
+  --dsw-radius-md: 0px;
+  --dsw-radius-lg: 0px;
+  --dsw-radius-xl: 0px;
+  --dsw-radius-panel: 0px;
+}
+
+body[data-dsh-orca-link] :is(
+  [data-slot='conversation.input.left'],
+  [data-slot='conversation.input.right'],
+  [data-slot='sidebar.footer.action'],
+  [data-slot='settings.section']
+) {
+  --dsw-radius-xs: 4px;
+  --dsw-radius-sm: 8px;
+  --dsw-radius-md: 12px;
+  --dsw-radius-lg: 16px;
+  --dsw-radius-xl: 20px;
+  --dsw-radius-panel: 28px;
+}
+
 /* Keep chat bubbles rectilinear in every theme, matching the ORCA shape
    contract even when the host ships rounded user-message bubbles. */
 body[data-dsh-orca-link] [data-chat-flow] *,
@@ -194,7 +226,7 @@ body[data-dsh-orca-link] [data-chat-flow] *::after {
 
    Unlike the shape contract this deliberately reaches into the settings
    dialog: that dialog already carries its own universal rectilinear zeroing
-   (`[data-slot='sidebar.settings'] [role='dialog'] *`), so the switch inside it
+   (`[role='dialog'][data-shortcut-modal='settings'] *`), so the switch inside it
    is square either way and excluding the section would give one control two
    designs. Only the hands-off seats keep the host's own switch. */
 body[data-dsh-orca-link] :where([role='switch']):not(
@@ -700,8 +732,12 @@ html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link][data-orca-
    menus are the settings interface's secondary level, and a translucent card
    lets the conversation show through and reads as click-through.
 
-   SettingsPanel is not a document-root portal: the host mounts it inside the
-   sidebar content root and it reaches the viewport with `position: fixed`.
+   Through DSH 0.1.7-rc.1 SettingsPanel is not a document-root portal: the
+   host mounts it inside the sidebar content root and it reaches the viewport
+   with `position: fixed`. From rc.2 it portals to <body> beside #root and
+   carries `data-shortcut-modal='settings'`; the sidebar releases below key on
+   `data-orca-settings-in-sidebar` so they run for the slot mount only, and
+   the settings selectors accept both mounts.
    Every stacking context this skin adds along that ancestor chain — the
    content root's `isolation: isolate`, plus the promotions this block used to
    apply to the sidebar column and the dialog carrier — is a context the
@@ -739,7 +775,7 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open] [id='root'] {
    z-index says. Release the isolation together with the promotion while the
    dialog is open; the `position: relative` from that block stays, and
    relative + z-index auto is not a stacking context. */
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link][data-orca-settings-in-sidebar] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
   z-index: auto;
   isolation: auto;
 }
@@ -753,8 +789,11 @@ body[data-dsh-orca-link][data-orca-settings-open] :is([data-pane='sidebar'], [da
    absolutely positioned descendants, and in maid-atelier it also tripped
    Chromium into compositing a filtered layer over the mask's backdrop-filter
    (4d3e346). `overflow: visible` still carries its own weight: the column
-   clips at its own box regardless of stacking. */
-body[data-dsh-orca-link][data-orca-settings-open]
+   clips at its own box regardless of stacking. Both releases key on the
+   slot mount only (DSH through 0.1.7-rc.1): the rc.2 body portal is not in
+   the sidebar chain, and unclipping the column there only lets the sidebar
+   stage spill while settings is open. */
+body[data-dsh-orca-link][data-orca-settings-in-sidebar]
   [class*='sidebarCol'] {
   position: relative;
   z-index: auto;
@@ -804,7 +843,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog'] {
    settings slots remain intact; ORCA only changes its spatial behavior.
    Large screens dock beside the settings trigger; every constrained viewport
    becomes a full workspace instead of squeezing an intermediate modal. */
-body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
   position: fixed;
   z-index: var(--orca-settings-overlay-z);
   isolation: isolate;
@@ -814,12 +853,21 @@ body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings']
   pointer-events: auto;
 }
 
-body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > :first-child {
+/* DSH 0.1.7-rc.2 portals the overlay to <body>, beside #root rather than inside
+   it, so it now shares a stacking context with the #root promotion above.
+   One rung over that promotion keeps the panel on top without relying on the
+   portal's document order, and still under the host Modal ceiling (1000) so a
+   dialog opened from inside settings keeps covering it. */
+body[data-dsh-orca-link][data-orca-settings-open] > [role='presentation']:has(> [role='dialog'][data-shortcut-modal='settings']) {
+  z-index: calc(var(--orca-settings-overlay-z) + 1);
+}
+
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > :first-child {
   z-index: 0;
   animation: orcaSettingsMaskIn 170ms ease-out both;
 }
 
-body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
   width: min(800px, calc(100vw - 48px));
   max-width: none;
   height: min(760px, calc(100vh - 48px));
@@ -865,9 +913,9 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open] [data-cordis-panel] {
    flow. The dialog's own mask and decorations live outside this subtree, and
    scrollbar pseudo-elements are not matched by `*` — the global square
    scrollbar styling keeps governing them. */
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *,
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::before,
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *,
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::before,
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::after {
   border-radius: 0 !important;
 }
 
@@ -892,18 +940,18 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] *::after
 
 /* The title and signal chevron stay outside the scrolling category list.
    The footer reserves enough space for the chevron to clear every button. */
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
   position: relative;
   min-height: 0;
   padding-bottom: 24px;
   overflow: hidden;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
   flex-shrink: 0;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
   /* Short docked lists keep the group's bottom alignment. */
   flex: 0 1 auto;
   min-height: 0;
@@ -912,15 +960,15 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] 
   scrollbar-width: none;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child > button {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child > button {
   flex-shrink: 0;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
   display: none;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav[data-orca-settings-more]::after {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-orca-settings-more]::after {
   content: '';
   position: absolute;
   bottom: 9px;
@@ -937,28 +985,28 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] 
 /* Large desktop: the panel opens immediately beside the sidebar trigger and
    grows from its lower-left corner. Navigation stays near the pointer. */
 @media (min-width: 1100px) and (min-height: 681px) {
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
     justify-content: flex-start;
     align-items: flex-end;
     padding: 18px 18px 18px 72px;
   }
 
   body[data-dsh-orca-link][data-orca-sidebar-wide]
-    [data-slot='sidebar.settings'] > [role='presentation'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
     padding-left: calc(var(--orca-sidebar-width) + 16px);
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: min(760px, calc(100vw - 108px));
     height: min(680px, calc(100vh - 36px));
   }
 
   body[data-dsh-orca-link][data-orca-sidebar-wide]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: min(760px, calc(100vw - var(--orca-sidebar-width) - 34px));
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
     /* Keep short navigation bottom-aligned; overflow starts at the first item. */
     justify-content: safe flex-end;
     padding-bottom: 24px;
@@ -976,7 +1024,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] 
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
     justify-content: center;
     align-items: center;
     padding: 24px;
@@ -984,16 +1032,16 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] 
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-sidebar-wide]
-    [data-slot='sidebar.settings'] > [role='presentation'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
     padding-left: 24px;
   }
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'],
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'],
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-sidebar-wide]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: min(800px, calc(100vw - 48px));
     height: min(760px, calc(100vh - 48px));
     transform-origin: center;
@@ -1001,7 +1049,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] 
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
     justify-content: flex-start;
     padding-bottom: 24px;
   }
@@ -1009,12 +1057,12 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] > [role='presentation'] 
 
 /* Settings nav: active section uses a slightly deeper brown emphasis, and
    adjacent section cells are separated by a same-color hairline. */
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav button[aria-current='true'] {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) > nav button[aria-current='true'] {
   background: color-mix(in srgb, var(--orca-blue) 18%, transparent);
   color: var(--orca-ink);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav button + button {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) > nav button + button {
   border-top: 2px solid color-mix(in srgb, var(--orca-blue) 28%, transparent);
   border-radius: 0;
 }
@@ -1022,11 +1070,11 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
 /* Any viewport below the desktop dock threshold becomes a full workspace: no
    centering tax, crushed columns or clipped lower controls. */
 @media (max-width: 1099px), (max-height: 680px) {
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
     padding: 0;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: 100vw;
     max-width: none;
     height: 100vh;
@@ -1039,11 +1087,11 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
 
 /* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     flex-direction: column;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
     box-sizing: border-box;
     width: 100%;
     gap: 8px;
@@ -1052,40 +1100,40 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
     border-bottom: 1px solid var(--orca-line);
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: start;
     gap: 4px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav button {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav button {
     min-width: 0;
     height: 36px;
     padding: 7px 8px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div {
     min-height: 0;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :first-child {
     min-height: 46px;
     height: auto;
     padding: 8px 10px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child {
     padding: 0 14px 16px;
   }
 }
 
 @media (max-width: 420px) {
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1095,24 +1143,24 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
    so descriptions remain normal sentences instead of vertical fragments. */
 @media (max-width: 520px) {
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) {
     align-items: stretch;
     flex-direction: column;
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_rowText'] {
     width: 100%;
     padding-right: 0;
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) > :last-child,
   body[data-dsh-orca-link][data-orca-settings-open]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) [class$='_selector'] {
     box-sizing: border-box;
     width: 100%;
@@ -1120,7 +1168,7 @@ body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] > nav bu
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     justify-content: space-between;
   }
@@ -1181,7 +1229,7 @@ body[data-dsh-orca-link] [role='menuitem'][data-orca-permission]:has(> svg[data-
    provider picker. Keep the glyph and label on one centered axis so missing
    or narrow icon artwork cannot leave the copy sitting low in the tile. */
 body[data-dsh-orca-link]
-  [data-slot='sidebar.settings'] [role='dialog']
+  :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings'])
   [class$='_cubeRow'] > button[class*='_themeCube'] {
   position: relative;
   min-height: 64px;
@@ -1194,13 +1242,13 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [data-slot='sidebar.settings'] [role='dialog']
+  :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings'])
   [class$='_cubeRow'] > button[class*='_themeCube'] > svg {
   flex: none;
 }
 
 body[data-dsh-orca-link]
-  [data-slot='sidebar.settings'] [role='dialog']
+  :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings'])
   [class$='_cubeRow'] > button[class*='_themeCube'][aria-pressed='true']::after {
   position: absolute;
   top: 10px;
@@ -1218,7 +1266,7 @@ body[data-dsh-orca-link]
    system's saturated blue popup. The fallback remains the host's normal
    select on engines without base-select support. */
 @supports (appearance: base-select) {
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select {
     appearance: base-select;
     min-height: 34px;
     border: 1px solid var(--orca-line);
@@ -1236,7 +1284,7 @@ body[data-dsh-orca-link]
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] [role='dialog']
+    :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings'])
     select[class$='_selectInput'] {
     box-sizing: border-box;
     display: flex;
@@ -1248,12 +1296,12 @@ body[data-dsh-orca-link]
     text-align: left;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select:hover {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select:hover {
     border-color: color-mix(in srgb, var(--orca-blue) 42%, var(--orca-line));
     box-shadow: inset 3px 0 0 color-mix(in srgb, var(--orca-blue) 58%, transparent);
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select::picker-icon {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select::picker-icon {
     width: 8px;
     height: 6px;
     margin-left: 10px;
@@ -1265,17 +1313,17 @@ body[data-dsh-orca-link]
   }
 
   body[data-dsh-orca-link]
-    [data-slot='sidebar.settings'] [role='dialog']
+    :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings'])
     select[class$='_selectInput']::picker-icon {
     flex: none;
     margin-left: auto;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select:open::picker-icon {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select:open::picker-icon {
     transform: rotate(180deg);
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select::picker(select) {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select::picker(select) {
     appearance: base-select;
     max-height: min(420px, 62vh);
     margin-block: 4px;
@@ -1289,7 +1337,7 @@ body[data-dsh-orca-link]
     scrollbar-color: color-mix(in srgb, var(--orca-graphite) 42%, transparent) transparent;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select option {
     align-items: center;
     min-height: 30px;
     padding: 7px 30px 7px 10px;
@@ -1304,14 +1352,14 @@ body[data-dsh-orca-link]
     text-overflow: ellipsis;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option:hover,
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option:focus-visible {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select option:hover,
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select option:focus-visible {
     border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
     background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
     color: var(--orca-ink);
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option:checked {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select option:checked {
     border-left-color: var(--orca-blue);
     background:
       linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 16%, transparent), transparent 74%);
@@ -1319,7 +1367,7 @@ body[data-dsh-orca-link]
     font-weight: 700;
   }
 
-  body[data-dsh-orca-link] [data-slot='sidebar.settings'] [role='dialog'] select option::checkmark {
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) select option::checkmark {
     content: '';
     width: 7px;
     height: 7px;
@@ -1963,6 +2011,75 @@ body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :
   transform: translate(-50%, -50%);
 }
 
+/* Windows desktop caption controls. With `html[data-windows-titlebar]` a
+   collapsed sidebar is zero wide: the host hides the column's lists and pins
+   its toggle and New Session button into the caption row as two 28px icons
+   (ui-sidebar `.collapsed .toggle` / `.collapsed .newSession`, fixed at
+   left 12px / 48px). New Session is a direct child of the sidebar root, so
+   the stage rule above (`> :not(...) { position: relative }`) pulled it back
+   into the zero-wide, clipped column, and the wide stage's portrait hit plane
+   and transparent glyph came with it: the button vanished. The skin's
+   wide/rail flag also keeps its last non-zero value here, so a rail collapse
+   hid the toggle's glyph behind a wordmark the zero-wide column clips away.
+   Both controls take one caption treatment keyed on the host's own collapse
+   state; the host keeps position, size, hit area and no-drag. */
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] {
+  position: fixed;
+  z-index: 30;
+  clip-path: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] > * {
+  opacity: 1;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']::before,
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']::after {
+  content: none;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='logoRow'] > button[class*='toggle'] > svg,
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] svg {
+  color: currentColor;
+  opacity: 1;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible),
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
+}
+
+/* The rest of the Windows caption row follows the collapsed controls above.
+   The expanded column pins the same toggle at left 12px, but its hover was the
+   host icon button's 7% blue wash; the shell's 应用 / 编辑 menubar
+   (`[data-windows-menu]`, open shadow root) hovers with the same inherited
+   token. Both take the 14% graphite wash, and windows-menu.ts squares the
+   menubar's shadow-local 6px corner, so every caption control hovers alike. */
+html[data-windows-titlebar] body[data-dsh-orca-link] > [data-windows-menu] {
+  --dsw-alias-interactive-bg-hover: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link]
+    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
+}
+
+/* The Windows frame rounds the conversation column's top-left corner under
+   the caption (`--dsh-windows-content-radius`, 16px). ORCA's shape contract
+   is square throughout. */
+html[data-windows-titlebar] body[data-dsh-orca-link] :is([data-pane='conversation'], [class*='centerCol']) {
+  border-radius: 0;
+}
+
 /* Official rail tooltips are rendered beside their anchors instead of through
    a portal. Release only their collapsed-rail ancestor chain so fixed bubbles
    can leave the 36px action cell and the 55px sidebar shell. */
@@ -2493,6 +2610,76 @@ body[data-dsh-orca-link] [data-question-key] [class*='_checkbox']::before {
   border-radius: 0 !important;
 }
 
+/* Todo glyphs. DSH 0.1.7 draws each todo state with the shared StateDot (a
+   round dot, or a rotating ring while in progress) inside
+   `li[data-status] > .glyph`, so the SVG-path redraws in icons.ts that used
+   to catch the old todo icons no longer match anything. Hide the dot and
+   paint ORCA's straight-line set on the glyph box itself, keyed on the host's
+   status attribute: corner brackets while pending, a ticked frame when done,
+   and in progress the context-usage pixel field, whose cells fill bottom-up
+   on a stepped 2.4s cycle (one 16px pseudo-element, clip-path steps only). */
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status] > [class*='_glyph'] {
+  position: relative;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status] > [class*='_glyph'] > * {
+  display: none;
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status] > [class*='_glyph']::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 6V2.25H6M10 2.25h3.75V6M13.75 10v3.75H10M6 13.75H2.25V10'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 6V2.25H6M10 2.25h3.75V6M13.75 10v3.75H10M6 13.75H2.25V10'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='completed'] > [class*='_glyph'] {
+  color: var(--dsw-alias-label-secondary);
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='completed'] > [class*='_glyph']::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Cpath d='M4.75 8.25 7 10.5l4.5-5'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Cpath d='M4.75 8.25 7 10.5l4.5-5'/%3E%3C/svg%3E");
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph'] {
+  color: var(--orca-blue);
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph']::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Crect x='4' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M2.25 2.25h11.5v11.5H2.25z'/%3E%3Crect x='4' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' fill-opacity='0.12' stroke='none'/%3E%3C/svg%3E");
+}
+
+body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Crect x='4' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Crect x='4' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px);
+  animation: orcaTodoFill 2.4s step-end infinite;
+}
+
+@keyframes orcaTodoFill {
+  0% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
+  8% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 6.5px 12.5px, 6.5px 9.5px, 3.5px 9.5px); }
+  16% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 9.5px 12.5px, 9.5px 9.5px, 3.5px 9.5px); }
+  24% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 3.5px 9.5px, 3.5px 6.5px, 3.5px 6.5px); }
+  32% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 6.5px 9.5px, 6.5px 6.5px, 3.5px 6.5px); }
+  40% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 9.5px 9.5px, 9.5px 6.5px, 3.5px 6.5px); }
+  48% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 3.5px 6.5px, 3.5px 3.5px, 3.5px 3.5px); }
+  56% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 6.5px 6.5px, 6.5px 3.5px, 3.5px 3.5px); }
+  64% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 9.5px 6.5px, 9.5px 3.5px, 3.5px 3.5px); }
+  72% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 3.5px, 3.5px 3.5px, 3.5px 0.5px, 3.5px 0.5px); }
+  90% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
+  100% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
+}
+
 /* Recommendation badge: the host dark palette would fill and ink the tag with
    the same electric blue (#4d91ff on #4d91ff). Keep the accent fill and switch
    the dark label to inverted brand ink; the light theme keeps its host pair,
@@ -2591,9 +2778,12 @@ body[data-dsh-orca-link] .signalChip[data-orca-link-status='offline'] .signalDot
   0%, 100% { opacity: 1; transform: scaleX(1); }
   50% { opacity: 0.38; transform: scaleX(0.5); }
 }
+/* Opacity only: the dot's static glow fades with it. Animating box-shadow
+   here repainted the chip on every frame for as long as the sidebar was
+   wide, i.e. all the time; an opacity animation stays on the compositor. */
 @keyframes orcaSignalPulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(32, 199, 232, 0.7); }
-  50% { opacity: 0.45; box-shadow: 0 0 3px rgba(32, 199, 232, 0.35); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 /* Pricing traffic light under the DSH wordmark: three lamps mirror the
@@ -3261,10 +3451,10 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before { transition: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
   body[data-dsh-orca-link] .signalDot,
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > :first-child,
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog'],
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > :first-child,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'],
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::after,
   body[data-dsh-orca-link] [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge'])::after,
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] [data-composer-card],
   body[data-dsh-orca-link] [data-orca-composer-ghost],
@@ -3282,8 +3472,8 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::before,
-  body[data-dsh-orca-link][data-orca-settings-open] [data-slot='sidebar.settings'] > [role='presentation'] > [role='dialog']::after { display: none; }
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::after { display: none; }
   body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
 }
@@ -3414,15 +3604,20 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ * > * 
     > [data-width-handle][data-side]::after {
     animation: none;
   }
+  body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'] > [class*='_glyph']::after {
+    animation: none;
+    clip-path: none;
+    opacity: 0.55;
+  }
 }
 
 /* Agent preset id captions keep the official light caption colour, which the
    ORCA backdrop turns illegible (light text on the cream surface). Pin them
    to the ink ramp so the id stays readable in both themes. */
-body[data-dsh-orca-link] [data-slot='sidebar.settings'] [class$='_cardId'] {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'], [role='dialog']:where([data-shortcut-modal='settings'])) [class$='_cardId'] {
   color: var(--orca-graphite);
 }
-body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar.settings'] [class$='_cardId'] {
+body[data-dsh-orca-link][data-ds-dark-theme] :is([data-slot='sidebar.settings'], [role='dialog']:where([data-shortcut-modal='settings'])) [class$='_cardId'] {
   color: var(--orca-muted);
 }
 

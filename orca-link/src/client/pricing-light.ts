@@ -1,4 +1,4 @@
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 /**
  * DeepSeek peak/valley pricing signal (Beijing time, UTC+8).
@@ -365,7 +365,7 @@ export function installOrcaPricingLight(
   }
 
   const observer = new MutationObserver((records) => {
-    if (!hasMutationOutsideTerminal(records)) return
+    if (!hasMutationOutsideTranscript(records)) return
     if (light !== null && light.isConnected) return
     render()
   })

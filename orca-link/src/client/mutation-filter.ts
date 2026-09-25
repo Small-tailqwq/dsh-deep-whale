@@ -36,3 +36,22 @@ function isHighChurnOnly(record: MutationRecord): boolean {
 export function hasMutationOutsideTerminal(records: MutationRecord[]): boolean {
   return records.some(record => !isHighChurnOnly(record))
 }
+
+const TRANSCRIPT_SELECTOR = '[data-chat-flow]'
+
+function insideTranscript(node: Node): boolean {
+  const element = node instanceof Element ? node : node.parentElement
+  return (element?.closest(TRANSCRIPT_SELECTOR) ?? null) !== null
+}
+
+/**
+ * For controllers that only follow the conversation's frame (phase, scrollport,
+ * composer seat, sidebar chrome): streaming replies rewrite the transcript
+ * (`[data-chat-flow]`) on every batch, and none of those edits can move the
+ * frame, so they are skipped along with the terminal and editor churn above.
+ * Mounting or replacing the transcript itself targets its parent and still
+ * counts. The composer seat and the approval/question cards sit outside it.
+ */
+export function hasMutationOutsideTranscript(records: MutationRecord[]): boolean {
+  return records.some(record => !isHighChurnOnly(record) && !insideTranscript(record.target))
+}

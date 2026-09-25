@@ -12,7 +12,7 @@ import { installOrcaCustomization } from './customization.ts'
 import { installOrcaHeadlineTypewriter } from './headline-typewriter.ts'
 import { installOrcaIcons } from './icons.ts'
 import { installOrcaLinkStatus } from './link-status.ts'
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 import { installOrcaPageIcons } from './page-icons.ts'
 import { installOrcaPricingLight } from './pricing-light.ts'
 import { installOrcaRailSearch } from './rail-search.ts'
@@ -21,6 +21,7 @@ import { installOrcaSettingsOverlay } from './settings-overlay.ts'
 import { installOrcaStatusCharacter } from './status-character.ts'
 import { installOrcaTerminalPerformance } from './terminal-performance.ts'
 import { installOrcaWindowResume } from './window-resume.ts'
+import { installOrcaWindowsMenu } from './windows-menu.ts'
 import { installOrcaLightVisibility } from './work-light.ts'
 import { installOrcaBootError } from './boot-error.ts'
 import css from './orca-link.module.css'
@@ -117,6 +118,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => installOrcaLightVisibility(body), 'ui-skin-orca-link: decorative light visibility')
   ctx.effect(() => installOrcaBootError(), 'ui-skin-orca-link: boot failure presentation')
   ctx.effect(() => installOrcaPageIcons(), 'ui-skin-orca-link: page icons')
+  ctx.effect(() => installOrcaWindowsMenu(body), 'ui-skin-orca-link: windows caption menubar')
   const originalTitle = document.title
   const originalLightHeroArt = body.style.getPropertyValue(LIGHT_HERO_ART_PROPERTY)
   const originalLightActiveArt = body.style.getPropertyValue(LIGHT_ACTIVE_ART_PROPERTY)
@@ -142,7 +144,7 @@ export function apply(ctx: Context): void {
 
   let wordmarkRow: Element | null = null
   const wordmarkObserver = new MutationObserver((records) => {
-    if (!hasMutationOutsideTerminal(records)) return
+    if (!hasMutationOutsideTranscript(records)) return
     // Conversation updates cannot replace chrome inside a connected logo row.
     if (wordmarkRow?.isConnected && !records.some(record => wordmarkRow!.contains(record.target))) return
     mountDshWordmark()

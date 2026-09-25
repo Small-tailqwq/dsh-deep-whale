@@ -245,8 +245,36 @@ describe('ORCA LINK performance guards', () => {
     settings.append(dialog)
     await Promise.resolve()
     expect(document.body.hasAttribute('data-orca-settings-open')).toBe(true)
+    expect(document.body.hasAttribute('data-orca-settings-in-sidebar')).toBe(true)
 
     dialog.remove()
+    await Promise.resolve()
+    expect(document.body.hasAttribute('data-orca-settings-open')).toBe(false)
+    dispose()
+  })
+
+  it('follows the DSH 0.1.7-rc.2 settings panel portaled beside #root', async () => {
+    // rc.2 SettingsRoot: createPortal(<overlay role=presentation><mask/><panel
+    // role=dialog data-shortcut-modal="settings"/></overlay>, document.body).
+    document.body.innerHTML = '<div id="root"><div data-slot="sidebar.settings"><div><button aria-expanded="false"></button></div></div></div>'
+    const dispose = installOrcaSettingsOverlay(document.body)
+    expect(document.body.hasAttribute('data-orca-settings-open')).toBe(false)
+
+    const overlay = document.createElement('div')
+    overlay.setAttribute('role', 'presentation')
+    overlay.innerHTML = '<div aria-hidden="true"></div><div role="dialog" aria-modal="true" data-shortcut-modal="settings"><nav></nav></div>'
+    document.body.append(overlay)
+    await Promise.resolve()
+    expect(document.body.hasAttribute('data-orca-settings-open')).toBe(true)
+    // The portal is outside the sidebar chain: no stacking or clipping release.
+    expect(document.body.hasAttribute('data-orca-settings-in-sidebar')).toBe(false)
+
+    // Other body-level modals share the overlay shape but not the settings name.
+    overlay.remove()
+    const shortcuts = document.createElement('div')
+    shortcuts.setAttribute('role', 'presentation')
+    shortcuts.innerHTML = '<div role="dialog" aria-modal="true" data-shortcut-modal="shortcuts"></div>'
+    document.body.append(shortcuts)
     await Promise.resolve()
     expect(document.body.hasAttribute('data-orca-settings-open')).toBe(false)
     dispose()

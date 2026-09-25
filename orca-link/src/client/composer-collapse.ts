@@ -1,4 +1,5 @@
-import { hasMutationOutsideTerminal } from './mutation-filter.ts'
+import { COMPOSER_HANDLES_ATTRIBUTE, observeOrcaFeature, orcaFeatureEnabled } from './customization.ts'
+import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 const COMPOSER_SEAT_SELECTOR = '[data-composer-seat]'
 const COMPOSER_CARD_SELECTOR = "[data-composer-card]:not([class*='cardWorkspaceTrigger'])"
@@ -22,6 +23,16 @@ const REBOUND_LIFETIME_MS = 420
 const COLLAPSE_LIFETIME_MS = 440
 const RESTORE_LIFETIME_MS = 520
 const RESTORE_SIZE = 28
+// The chip's bracket ornaments (::before / ::after) reach 6px past each side.
+const RESTORE_ORNAMENT = 6
+const RESTORE_CLEARANCE = 8
+// The host's "back to bottom" button (ui-chat `.toBottom`, 34px round) sits
+// 16px above the composer, flush with the content column's right edge. The
+// composer card is 32px wider than that column (`--dsh-composer-card-max-width`),
+// so on a wide stage the button's centre line is 16 + 17px in from the card's
+// right edge.
+const TO_BOTTOM_SELECTOR = "button[class*='toBottom']"
+const TO_BOTTOM_CENTER_INSET = 16 + 34 / 2
 
 type Side = 'left' | 'right'
 
@@ -149,8 +160,14 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     const rect = cardRect ?? binding.card.getBoundingClientRect()
     if (rootRect.width <= 0 || rootRect.height <= 0 || rect.width <= 0 || rect.height <= 0) return
 
-    const left = clamp(rect.right - 16 - RESTORE_SIZE, rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
-    const top = clamp(rect.top - 36, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
+    // Park the chip inside the band the collapsed card vacates, not above it:
+    // the host's back-to-bottom button owns the lane 16px above the composer,
+    // and a chip anchored 36px above the card sat right on top of it. The
+    // anchor stays independent of that button so the chip never jumps when it
+    // mounts or unmounts; positionRestore only nudges on a real collision.
+    const left = clamp(rect.right - TO_BOTTOM_CENTER_INSET - RESTORE_SIZE / 2,
+      rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
+    const top = clamp(rect.top + 12, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
     binding.anchor = {
       leftRatio: (left - rootRect.left) / rootRect.width,
       topRatio: (top - rootRect.top) / rootRect.height,
@@ -164,10 +181,28 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     if (button === null || anchor === null) return
 
     const rootRect = binding.root.getBoundingClientRect()
-    const left = clamp(rootRect.left + rootRect.width * anchor.leftRatio,
+    let left = clamp(rootRect.left + rootRect.width * anchor.leftRatio,
       rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
-    const top = clamp(rootRect.top + rootRect.height * anchor.topRatio,
+    let top = clamp(rootRect.top + rootRect.height * anchor.topRatio,
       rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
+    const toBottom = binding.root.querySelector<HTMLElement>(TO_BOTTOM_SELECTOR)?.getBoundingClientRect()
+    const hasToBottom = toBottom !== undefined && toBottom.width > 0 && toBottom.height > 0
+    // Share the button's centre line while it is shown. The anchor already
+    // predicts that line, so this is a no-op on the stock wide stage and only
+    // corrects narrow stages where the column padding wins.
+    if (hasToBottom) {
+      left = clamp(toBottom.left + toBottom.width / 2 - RESTORE_SIZE / 2,
+        rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
+    }
+    if (
+      hasToBottom
+      && left - RESTORE_ORNAMENT < toBottom.right + RESTORE_CLEARANCE
+      && left + RESTORE_SIZE + RESTORE_ORNAMENT > toBottom.left - RESTORE_CLEARANCE
+      && top < toBottom.bottom + RESTORE_CLEARANCE
+      && top + RESTORE_SIZE > toBottom.top - RESTORE_CLEARANCE
+    ) {
+      top = clamp(toBottom.bottom + RESTORE_CLEARANCE, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
+    }
     button.style.left = `${left}px`
     button.style.top = `${top}px`
 
@@ -421,7 +456,9 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
       }
     }
 
-    if (!composerBelongsToConversation(root)) {
+    // With the handles switched off the seat is released exactly as if it had
+    // left the conversation: no handles, no restore chip, no manual lock.
+    if (!composerBelongsToConversation(root) || !orcaFeatureEnabled(doc, COMPOSER_HANDLES_ATTRIBUTE)) {
       if (activeDrag?.binding === binding) {
         finishDrag(false)
       }
@@ -486,7 +523,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   }
 
   const observer = new MutationObserver((records) => {
-    if (hasMutationOutsideTerminal(records)) synchronize()
+    if (hasMutationOutsideTranscript(records)) synchronize()
   })
   observer.observe(body, {
     childList: true,
@@ -503,6 +540,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     })
   })
   langObserver.observe(doc.documentElement, { attributes: true, attributeFilter: ['lang'] })
+  const disposeHandlesSwitch = observeOrcaFeature(doc, [COMPOSER_HANDLES_ATTRIBUTE], synchronize)
   doc.addEventListener('pointermove', onPointerMove, { passive: false })
   doc.addEventListener('pointerup', onPointerUp, true)
   doc.addEventListener('pointercancel', onPointerCancel, true)
@@ -515,6 +553,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   return () => {
     observer.disconnect()
     langObserver.disconnect()
+    disposeHandlesSwitch()
     doc.removeEventListener('pointermove', onPointerMove)
     doc.removeEventListener('pointerup', onPointerUp, true)
     doc.removeEventListener('pointercancel', onPointerCancel, true)
