@@ -1,3 +1,4 @@
+import { COMPOSER_HANDLES_ATTRIBUTE, observeOrcaFeature, orcaFeatureEnabled } from './customization.ts'
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
 
 const COMPOSER_SEAT_SELECTOR = '[data-composer-seat]'
@@ -421,7 +422,9 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
       }
     }
 
-    if (!composerBelongsToConversation(root)) {
+    // With the handles switched off the seat is released exactly as if it had
+    // left the conversation: no handles, no restore chip, no manual lock.
+    if (!composerBelongsToConversation(root) || !orcaFeatureEnabled(doc, COMPOSER_HANDLES_ATTRIBUTE)) {
       if (activeDrag?.binding === binding) {
         finishDrag(false)
       }
@@ -503,6 +506,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     })
   })
   langObserver.observe(doc.documentElement, { attributes: true, attributeFilter: ['lang'] })
+  const disposeHandlesSwitch = observeOrcaFeature(doc, [COMPOSER_HANDLES_ATTRIBUTE], synchronize)
   doc.addEventListener('pointermove', onPointerMove, { passive: false })
   doc.addEventListener('pointerup', onPointerUp, true)
   doc.addEventListener('pointercancel', onPointerCancel, true)
@@ -515,6 +519,7 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
   return () => {
     observer.disconnect()
     langObserver.disconnect()
+    disposeHandlesSwitch()
     doc.removeEventListener('pointermove', onPointerMove)
     doc.removeEventListener('pointerup', onPointerUp, true)
     doc.removeEventListener('pointercancel', onPointerCancel, true)

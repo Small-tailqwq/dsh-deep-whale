@@ -1,4 +1,5 @@
 import { MANUAL_HIDDEN_ATTRIBUTE } from './composer-collapse.ts'
+import { COMPOSER_SCROLL_HIDE_ATTRIBUTE, observeOrcaFeature, orcaFeatureEnabled } from './customization.ts'
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
 
 const COMPOSER_SEAT_SELECTOR = '[data-composer-seat]'
@@ -173,6 +174,8 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     seat.removeAttribute(OUTSIDE_CHAT_ATTRIBUTE)
     seat.style.removeProperty('--orca-composer-enter-distance')
   }
+
+  const scrollHideEnabled = (): boolean => orcaFeatureEnabled(doc, COMPOSER_SCROLL_HIDE_ATTRIBUTE)
 
   const blurSeat = (seat: HTMLElement): void => {
     const active = doc.activeElement
@@ -373,6 +376,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     }
 
     const onWheel = (event: WheelEvent): void => {
+      if (!scrollHideEnabled()) return
       // Checked before the delta threshold: touchpad inertia tails emit small
       // deltas that still chain onto the transcript via the host's forwarding.
       if (wheelTargetsSeatDraft(event)) {
@@ -390,6 +394,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
       const top = scrollport.scrollTop
       const previousTop = binding.lastTop
       binding.lastTop = top
+      if (!scrollHideEnabled()) return
       const seat = activeSeatOf(scrollport)
       if (seat !== null) {
         if (Date.now() < seatGestureUntil) return
@@ -466,6 +471,15 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     attributes: true,
     attributeFilter: ['data-phase'],
   })
+  // Turning scroll-hide off must not strand a seat the last scroll tucked away;
+  // manual collapse keeps its own state (showSeat defers to it).
+  const disposeScrollHideSwitch = observeOrcaFeature(doc, [COMPOSER_SCROLL_HIDE_ATTRIBUTE], () => {
+    if (scrollHideEnabled()) return
+    scrollBindings.forEach((_, scrollport) => {
+      const seat = activeSeatOf(scrollport)
+      if (seat !== null) showSeat(seat)
+    })
+  })
   doc.addEventListener('keydown', onKeyDown, true)
   doc.addEventListener('click', onClick, true)
   doc.addEventListener('focusin', onFocusIn, true)
@@ -474,6 +488,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
 
   return () => {
     observer.disconnect()
+    disposeScrollHideSwitch()
     doc.removeEventListener('keydown', onKeyDown, true)
     doc.removeEventListener('click', onClick, true)
     doc.removeEventListener('focusin', onFocusIn, true)

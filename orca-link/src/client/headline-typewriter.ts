@@ -1,3 +1,4 @@
+import { HEADLINE_TYPEWRITER_ATTRIBUTE, observeOrcaFeature, orcaFeatureEnabled } from './customization.ts'
 import { hasMutationOutsideTerminal } from './mutation-filter.ts'
 
 // 0.1.5-alpha.1 replaced the hero's `.headlineText` span with a `.titleGroup`
@@ -155,7 +156,9 @@ export function installOrcaHeadlineTypewriter(body: HTMLElement): () => void {
   }
 
   const sync = (): void => {
-    const found = body.querySelector<HTMLElement>(HEADLINE_SELECTOR)
+    const found = orcaFeatureEnabled(body.ownerDocument, HEADLINE_TYPEWRITER_ATTRIBUTE)
+      ? body.querySelector<HTMLElement>(HEADLINE_SELECTOR)
+      : null
     if (found !== headline) {
       stop(true)
       if (found) start(found)
@@ -178,10 +181,12 @@ export function installOrcaHeadlineTypewriter(body: HTMLElement): () => void {
     if (hasMutationOutsideTerminal(records)) sync()
   })
   observer.observe(body, { attributes: true, childList: true, characterData: true, subtree: true })
+  const disposeSwitch = observeOrcaFeature(body.ownerDocument, [HEADLINE_TYPEWRITER_ATTRIBUTE], sync)
   sync()
 
   return () => {
     observer.disconnect()
+    disposeSwitch()
     stop(true)
   }
 }

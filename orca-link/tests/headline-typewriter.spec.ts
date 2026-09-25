@@ -10,6 +10,7 @@ afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
   document.body.innerHTML = ''
+  document.documentElement.removeAttribute('data-dsh-whale-orca-headline-typewriter')
 })
 
 // 0.1.5-alpha.1 hero markup: the title text and the preview badge share one
@@ -55,6 +56,28 @@ describe('Orca Link headline typewriter', () => {
     expect(headline.textContent).toBe('探索未至之境')
     expect(headline.hasAttribute('data-orca-headline-typewriter')).toBe(false)
     expect(badgeText()).toBe('预览')
+  })
+
+  it('hands the host headline back while the switch is off and resumes when it returns', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const headline = mountHeadline()
+    const dispose = installOrcaHeadlineTypewriter(document.body)
+    await vi.advanceTimersByTimeAsync(1_500)
+    expect(headline.textContent).toBe(FIRST_GROUP)
+
+    document.documentElement.setAttribute('data-dsh-whale-orca-headline-typewriter', 'off')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(headline.textContent).toBe('探索未至之境')
+    expect(headline.hasAttribute('data-orca-headline-typewriter')).toBe(false)
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(headline.textContent).toBe('探索未至之境')
+
+    document.documentElement.setAttribute('data-dsh-whale-orca-headline-typewriter', 'on')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(headline.hasAttribute('data-orca-headline-typewriter')).toBe(true)
+    dispose()
+    expect(headline.textContent).toBe('探索未至之境')
   })
 
   it('keeps the linked pair together and displays it in two stages', async () => {
