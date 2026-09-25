@@ -4,7 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   beijingMinutesOfDay,
   formatBeijingTime,
+  HOLIDAY_DATA_LAST_YEAR,
   installOrcaPricingLight,
+  isChinaHoliday,
+  isDeepSeekModelLabel,
   nextPriceChangeAt,
   priceBandAt,
   priceScheduleAt,
@@ -260,7 +263,7 @@ describe('ORCA LINK pricing light chrome', () => {
     expect(value('status')).toBe('Early warning: peak in 10 min')
     expect(value('price')).toBe('50% of peak price (half price)')
     expect(value('next')).toBe('09:00 -> Peak 100%')
-    expect(value('valley-windows')).toBe('Weekends and weekday off-peak hours at half peak price')
+    expect(value('valley-windows')).toBe('Weekends, public holidays and off-peak hours at half peak price')
     const keys = [...light.querySelectorAll<HTMLElement>('[data-orca-link-price-row]')]
       .map((row) => row.firstElementChild?.textContent ?? '')
     expect(keys).toEqual(['Status', 'Price', 'Next', 'Peak', 'Valley'])
@@ -336,6 +339,172 @@ describe('ORCA LINK pricing light chrome', () => {
   })
 })
 
+/** Beijing wall-clock instant on any date, TZ-independent. */
+function beijingOn(year: number, month: number, day: number, hour: number, minute = 0): Date {
+  return new Date(Date.UTC(year, month - 1, day, hour - 8, minute, 0, 0))
+}
+
+describe('ORCA LINK pricing light statutory holidays (issue #152)', () => {
+  it('keeps weekday statutory holidays green all day', () => {
+    // 2026-09-25 is the Mid-Autumn Festival, a Friday.
+    expect(priceBandAt(beijingOn(2026, 9, 25, 16, 33))).toBe('low')
+    expect(priceBandAt(beijingOn(2026, 9, 25, 8, 50))).toBe('low')
+    expect(priceBandAt(beijingOn(2026, 9, 25, 10, 0))).toBe('low')
+    for (const [month, day] of [[1, 1], [1, 2], [2, 17], [2, 23], [4, 6], [5, 1], [5, 5], [6, 19], [10, 1], [10, 7]]) {
+      expect(priceBandAt(beijingOn(2026, month!, day!, 10, 0)), `2026-${month}-${day}`).toBe('low')
+      expect(isChinaHoliday(beijingOn(2026, month!, day!, 10, 0))).toBe(true)
+    }
+  })
+
+  it('leaves ordinary workdays around a holiday untouched', () => {
+    expect(priceBandAt(beijingOn(2026, 9, 24, 16, 33))).toBe('high')
+    expect(priceBandAt(beijingOn(2026, 9, 24, 8, 50))).toBe('transition')
+    expect(priceBandAt(beijingOn(2026, 9, 28, 10, 0))).toBe('high')
+    expect(isChinaHoliday(beijingOn(2026, 9, 24, 10, 0))).toBe(false)
+  })
+
+  it('keeps weekend make-up workdays green, as DeepSeek bills them', () => {
+    for (const [month, day] of [[1, 4], [2, 14], [2, 28], [5, 9], [9, 20], [10, 10]]) {
+      expect(priceBandAt(beijingOn(2026, month!, day!, 10, 0)), `2026-${month}-${day}`).toBe('low')
+    }
+  })
+
+  it('reads the holiday date in Beijing time, not the host clock', () => {
+    // 2026-09-24 23:30 Beijing is still the workday before the festival; 00:10 is the festival.
+    expect(isChinaHoliday(beijingOn(2026, 9, 24, 23, 30))).toBe(false)
+    expect(isChinaHoliday(beijingOn(2026, 9, 25, 0, 10))).toBe(true)
+  })
+
+  it('skips whole holiday runs when finding the next switch', () => {
+    // Evening before National Day: the week off plus the weekend ends on Thursday 10-08.
+    expect(nextPriceChangeAt(beijingOn(2026, 9, 30, 20, 0)).toISOString())
+      .toBe(beijingOn(2026, 10, 8, 9, 0).toISOString())
+    expect(nextPriceChangeAt(beijingOn(2026, 10, 3, 12, 0)).toISOString())
+      .toBe(beijingOn(2026, 10, 8, 9, 0).toISOString())
+    // Mid-Autumn Friday plus the weekend: back on Monday.
+    expect(nextPriceChangeAt(beijingOn(2026, 9, 24, 18, 30)).toISOString())
+      .toBe(beijingOn(2026, 9, 28, 9, 0).toISOString())
+    // Spring Festival: 02-16..02-20 and 02-23 around a weekend.
+    expect(nextPriceChangeAt(beijingOn(2026, 2, 13, 19, 0)).toISOString())
+      .toBe(beijingOn(2026, 2, 24, 9, 0).toISOString())
+  })
+
+  it('shows holiday copy and names the weekday of the next switch', () => {
+    const zh = priceScheduleAt(beijingOn(2026, 9, 25, 16, 33), true)
+    expect(zh.band).toBe('low')
+    expect(zh.statusLine).toBe('法定节假日全天半价')
+    expect(zh.nextChangeLine).toBe('周一 09:00 -> 高峰 100%')
+    const en = priceScheduleAt(beijingOn(2026, 10, 1, 10, 0), false)
+    expect(en.statusLine).toBe('Public holiday half price all day')
+    expect(en.nextChangeLine).toBe('Thu 09:00 -> Peak 100%')
+  })
+
+  it('says when the clock has run past the bundled holiday data', () => {
+    const inRange = priceScheduleAt(beijingOn(HOLIDAY_DATA_LAST_YEAR, 12, 31, 10, 0), true)
+    expect(inRange.valleyWindowsLine).toBe('周末、法定节假日全天及非高峰时段, 价格为高峰的一半')
+    const beyond = priceScheduleAt(beijingOn(HOLIDAY_DATA_LAST_YEAR + 1, 1, 4, 10, 0), true)
+    expect(beyond.valleyWindowsLine).toContain(`节假日数据仅到 ${HOLIDAY_DATA_LAST_YEAR} 年`)
+    const beyondEn = priceScheduleAt(beijingOn(HOLIDAY_DATA_LAST_YEAR + 1, 1, 4, 10, 0), false)
+    expect(beyondEn.valleyWindowsLine).toContain(`holiday data ends in ${HOLIDAY_DATA_LAST_YEAR}`)
+  })
+})
+
+describe('ORCA LINK pricing light model and desktop caption', () => {
+  const composer = (model: string): string => (
+    '<div data-composer-card><div class="trailing">'
+    + `<button aria-haspopup="menu"><span class="u91W7W_triggerLabel">${model}</span></button>`
+    + '</div></div>'
+  )
+  const mountBody = (model: string, collapsed = false): void => {
+    document.body.innerHTML = `<div ${collapsed ? 'data-sidebar-collapsed="true"' : ''}>`
+      + '<div data-slot="sidebar"><div class="root"><div></div></div></div>'
+      + `${composer(model)}</div>`
+  }
+  const light = (): HTMLElement => document.body.querySelector<HTMLElement>('[data-orca-link-price-light]')!
+  const modelText = (): Text => document.body.querySelector('[class*="triggerLabel"]')!.firstChild as Text
+  const flush = (): Promise<void> => new Promise(resolve => { setTimeout(resolve, 0) })
+
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-windows-titlebar')
+  })
+
+  it('recognizes DeepSeek model labels and ignores host placeholders', () => {
+    expect(isDeepSeekModelLabel('DeepSeek V4 Pro')).toBe(true)
+    expect(isDeepSeekModelLabel('deepseek-official/deepseek-v4-flash')).toBe(true)
+    expect(isDeepSeekModelLabel('Claude Sonnet 5')).toBe(false)
+    expect(isDeepSeekModelLabel('gpt-5')).toBe(false)
+    expect(isDeepSeekModelLabel('正在加载模型…')).toBeUndefined()
+    expect(isDeepSeekModelLabel('Select model')).toBeUndefined()
+    expect(isDeepSeekModelLabel('')).toBeUndefined()
+  })
+
+  it('shows the light for DeepSeek models only and follows a live model switch', async () => {
+    mountBody('DeepSeek V4 Flash')
+    const dispose = installOrcaPricingLight(document.body, classes, () => beijing(5, 10, 0), true)
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(false)
+
+    // React edits the label's text node in place on a model switch.
+    modelText().nodeValue = 'Claude Sonnet 5'
+    await flush()
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(true)
+
+    // A loading placeholder keeps the last verdict instead of flashing.
+    modelText().nodeValue = '正在加载模型…'
+    await flush()
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(true)
+
+    // A remounted composer is picked up through the body observer.
+    document.body.querySelector('[data-composer-card]')!.outerHTML = composer('DeepSeek V4 Pro')
+    await flush()
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(false)
+    dispose()
+  })
+
+  it('keeps the light visible when no composer is mounted', () => {
+    document.body.innerHTML = '<div data-slot="sidebar"><div><div></div></div></div>'
+    const dispose = installOrcaPricingLight(document.body, classes, () => beijing(5, 10, 0), true)
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(false)
+    dispose()
+  })
+
+  it('projects the caption seat only for a collapsed Windows desktop sidebar', async () => {
+    document.documentElement.setAttribute('data-windows-titlebar', '')
+    mountBody('DeepSeek V4 Flash')
+    const dispose = installOrcaPricingLight(document.body, classes, () => beijing(5, 10, 0), true)
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+
+    const frame = document.body.firstElementChild!
+    frame.setAttribute('data-sidebar-collapsed', 'true')
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(true)
+
+    // A non-DeepSeek model hides the light, so the menubar must not step aside.
+    modelText().nodeValue = 'gpt-5'
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+    modelText().nodeValue = 'DeepSeek V4 Pro'
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(true)
+
+    frame.removeAttribute('data-sidebar-collapsed')
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+
+    frame.setAttribute('data-sidebar-collapsed', 'true')
+    await flush()
+    dispose()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+  })
+
+  it('never projects the caption seat in the browser layout', async () => {
+    mountBody('DeepSeek V4 Flash', true)
+    const dispose = installOrcaPricingLight(document.body, classes, () => beijing(5, 10, 0), true)
+    await flush()
+    expect(document.body.hasAttribute('data-orca-price-caption')).toBe(false)
+    dispose()
+  })
+})
+
 describe('ORCA LINK pricing light CSS cascade', () => {
   const css = readFileSync('src/client/orca-link.module.css', 'utf8')
 
@@ -354,5 +523,21 @@ describe('ORCA LINK pricing light CSS cascade', () => {
     expect(css).not.toContain("body[data-dsh-orca-link] .pricingLight[data-orca-link-price='high'] {")
     expect(css).not.toContain("body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] {")
     expect(css).not.toContain("body[data-dsh-orca-link] .pricingLight[data-orca-link-price='low'] {")
+  })
+
+  it('hides the light for other models with the full base chain', () => {
+    expect(css).toMatch(/body\[data-dsh-orca-link\] \[data-slot='sidebar'\] > :first-child > \.pricingLight\[data-orca-link-price-other-model\] \{\s*display: none;/)
+  })
+
+  it('seats the light in the Windows caption and moves the menubar aside', () => {
+    const caption = css.match(/html\[data-windows-titlebar\] body\[data-dsh-orca-link\] \[data-sidebar-collapsed\]\s*\[data-slot='sidebar'\] > \[class\*='root'\]\[class\*='collapsed'\] > \.pricingLight \{([^}]*)\}/)?.[1] ?? ''
+    expect(caption).toContain('position: fixed')
+    expect(caption).toContain('left: 84px')
+    expect(caption).toContain('width: 52px')
+    expect(caption).toContain('pointer-events: none')
+    expect(caption).not.toContain('display')
+    const menu = css.match(/html\[data-windows-titlebar\] body\[data-dsh-orca-link\]\[data-orca-price-caption\] > \[data-windows-menu\] \{([^}]*)\}/)?.[1] ?? ''
+    // 52px light plus the host's 8px caption gap.
+    expect(menu).toContain('margin-left: 60px')
   })
 })

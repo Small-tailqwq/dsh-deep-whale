@@ -2859,6 +2859,47 @@ body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight[da
   --orca-price-glow: rgba(35, 138, 88, 0.72);
 }
 
+/* DeepSeek's peak/valley schedule prices DeepSeek models only; pricing-light.ts
+   flags the light while the composer has another provider's model selected. */
+body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight[data-orca-link-price-other-model] {
+  display: none;
+}
+
+/* Windows desktop: a collapsed sidebar is zero wide, so the light would be
+   clipped away with the column. Seat it in the caption row right after the
+   host's pinned toggle and New Session icons (left 12px / 48px, 28px each);
+   the caption menubar steps aside by the light's fixed width plus the same
+   8px gap. Glance-only like the web rail: no hover card, and pointer events
+   fall through to the caption drag strip. Keyed on the host's collapse state
+   so the stale wide/rail skin flag cannot restyle it. */
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > .pricingLight {
+  position: fixed;
+  z-index: 30;
+  top: calc((var(--dsh-windows-titlebar-height, 40px) - 20px) / 2);
+  left: 84px;
+  justify-content: center;
+  gap: 4px;
+  width: 52px;
+  height: 20px;
+  padding: 0 5px;
+  transform: none;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  transition: none;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > .pricingLight .pricingLamp {
+  width: 5px;
+  height: 5px;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link][data-orca-price-caption] > [data-windows-menu] {
+  margin-left: 60px;
+}
+
 body[data-dsh-orca-link] .pricingHousing {
   display: flex;
   flex-direction: row;
