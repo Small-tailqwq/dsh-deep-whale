@@ -27,8 +27,12 @@ const RESTORE_SIZE = 28
 const RESTORE_ORNAMENT = 6
 const RESTORE_CLEARANCE = 8
 // The host's "back to bottom" button (ui-chat `.toBottom`, 34px round) sits
-// 16px above the composer, flush with the content column's right edge.
+// 16px above the composer, flush with the content column's right edge. The
+// composer card is 32px wider than that column (`--dsh-composer-card-max-width`),
+// so on a wide stage the button's centre line is 16 + 17px in from the card's
+// right edge.
 const TO_BOTTOM_SELECTOR = "button[class*='toBottom']"
+const TO_BOTTOM_CENTER_INSET = 16 + 34 / 2
 
 type Side = 'left' | 'right'
 
@@ -161,7 +165,8 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     // and a chip anchored 36px above the card sat right on top of it. The
     // anchor stays independent of that button so the chip never jumps when it
     // mounts or unmounts; positionRestore only nudges on a real collision.
-    const left = clamp(rect.right - 16 - RESTORE_SIZE, rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
+    const left = clamp(rect.right - TO_BOTTOM_CENTER_INSET - RESTORE_SIZE / 2,
+      rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
     const top = clamp(rect.top + 12, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
     binding.anchor = {
       leftRatio: (left - rootRect.left) / rootRect.width,
@@ -176,13 +181,21 @@ export function installOrcaComposerCollapse(body: HTMLElement): () => void {
     if (button === null || anchor === null) return
 
     const rootRect = binding.root.getBoundingClientRect()
-    const left = clamp(rootRect.left + rootRect.width * anchor.leftRatio,
+    let left = clamp(rootRect.left + rootRect.width * anchor.leftRatio,
       rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
     let top = clamp(rootRect.top + rootRect.height * anchor.topRatio,
       rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8)
     const toBottom = binding.root.querySelector<HTMLElement>(TO_BOTTOM_SELECTOR)?.getBoundingClientRect()
+    const hasToBottom = toBottom !== undefined && toBottom.width > 0 && toBottom.height > 0
+    // Share the button's centre line while it is shown. The anchor already
+    // predicts that line, so this is a no-op on the stock wide stage and only
+    // corrects narrow stages where the column padding wins.
+    if (hasToBottom) {
+      left = clamp(toBottom.left + toBottom.width / 2 - RESTORE_SIZE / 2,
+        rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8)
+    }
     if (
-      toBottom !== undefined && toBottom.width > 0 && toBottom.height > 0
+      hasToBottom
       && left - RESTORE_ORNAMENT < toBottom.right + RESTORE_CLEARANCE
       && left + RESTORE_SIZE + RESTORE_ORNAMENT > toBottom.left - RESTORE_CLEARANCE
       && top < toBottom.bottom + RESTORE_CLEARANCE
