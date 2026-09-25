@@ -162,6 +162,14 @@ export function resolveSkinDesktopIcon(skinDir: string, declared: unknown): stri
 /** Keeps the shortcut state for one DSH home and serializes every pass. */
 export class DesktopIconSync {
   readonly statePath: string
+  /**
+   * Present while a write that may park Start menu shortcuts is in flight.
+   * The write renames them to `*.lnk.dsh-refresh` for a moment and only the
+   * scan script puts leftovers back, so a write cut short (the PowerShell
+   * timeout, the host quitting) must keep later passes scanning until one has
+   * run, whether or not the switch is still on or any record survived.
+   */
+  readonly parkMarkerPath: string
   readonly managedDir: string
   private readonly shell: DesktopShell
   private readonly io: ShortcutIo
@@ -174,6 +182,7 @@ export class DesktopIconSync {
     this.io = io
     this.onIcon = onIcon
     this.statePath = joinPath(home, 'skin-manager', 'desktop-icon.json')
+    this.parkMarkerPath = joinPath(home, 'skin-manager', 'desktop-icon.parking')
     this.managedDir = joinPath(home, 'skin-manager', 'desktop-icons')
   }
 
@@ -204,12 +213,23 @@ export class DesktopIconSync {
     const state = this.read()
     const file = source === null ? null : this.install(source)
     this.onIcon(file)
-    // Nothing recorded and nothing wanted: skip the PowerShell round trip.
-    if (file === null && Object.keys(state.shortcuts).length === 0) return { enabled: state.enabled, updated: 0, failed: 0 }
+    // Nothing recorded, nothing wanted and no interrupted write to recover:
+    // skip the PowerShell round trip.
+    if (file === null && Object.keys(state.shortcuts).length === 0 && !existsSync(this.parkMarkerPath)) {
+      return { enabled: state.enabled, updated: 0, failed: 0 }
+    }
     const desired = file === null ? null : `${file},0`
+    // The scan first puts back any shortcut an interrupted write left parked.
     const shortcuts = await this.io.scan(this.shell.execPath)
+    rmSync(this.parkMarkerPath, { force: true })
     const plan = planDesktopIcon(state, shortcuts, desired, this.managedDir)
-    const results = plan.changes.length === 0 ? [] : await this.io.write(plan.changes)
+    let results: ShortcutWriteResult[] = []
+    if (plan.changes.length > 0) {
+      mkdirSync(dirname(this.parkMarkerPath), { recursive: true })
+      writeFileSync(this.parkMarkerPath, '')
+      results = await this.io.write(plan.changes)
+      rmSync(this.parkMarkerPath, { force: true })
+    }
     const failed = new Set(results.filter(result => !result.ok).map(result => pathKey(result.path)))
     const next: DesktopIconState = { ...state, shortcuts: { ...state.shortcuts } }
     for (const [path, record] of Object.entries(plan.records)) {
@@ -383,7 +403,9 @@ function runPowerShell(script: string, env: Record<string, string>): Promise<unk
         return
       }
       try {
-        const text = stdout.replace(/^﻿/, '').trim()
+        // Written as an escape: an editor that normalizes a literal BOM away
+        // would silently turn this into /^/.
+        const text = stdout.replace(/^\uFEFF/, '').trim()
         resolve(text === '' ? [] : JSON.parse(text))
       } catch {
         reject(new Error('desktop-icon-powershell: invalid output'))
@@ -505,6 +527,8 @@ export class WindowIconHolder {
       stderr = (stderr + chunk).slice(-4096)
     })
     child.on('error', (error) => {
+      // A spawn failure (e.g. ENOENT) emits 'error' and 'close' but no 'exit'.
+      if (this.child === child) this.child = undefined
       console.error('[skin-manager] window icon helper failed to start', error)
     })
     child.on('exit', (code) => {

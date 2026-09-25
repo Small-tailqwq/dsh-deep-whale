@@ -896,13 +896,17 @@ body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionShort
     opacity 150ms ease;
 }
 
-body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionShortcut'] kbd {
+/* The host's ShortcutKeys paints its own tertiary ink on the inner `.keys`
+   span (retinted pale inside the sidebar), so the ribbon ink has to reach
+   every descendant, not just the outer slot and the kbd cells. */
+body[data-dsh-maid-atelier] button[class*='newSession'] [class*='newSessionShortcut'] :is(span, kbd) {
   color: inherit;
   font: inherit;
 }
 
 body[data-dsh-maid-atelier] button[class*='newSession']:is(:hover, :focus-visible) [class*='newSessionShortcut'] {
-  max-width: 6em;
+  /* Room for a rebound shortcut longer than Ctrl + N. */
+  max-width: 10em;
   margin-inline-start: 8px;
 }
 

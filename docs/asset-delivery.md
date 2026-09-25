@@ -13,6 +13,13 @@
 3. 在皮肤目录运行 `npm run build`：先从源码生成并校验 `manifest.json`，再构建两端 JS，最后生成包含图片字节的 `skin.build.json`。缺图或内容与文件名哈希不符会失败。
 4. 将源码、图片、清单、`lib/` 和构建指纹一起纳入更新。替换图片后可移除已无任何引用的旧文件；构建不会自动删除资产。
 
+## 桌面图标（ICO）
+
+`skin.json#desktopIcon` 指向的 `assets/icons/*.ico` 随包分发，供皮肤管理器的「桌面图标跟随皮肤」复制到 `<DSH_HOME>/skin-manager/` 后写进快捷方式。它**不计入构建指纹**：指纹只覆盖 `skin.json` 里的路径，不覆盖 ICO 字节。这是有意的例外，皮肤管理器在运行时用同一函数计算已安装皮肤的指纹，把 ICO 纳入会让新旧版本的皮肤与管理器互相误报“本地构建不同”。ICO 由脚本从已计入指纹的运行时图片确定性派生，因此替换图标时须同时替换源图并重新运行生成脚本：
+
+- 深海女仆工坊：`python scripts/build-maid-icons.py`
+- ORCA LINK：`python scripts/build-orca-desktop-icon.py`（从 `PAGE_ICON_512` 引用的 512px 运行时 PNG 生成 16–256px ICO）
+
 skin-manager 使用同一图片指纹逻辑，需与新版皮肤一起更新。没有静态图片清单的旧皮肤仍保持原来的指纹算法。首次迁移后，已缓存旧 node 半边的宿主进程需要重启，再刷新页面；仅刷新不能保证新的图片路由已经注册。
 
 ## 验证范围

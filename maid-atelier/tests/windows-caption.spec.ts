@@ -79,7 +79,7 @@ describe('Maid Atelier Windows caption controls', () => {
     const hovered = CSS.match(
       /button\[class\*='newSession'\]:is\(:hover, :focus-visible\) \[class\*='newSessionShortcut'\]\s*\{([^}]*)\}/,
     )?.[1] ?? ''
-    expect(hovered).toContain('max-width: 6em')
+    expect(hovered).toContain('max-width: 10em')
     const mask = CSS.match(
       /button\[class\*='newSession'\]:is\(:hover, :focus-visible\) \[class\*='newSessionLabelMask'\]\s*\{([^}]*)\}/,
     )?.[1] ?? ''

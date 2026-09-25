@@ -147,6 +147,28 @@ describe('desktop icon sync', () => {
     expect(sync.enabled).toBe(false)
   })
 
+  it('keeps scanning after an interrupted write until parked shortcuts are recovered', async () => {
+    const home = tempDir()
+    const io = fakeIo(shortcuts())
+    let scans = 0
+    const scan = io.scan.bind(io)
+    io.scan = async (execPath) => { scans += 1; return scan(execPath) }
+    // The write dies mid-refresh (timeout, host quit): nothing is recorded.
+    io.write = async () => { throw new Error('desktop-icon-powershell: timed out') }
+    const sync = new DesktopIconSync(home, { execPath: EXE }, io)
+    await expect(sync.setEnabled(true, { skinId: 'maid-atelier', file: skinIcon() })).rejects.toThrow('timed out')
+    expect(existsSync(sync.parkMarkerPath)).toBe(true)
+
+    // Switched off with no records left, a pass still scans (the scan puts
+    // parked shortcuts back) and then clears the marker.
+    const before = scans
+    await sync.setEnabled(false, null)
+    expect(scans).toBe(before + 1)
+    expect(existsSync(sync.parkMarkerPath)).toBe(false)
+    await sync.reconcile(null)
+    expect(scans).toBe(before + 1)
+  })
+
   it('applies a copied icon, follows a switch and restores the originals', async () => {
     const home = tempDir()
     const io = fakeIo(shortcuts())

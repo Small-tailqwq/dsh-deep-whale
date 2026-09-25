@@ -376,9 +376,13 @@ function buildUsageCells(): SVGGElement {
   return cells
 }
 
-/** Target glyph fragments from DSH 0.1.7-alpha.1 (c36a83ff6bb9).
+/** Target glyph fragments from DSH 0.1.7-alpha.1 (c36a83ff6bb9), plus the
+ * keys marked "(0.1.7)" taken from the 0.1.7-rc.2 ui-primitives icons (the
+ * clock, user and users artwork changed or first appeared there; the
+ * tests/fixtures alpha.1 set still holds their older drawings, kept as the
+ * "(<= 0.1.6)" keys).
  * Shared contours are keyed by their distinguishing drawing, not the frame.
- * Full target SVGs, including inline controls, live in tests/fixtures. */
+ * Full alpha.1 target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ["d=\"M6.51867 12.3282C7.29816", 'agent-preset'], // IconAgentPresetOutlineMedium
   ["d=\"M4.09372 11.9895L3.11865", 'alarm-clock'], // IconAlarmClockOutlineMedium

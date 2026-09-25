@@ -243,8 +243,10 @@
    `.input.selectInput`): 32px, 0.5px l4 hairline, md radius, layer-1 fill and
    the 12px chevron. Every select is one 240px column (narrower only when the
    pane is), so rows line up and long option labels ellipsize instead of
-   wrapping or being squeezed by a long description. The `selectInput` name keeps skins that dress the
-   product's select (maid-atelier's picker theme) dressing these too. */
+   wrapping or being squeezed by a long description. The `selectInput` name
+   keeps skins that dress the product's select dressing these too, height
+   included: maid-atelier keeps the host's 32px, ORCA LINK's own settings
+   select is 34px. Either way every select on the panel shares one height. */
 .selectInput {
   box-sizing: border-box;
   flex: none;

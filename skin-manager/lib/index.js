@@ -1070,6 +1070,14 @@ function resolveSkinDesktopIcon(skinDir, declared) {
 /** Keeps the shortcut state for one DSH home and serializes every pass. */
 var DesktopIconSync = class {
 	statePath;
+	/**
+	* Present while a write that may park Start menu shortcuts is in flight.
+	* The write renames them to `*.lnk.dsh-refresh` for a moment and only the
+	* scan script puts leftovers back, so a write cut short (the PowerShell
+	* timeout, the host quitting) must keep later passes scanning until one has
+	* run, whether or not the switch is still on or any record survived.
+	*/
+	parkMarkerPath;
 	managedDir;
 	shell;
 	io;
@@ -1081,6 +1089,7 @@ var DesktopIconSync = class {
 		this.io = io;
 		this.onIcon = onIcon;
 		this.statePath = join(home, "skin-manager", "desktop-icon.json");
+		this.parkMarkerPath = join(home, "skin-manager", "desktop-icon.parking");
 		this.managedDir = join(home, "skin-manager", "desktop-icons");
 	}
 	get enabled() {
@@ -1109,14 +1118,22 @@ var DesktopIconSync = class {
 		const state = this.read();
 		const file = source === null ? null : this.install(source);
 		this.onIcon(file);
-		if (file === null && Object.keys(state.shortcuts).length === 0) return {
+		if (file === null && Object.keys(state.shortcuts).length === 0 && !existsSync(this.parkMarkerPath)) return {
 			enabled: state.enabled,
 			updated: 0,
 			failed: 0
 		};
 		const desired = file === null ? null : `${file},0`;
-		const plan = planDesktopIcon(state, await this.io.scan(this.shell.execPath), desired, this.managedDir);
-		const results = plan.changes.length === 0 ? [] : await this.io.write(plan.changes);
+		const shortcuts = await this.io.scan(this.shell.execPath);
+		rmSync(this.parkMarkerPath, { force: true });
+		const plan = planDesktopIcon(state, shortcuts, desired, this.managedDir);
+		let results = [];
+		if (plan.changes.length > 0) {
+			mkdirSync(dirname(this.parkMarkerPath), { recursive: true });
+			writeFileSync(this.parkMarkerPath, "");
+			results = await this.io.write(plan.changes);
+			rmSync(this.parkMarkerPath, { force: true });
+		}
 		const failed = new Set(results.filter((result) => !result.ok).map((result) => pathKey(result.path)));
 		const next = {
 			...state,
@@ -1296,7 +1313,7 @@ function runPowerShell(script, env) {
 				return;
 			}
 			try {
-				const text = stdout.replace(/^﻿/, "").trim();
+				const text = stdout.replace(/^\uFEFF/, "").trim();
 				resolve(text === "" ? [] : JSON.parse(text));
 			} catch {
 				reject(/* @__PURE__ */ new Error("desktop-icon-powershell: invalid output"));
@@ -1419,6 +1436,7 @@ var WindowIconHolder = class {
 			stderr = (stderr + chunk).slice(-4096);
 		});
 		child.on("error", (error) => {
+			if (this.child === child) this.child = void 0;
 			console.error("[skin-manager] window icon helper failed to start", error);
 		});
 		child.on("exit", (code) => {
