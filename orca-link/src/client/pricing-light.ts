@@ -451,8 +451,14 @@ export function installOrcaPricingLight(
         })
       }
     }
-    const verdict = modelControl === null ? undefined : isDeepSeekModelLabel(readModelLabel(modelControl))
-    if (verdict !== undefined) deepSeekModel = verdict
+    if (modelControl === null) {
+      // Views without the composer keep the light's established default.
+      // Preserve a prior verdict only while a mounted picker shows a loading placeholder.
+      deepSeekModel = true
+    } else {
+      const verdict = isDeepSeekModelLabel(readModelLabel(modelControl))
+      if (verdict !== undefined) deepSeekModel = verdict
+    }
     if (light !== null && light.hasAttribute(OTHER_MODEL_ATTRIBUTE) === deepSeekModel) {
       light.toggleAttribute(OTHER_MODEL_ATTRIBUTE, !deepSeekModel)
     }

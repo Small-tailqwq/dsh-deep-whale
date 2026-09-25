@@ -3526,8 +3526,10 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before { display: none; }
   body[data-dsh-orca-link] .spine,
   body[data-dsh-orca-link] .signalChip,
-  body[data-dsh-orca-link] .statusCharacter,
-  body[data-dsh-orca-link] .pricingLight { display: none; }
+  body[data-dsh-orca-link] .statusCharacter { display: none; }
+  /* Match the light's base selector specificity so this also hides its fixed
+     Windows caption placement at narrow widths. */
+  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight { display: none; }
   body[data-dsh-orca-link][data-orca-scene='hero'] .standby { display: none; }
 }
 
