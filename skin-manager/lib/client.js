@@ -777,6 +777,11 @@ window.__ModuleLoader__.load({
 			actionFailed: (message) => `操作失败：${message}`,
 			settingsTitle: "详细配置",
 			noSettings: "当前皮肤尚未暴露可配置项；仍可在上方正常激活和切换。",
+			desktopIconTitle: "桌面图标",
+			desktopIconLabel: "桌面快捷方式跟随皮肤",
+			desktopIconDescription: "把桌面、开始菜单、任务栏和窗口缩略图上的 DeepSeek Harness 图标换成当前皮肤的图标；关闭或切回官方默认时还原。仅 Windows 桌面端，开始菜单会在几秒后刷新。",
+			desktopIconPending: "正在更新快捷方式…",
+			desktopIconDone: (updated, failed) => failed > 0 ? `已更新 ${updated} 个快捷方式，${failed} 个没有权限修改（例如所有用户共享的快捷方式）。` : updated > 0 ? `已更新 ${updated} 个快捷方式。` : "快捷方式已是目标图标，或当前皮肤未提供桌面图标。",
 			schedulePolicy: "规则方式",
 			policyHideInRanges: "这些时段隐藏，其余时间显示",
 			policyShowInRanges: "这些时段显示，其余时间隐藏",
@@ -856,6 +861,11 @@ window.__ModuleLoader__.load({
 			actionFailed: (message) => `Operation failed: ${message}`,
 			settingsTitle: "Detailed Options",
 			noSettings: "The active skin exposes no configurable options yet; activation and switching above still work normally.",
+			desktopIconTitle: "Desktop Icon",
+			desktopIconLabel: "Shortcut icon follows the skin",
+			desktopIconDescription: "Show the active skin's icon for DeepSeek Harness on the desktop, Start menu, taskbar and window thumbnail; turning this off or returning to the official look restores it. Windows desktop app only; the Start menu refreshes after a few seconds.",
+			desktopIconPending: "Updating shortcuts…",
+			desktopIconDone: (updated, failed) => failed > 0 ? `Updated ${updated} shortcut(s); ${failed} could not be changed without elevation (for example shortcuts shared by all users).` : updated > 0 ? `Updated ${updated} shortcut(s).` : "Shortcuts already show the target icon, or the active skin ships no desktop icon.",
 			schedulePolicy: "Rule mode",
 			policyHideInRanges: "Hide during these periods, show otherwise",
 			policyShowInRanges: "Show during these periods, hide otherwise",
@@ -1539,6 +1549,7 @@ window.__ModuleLoader__.load({
 			const [switching, setSwitching] = (0, react.useState)(null);
 			const [copied, setCopied] = (0, react.useState)(null);
 			const [error, setError] = (0, react.useState)(null);
+			const [desktopIcon, setDesktopIcon] = (0, react.useState)(void 0);
 			const live = (0, react.useRef)(true);
 			const copyTimer = (0, react.useRef)(void 0);
 			const lang = useUiLang();
@@ -1548,9 +1559,10 @@ window.__ModuleLoader__.load({
 			(0, react.useEffect)(() => {
 				live.current = true;
 				setLoading(true);
-				fetchSkinCatalog().then((skins) => {
+				fetchSkinCatalogState().then((state) => {
 					if (!live.current) return;
-					setCatalog(skins);
+					setCatalog(state.skins);
+					setDesktopIcon(state.desktopIcon);
 				}).catch((reason) => {
 					if (live.current) setError(reason instanceof Error ? reason.message : String(reason));
 				}).finally(() => {
@@ -1700,7 +1712,66 @@ window.__ModuleLoader__.load({
 							children: copy.noSettings
 						})]
 					}),
+					desktopIcon !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(DesktopIconCard, { initial: desktopIcon }),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BackupCard, { registry })
+				]
+			});
+		}
+		/**
+		* Opt-in Windows desktop shortcut icon. The host only reports the status on
+		* the desktop shell, so the card never renders in a browser.
+		*/
+		function DesktopIconCard({ initial }) {
+			const copy = skinManagerCopy(useUiLang());
+			const [enabled, setEnabled] = (0, react.useState)(initial.enabled);
+			const [pending, setPending] = (0, react.useState)(false);
+			const [outcome, setOutcome] = (0, react.useState)(null);
+			const [error, setError] = (0, react.useState)(null);
+			const live = (0, react.useRef)(true);
+			(0, react.useEffect)(() => {
+				live.current = true;
+				return () => {
+					live.current = false;
+				};
+			}, []);
+			const toggle = (next) => {
+				setPending(true);
+				setOutcome(null);
+				setError(null);
+				requestDesktopIcon(next).then((result) => {
+					if (!live.current) return;
+					setEnabled(result.enabled);
+					setOutcome(result);
+				}).catch((reason) => {
+					if (live.current) setError(reason instanceof Error ? reason.message : String(reason));
+				}).finally(() => {
+					if (live.current) setPending(false);
+				});
+			};
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+				className: skin_manager_module_css_default.card,
+				"data-dsh-skin-desktop-icon": true,
+				children: [
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.desktopIconTitle }),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Toggle, {
+						checked: enabled,
+						label: copy.desktopIconLabel,
+						description: copy.desktopIconDescription,
+						disabled: pending,
+						onChange: toggle
+					}),
+					pending && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: skin_manager_module_css_default.hint,
+						children: copy.desktopIconPending
+					}),
+					outcome !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: outcome.failed > 0 ? skin_manager_module_css_default.error : skin_manager_module_css_default.hint,
+						children: copy.desktopIconDone(outcome.updated, outcome.failed)
+					}),
+					error !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+						className: skin_manager_module_css_default.error,
+						children: copy.actionFailed(error)
+					})
 				]
 			});
 		}
@@ -1876,12 +1947,34 @@ window.__ModuleLoader__.load({
 				]
 			});
 		}
-		/** Installed skin catalog; never waits for optional version probes. */
-		async function fetchSkinCatalog() {
+		/** Installed skin catalog plus host capabilities; never waits for optional version probes. */
+		async function fetchSkinCatalogState() {
 			const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: "same-origin" });
 			const result = await response.json();
 			if (!response.ok || result.ok !== true || !Array.isArray(result.skins)) throw new Error(result.error ?? `HTTP ${response.status}`);
-			return result.skins;
+			return {
+				skins: result.skins,
+				...typeof result.desktopIcon?.enabled === "boolean" ? { desktopIcon: { enabled: result.desktopIcon.enabled } } : {}
+			};
+		}
+		/** Installed skin catalog; never waits for optional version probes. */
+		async function fetchSkinCatalog() {
+			return (await fetchSkinCatalogState()).skins;
+		}
+		/** Turn the desktop shortcut icon sync on or off and report how many shortcuts changed. */
+		async function requestDesktopIcon(enabled) {
+			const response = await fetch(SKIN_MANAGER_ROUTE, {
+				method: "POST",
+				credentials: "same-origin",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({
+					action: "desktop-icon",
+					enabled
+				})
+			});
+			const result = await response.json();
+			if (!response.ok || result.ok !== true || result.desktopIcon === void 0) throw new Error(result.error ?? `HTTP ${response.status}`);
+			return result.desktopIcon;
 		}
 		/** Local-only version rows (git probes / build metadata, no network). */
 		async function fetchSkinLocalVersions() {
