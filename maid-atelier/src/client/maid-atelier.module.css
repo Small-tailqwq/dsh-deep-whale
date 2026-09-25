@@ -3549,14 +3549,30 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(+ *) 
   margin-block-end: 12px;
 }
 
-body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  [data-composer-card] + div[class*='dock'] {
+/* The dock hosts ContextMeter, whose tooltip is a non-portalled fixed bubble
+   positioned from viewport coordinates. A backdrop filter on the dock itself
+   would make it the bubble's containing block: the bubble then lands a whole
+   viewport below the sticky seat, stretches the conversation scrollport, and
+   the stick-to-bottom scroll carries the transcript away while hovering
+   (issue #151). Paint the glass on an isolated backing layer instead. */
+body[data-dsh-maid-atelier] [data-composer-card] + div[class*='dock'] {
+  --maid-dock-tint: rgba(248, 250, 255, 0.3);
+  position: relative;
+  isolation: isolate;
   color: #4a5d82;
+}
+
+body[data-dsh-maid-atelier] [data-composer-card] + div[class*='dock']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(248, 250, 255, 0.3) 10%,
-    rgba(248, 250, 255, 0.3) 90%,
+    var(--maid-dock-tint) 10%,
+    var(--maid-dock-tint) 90%,
     transparent
   );
   backdrop-filter: blur(2px);
@@ -3569,15 +3585,8 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-composer-card] + div[class*='dock'] {
+  --maid-dock-tint: rgba(10, 20, 48, 0.48);
   color: #aebdde;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(10, 20, 48, 0.48) 10%,
-    rgba(10, 20, 48, 0.48) 90%,
-    transparent
-  );
-  backdrop-filter: blur(2px);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
