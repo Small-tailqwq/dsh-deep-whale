@@ -8,7 +8,10 @@ import { hasMutationOutsideTranscript } from './mutation-filter.ts'
  *   switch, an early warning that hands the glow to red exactly at the peak
  *   start (08:40-09:00, 13:40-14:00).
  * Valley (green):  everything else, including all of Saturday and Sunday
- *   (flat valley rate since 2026-08-23); valley price is half of the peak.
+ *   (flat valley rate since 2026-08-23) and every Chinese statutory holiday;
+ *   valley price is half of the peak. Make-up workdays always fall on a
+ *   weekend and DeepSeek still bills them at the valley rate, so the weekend
+ *   rule already covers them.
  *
  * All wall-clock math is epoch-shifted by the fixed UTC+8 offset and read
  * through getUTC* accessors, so the result is identical in every host
@@ -30,6 +33,30 @@ const PEAK_WINDOWS: ReadonlyArray<readonly [start: number, end: number]> = [
 
 /** Amber early-warning window right before each valley-to-peak switch. */
 const TRANSITION_MINUTES = 20
+
+/**
+ * Statutory holidays that fall on a weekday, as Beijing MM-DD per year. Holiday
+ * days on a weekend are valley already. Source: State Council notices, cross-
+ * checked against the `chinese-days` dataset. The next year's schedule is
+ * published around November; add it here when it is.
+ */
+const WEEKDAY_HOLIDAYS: Readonly<Record<number, ReadonlySet<string>>> = {
+  2026: new Set([
+    '01-01', '01-02',
+    '02-16', '02-17', '02-18', '02-19', '02-20', '02-23',
+    '04-06',
+    '05-01', '05-04', '05-05',
+    '06-19',
+    '09-25',
+    '10-01', '10-02', '10-05', '10-06', '10-07',
+  ]),
+}
+
+/** Last year with holiday data; later dates fall back to the weekend rule only. */
+export const HOLIDAY_DATA_LAST_YEAR = Math.max(...Object.keys(WEEKDAY_HOLIDAYS).map(Number))
+
+/** Longest valley run a scan must cross: the National Day week plus adjoining weekends. */
+const NEXT_CHANGE_SCAN_DAYS = 31
 
 /** Beijing wall-clock minutes of day for any instant, host-timezone independent. */
 export function beijingMinutesOfDay(date: Date): number {
@@ -60,8 +87,30 @@ function isBeijingWeekend(date: Date): boolean {
   return weekday === 0 || weekday === 6
 }
 
+/** Whether a UTC+8-shifted day-start epoch is a weekday statutory holiday. */
+function isHolidayDayStart(dayStart: number): boolean {
+  const day = new Date(dayStart)
+  const monthDay = `${String(day.getUTCMonth() + 1).padStart(2, '0')}-${String(day.getUTCDate()).padStart(2, '0')}`
+  return WEEKDAY_HOLIDAYS[day.getUTCFullYear()]?.has(monthDay) === true
+}
+
+/** Beijing midnight of the instant's day, in the UTC+8-shifted epoch. */
+function beijingDayStart(date: Date): number {
+  return Math.floor((date.getTime() + BEIJING_OFFSET_MS) / DAY_MS) * DAY_MS
+}
+
+/** Statutory holidays run at the valley rate all day, like weekends. */
+export function isChinaHoliday(date: Date): boolean {
+  return isHolidayDayStart(beijingDayStart(date))
+}
+
+/** Whole-day valley: weekends (make-up workdays included) and statutory holidays. */
+function isValleyDay(date: Date): boolean {
+  return isBeijingWeekend(date) || isChinaHoliday(date)
+}
+
 export function priceBandAt(date: Date): PriceBand {
-  if (isBeijingWeekend(date)) return 'low'
+  if (isValleyDay(date)) return 'low'
   const minutes = beijingMinutesOfDay(date)
   const upcoming = PEAK_WINDOWS.some(([start]) => (
     minutes >= start - TRANSITION_MINUTES && minutes < start
@@ -78,18 +127,19 @@ function beijingWeekdayOfDayStart(dayStart: number): number {
 }
 
 /**
- * Next pricing switch instant. Weekdays change at the four Beijing boundaries
- * 09:00 / 12:00 / 14:00 / 18:00; weekends stay flat at valley price all day,
- * so the next switch after Friday 18:00 or during any weekend instant is
- * Monday 09:00. The per-day scan is exact because every candidate boundary is
- * visited in order and weekends emit none.
+ * Next pricing switch instant. Workdays change at the four Beijing boundaries
+ * 09:00 / 12:00 / 14:00 / 18:00; weekends and statutory holidays stay flat at
+ * valley price all day, so the next switch after Friday 18:00 or during any
+ * such day is the next workday's 09:00. The per-day scan is exact because
+ * every candidate boundary is visited in order and valley days emit none; its
+ * horizon covers the longest holiday run (National Day plus weekends).
  */
 export function nextPriceChangeAt(date: Date): Date {
   const beijingEpoch = date.getTime() + BEIJING_OFFSET_MS
-  let dayStart = Math.floor(beijingEpoch / DAY_MS) * DAY_MS
-  for (let day = 0; day <= 7; day += 1) {
+  let dayStart = beijingDayStart(date)
+  for (let day = 0; day <= NEXT_CHANGE_SCAN_DAYS; day += 1) {
     const weekday = beijingWeekdayOfDayStart(dayStart)
-    if (weekday === 0 || weekday === 6) {
+    if (weekday === 0 || weekday === 6 || isHolidayDayStart(dayStart)) {
       dayStart += DAY_MS
       continue
     }
@@ -102,7 +152,7 @@ export function nextPriceChangeAt(date: Date): Date {
     }
     return new Date(dayStart + nextHour * HOUR_MS - BEIJING_OFFSET_MS)
   }
-  // Unreachable in practice: any 8-day span contains at least one weekday.
+  // Unreachable in practice: no holiday run spans a whole month.
   return new Date(dayStart + 9 * HOUR_MS - BEIJING_OFFSET_MS)
 }
 
@@ -120,6 +170,8 @@ export interface PriceSchedule {
   priceLine: string
   /** Tooltip row: when and how pricing changes next, localized. */
   nextChangeLine: string
+  /** Tooltip row: valley schedule, with a note once holiday data runs out. */
+  valleyWindowsLine: string
 }
 
 /** Localized status/price/next copy per band. */
@@ -145,13 +197,22 @@ const BAND_COPY: Record<PriceBand, BandCopy> = {
 }
 
 const VALLEY_WINDOWS_LINE = {
-  zh: '周末全天及非高峰时段, 价格为高峰的一半',
-  en: 'Weekends and weekday off-peak hours at half peak price',
+  zh: '周末、法定节假日全天及非高峰时段, 价格为高峰的一半',
+  en: 'Weekends, public holidays and off-peak hours at half peak price',
 }
 
 const PEAK_WINDOWS_LINE = {
   zh: '工作日 09:00-12:00 / 14:00-18:00',
-  en: 'Weekdays 09:00-12:00 / 14:00-18:00',
+  en: 'Workdays 09:00-12:00 / 14:00-18:00',
+}
+
+/** Valley row suffix once the clock passes the bundled holiday data. */
+function holidayCoverageNote(date: Date, chinese: boolean): string {
+  const year = new Date(date.getTime() + BEIJING_OFFSET_MS).getUTCFullYear()
+  if (year <= HOLIDAY_DATA_LAST_YEAR) return ''
+  return chinese
+    ? ` (节假日数据仅到 ${HOLIDAY_DATA_LAST_YEAR} 年)`
+    : ` (holiday data ends in ${HOLIDAY_DATA_LAST_YEAR})`
 }
 
 /** Beijing weekday labels for the "next change" line, indexed by 0 = Sunday. */
@@ -183,7 +244,7 @@ export function priceScheduleAt(date: Date, chinese = detectChinese()): PriceSch
   if (dayGap === 1) {
     nextTime = chinese ? `${nextTime} 明日` : `${nextTime} tomorrow`
   } else if (dayGap > 1) {
-    // Crossing a weekend: name the weekday instead of a vague "tomorrow".
+    // Crossing a weekend or holiday: name the weekday instead of a vague "tomorrow".
     const weekday = chinese
       ? WEEKDAY_LABELS.zh[beijingWeekday(next)]
       : WEEKDAY_LABELS.en[beijingWeekday(next)]
@@ -191,7 +252,9 @@ export function priceScheduleAt(date: Date, chinese = detectChinese()): PriceSch
   }
   const statusLine = isBeijingWeekend(date)
     ? (chinese ? '周末全天半价' : 'Weekend half price all day')
-    : band === 'transition'
+    : isChinaHoliday(date)
+      ? (chinese ? '法定节假日全天半价' : 'Public holiday half price all day')
+      : band === 'transition'
       ? (chinese
           ? `提前告警 · ${minutesUntilNextPeak(date)} 分钟后进入高峰`
           : `Early warning: peak in ${minutesUntilNextPeak(date)} min`)
@@ -202,6 +265,8 @@ export function priceScheduleAt(date: Date, chinese = detectChinese()): PriceSch
     statusLine,
     priceLine: copy.price,
     nextChangeLine: `${nextTime} ${copy.next}`,
+    valleyWindowsLine: (chinese ? VALLEY_WINDOWS_LINE.zh : VALLEY_WINDOWS_LINE.en)
+      + holidayCoverageNote(date, chinese),
   }
 }
 
@@ -222,6 +287,21 @@ export interface PricingLightClasses {
 
 const PRICE_LIGHT_SELECTOR = '[data-orca-link-price-light]'
 const SIDEBAR_PANE_SELECTOR = "[data-slot='sidebar'] > :first-child"
+/** ModelSelect is rendered inside this stable composer slot wrapper. */
+const MODEL_CONTROL_SELECTOR = "[data-slot='conversation.input.model'] button[aria-haspopup='menu']"
+/** The rendered name is preferred; title/ARIA cover host label-class changes. */
+const MODEL_LABEL_SELECTOR = "[class*='triggerLabel']"
+/** Set on the light while the selected model is not a DeepSeek model. */
+const OTHER_MODEL_ATTRIBUTE = 'data-orca-link-price-other-model'
+const PRICING_VISIBILITY_ATTRIBUTE = 'data-dsh-whale-orca-pricing'
+/**
+ * Projected on body while the light sits in the Windows caption row, so the
+ * caption menubar (a body-level shadow host) can step aside for it.
+ */
+const CAPTION_ATTRIBUTE = 'data-orca-price-caption'
+const COLLAPSED_FRAME_SELECTOR = '[data-sidebar-collapsed]'
+/** Host placeholders shown before a model resolves; they say nothing about it. */
+const UNRESOLVED_MODEL_LABELS = new Set(['正在加载模型…', '请选择模型', 'Loading models…', 'Select model'])
 
 const POLL_INTERVAL_MS = 15_000
 
@@ -283,10 +363,42 @@ function createLight(classes: PricingLightClasses): HTMLElement {
 }
 
 /**
+ * DeepSeek's peak/valley schedule only prices DeepSeek models. The picker shows
+ * a display name (or `provider/model` when the catalog lacks it), so any label
+ * naming DeepSeek counts; placeholders keep the previous verdict.
+ * @returns true / false for a resolved label, undefined when unknown.
+ */
+export function isDeepSeekModelLabel(label: string): boolean | undefined {
+  const text = label.trim()
+  if (text === '' || UNRESOLVED_MODEL_LABELS.has(text)) return undefined
+  return /deepseek/i.test(text)
+}
+
+/** Read the host model control even if its CSS-module label class changes. */
+function readModelLabel(control: HTMLElement): string {
+  const visibleLabel = control.querySelector<HTMLElement>(MODEL_LABEL_SELECTOR)?.textContent
+  const candidates = [visibleLabel, control.getAttribute('title'), control.getAttribute('aria-label'), control.textContent]
+  return candidates.find((candidate) => typeof candidate === 'string' && candidate.trim() !== '')?.trim() ?? ''
+}
+
+/** Whether the caption needs to reserve space for a light users can see. */
+function isPricingLightVisible(light: HTMLElement, doc: Document): boolean {
+  if (doc.documentElement.getAttribute(PRICING_VISIBILITY_ATTRIBUTE) === 'hidden') return false
+  const view = doc.defaultView
+  if (view === null) return true
+  const style = view.getComputedStyle(light)
+  return style.display !== 'none' && style.visibility !== 'hidden' && style.visibility !== 'collapse'
+}
+
+/**
  * Mount the pricing traffic light under the sidebar's DSH wordmark. The light
  * stays visible on both the collapsed rail and the expanded sidebar, so the
  * current pricing band is always glanceable. Hovering it opens a detail card
  * with the band, the effective price, the next switch, and the full schedule.
+ *
+ * The light shows only while the composer's selected model is a DeepSeek
+ * model. On the Windows desktop a collapsed sidebar is zero wide, so the light
+ * moves into the caption row beside the host's pinned controls.
  *
  * The copy follows the host UI language on every render: when no `chinese`
  * override is given the document/navigator heuristic is re-read, and a
@@ -307,6 +419,46 @@ export function installOrcaPricingLight(
   let light: HTMLElement | null = null
   let label: HTMLElement | null = null
   let tooltip: HTMLElement | null = null
+  let deepSeekModel = true
+  let observedModelControl: HTMLElement | null = null
+  const doc = body.ownerDocument
+
+  const syncCaption = (): void => {
+    const inCaption = light !== null && light.isConnected
+      && deepSeekModel
+      && isPricingLightVisible(light, doc)
+      && !body.hasAttribute('data-orca-settings-open')
+      && doc.documentElement.hasAttribute('data-windows-titlebar')
+      && body.querySelector(COLLAPSED_FRAME_SELECTOR) !== null
+    if (body.hasAttribute(CAPTION_ATTRIBUTE) !== inCaption) body.toggleAttribute(CAPTION_ATTRIBUTE, inCaption)
+  }
+
+  const syncModel = (): void => {
+    const modelControl = body.querySelector<HTMLElement>(MODEL_CONTROL_SELECTOR)
+    if (modelControl !== observedModelControl) {
+      modelObserver.disconnect()
+      observedModelControl = modelControl
+      // ModelSelect edits the visible name in place. Observe the named slot's
+      // trigger so text, accessible-label fallbacks and label-class changes
+      // all keep the verdict current without scanning unrelated menu buttons.
+      if (modelControl !== null) {
+        modelObserver.observe(modelControl, {
+          attributes: true,
+          attributeFilter: ['aria-label', 'title', 'class'],
+          characterData: true,
+          childList: true,
+          subtree: true,
+        })
+      }
+    }
+    const verdict = modelControl === null ? undefined : isDeepSeekModelLabel(readModelLabel(modelControl))
+    if (verdict !== undefined) deepSeekModel = verdict
+    if (light !== null && light.hasAttribute(OTHER_MODEL_ATTRIBUTE) === deepSeekModel) {
+      light.toggleAttribute(OTHER_MODEL_ATTRIBUTE, !deepSeekModel)
+    }
+    syncCaption()
+  }
+  const modelObserver = new MutationObserver(syncModel)
 
   const mount = (): void => {
     const pane = body.querySelector<HTMLElement>(SIDEBAR_PANE_SELECTOR)
@@ -327,6 +479,7 @@ export function installOrcaPricingLight(
 
   const render = (): void => {
     mount()
+    syncModel()
     if (light === null) return
     const zh = chineseOverride ?? detectChinese()
     const schedule = priceScheduleAt(now(), zh)
@@ -355,7 +508,7 @@ export function installOrcaPricingLight(
         price: schedule.priceLine,
         next: schedule.nextChangeLine,
         'peak-windows': zh ? PEAK_WINDOWS_LINE.zh : PEAK_WINDOWS_LINE.en,
-        'valley-windows': zh ? VALLEY_WINDOWS_LINE.zh : VALLEY_WINDOWS_LINE.en,
+        'valley-windows': schedule.valleyWindowsLine,
       }
       for (const [slot, value] of Object.entries(lines)) {
         const element = tooltip.querySelector<HTMLElement>(`[data-orca-link-price-value='${slot}']`)
@@ -366,10 +519,28 @@ export function installOrcaPricingLight(
 
   const observer = new MutationObserver((records) => {
     if (!hasMutationOutsideTranscript(records)) return
-    if (light !== null && light.isConnected) return
+    if (light !== null && light.isConnected) {
+      // Composer remounts and sidebar collapse flips change the model label or
+      // the caption seat without touching the light itself.
+      syncModel()
+      return
+    }
     render()
   })
-  observer.observe(body, { childList: true, subtree: true })
+  observer.observe(body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['data-sidebar-collapsed', 'data-orca-settings-open'],
+  })
+
+  const visibilityObserver = new MutationObserver(syncCaption)
+  visibilityObserver.observe(doc.documentElement, {
+    attributes: true,
+    attributeFilter: [PRICING_VISIBILITY_ATTRIBUTE],
+  })
+  const view = doc.defaultView
+  view?.addEventListener('resize', syncCaption)
 
   // The host repoints <html lang> whenever the locale changes; re-render the
   // hover card copy in place instead of waiting for the next poll tick.
@@ -387,7 +558,11 @@ export function installOrcaPricingLight(
   return () => {
     window.clearInterval(interval)
     observer.disconnect()
+    modelObserver.disconnect()
+    visibilityObserver.disconnect()
     langObserver.disconnect()
+    view?.removeEventListener('resize', syncCaption)
     body.querySelectorAll(PRICE_LIGHT_SELECTOR).forEach((element) => element.remove())
+    body.removeAttribute(CAPTION_ATTRIBUTE)
   }
 }
