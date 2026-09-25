@@ -489,6 +489,17 @@ describe('ORCA LINK pricing light model and desktop caption', () => {
     dispose()
   })
 
+  it('restores the default visibility when the model control disappears', async () => {
+    mountBody('Claude Sonnet 5')
+    const dispose = installOrcaPricingLight(document.body, classes, () => beijing(5, 10, 0), true)
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(true)
+
+    document.body.querySelector('[data-composer-card]')!.remove()
+    await flush()
+    expect(light().hasAttribute('data-orca-link-price-other-model')).toBe(false)
+    dispose()
+  })
+
   it('projects the caption seat only for a collapsed Windows desktop sidebar', async () => {
     document.documentElement.setAttribute('data-windows-titlebar', '')
     mountBody('DeepSeek V4 Flash')
@@ -573,6 +584,11 @@ describe('ORCA LINK pricing light CSS cascade', () => {
 
   it('hides the light for other models with the full base chain', () => {
     expect(css).toMatch(/body\[data-dsh-orca-link\] \[data-slot='sidebar'\] > :first-child > \.pricingLight\[data-orca-link-price-other-model\] \{\s*display: none;/)
+  })
+
+  it('hides the light at narrow widths with enough specificity for the caption rule', () => {
+    const narrow = css.split('@media (max-width: 900px) {')[1]?.split('@media (prefers-reduced-motion: reduce)')[0] ?? ''
+    expect(narrow).toMatch(/body\[data-dsh-orca-link\] \[data-slot='sidebar'\] > :first-child > \.pricingLight \{\s*display: none;/)
   })
 
   it('seats the light in the Windows caption and moves the menubar aside', () => {
