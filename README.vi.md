@@ -32,49 +32,80 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 
 ## Cài đặt
 
-### Cài đặt một dòng (khuyến nghị)
+> [!NOTE]
+> Nếu bạn dùng dsh-web (đã cài `@linxin666/dsh-web-all`), hãy cài `maid-atelier` và `orca-link` từ trung tâm giao diện của chính dsh-web, đừng chạy các lệnh bên dưới. Hai bản được điều chỉnh riêng, cài lẫn vào cùng một profile sẽ làm giao diện hiển thị sai.
 
-> **Trước tiên hãy kiểm tra bản phân phối:** các lệnh dưới đây chỉ dành cho môi trường standalone chạy DSH trực tiếp. Nếu bạn đã cài `@linxin666/dsh-web-all` (dsh-web), hãy cài các bản `maid-atelier` và `orca-link` tương thích từ trung tâm giao diện/trình cài đặt của chính dsh-web. Không cài chồng các package standalone của kho này vào cùng profile vì hợp đồng component và style khác nhau, có thể làm giao diện hiển thị sai.
-
-Ba package phân phối (trình quản lý + hai giao diện) đã được phát hành trên npm. Khi không chỉ định dist-tag, lệnh này cài bản ổn định `latest` — **không cần clone**.
-
-**Linux / macOS / WSL:**
+Chỉ cần sao chép lệnh phù hợp với shell của bạn và chạy, không cần clone kho:
 
 ```sh
+# Linux / macOS / WSL
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-**PowerShell** (`#` bắt đầu chú thích, spec phải bọc trong dấu nháy; dùng `;` thay cho `&&`):
-
 ```powershell
+# PowerShell
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-Chỉ muốn dùng một giao diện thì xóa dòng không cần (khuyến nghị giữ skin-manager vì chuyển đổi và xung đột đều dựa vào nó).
+Sau đó **khởi động lại DSH một lần**, mở «Cài đặt → Quản lý giao diện» và nhấn «Chuyển» trên giao diện bạn muốn. Từ đó trở đi, đổi giao diện có hiệu lực ngay, không cần khởi động lại.
 
-Lần đầu cài đặt là thêm package mới, cần khởi động lại DSH một lần. Khi khởi động lại, skin-manager sẽ phát hiện "hai giao diện cùng bật" và **tự động hoàn nguyên về mặc định chính thức**, nên lần đầu cài sẽ không bị chồng giao diện; sau đó mở «Cài đặt → Quản lý giao diện» nhấn «Chuyển» trên giao diện mong muốn — tải lại nóng sẽ áp dụng ngay. Các lần chuyển sau không cần khởi động lại hay AI hỗ trợ.
+- Chỉ muốn một giao diện? Bỏ phần `add` của giao diện còn lại khỏi lệnh. Nên giữ trình quản lý vì việc chuyển đổi cần đến nó.
+- Nếu cài cả hai giao diện, sau lần khởi động lại đầu tiên DSH vẫn trông như mặc định chính thức. Đó là bình thường: hai giao diện chạy cùng lúc sẽ xung đột, nên trình quản lý tắt cả hai để bạn tự chọn.
+- Không muốn gõ lệnh? Gửi câu sau cho bất kỳ trợ lý AI nào (hoặc chính DSH), nó sẽ cài theo [INSTALL.md](INSTALL.md):
 
-> Để theo dõi trực tiếp nhánh GitHub `main`, dùng `github:Small-tailqwq/dsh-deep-whale#path:/<thư-mục-con>` (yêu cầu pnpm ≥ 9). Phát triển cục bộ xem [Cài đặt package con độc lập](#cài-đặt-package-con-độc-lập-phát-triển-và-dự-phòng-mạng-yếu). npm, GitHub và link cục bộ là các nguồn khác nhau cho cùng tên package; lần `add` cuối cùng sẽ thắng.
+  ```
+  Đọc https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md và cài các giao diện của kho này theo hướng dẫn
+  ```
 
-### Cập nhật
-
-**Linux / macOS / WSL:**
+## Cập nhật
 
 ```sh
+# Linux / macOS / WSL
 dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
 ```
 
-**PowerShell** (token bắt đầu bằng `@` nên thêm ngoặc kép):
-
 ```powershell
+# PowerShell
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-Dependency npm mặc định theo `latest`; `update` sẽ phân giải lại phiên bản hiện được gắn tag đó. Dependency GitHub sẽ phân giải lại commit mới nhất. Bạn cũng có thể chạy `dsh plugin --profile web update` không kèm tên package (cập nhật toàn bộ profile; tương đương nếu chỉ cài các package này). Nội dung bundle cập nhật qua tải lại nóng cấu hình; chỉ khi thêm/xóa package mới cần khởi động lại.
+Cập nhật xong chỉ cần tải lại trang, không cần khởi động lại DSH. Nếu profile này chỉ có các giao diện của kho, có thể chạy `dsh plugin --profile web update` để cập nhật tất cả.
 
-### Di chuyển từ scope giữ chỗ cũ
+## Khi gặp sự cố
 
-Các bản cài từ GitHub trước `0.1.3` dùng dependency key `@dsh-external/*`. Scope đó chỉ là giá trị giữ chỗ trong mã nguồn của dự án. Hãy xóa cả ba key cũ trước khi chạy lệnh npm một dòng ở trên; nếu không DSH có thể giữ đồng thời hai danh tính plugin:
+**Giao diện biến mất sau khi nâng cấp DSH**
+
+Mỗi giao diện chỉ khai báo hỗ trợ những phiên bản DSH đã được điều chỉnh (hiện là dòng 0.1.7). Khi DSH mới hơn giao diện, DSH sẽ tự tắt giao diện và trở về giao diện chính thức, tránh việc giao diện cũ che mất các điều khiển như ô nhập.
+
+Hãy cập nhật giao diện trước. Nếu chưa có bản mới mà vẫn muốn dùng tạm bản cũ, mở «Cài đặt → Quản lý giao diện»: giao diện bị tắt sẽ được ghi chú là chưa khai báo hỗ trợ phiên bản DSH hiện tại. Nhấn «Chuyển» và xác nhận. Việc cho phép này chỉ áp dụng cho phiên bản giao diện và phiên bản DSH hiện tại, sẽ được kiểm tra lại khi một trong hai thay đổi; bạn có thể quay về «Mặc định chính thức» bất cứ lúc nào.
+
+<details>
+<summary>Cho phép bằng dòng lệnh</summary>
+
+```sh
+dsh plugin --profile web allow-version @smalltailqwq/dsh-client-ui-skin-orca-link@<phiên bản giao diện> --dsh-version <phiên bản DSH> --accept-risk
+```
+
+</details>
+
+**Giao diện bị rối: mất nút cài đặt, thanh bên sai độ rộng, trang trí chồng lên nhau**
+
+Thường là do hai giao diện đang chạy cùng lúc. Mở «Cài đặt → Quản lý giao diện», nhấn «Mặc định chính thức» hoặc một giao diện bất kỳ rồi tải lại trang. Nếu không mở được Cài đặt, hãy mở mục [Cơ chế loại trừ giao diện](#mutual-exclusion) bên dưới để sửa thủ công.
+
+**Đã cài nhưng trang không thay đổi**
+
+Hãy tải lại trình duyệt trước. Nếu vẫn không đổi, kiểm tra trong «Cài đặt → Quản lý giao diện» xem giao diện đã được bật chưa.
+
+Xem thêm [Các lỗi cài đặt thường gặp](#install-errors) bên dưới.
+
+## Nâng cao
+
+Phần lớn người dùng không cần đến các mục dưới đây; hãy mở khi cần.
+
+<details>
+<summary><b>Chuyển từ phiên bản trước 0.1.3</b></summary>
+
+Các bản cài từ GitHub trước `0.1.3` dùng tên package cũ `@dsh-external/*`. Hãy gỡ ba package này trước rồi cài lại theo mục [Cài đặt](#cài-đặt); nếu không, DSH sẽ giữ hai bản của cùng một plugin:
 
 ```sh
 dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-orca-link'
@@ -82,45 +113,47 @@ dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-maid-atelier'
 dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-manager'
 ```
 
-Sau khi thêm package mới, khởi động lại DSH một lần. Tùy chọn giao diện vẫn được lưu theo skin id `maid-atelier` / `orca-link` và không bị đổi tên theo npm scope.
+Sau đó khởi động lại DSH một lần. Giao diện bạn đã chọn và các thiết lập của nó được giữ nguyên, không bị ảnh hưởng bởi việc đổi tên.
 
-### Lười gõ lệnh? Để AI cài
+</details>
 
-Dán đoạn sau vào bất kỳ AI nào (hoặc chính dsh). [INSTALL.md](INSTALL.md) là điểm vào chuẩn: AI sẽ đọc và được dẫn đến kỹ năng `dsh-skin-install` đi kèm — cài đặt thông thường chạy cùng lệnh một dòng ở trên, còn các luồng di chuyển cũ, phát triển cục bộ, kiểm tra commit cụ thể thì theo quy trình kỹ năng (dàn xếp xung đột trước, link đường dẫn tuyệt đối, xác minh khởi động lạnh).
+<details>
+<summary><b>Cài từ GitHub hoặc thư mục cục bộ (phát triển / mạng hạn chế)</b></summary>
 
-```
-Đọc https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md và cài đặt các giao diện từ kho này theo hướng dẫn
-```
+Để theo dõi trực tiếp nhánh GitHub `main`, thay mỗi tên package bằng `github:Small-tailqwq/dsh-deep-whale#path:/<thư-mục-con>` (cần pnpm ≥ 9; trong PowerShell phải bọc bằng dấu nháy đơn).
 
-### Cơ chế xung đột giao diện (bắt buộc đọc)
-
-- Trước hết cần phân biệt: `skin-manager` không phải giao diện mà là **trình quản lý giao diện** (cung cấp khám phá, chuyển đổi và bảng tùy chỉnh), cần bật thường trực; đối tượng xung đột là **bản thân giao diện** — trong kho này là maid-atelier và orca-link.
-- Bật/tắt giao diện được kiểm soát bởi lớp patch: `~/.dsh/profiles/web/cordis.patch.yml` (lớp profile) và `~/.dsh/cordis.patch.yml` (lớp home) mỗi file có các dòng `- id: <wiring.id>` + `disabled: true/false` (**cả hai lớp đều phải viết**; lớp home ưu tiên cao hơn).
-- **Giao diện không có dòng `disabled` → mặc định bật.** Nên khi chỉ cài một giao diện, nó chạy ngay; cài cả hai cùng lúc mà chưa từng chuyển đổi thì chúng sẽ **chạy đồng thời**: lớp trang trí chồng lên nhau, thanh bên/khu vực cài đặt bị lỗi. Triệu chứng điển hình: **nút cài đặt biến mất, chiều rộng/bố cục thanh bên bất thường, giao diện lộn xộn** (giao diện gốc vẫn bình thường).
-- **skin-manager bảo vệ xung đột**: cài đặt một dòng đăng ký cả ba package; khi khởi động lại lần đầu, trình quản lý gộp trạng thái profile→home, phát hiện hai giao diện trở lên cùng bật → tự động hoàn nguyên về "mặc định chính thức" và ghi dòng xung đột. Lựa chọn hợp lệ (không hoặc một giao diện) không bao giờ bị ghi đè. Không cần dàn xếp thủ công trước.
-- skin-manager (Cài đặt → Quản lý giao diện) sẽ tự động ghi dòng xung đột vào cả hai lớp patch khi kích hoạt; khi sửa thủ công "chỉ giữ một giao diện" phải **tường minh tắt mọi giao diện khác**.
-- Khi đã cài skin-manager, các mục tùy chỉnh giao diện (như khung giờ hiển thị của "chế độ ít anime hơn") được lưu trong trình duyệt hiện tại, do trình quản lý áp dụng thống nhất.
-
-### Cài đặt package con độc lập (phát triển và dự phòng mạng yếu)
-
-> Người dùng thông thường không cần phần này: cài đặt npm một dòng không cần clone. Phần này dành cho phát triển cục bộ, kiểm tra commit cụ thể, hoặc khi registry không khả dụng. Dependency npm/GitHub và link cục bộ tham chiếu cùng tên package — chọn một và nhất quán.
+Khi phát triển cục bộ hoặc không kết nối được npm, hãy clone kho và cài từ các thư mục:
 
 ```sh
-git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone ở bất kỳ đâu (shallow là đủ, bỏ qua lịch sử)
-node <đường dẫn tuyệt đối clone>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
-dsh plugin --profile web add <đường dẫn tuyệt đối clone>/skin-manager   # bảng quản lý giao diện thường trực (khuyến nghị)
-dsh plugin --profile web add <đường dẫn tuyệt đối clone>/maid-atelier   # Xưởng hầu biển sâu
-dsh plugin --profile web add <đường dẫn tuyệt đối clone>/orca-link      # ORCA LINK
+git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale
+node <đường dẫn tuyệt đối tới bản clone>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
+dsh plugin --profile web add <đường dẫn tuyệt đối tới bản clone>/skin-manager
+dsh plugin --profile web add <đường dẫn tuyệt đối tới bản clone>/maid-atelier
+dsh plugin --profile web add <đường dẫn tuyệt đối tới bản clone>/orca-link
 ```
 
-> Lệnh `node` đầu tiên là **tối ưu tùy chọn**: dàn đặt trước mọi `plugin add`, đặt giao diện mục tiêu là giao diện duy nhất được bật để lần khởi động đầu tiên đã là giao diện đó; giữ nguyên YAML không phải giao diện, không ghi đè toàn bộ patch. Bỏ qua cũng an toàn — skin-manager sẽ hoàn nguyên về mặc định khi khởi động lạnh, sau đó chuyển trong Cài đặt → Quản lý giao diện. Dùng `--target orca-link` cho ORCA LINK hoặc `--target official` cho giao diện gốc.
+- Dòng `node` là tùy chọn. Nó chọn sẵn giao diện mặc định để lần khởi động đầu đã hiển thị giao diện đó; `--target` nhận `maid-atelier`, `orca-link` hoặc `official`. Bỏ qua thì lần đầu sẽ là giao diện chính thức, sau đó chuyển trong Quản lý giao diện.
+- Nên dùng **đường dẫn tuyệt đối**. Trên Windows dùng dấu gạch chéo nào cũng được, ví dụ `C:/Users/<bạn>/code/dsh-deep-whale/maid-atelier`.
+- Đừng chỉ ghi tên thư mục: `dsh plugin --profile web add maid-atelier` sẽ bị hiểu là tên package npm và báo lỗi 404. Đường dẫn tương đối phải bắt đầu bằng `./` hoặc `../` và được tính từ **thư mục nơi bạn chạy lệnh dsh**, không phải thư mục kho giao diện. Đường dẫn sai sẽ không báo lỗi, chỉ là giao diện không được tải.
+- npm, GitHub và thư mục cục bộ đều cài cùng một tên package; lần `add` cuối cùng sẽ được dùng, vì vậy đừng trộn lẫn.
 
-**Cách A (khuyến nghị): Cài đặt → Quản lý giao diện → nhấn «Chuyển» trên giao diện muốn dùng.** Trình quản lý tự động ghi dòng `disabled` xung đột vào cả hai lớp patch và tải lại nóng; chỉ cần tải lại trang.
+</details>
 
-**Cách B: Sửa thủ công cả hai lớp patch.** Thêm các dòng sau vào **cả** `~/.dsh/profiles/web/cordis.patch.yml` **và** `~/.dsh/cordis.patch.yml` (cả hai đều bắt buộc; lớp home ghi đè lớp profile):
+<details>
+<summary><a name="mutual-exclusion"></a><b>Cơ chế loại trừ giao diện</b></summary>
+
+Mỗi lúc chỉ bật được một giao diện. Trình quản lý không phải là giao diện và cần luôn được bật.
+
+Công tắc bật/tắt của mỗi giao diện nằm trong hai tệp cấu hình: `~/.dsh/profiles/web/cordis.patch.yml` (lớp profile) và `~/.dsh/cordis.patch.yml` (lớp home, được ưu tiên hơn). Giao diện chưa có mục trong các tệp này mặc định là **bật**, nên cài cả hai mà chưa từng chuyển đổi thì chúng sẽ chạy cùng lúc và làm rối giao diện.
+
+Trình quản lý sẽ xử lý việc này:
+
+- Mỗi lần khởi động, nếu có từ hai giao diện trở lên đang bật, nó tắt tất cả và trở về mặc định chính thức. Nếu bạn đã chọn một giao diện thì giữ nguyên.
+- Khi chuyển trong «Cài đặt → Quản lý giao diện», nó ghi công tắc vào cả hai tệp và áp dụng ngay.
+
+Nếu không dùng được trình quản lý, hãy sửa tệp thủ công. Thêm nội dung sau vào **cả hai** tệp; đặt giao diện muốn dùng là `false`, giao diện còn lại là `true`:
 
 ```yaml
-# Ví dụ: chỉ bật maid-atelier; đổi sang orca-link thì chuyển false sang dòng đó, chỉ một trong hai giao diện được false
 - id: ui-skin-maid-atelier
   disabled: false
 - id: ui-skin-orca-link
@@ -129,53 +162,45 @@ dsh plugin --profile web add <đường dẫn tuyệt đối clone>/orca-link   
   disabled: false
 ```
 
-> Nếu file patch vẫn là template mặc định của dsh (chú thích + một dòng `[]`), hãy **thay thế toàn bộ dòng `[]` bằng danh sách trên** — "chú thích + `[]` + các mục khác" là YAML không hợp lệ, phân tích cấu hình sẽ thất bại (máy chủ giữ cấu hình cũ tiếp tục chạy; sửa file rồi tải lại).
+Nếu tệp vẫn là mẫu mặc định của DSH (vài dòng chú thích cùng một dòng `[]`), hãy **thay** dòng `[]` bằng danh sách trên; để cả hai sẽ làm tệp không hợp lệ. Bạn cũng có thể chạy `stage-mutual-exclusion.mjs` ở mục trước để tự ghi, hoặc gỡ giao diện không dùng bằng `dsh plugin --profile web remove <tên package>`.
 
-Ví dụ Windows (dấu gẩy chéo và gẩy chéo ngược đều được; pnpm sẽ chuẩn hóa):
-```powershell
-dsh plugin --profile web add C:/Users/<bạn>/code/dsh-deep-whale/skin-manager
-dsh plugin --profile web add C:/Users/<bạn>/code/dsh-deep-whale/maid-atelier
-```
+Thiết lập riêng của từng giao diện (ví dụ khung giờ của «chế độ bớt anime») được lưu trong trình duyệt hiện tại và do trình quản lý áp dụng.
 
-### Đã cài quá nhiều / Giao diện bị lỗi thì làm gì?
+</details>
 
-Triệu chứng: nút cài đặt biến mất, thanh bị trang trí che hoặc chiều rộng bất thường, giao diện lộn xộn (khôi phục khi tắt giao diện).
-
-1. Mở Cài đặt → Quản lý giao diện, nhấn «Mặc định chính thức» hoặc bất kỳ giao diện nào — trình quản lý sẽ tự động ghi dòng xung đột và tải lại nóng; tải lại để khôi phục;
-2. Nếu trình quản lý không khả dụng (hoặc file cấu hình đã bị hỏng): chạy `stage-mutual-exclusion.mjs` ở trên với `--target official` hoặc giao diện mong muốn để khôi phục cả hai lớp patch;
-3. Hoặc đơn giản gỡ package không cần: `dsh plugin --profile web remove <package>`, sau đó kiểm tra lại dòng xung đột.
-
-### Quy tắc đường dẫn tương đối (dễ mắc lỗi)
-
-- Đường dẫn tương đối (bắt đầu bằng `./`, `../`) được phân giải theo **thư mục gọi lệnh dsh**, không phải thư mục kho giao diện.
-- **Không bao giờ dùng tên thư mục trần**: `dsh plugin --profile web add maid-atelier` sẽ bị coi là tên package npm và được tải từ registry, dẫn đến lỗi 404. Hãy dùng `./maid-atelier` (khi đã ở trong thư mục kho giao diện), `../dsh-deep-whale/maid-atelier` (khi dsh-deep-whale cùng cấp), hoặc đường dẫn tuyệt đối.
-- `../dsh-deep-whale/maid-atelier` sau `cd <harness>` chỉ hoạt động khi **dsh-deep-whale cùng cấp với thư mục harness**; nếu clone ở nơi khác, đường dẫn tương đối sẽ link sai vị trí (lệnh không báo lỗi nhưng giao diện không hoạt động). Không chắc thì dùng đường dẫn tuyệt đối.
-
-### Xác minh sau cài đặt
+<details>
+<summary><b>Kiểm tra cài đặt</b></summary>
 
 ```sh
-dsh plugin --profile web list          # phải thấy ba dependency @smalltailqwq/dsh-client-ui-skin-*
-dsh --profile web --dump-config        # dòng manager disabled: false; hai giao diện xung đột: đúng một cái false
+dsh plugin --profile web list          # phải thấy ba package @smalltailqwq/dsh-client-ui-skin-*
+dsh --profile web --dump-config        # trình quản lý là disabled: false; đúng một trong hai giao diện là false
 ```
 
-> Ngay sau cài đặt một dòng, **trước khi khởi động lại lần đầu**, `--dump-config` phụ thuộc vào lớp patch của bạn: môi trường sạch thì cả hai giao diện chưa có dòng xung đột (mặc định bật — trạng thái chuyển tiếp bình thường; skin-manager sẽ ghi dòng xung đột khi khởi động lại lần đầu). Nếu lớp home đã có dòng xung đột từ lần cài trước, trạng thái đó được tái sử dụng. Sau khởi động lạnh, phải kiểm tra danh sách client trong console trình duyệt (chỉ có entry cấu hình không chứng minh bundle trình duyệt đã đăng ký). Trang HTML khởi động phải tham chiếu `/plugins/<tên package thật>/client.js` cho manager và giao diện đang bật; carrier khác nhau theo phiên bản DSH (bản cũ đặt trong JSON `window.__DSH_BOOT__`, 0.1.1rc2+ dùng thẻ `<script src>` trực tiếp), dòng lệnh sau hoạt động cho cả hai:
+Ngay sau khi cài và trước khi khởi động lại, cả hai giao diện có thể hiển thị là đang bật. Điều đó bình thường; trình quản lý sẽ xử lý khi khởi động lại.
+
+Sau khi khởi động lại, bạn có thể chạy dòng sau trong console trình duyệt để xác nhận trang đã thực sự tải script giao diện:
 
 ```js
 document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
-Kết quả phải chứa manager và package giao diện đang bật; giao diện bị tắt có thể không xuất hiện. Tải lại trình duyệt để thấy giao diện; bật/tắt giao diện qua tải lại nóng cấu hình, không cần khởi động lại dsh (chỉ khi thêm/xóa package mới cần khởi động lại).
+Kết quả phải có trình quản lý và giao diện đang bật; giao diện bị tắt không xuất hiện là bình thường.
 
-### Bảng tra lỗi cài đặt
+</details>
+
+<details>
+<summary><a name="install-errors"></a><b>Các lỗi cài đặt thường gặp</b></summary>
 
 | Triệu chứng | Nguyên nhân | Khắc phục |
 |---|---|---|
-| `ERR_PNPM_FETCH_404` | Tên package npm/spec GitHub viết sai, mạng không khả dụng, hoặc dùng tên thư mục trần cho package con | Sao chép tên package npm ở trên; dùng đường dẫn tuyệt đối cho link phát triển |
-| `The matching commit...`/Không phân giải ref | **pnpm < 9**, cú pháp thư mục con `#path:` không được hỗ trợ | Nâng cấp pnpm lên ≥ 9 (`npm i -g pnpm@latest`) |
-| `ERR_PNPM_EXOTIC_SUBDEP` | Cố gắng cài "package gốc/tổng hợp" mang theo Git dependency (chính sách an ninh chuỗi cung ứng pnpm 11; kho này không cung cấp package như vậy) | Dùng lệnh npm một dòng ở trên để cài ba package phân phối |
-| `pnpm not found on PATH` | Môi trường thiếu pnpm | Cài pnpm (`npm i -g pnpm`) rồi thử lại |
-| Package có trong danh sách nhưng trang không hiệu ứng | Giao diện bị `disabled` (công tắc xung đột đa giao diện) hoặc trình duyệt chưa tải lại | Kiểm tra `disabled` trong `--dump-config`; tải lại trang |
-| Lệnh PowerShell không hoàn thành/lỗi | `#` không được đặt trong dấu nháy nên bị coi là chú thích | Luôn bọc spec trong dấu nháy đơn |
+| `ERR_PNPM_FETCH_404` | Sai tên package, không có mạng, hoặc chỉ ghi tên thư mục khi cài cục bộ | Sao chép tên package từ trang này; cài cục bộ thì dùng đường dẫn tuyệt đối |
+| `The matching commit...` / không phân giải được ref | pnpm cũ hơn 9 không hỗ trợ `#path:` | Nâng cấp pnpm: `npm i -g pnpm@latest` |
+| `ERR_PNPM_EXOTIC_SUBDEP` | Cài một package tổng hợp kéo thêm Git dependency (quy tắc an toàn của pnpm 11; kho này không có package như vậy) | Cài riêng ba package bằng lệnh trên trang này |
+| `pnpm not found on PATH` | Chưa cài pnpm | `npm i -g pnpm` rồi thử lại |
+| Đã cài nhưng trang không thay đổi | Giao diện đang tắt, hoặc trình duyệt chưa tải lại | Bật nó trong Quản lý giao diện rồi tải lại trang |
+| Lệnh PowerShell bị cắt hoặc lỗi | Tên package không có dấu nháy, phần sau `#` bị coi là chú thích | Luôn bọc tên package trong dấu nháy đơn |
+
+</details>
 
 ## Người đóng góp
 
