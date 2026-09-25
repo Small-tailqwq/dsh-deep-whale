@@ -52,25 +52,30 @@ describe('schedule editor', () => {
     expect(html).toContain('value="05" selected="">05</option>')
   })
 
-  it('scopes the switch hit area to the control instead of the whole row', () => {
+  it('draws the enable toggle with the host Switch, not a native checkbox', () => {
     const html = markup(() => renderToStaticMarkup(createElement(ScheduleEditor, {
       setting,
       value: { enabled: true, outside: 'visible', ranges: [] },
       onChange: () => {},
     })))
     // The row is a plain div: clicking the label copy or row blank space must
-    // not flip the setting.
+    // not flip the setting; only the switch button does.
     expect(html).not.toMatch(/<label class="[^"]*_toggleRow_[^"]*">/)
-    // The switch itself stays a label so the control (plus its small padded
-    // hit slack) is the only click target.
-    expect(html).toMatch(/<label class="[^"]*_toggleSwitch_[^"]*"><input type="checkbox" role="switch"/)
+    expect(html).toMatch(/<button type="button" role="switch" aria-checked="true" aria-label="SFW"/)
+    expect(html).not.toContain('type="checkbox"')
   })
 
-  it('shows the pointer hand over the whole switch and every select', () => {
-    // The checkbox keeps the UA default arrow cursor; the hit slack would
-    // show the hand while the control itself would not.
-    expect(css).toMatch(
-      /\.toggleSwitch input,\s*\.selectRow select,\s*\.rangeRow select\s*\{[^}]*cursor: pointer/s,
-    )
+  it('gives every select the host settings select geometry', () => {
+    const html = markup(() => renderToStaticMarkup(createElement(ScheduleEditor, {
+      setting,
+      value: { enabled: true, outside: 'visible', ranges: [{ start: '09:00', end: '12:00' }] },
+      onChange: () => {},
+    })))
+    // policy + 2 × (hour, minute)
+    expect(html.match(/<select class="[^"]*_selectInput_/g) ?? []).toHaveLength(5)
+    const rule = css.match(/\.selectInput\s*\{([^}]*)\}/)?.[1] ?? ''
+    for (const declaration of ['height: 32px', 'width: 240px', 'flex: none', 'text-overflow: ellipsis', 'cursor: pointer']) {
+      expect(rule).toContain(declaration)
+    }
   })
 })
