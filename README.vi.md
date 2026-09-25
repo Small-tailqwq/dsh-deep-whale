@@ -17,9 +17,9 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 
 | Giao diện | Tên package | Mô tả | Giấy phép |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | Xưởng hầu biển sâu: nền hai hầu gái, giao diện ren xanh biển sâu và thanh bên chibi | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | ORCA LINK: khoang cơ khí trắng ngọc, nhân vật orca-girl và tín hiệu liên kết xanh điện | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | Trình quản lý giao diện: khám phá, chuyển đổi và tùy chỉnh theo giao diện tự khai báo | MIT |
+| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | Xưởng hầu biển sâu: hai cô hầu gái cá voi, ren xanh biển sâu và thanh bên chibi biến DSH thành xưởng hầu gái | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | ORCA LINK: cô bé điều hành cá voi đen cực ngầu, giao diện toàn góc vuông cùng biểu tượng vẽ lại bằng nét thẳng; chế độ sáng thực dụng, chế độ tối dịu mắt | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | Trình quản lý giao diện: chuyển giữa các giao diện đã cài và điều chỉnh tùy chọn riêng của từng giao diện, trong «Cài đặt → Quản lý giao diện» | MIT |
 
 ## Chủ sở hữu bản quyền
 
