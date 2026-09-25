@@ -1741,6 +1741,11 @@ describe('Maid Atelier skin apply', () => {
     expect(glassRule).toContain('var(--maid-dock-tint) 10%')
     expect(glassRule).toContain('backdrop-filter: blur(2px)')
     expect(glassRule).toContain('pointer-events: none')
+    // The dock's own context confines the ContextMeter tooltip; it must stack
+    // above the composer card or the card covers the bubble.
+    const cardZ = Number(CSS.match(/body\[data-dsh-maid-atelier\] \[data-composer-card\] \{[^}]*z-index: (\d+)/)?.[1])
+    const dockZ = Number(dockRule.match(/z-index: (\d+)/)?.[1])
+    expect(dockZ).toBeGreaterThan(cardZ)
     expect(CSS).toMatch(/\[data-slot='conversation\.composer\.dock'\] > \* \[class\*='sep'\]\s*\{[^}]*rgba\(74, 93, 130, 0\.55\)/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\]\s*\[data-composer-card\] \+ div\[class\*='dock'\]\s*\{[^}]*--maid-dock-tint: rgba\(10, 20, 48, 0\.48\)[^}]*color: #aebdde/s)
   })
