@@ -249,6 +249,28 @@ describe('Orca Link skin apply', () => {
     expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(false)
   })
 
+  it('seats the signal chip in the logo row behind the macOS top strip', async () => {
+    document.body.innerHTML = `
+      <div data-slot="sidebar">
+        <div class="root">
+          <div class="x_topStrip"><button type="button" aria-label="Collapse sidebar"></button></div>
+          <div class="x_logoRow"><span class="x_brand"></span></div>
+        </div>
+      </div>
+    `
+    const pane = document.querySelector("[data-slot='sidebar'] > :first-child") as HTMLElement
+    pane.getBoundingClientRect = () => ({ width: 336 } as DOMRect)
+    fiber = await mount()
+    const chips = document.querySelectorAll('[data-orca-link-signal]')
+    expect(chips).toHaveLength(1)
+    expect(chips[0]!.parentElement).toBe(document.querySelector('.x_logoRow'))
+    // The window-button strip keeps only its own toggle.
+    expect(document.querySelector('.x_topStrip [data-orca-link-signal]')).toBeNull()
+    expect(document.querySelector('[data-orca-link-brand]')).toBeNull()
+    await fiber.dispose()
+    expect(document.querySelector('[data-orca-link-signal]')).toBeNull()
+  })
+
   it('commits the AppFrame target width only once across intermediate resize notifications', async () => {
     let notifyResize = (): void => {}
     class ResizeObserverStub {

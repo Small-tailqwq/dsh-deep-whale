@@ -2,7 +2,7 @@
 
 **简体中文** · [English](README.en.md) · [Tiếng Việt](README.vi.md)
 
-DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
+给 DeepSeek Harness（DSH）Web 界面换上鲸鱼娘主题的皮肤合集，附带一个用来切换皮肤的管理面板。
 
 ## 效果预览
 
@@ -17,9 +17,9 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 | 皮肤 | 包名 | 说明 | 许可 |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊:双女仆背景、深海蓝蕾丝界面与 Q 版侧栏 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | 虎鲸链路:珍珠白机械舱、虎鲸娘角色与电蓝链路信号 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | 通用皮肤发现、切换与皮肤自声明配置面板 | MIT |
+| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | 深海女仆工坊：两位鲸鱼娘女仆、深海蓝蕾丝与 Q 版侧栏，把 DSH 布置成女仆工坊 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | 虎鲸链路：酷酷的小黑鲸操作员，全直角界面加用直线重绘的图标；亮色机能，暗色治愈 | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | 皮肤管理器：切换已安装的皮肤，调整各皮肤自带的选项，在「设置 → 皮肤管理」中打开 | MIT |
 
 ## 版权所有人
 
@@ -32,59 +32,112 @@ DeepSeek Harness Web GUI 的鲸鱼娘主题皮肤系列(独立分发仓库)。
 
 ## 安装
 
-### 一行安装（推荐）
+> [!NOTE]
+> 如果你用的是 dsh-web（装过 `@linxin666/dsh-web-all`），请直接在 dsh-web 自带的皮肤中心里安装 `maid-atelier` 和 `orca-link`，不要再运行下面的命令。两边的皮肤是分别适配的，装在同一个 profile 里会让界面显示错乱。
 
-> **先确认发行版：**下面的命令只用于直接运行 DSH 的 standalone 环境。若已安装 `@linxin666/dsh-web-all`（dsh-web），请改从 dsh-web 自带的皮肤中心/安装入口安装其 `maid-atelier` 与 `orca-link` 适配版；不要在同一 profile 中再叠装本仓库的 standalone 包，否则组件与样式契约不一致，界面可能显示异常。
+皮肤可以从 npm 或 GitHub 安装，两种来源装的是同一套皮肤，区别在于更新节奏：
 
-三个发行包（皮肤管理器 + 两套皮肤）已发布到 npm。未指定 dist-tag 时安装稳定的 `latest`，**无需 clone**。
+| | npm（推荐） | GitHub |
+|---|---|---|
+| 拿到的版本 | 正式发布的版本，有固定版本号 | `main` 分支上的最新代码 |
+| 什么时候能用上修复 | 发版后约 24 小时（DSH 内置的 pnpm 默认只安装发布满一天的版本） | 修复合并后马上就能装 |
+| 网络 | 可以配置 npm 镜像源，国内一般更稳 | 需要能访问 GitHub |
 
-**Linux / macOS / WSL:**
+拿不准就选 npm。复制对应系统的命令运行即可，不需要 clone 仓库。
+
+**从 npm 安装**
 
 ```sh
+# Linux / macOS / WSL
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-**PowerShell**（用 `;` 分隔命令）：
-
 ```powershell
+# PowerShell
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-只想用其中一套皮肤时，把不需要的那行删掉（skin-manager 建议保留，切换与互斥都靠它）。
-
-首次安装是新增插件包，需要重启一次 DSH。重启时 skin-manager 会检测“两套皮肤同时启用”并**自动原子回退到官方默认**，所以首次安装不会出现皮肤叠加窗口；随后打开「设置 → 皮肤管理」点击目标皮肤「切换」即热重载生效，此后切换不再需要重启，也不需要 AI 参与。
-
-> 需要直接跟随 GitHub `main` 时，也可用 `github:Small-tailqwq/dsh-deep-whale#path:/<子目录>`（需要 pnpm ≥ 9）；本地开发见[独立子包安装](#独立子包安装本地开发与弱网备用)。npm、GitHub 与本地 link 是同一包名的不同来源，混用时以最后一次 `add` 为准。
-
-### 更新
-
-**Linux / macOS / WSL:**
+**从 GitHub 安装**
 
 ```sh
+# Linux / macOS / WSL
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+```powershell
+# PowerShell
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+两种来源用的是同一个包名，后装的会替换先装的。想从一种换到另一种，直接用另一组命令重新装一遍即可。
+
+装好后**重启一次 DSH**，然后打开「设置 → 皮肤管理」，在想用的皮肤上点「切换」就好。之后换皮肤都是即时生效，不用再重启。
+
+- 只想要其中一套皮肤？把命令里另一套皮肤的那段 `add` 删掉即可。皮肤管理器建议保留，切换皮肤要靠它。
+- 两套都装了的话，首次重启后界面还是官方默认的样子，这是正常的：两套皮肤同时启用会互相打架，管理器会先把它们都关掉，等你来选。
+- 不想自己敲命令，可以把这句话发给任意 AI（或 DSH 本身），它会按 [INSTALL.md](INSTALL.md) 帮你装好：
+
+  ```
+  读取 https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md 并按其中的指引安装本仓库皮肤
+  ```
+
+## 更新
+
+```sh
+# Linux / macOS / WSL
 dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
 ```
 
-**PowerShell**（`@` 开头 token 建议加引号）：
-
 ```powershell
+# PowerShell
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-npm 依赖默认跟随 `latest`；`update` 重新解析该标签当前指向的版本。GitHub 依赖则重新解析仓库最新提交。也可以不带包名执行 `dsh plugin --profile web update`（更新 profile 全部依赖，只装了本仓库皮肤时效果相同）。bundle 内容更新走配置热重载；只有新增/删除插件包才需要重启。
+这条命令对 npm 和 GitHub 两种来源都适用：npm 来源会更新到最新发布的版本，GitHub 来源会拉取 `main` 上的最新代码。更新后刷新页面即可，不需要重启 DSH。如果这个 profile 里只装了本仓库的皮肤，也可以直接运行 `dsh plugin --profile web update` 更新全部插件。
 
-### 升级 DSH 后皮肤不见了？
+刚发布的 npm 新版要满 24 小时后才能通过 `update` 装上，在此之前 `update` 会停在上一个版本，也不会报错（这是 DSH 内置的 pnpm 为防范恶意包设的默认延迟）。想马上用上某个新版，可以在包名后面加上 `@^版本号` 重新安装，版本号可以在 [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases) 查到：
 
-从 DSH 0.1.7-rc.1 开始，每个包都能在 `package.json` 里声明自己支持的 DSH 版本，DSH 启动时不会加载版本不符的插件。本仓库的两套皮肤只声明支持当前适配过的小版本（例如 `>=0.1.7-rc.1 <0.1.8-0`）：DSH 升级而皮肤还没跟上时，皮肤会被自动停用，界面回到官方默认，不会出现"输入框消失、没法让 AI 帮忙修"的情况。皮肤管理器只声明最低版本，升级 DSH 后照常可用。
+```sh
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.6'
+```
 
-遇到这种情况，先按上面的命令更新皮肤。想在新版 DSH 上先凑合用旧皮肤，就打开「设置 → 皮肤管理」：被停用的皮肤会标着「未声明支持当前的 DSH x.y.z，已被自动停用」，点「切换」并确认即可。确认只对"这个皮肤版本 + 这个 DSH 版本"生效，皮肤或 DSH 任意一方换了版本都会重新检查；不喜欢随时切回「官方默认」。命令行等价操作：
+版本号前的 `^` 不要省：省掉后会固定在这个版本，以后的 `update` 就不会再升级了。
+
+## 遇到问题
+
+**升级 DSH 后皮肤不见了**
+
+每套皮肤只声明支持自己适配过的 DSH 版本（目前是 0.1.7 系列）。DSH 升级到更新的版本而皮肤还没跟上时，DSH 会自动停用皮肤、恢复官方界面，免得皮肤把输入框之类的控件挡住。
+
+先按上面的命令更新皮肤。如果还没有新版，又想先用着旧皮肤，可以打开「设置 → 皮肤管理」：被停用的皮肤会显示「未声明支持当前的 DSH x.y.z，已被自动停用」，点「切换」并确认即可。这个放行只针对当前的皮肤版本和 DSH 版本，任意一方升级后会重新检查；用得不顺手随时切回「官方默认」。
+
+<details>
+<summary>用命令行放行</summary>
 
 ```sh
 dsh plugin --profile web allow-version @smalltailqwq/dsh-client-ui-skin-orca-link@<皮肤版本> --dsh-version <DSH 版本> --accept-risk
 ```
 
-### 从旧占位 scope 迁移
+</details>
 
-`0.1.3` 之前从 GitHub 安装的版本使用 `@dsh-external/*` 依赖键；它只是本项目过去的源码占位符。必须先移除三个旧键，再运行上面的 npm 一行安装，否则 DSH 可能同时保留两组插件身份：
+**界面乱了：设置按钮不见、侧栏宽度异常、装饰叠在一起**
+
+多半是两套皮肤同时在运行。打开「设置 → 皮肤管理」，点「官方默认」或任意一套皮肤，刷新页面即可恢复。如果连设置都打不开，展开下方的[皮肤互斥原理](#mutual-exclusion)，按其中的方法手动修复。
+
+**装了但页面没变化**
+
+先刷新浏览器；仍然没有的话，去「设置 → 皮肤管理」确认目标皮肤处于启用状态。
+
+更多情况见下方的[常见安装报错](#install-errors)。
+
+## 进阶说明
+
+以下内容大多数用户用不到，按需展开。
+
+<details>
+<summary><b>从 0.1.3 之前的旧版本迁移</b></summary>
+
+`0.1.3` 之前从 GitHub 安装的版本用的是 `@dsh-external/*` 这个旧包名。请先移除这三个旧包，再按[安装](#安装)重新装，否则 DSH 里会同时留着两份同样的插件：
 
 ```sh
 dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-orca-link'
@@ -92,45 +145,45 @@ dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-maid-atelier'
 dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-manager'
 ```
 
-随后重启一次 DSH。皮肤偏好按 `maid-atelier` / `orca-link` 的 skin id 保存，不会随 npm scope 改名。
+装好后重启一次 DSH。你之前选的皮肤和设置会保留，不受包名变化影响。
 
-### 懒得敲命令？让 AI 装
+</details>
 
-把下面这段话发给任意 AI（或 dsh 本体）即可。[INSTALL.md](INSTALL.md) 是标准安装入口：AI 会读到它后引导到仓库自带的 `dsh-skin-install` 技能——普通安装执行的是上面这一行命令，迁移旧安装、本地开发、测试指定提交等场景则按技能流程处理（预置互斥、绝对路径 link、冷启动验证），比手敲更稳。
+<details>
+<summary><b>从本地目录安装（开发 / 测试指定提交）</b></summary>
 
-```
-读取 https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md 并按其中的指引安装本仓库皮肤
-```
-
-### 皮肤互斥机制（必读）
-
-- 先分清：`skin-manager` 不是皮肤，而是**皮肤管理器**（提供发现、切换与定制面板），需要常驻启用；互斥的对象是**皮肤本身**——本仓库的皮肤是 maid-atelier 与 orca-link。
-- 皮肤启停由 patch 层控制：profile 的 `~/.dsh/profiles/web/cordis.patch.yml` 与 home 层的 `~/.dsh/cordis.patch.yml` 里各自的 `- id: <wiring.id>` + `disabled: true/false` 行（**两层都要写**，home 层优先级更高）。
-- **patch 里没有某皮肤行的 `disabled` 行 → 该皮肤默认启用**。所以只装一套皮肤时它开箱即用；一次装两套、又从未切换时它们会**同时运行**：装饰层互相叠加、侧栏/设置区被搅乱，典型症状是**设置按钮消失、侧栏宽度/布局异常、界面混乱**（原版正常）。
-- **互斥由 skin-manager 兜底**：一行安装同时注册三包，首次重启时管理器合并 profile→home 两层状态，检测到实际同时启用两套及以上皮肤 → 自动原子回退到“官方默认”并写入互斥行；已有零套或一套启用的合法选择不会被改写。无需在安装前手工预置。
-- skin-manager（设置 → 皮肤管理）激活时会自动把互斥行写入两个 patch 层；手写时“只保留一套”必须**显式停用其余每一套**。
-- 安装了皮肤管理器后，皮肤定制项（如“不那么二次元模式”的可见时段）保存在当前浏览器，由管理器统一应用。
-
-### 独立子包安装（本地开发与弱网备用）
-
-> 普通用户不需要使用本节：npm 一行安装无需 clone。本节用于本地开发、指定提交测试，或 registry 网络不可用时。npm/GitHub 依赖与本地 link 针对同一包名，用哪种就执行哪种，不要混跑。
+本地开发，或者想测试某个指定提交时，可以 clone 仓库后按目录安装：
 
 ```sh
-git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone 到任意位置（浅克隆足够，跳过历史）
+git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale
 node <clone 的绝对路径>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
-dsh plugin --profile web add <clone 的绝对路径>/skin-manager   # 常驻皮肤管理面板（推荐）
-dsh plugin --profile web add <clone 的绝对路径>/maid-atelier   # 深海女仆工坊
-dsh plugin --profile web add <clone 的绝对路径>/orca-link      # 虎鲸链路
+dsh plugin --profile web add <clone 的绝对路径>/skin-manager
+dsh plugin --profile web add <clone 的绝对路径>/maid-atelier
+dsh plugin --profile web add <clone 的绝对路径>/orca-link
 ```
 
-> 第一条 `node` 命令是**可选优化**：它在 `plugin add` 前把目标皮肤设为唯一启用项，使第一次启动直接就是目标皮肤；保留非皮肤 YAML，不整文件覆盖 patch。跳过它也安全——首次启动时 skin-manager 兜底会回退到官方默认，进「设置 → 皮肤管理」切换即可。要默认启用虎鲸则把 target 改成 `orca-link`，要保持原版则改成 `official`。
+- 第二行 `node` 命令可以跳过。它的作用是提前选好默认皮肤，让第一次启动直接就是这套皮肤；`--target` 可以写 `maid-atelier`、`orca-link` 或 `official`（官方默认）。跳过的话，首次启动是官方界面，再去皮肤管理里切换即可。
+- 路径请尽量写**绝对路径**，Windows 下正斜杠、反斜杠都行，例如 `C:/Users/<你>/code/dsh-deep-whale/maid-atelier`。
+- 不要只写目录名：`dsh plugin --profile web add maid-atelier` 会被当成 npm 包名去下载，结果 404。相对路径要以 `./` 或 `../` 开头，并且是相对于你**运行 dsh 命令时所在的目录**，不是皮肤仓库目录；路径算错时命令不会报错，但皮肤不会生效。
+- 本地目录和 npm、GitHub 来源用的是同一个包名，以最后一次 `add` 为准。
 
-**方式 A（推荐）：设置 → 皮肤管理 → 点击要用的那一套「切换」**。管理器自动把互斥 `disabled` 行写入两个 patch 层并热重载，刷新页面即可。
+</details>
 
-**方式 B：手写两个 patch 层**。把下面的行**追加到** `~/.dsh/profiles/web/cordis.patch.yml` **和** `~/.dsh/cordis.patch.yml`（两者缺一不可，home 层覆盖 profile 层）：
+<details>
+<summary><a name="mutual-exclusion"></a><b>皮肤互斥原理</b></summary>
+
+同一时间只能启用一套皮肤；皮肤管理器本身不算皮肤，需要一直开着。
+
+每套皮肤的开关记录在两个配置文件里：`~/.dsh/profiles/web/cordis.patch.yml`（profile 层）和 `~/.dsh/cordis.patch.yml`（home 层，优先级更高）。文件里没有写某套皮肤时，它默认是**开启**的，所以一次装两套又从没切换过，它们就会同时运行，导致界面错乱。
+
+皮肤管理器会处理这件事：
+
+- 每次启动时，如果发现有两套以上皮肤同时开着，会把它们全部关掉、回到官方默认，已经选好的单套皮肤不受影响；
+- 在「设置 → 皮肤管理」里切换时，会自动把开关写进两个配置文件并即时生效。
+
+管理器用不了时，可以手动修改。把下面的内容**同时**加到上面两个文件里，想启用哪套，就把哪套设为 `false`，另一套设为 `true`：
 
 ```yaml
-# 示例：只启用 maid-atelier；改为 orca-link 时把 false 移到它那行，两套皮肤只能有一套是 false
 - id: ui-skin-maid-atelier
   disabled: false
 - id: ui-skin-orca-link
@@ -139,53 +192,45 @@ dsh plugin --profile web add <clone 的绝对路径>/orca-link      # 虎鲸链�
   disabled: false
 ```
 
-> 若 patch 文件还是 dsh 的默认模板（注释 + 一行 `[]`），请**用上面的列表整体替换 `[]` 那一行**——“注释 + `[]` + 其他条目”是非法 YAML，配置解析会失败（服务器会保留上一个可用配置继续运行，修复后并刷新即可）。
+如果文件还是 DSH 的默认模板（几行注释加一行 `[]`），请用上面的内容**替换掉** `[]` 那一行，否则文件格式会出错。也可以运行上一节的 `stage-mutual-exclusion.mjs` 自动写好，或者用 `dsh plugin --profile web remove <包名>` 直接卸掉不用的皮肤。
 
-Windows 示例（正斜杠与反斜杠均可，pnpm 会自动规范化）：
-```powershell
-dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/skin-manager
-dsh plugin --profile web add C:/Users/<你>/code/dsh-deep-whale/maid-atelier
-```
+皮肤的个性化设置（例如「不那么二次元模式」的生效时段）保存在当前浏览器里，由管理器统一应用。
 
-### 装多了 / 出现异常怎么办
+</details>
 
-症状：设置按钮消失、侧栏被装饰层覆盖或宽度异常、界面混乱（停用皮肤后恢复）。
-
-1. 打开 设置 → 皮肤管理，点击「官方默认」或任一皮肤——管理器会自动写互斥行并热重载，刷新即可恢复；
-2. 管理器不可用时（或配置已被写坏）：运行上方 `stage-mutual-exclusion.mjs`，用 `--target official` 或目标皮肤恢复两个 patch 层；
-3. 也可以直接摘掉不用的包：`dsh plugin --profile web remove <包名>`，摘除后同样检查互斥行。
-
-### 相对路径的规则（容易踩坑）
-
-- 相对路径（`./`、`../` 开头）按 **dsh 命令的调用目录**解析，不是皮肤仓库目录。
-- **不要直接写裸目录名**：`dsh plugin --profile web add maid-atelier` 会被当作 npm 包名去 registry 拉取而 404 失败。请用 `./maid-atelier`（已在皮肤仓库目录内）、`../dsh-deep-whale/maid-atelier`（与 dsh-deep-whale 同级）或绝对路径。
-- `cd <harness>` 后用 `../dsh-deep-whale/maid-atelier` 的前提是 **dsh-deep-whale 与你的 harness 目录同级**；clone 到别处时相对路径会 link 到错误位置（命令不报错、但皮肤不生效）。不确定就用绝对路径。
-
-### 安装后验证
+<details>
+<summary><b>确认安装是否成功</b></summary>
 
 ```sh
-dsh plugin --profile web list          # 应看到三个 @smalltailqwq/dsh-client-ui-skin-* 依赖
-dsh --profile web --dump-config        # manager 行 disabled: false；两套皮肤互斥：skins 恰一套 false
+dsh plugin --profile web list          # 应该能看到三个 @smalltailqwq/dsh-client-ui-skin-* 包
+dsh --profile web --dump-config        # 管理器应为 disabled: false；两套皮肤中恰好一套为 false
 ```
 
-> 一行安装后、**尚未重启前** `--dump-config` 的状态取决于你的 patch 层：干净环境下两套皮肤都还没有互斥行（默认启用，是正常过渡态——首次重启时 skin-manager 兜底回退并写入互斥行）；若 home 层残留过互斥行（之前装过本仓库皮肤又卸载），则直接沿用该状态。冷启动后还必须在浏览器控制台检查 client roster（仅有配置 entry 不代表浏览器包已注册）。启动页 HTML 必须引用 manager 与启用皮肤的 `/plugins/<真实包名>/client.js`；不同 DSH 版本载体不同（旧版在 `window.__DSH_BOOT__` JSON 里，0.1.1rc2+ 是直接 `<script src>` 标签），下面这条两种版本都能用：
+刚装完、还没重启时，两套皮肤可能都显示为启用，这是正常的，重启后管理器会处理。
+
+重启后还可以在浏览器控制台运行下面这行，确认页面确实加载了皮肤脚本：
 
 ```js
 document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
-结果必须包含 manager 与当前启用的皮肤包名；被停用的皮肤可以不出现。刷新浏览器页面即可看到皮肤；皮肤开关走配置热重载，无需重启 dsh（新增/删除插件包才需要重启）。
+结果里应包含管理器和当前启用的那套皮肤；停用的皮肤不出现是正常的。
 
-### 常见安装失败排查
+</details>
+
+<details>
+<summary><a name="install-errors"></a><b>常见安装报错</b></summary>
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| `ERR_PNPM_FETCH_404` | npm 包名/GitHub spec 拼写错误、网络不可用，或独立子包用了裸目录名 | 正式安装复制上方 npm 包名；开发 link 使用绝对路径 |
-| `The matching commit...`/无法解析 ref | **pnpm < 9**，`#path:` 子目录语法不被支持 | 升级 pnpm 到 ≥ 9（`npm i -g pnpm@latest`） |
-| `ERR_PNPM_EXOTIC_SUBDEP` | 尝试安装会再带 Git 依赖的“根包/聚合包”（pnpm 11 安全策略，本仓库不提供此类包） | 按本页 npm 一行命令安装三个发行包 |
-| `pnpm not found on PATH` | 环境缺少 pnpm | 安装 pnpm（`npm i -g pnpm`）后重试 |
-| 包在列表里但页面无效果 | 皮肤被 `disabled`（多皮肤互斥开关）或浏览器未刷新 | `--dump-config` 核对 disabled；刷新页面 |
-| PowerShell 命令不完整/报错 | `#` 未加引号被当注释截断 | spec 一律单引号包裹 |
+| `ERR_PNPM_FETCH_404` | 包名拼错、网络不通，或本地安装时只写了目录名 | 直接复制本页的包名；本地安装改用绝对路径 |
+| `The matching commit...` / 无法解析 ref | pnpm 版本低于 9，不支持 `#path:` 写法 | 升级 pnpm：`npm i -g pnpm@latest` |
+| `ERR_PNPM_EXOTIC_SUBDEP` | 试图安装一个会再拉取 Git 依赖的聚合包（pnpm 11 的安全限制，本仓库不提供这类包） | 按本页命令分别安装三个包 |
+| `pnpm not found on PATH` | 没有安装 pnpm | `npm i -g pnpm` 后重试 |
+| 包已安装但页面没变化 | 皮肤处于停用状态，或浏览器没刷新 | 在皮肤管理里启用它，然后刷新页面 |
+| PowerShell 命令不完整或报错 | 包名没加引号，`#` 后面被当成注释截掉了 | 包名一律用单引号包住 |
+
+</details>
 
 ## 贡献者
 
@@ -204,9 +249,8 @@ document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) 
 - **@Vergemesh** — 原版/鲸鱼娘皮肤即时切换（#27）
 - **@joejojoking-cloud** — top-trim 装饰层级（#26）、字符舞台层级（#31）修复
 
-
 ## 许可
 
 项目自有代码采用 **MIT**，许可范围见 [LICENSE](LICENSE)。美术资源保留原作者版权与既有授权：两套皮肤的全部美术（包括 AI 生成及加工的图片）按 CC BY-NC-SA 4.0 使用，**禁止商业性使用**，署名链见各自 `NOTICE`，许可正文见 `LICENSE-ARTWORK`。图片即使嵌入源码、CSS 或构建产物，也不属于 MIT 授权范围。第三方材料保留其适用许可；历史版本已授出的权限不因本说明而撤销。
 
-皮肤工程脚手架来自 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)，本仓库仅分发皮肤成品,不包含脚手架。
+皮肤工程脚手架来自 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)，本仓库仅分发皮肤成品，不包含脚手架。

@@ -17,9 +17,9 @@ Click an image for the full size.
 
 | Skin | Package | Description | License |
 |---|---|---|---|
-| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | Abyssal Maid Atelier: twin-maid backdrop, deep-sea navy lace UI and a chibi sidebar | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | ORCA LINK: pearl-white mechanical bay, orca-girl character and electric-blue link signals | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
-| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | Generic skin discovery, switching and skin-declared settings panel | MIT |
+| [maid-atelier](maid-atelier/) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` | Maid Atelier: two whale maids, navy lace and a chibi sidebar turn DSH into a maid atelier | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [orca-link](orca-link/) | `@smalltailqwq/dsh-client-ui-skin-orca-link` | ORCA LINK: a cool little black-whale operator, square corners throughout and icons redrawn in straight lines; functional by day, soothing by night | MIT (code) / CC BY-NC-SA 4.0 (artwork) |
+| [skin-manager](skin-manager/) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` | Skin Manager: switch between installed skins and tune each skin's own options, under Settings → Skins | MIT |
 
 ## Copyright Holders
 
@@ -32,49 +32,112 @@ Click an image for the full size.
 
 ## Installation
 
-### One-line install (recommended)
+> [!NOTE]
+> If you use dsh-web (you installed `@linxin666/dsh-web-all`), install `maid-atelier` and `orca-link` from dsh-web's own skin center instead of running the commands below. The two distributions are adapted separately, and mixing them in one profile breaks the layout.
 
-> **Check your distribution first:** the commands below are only for standalone environments that run DSH directly. If you installed `@linxin666/dsh-web-all` (dsh-web), install its adapted `maid-atelier` and `orca-link` through dsh-web's own skin center/installer instead. Do not add this repository's standalone packages to the same profile; the component and styling contracts differ and the resulting UI may be broken.
+You can install from npm or from GitHub. Both give you the same skins; they differ in how quickly updates arrive:
 
-The three distribution packages (skin manager + both skins) are published on npm. With no dist-tag specified, this installs the stable `latest` release — **no clone required**.
+| | npm (recommended) | GitHub |
+|---|---|---|
+| What you get | Published releases with fixed version numbers | The latest code on the `main` branch |
+| When fixes reach you | About 24 hours after a release (the pnpm bundled with DSH only installs versions that are at least a day old) | As soon as a fix is merged |
+| Network | Works with npm registry mirrors | Needs access to GitHub |
 
-**Linux / macOS / WSL:**
+If you're not sure, pick npm. Copy the command for your shell and run it — no need to clone the repository.
+
+**Install from npm**
 
 ```sh
+# Linux / macOS / WSL
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-**PowerShell** (use `;` between commands):
-
 ```powershell
+# PowerShell
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-For a single skin, drop the line you do not need (keep skin-manager: switching and mutual exclusion rely on it).
-
-This is a first-time package addition, so restart DSH once. On that restart the skin manager detects "two skins enabled at once" and **atomically falls back to the official default**, so a fresh install can never leave skins stacked; then open Settings → Skin Management and click Switch on your skin — hot reload applies it. Later switches need no restart and no AI assistance.
-
-> To follow GitHub `main` directly, use `github:Small-tailqwq/dsh-deep-whale#path:/<subdirectory>` (requires pnpm ≥ 9). For local development, see [Standalone sub-package install](#standalone-sub-package-install-dev-and-weak-network-fallback). npm, GitHub and local links are different sources for the same package names; the last `add` wins.
-
-### Update
-
-**Linux / macOS / WSL:**
+**Install from GitHub**
 
 ```sh
+# Linux / macOS / WSL
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+```powershell
+# PowerShell
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+Both sources use the same package names, so whichever you install last replaces the other. To switch sources, just run the other set of commands.
+
+Then **restart DSH once**, open **Settings → Skins** and click **Switch** on the skin you want. From then on, switching skins takes effect immediately without restarting.
+
+- Only want one skin? Drop the other skin's `add` from the command. Keep the skin manager — switching depends on it.
+- If you installed both skins, DSH still looks like the official default after the first restart. That's expected: two skins running together clash, so the manager turns both off and lets you pick one.
+- Rather not type commands? Send this line to any AI assistant (or DSH itself) and it will install everything by following [INSTALL.md](INSTALL.md):
+
+  ```
+  Read https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md and install this repository's skins as instructed
+  ```
+
+## Updating
+
+```sh
+# Linux / macOS / WSL
 dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link
 ```
 
-**PowerShell** (quote `@`-prefixed tokens):
-
 ```powershell
+# PowerShell
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-npm dependencies follow `latest` by default; `update` re-resolves the version currently assigned to that tag. GitHub dependencies re-resolve the latest repository commit. You can also run `dsh plugin --profile web update` without a package name (updates the whole profile; identical if only these packages are installed). Bundle content updates hot-reload through config HMR; a restart is needed only when adding/removing plugin packages.
+This works for both sources: npm installs move to the newest release, GitHub installs pull the latest `main`. Refresh the page afterwards; no DSH restart is needed. If this profile contains only these skins, `dsh plugin --profile web update` updates everything at once.
 
-### Migrating from the old placeholder scope
+A new npm release only becomes available to `update` 24 hours after it is published; until then `update` quietly stays on the previous version (a default delay in the pnpm bundled with DSH, meant to guard against malicious packages). To get a specific new release right away, reinstall it with `@^<version>` after the package name; version numbers are listed under [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
 
-GitHub installations made before `0.1.3` use `@dsh-external/*` dependency keys. That scope was only a source-level placeholder for this project. Remove all three old keys before running the npm one-liner above; otherwise DSH may retain both plugin identities:
+```sh
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.6'
+```
+
+Keep the `^`: without it the package is pinned to that exact version and later `update` runs won't upgrade it.
+
+## Troubleshooting
+
+**The skin disappeared after upgrading DSH**
+
+Each skin declares the DSH versions it has been adapted to (currently the 0.1.7 series). When DSH moves ahead of a skin, DSH disables the skin and falls back to the official UI, so an outdated skin can't hide controls such as the input box.
+
+Update the skins first. If no update is out yet and you'd like to keep using the old skin, open **Settings → Skins**: the disabled skin shows “Not declared for DSH x.y.z; disabled automatically”. Click **Switch** and confirm. This approval covers only the current skin version and DSH version and is checked again when either changes; you can switch back to **Official Default** at any time.
+
+<details>
+<summary>Approve from the command line</summary>
+
+```sh
+dsh plugin --profile web allow-version @smalltailqwq/dsh-client-ui-skin-orca-link@<skin version> --dsh-version <DSH version> --accept-risk
+```
+
+</details>
+
+**The layout is broken: the settings button is gone, the sidebar is the wrong width, decorations overlap**
+
+Most likely both skins are running at once. Open **Settings → Skins**, click **Official Default** or either skin, then refresh the page. If you can't reach Settings, expand [How skin exclusivity works](#mutual-exclusion) below and fix it by hand.
+
+**Installed, but the page looks unchanged**
+
+Refresh the browser first. If nothing changes, check in **Settings → Skins** that the skin is enabled.
+
+See [Common install errors](#install-errors) below for more.
+
+## Advanced
+
+Most users won't need anything below; expand a section when you do.
+
+<details>
+<summary><b>Migrating from versions before 0.1.3</b></summary>
+
+Versions installed from GitHub before `0.1.3` used the old `@dsh-external/*` package names. Remove these three first, then reinstall as described in [Installation](#installation); otherwise DSH keeps two copies of the same plugins:
 
 ```sh
 dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-orca-link'
@@ -82,45 +145,45 @@ dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-maid-atelier'
 dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-manager'
 ```
 
-Restart DSH once after installing the new packages. Skin preferences remain keyed by the `maid-atelier` / `orca-link` skin ids and are not renamed with the npm scope.
+Restart DSH once afterwards. Your chosen skin and its settings carry over; the rename doesn't affect them.
 
-### Can't be bothered? Let an AI install it
+</details>
 
-Paste this into any AI (or dsh itself). [INSTALL.md](INSTALL.md) is the standard entry point: the AI reads it and is led to the bundled `dsh-skin-install` skill — a plain install runs the same one-liner above, while legacy migration, local development and specified-commit flows follow the skill (staged mutual exclusion, absolute-path links, cold-start verification).
+<details>
+<summary><b>Installing from a local folder (development / testing a specific commit)</b></summary>
 
-```
-Read https://github.com/Small-tailqwq/dsh-deep-whale/INSTALL.md and install the skins from this repository following its guidance
-```
-
-### Skin mutual exclusion (must read)
-
-- First, a distinction: `skin-manager` is not a skin — it is the **skin manager** (discovery, switching and customization panels) and stays enabled permanently; mutual exclusion applies to the **skins themselves** — maid-atelier and orca-link.
-- Skin enable/disable is controlled by patch layers: each of `~/.dsh/profiles/web/cordis.patch.yml` (profile layer) and `~/.dsh/cordis.patch.yml` (home layer) carries `- id: <wiring.id>` + `disabled: true/false` rows (**both layers must be written**; the home layer outranks the profile layer).
-- **A skin without a `disabled` row is enabled by default.** A single installed skin therefore works out of the box; installing both at once without ever switching leaves them running **simultaneously**: the decoration layers stack and the sidebar/settings area gets mangled. Typical symptoms: **settings button disappears, abnormal sidebar width/layout, chaotic UI** (the stock UI is fine).
-- **skin-manager guards mutual exclusion**: the one-line install registers all three packages; on the first restart the manager merges the profile→home states and, if two or more skins would actually be enabled, atomically falls back to "Official default" and writes the exclusion rows. A legal zero-or-one-skin selection is never rewritten. No manual pre-staging is needed.
-- skin-manager (Settings → Skin Management) writes the exclusion rows into both patch layers for you when activating; hand-editing “one skin only” requires **explicitly disabling every other skin**.
-- With skin-manager installed, skin customization items (e.g. the "less anime mode" visibility schedule) are stored in the current browser and applied by the manager.
-
-### Standalone sub-package install (dev and weak-network fallback)
-
-> Regular users do not need this section: the npm one-liner needs no clone. This is for local development, specified-commit testing, or when registry access is unavailable. npm/GitHub specs and local links address the same package names — pick one and stick with it.
+For local development, or to test a specific commit, clone the repository and install from its folders:
 
 ```sh
-git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale   # clone anywhere (shallow is enough, skips history)
-node <abs path to clone>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
-dsh plugin --profile web add <abs path to clone>/skin-manager   # persistent skin manager panel (recommended)
-dsh plugin --profile web add <abs path to clone>/maid-atelier   # Abyssal Maid Atelier
-dsh plugin --profile web add <abs path to clone>/orca-link      # ORCA LINK
+git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale
+node <absolute clone path>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile web --target maid-atelier
+dsh plugin --profile web add <absolute clone path>/skin-manager
+dsh plugin --profile web add <absolute clone path>/maid-atelier
+dsh plugin --profile web add <absolute clone path>/orca-link
 ```
 
-> The `node` command is an **optional optimization**: staged before any `plugin add`, it makes the target skin the only enabled one so the first startup already shows it; it preserves unrelated YAML and never overwrites the whole patch. Skipping it is safe too — the skin-manager fallback returns to Official default on first startup, then switch in Settings → Skin Management. Use `--target orca-link` for ORCA LINK or `--target official` for the stock UI.
+- The `node` line is optional. It picks the default skin in advance so the first start already shows it; `--target` accepts `maid-atelier`, `orca-link` or `official`. Without it, the first start shows the official UI and you pick a skin under **Settings → Skins**.
+- Prefer **absolute paths**. On Windows both slash styles work, e.g. `C:/Users/<you>/code/dsh-deep-whale/maid-atelier`.
+- Don't pass a bare folder name: `dsh plugin --profile web add maid-atelier` is treated as an npm package name and fails with 404. Relative paths must start with `./` or `../` and are resolved from **the folder you run dsh in**, not the skin repository. A wrong relative path won't raise an error — the skin just won't load.
+- A local folder installs the same package name as the npm and GitHub sources; the last `add` wins.
 
-**Option A (recommended): Settings → Skin Management → click Switch on the skin you want.** The manager writes the mutual-exclusion `disabled` rows to both patch layers and hot reloads; just refresh the page.
+</details>
 
-**Option B: hand-write both patch layers.** Append the following rows to **both** `~/.dsh/profiles/web/cordis.patch.yml` **and** `~/.dsh/cordis.patch.yml` (both are required; the home layer overrides the profile layer):
+<details>
+<summary><a name="mutual-exclusion"></a><b>How skin exclusivity works</b></summary>
+
+Only one skin can be active at a time. The skin manager isn't a skin and should stay enabled.
+
+Each skin's on/off switch lives in two config files: `~/.dsh/profiles/web/cordis.patch.yml` (profile layer) and `~/.dsh/cordis.patch.yml` (home layer, which takes priority). A skin with no entry in these files is **on** by default, so installing both skins without ever switching leaves them running together and breaks the layout.
+
+The skin manager takes care of this:
+
+- On every start, if two or more skins are on, it turns them all off and returns to the official default. A single chosen skin is left alone.
+- Switching in **Settings → Skins** writes the switches into both files and applies them immediately.
+
+If the manager isn't available, edit the files yourself. Add the following to **both** files; set the skin you want to `false` and the other to `true`:
 
 ```yaml
-# Example: enable only maid-atelier; for orca-link move `false` to its row — exactly one of the two skins may be false
 - id: ui-skin-maid-atelier
   disabled: false
 - id: ui-skin-orca-link
@@ -129,53 +192,45 @@ dsh plugin --profile web add <abs path to clone>/orca-link      # ORCA LINK
   disabled: false
 ```
 
-> If the patch file is still dsh's default template (comments + a single `[]` line), **replace that `[]` line entirely with the list above** — "comments + `[]` + other rows" is invalid YAML and config parsing will fail (the server keeps the last good config running; fix the file and refresh).
+If a file still holds DSH's default template (a few comments plus a line containing `[]`), **replace** the `[]` line with the list above; keeping both makes the file invalid. You can also run `stage-mutual-exclusion.mjs` from the previous section to write this for you, or uninstall the skin you don't use with `dsh plugin --profile web remove <package>`.
 
-Windows example (forward or back slashes both work; pnpm normalizes them):
-```powershell
-dsh plugin --profile web add C:/Users/<you>/code/dsh-deep-whale/skin-manager
-dsh plugin --profile web add C:/Users/<you>/code/dsh-deep-whale/maid-atelier
-```
+Per-skin preferences (such as the active hours of "less-anime mode") are stored in the current browser and applied by the manager.
 
-### Installed too many / something looks broken
+</details>
 
-Symptoms: the settings button disappears, the sidebar is covered by decoration or has an abnormal width, the UI looks chaotic (recovers once skins are disabled).
-
-1. Open Settings → Skin Management and click "Official default" or any skin — the manager writes the exclusion rows and hot reloads; refresh to recover;
-2. If the manager is unavailable (or the config file was already corrupted), run `stage-mutual-exclusion.mjs` above with `--target official` or the desired skin to recover both patch layers;
-3. Or simply remove the packages you don't want: `dsh plugin --profile web remove <package>`, then re-check the exclusion rows.
-
-### Relative path rules (common pitfall)
-
-- Relative paths (`./`, `../`-prefixed) resolve against **the directory dsh was invoked from**, not the skin repository directory.
-- **Never use a bare directory name**: `dsh plugin --profile web add maid-atelier` is treated as an npm package name, hits the registry and fails with a 404. Use `./maid-atelier` (when already inside the skin repo), `../dsh-deep-whale/maid-atelier` (when dsh-deep-whale is a sibling), or an absolute path.
-- `../dsh-deep-whale/maid-atelier` after `cd <harness>` only works if **dsh-deep-whale is a sibling of your harness directory**; if you cloned elsewhere, the relative path links to the wrong place (the command succeeds silently but the skin does nothing). When in doubt, use an absolute path.
-
-### Post-install verification
+<details>
+<summary><b>Checking that the install worked</b></summary>
 
 ```sh
-dsh plugin --profile web list          # should list all three @smalltailqwq/dsh-client-ui-skin-* packages
-dsh --profile web --dump-config        # manager row disabled: false; skins mutually exclusive — exactly one false
+dsh plugin --profile web list          # should list three @smalltailqwq/dsh-client-ui-skin-* packages
+dsh --profile web --dump-config        # manager is disabled: false; exactly one of the two skins is false
 ```
 
-> Right after the one-line install, **before the first restart**, what `--dump-config` shows depends on your patch layers: in a clean environment both skins have no exclusion rows yet (enabled by default — a normal transitional state; the skin-manager fallback rewrites the rows at the first restart). If the home layer already carries exclusion rows (you installed and later removed this skin series before), that state is simply reused. After the cold start, inspect the client roster in the browser console (configuration entries alone do not prove browser bundles were registered). The startup page must reference `/plugins/<real package name>/client.js` for the manager and the active skin; the carrier differs across DSH versions (older builds put it in the `window.__DSH_BOOT__` JSON, 0.1.1rc2+ uses direct `<script src>` tags), so this one-liner works on both:
+Right after installing and before restarting, both skins may show as enabled. That's normal; the manager sorts it out on restart.
+
+After restarting, you can also run this in the browser console to confirm the page actually loaded the skin scripts:
 
 ```js
 document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
-It must contain the manager and the active skin package; disabled skins may be absent. Refresh the browser to see the skin; skin toggles go through config hot reload, so no dsh restart is needed (restart only when adding/removing plugin packages).
+The result should include the manager and the active skin; a disabled skin not appearing is expected.
 
-### Install failure troubleshooting
+</details>
+
+<details>
+<summary><a name="install-errors"></a><b>Common install errors</b></summary>
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ERR_PNPM_FETCH_404` | misspelled npm package/GitHub spec, unavailable network, or a bare standalone directory | copy the npm package names above; use absolute paths for development links |
-| `The matching commit...` / cannot resolve ref | **pnpm < 9** — `#path:` subdirectory syntax unsupported | upgrade pnpm to ≥ 9 (`npm i -g pnpm@latest`) |
-| `ERR_PNPM_EXOTIC_SUBDEP` | installing an aggregate "root package" that itself carries Git dependencies (pnpm 11 supply-chain policy; this repo ships no such package) | use the npm one-liner above to install the three distribution packages |
-| `pnpm not found on PATH` | pnpm missing from the environment | install pnpm (`npm i -g pnpm`) and retry |
-| package listed but no effect on the page | skin is `disabled` (multi-skin mutual exclusion) or the browser was not refreshed | check `disabled` in `--dump-config`; refresh |
-| PowerShell command truncated / errors | unquoted `#` starts a comment | always quote specs in single quotes |
+| `ERR_PNPM_FETCH_404` | Misspelled package name, no network, or a bare folder name in a local install | Copy the package names from this page; use absolute paths for local installs |
+| `The matching commit...` / cannot resolve ref | pnpm older than 9 doesn't support `#path:` | Upgrade pnpm: `npm i -g pnpm@latest` |
+| `ERR_PNPM_EXOTIC_SUBDEP` | Installing an aggregate package that pulls further Git dependencies (a pnpm 11 safety rule; this repo ships no such package) | Install the three packages separately with the commands on this page |
+| `pnpm not found on PATH` | pnpm isn't installed | `npm i -g pnpm`, then retry |
+| Package installed but the page is unchanged | The skin is disabled, or the browser wasn't refreshed | Enable it under Settings → Skins, then refresh |
+| PowerShell command cut off or failing | Unquoted package name; everything after `#` was treated as a comment | Always wrap package names in single quotes |
+
+</details>
 
 ## Contributors
 

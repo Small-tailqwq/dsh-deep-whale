@@ -43,7 +43,10 @@ const DSH_WORDMARK = [
   '<path d="M125 5H137V18H163V5H175V39H163V27H137V39H125V5Z" fill="currentColor"/>',
 ].join('')
 
-const SIDEBAR_LOGO_ROW_SELECTOR = "[data-slot='sidebar'] > :first-child > :first-child"
+// The logo row is the sidebar root's first child, except on the macOS desktop,
+// where the host puts a draggable top strip (system window buttons and the
+// sidebar toggle) in front of it.
+const SIDEBAR_LOGO_ROW_SELECTOR = "[data-slot='sidebar'] > :first-child > :is([class*='logoRow'], :first-child:not([class*='topStrip']))"
 
 function text(tag: string, className: string, value: string): HTMLElement {
   const element = document.createElement(tag)

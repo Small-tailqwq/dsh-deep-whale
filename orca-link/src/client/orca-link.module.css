@@ -3,6 +3,9 @@ body[data-dsh-orca-link] {
   /* Sidebar art stage height, measured from the pane top; the browsing
      region's frosted panel starts exactly at this seam (120px of controls). */
   --orca-stage: clamp(240px, 34vh, 320px);
+  /* Extra host rows above the logo row push every absolutely placed stage
+     piece down by this much (see the macOS desktop block). */
+  --orca-stage-top: 0px;
   --orca-blue: #4b483f;
   --orca-cyan: #20c7e8;
   --orca-ink: #11151b;
@@ -1536,7 +1539,7 @@ body[data-dsh-orca-link] .dshWordmark {
   display: block;
   position: absolute;
   z-index: 1;
-  top: 21px;
+  top: calc(21px + var(--orca-stage-top, 0px));
   left: 0;
   width: 118px;
   height: 30px;
@@ -1590,7 +1593,7 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
 
 body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset: var(--orca-stage-top, 0px) auto 0 0;
   z-index: 0;
   width: var(--orca-sidebar-art-width, 280px);
   content: '';
@@ -1738,7 +1741,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter
   --orca-character-signal: var(--orca-cyan);
   position: absolute;
   z-index: 1;
-  top: 58px;
+  top: calc(58px + var(--orca-stage-top, 0px));
   left: 22px;
   /* Keep one stable stage width while the sidebar track contracts. The
      sidebar's own overflow edge then wipes the artwork away without ever
@@ -1908,14 +1911,18 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='review'] [data-
 
 /* The stock wide New Session control keeps its layout slot and official
    click handler, but its hit plane expands over the portrait stage. The rail
-   restores the visible control when collapsed. */
+   restores the visible control when collapsed. The plane is the portrait's
+   own box: the button stays static so its pseudo-elements resolve against
+   the sidebar root exactly like .statusCharacter, instead of riding the
+   button's flow slot, which the desktop hosts move (issue: hover frame and
+   portrait drifted apart and the frame covered the Plugins row). The
+   pseudo-elements carry the stacking rung the button used to hold. */
 html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-orca-link-brand] {
   pointer-events: none;
 }
 
 html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) {
-  position: relative;
-  z-index: 2;
+  position: static;
   overflow: visible;
   border-color: transparent;
   background: transparent;
@@ -1930,10 +1937,11 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
 
 html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::before {
   position: absolute;
-  top: -14px;
-  right: -14px;
-  left: -14px;
-  height: calc(var(--orca-stage, 300px) - 60px);
+  z-index: 2;
+  top: calc(58px + var(--orca-stage-top, 0px));
+  left: 22px;
+  width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
+  height: calc(var(--orca-stage, 300px) - 66px);
   content: '';
   cursor: pointer;
   opacity: 0;
@@ -1952,8 +1960,10 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
 
 html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::after {
   position: absolute;
-  top: calc(var(--orca-stage, 300px) - 86px);
-  right: -10px;
+  z-index: 2;
+  /* Bottom-right corner of the plane above, 3px / 4px inside it. */
+  top: calc(58px + var(--orca-stage-top, 0px) + var(--orca-stage, 300px) - 66px - 12px);
+  left: calc(22px + var(--orca-sidebar-art-width, 280px) - 30px - 13px);
   width: 9px;
   height: 9px;
   content: '';
@@ -2080,6 +2090,48 @@ html[data-windows-titlebar] body[data-dsh-orca-link] :is([data-pane='conversatio
   border-radius: 0;
 }
 
+/* The stage pieces above are placed in the web sidebar's flow geometry: 6px
+   root padding, a 60px logo row and a 4px gap put New Session at 70px, so the
+   portrait, its hit plane and the first row under the stage share one seam.
+   The Windows caption frame shrinks the expanded logo row to 40px and adds an
+   8px gap above New Session, lifting every flow row 16px while the absolute
+   stage stays put: the Plugins row then slid under the portrait. The toggle
+   is pinned into the caption there, so restoring the web row keeps the rest
+   of the expanded column on the stage's seam. */
+html[data-windows-titlebar] body[data-dsh-orca-link]
+    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='logoRow'] {
+  height: 60px;
+  margin-bottom: 4px;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link]
+    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > button[class*='newSession'] {
+  margin-top: 0;
+}
+
+/* macOS desktop: the host inserts a 52px draggable top strip for the system
+   close / minimize / zoom buttons and the sidebar toggle, then pulls the
+   logo row up by 12px (after the root's 6px padding): every flow row sits
+   34px lower. Move the absolute stage with it so the wordmark, pricing light
+   and scan line stay clear of the system buttons. The strip itself is the
+   root's first child there, so the wordmark scan line re-anchors to it. */
+html[data-platform='darwin'] body[data-dsh-orca-link] {
+  --orca-stage-top: 34px;
+}
+
+html[data-platform='darwin'] body[data-dsh-orca-link]
+    [data-slot='sidebar'] > :first-child > [class*='topStrip']:first-child::after {
+  top: calc(21px + var(--orca-stage-top));
+}
+
+/* On macOS the host brand is a plain span in the logo row, not the tagged
+   brand button of the web shell, so ORCA's replacement wordmark would print
+   over "deepseek HARNESS". It has no action there; hide it in place. */
+html[data-platform='darwin'] body[data-dsh-orca-link]
+    [data-slot='sidebar'] > :first-child > [class*='logoRow'] > [class*='brand'] {
+  visibility: hidden;
+}
+
 /* Official rail tooltips are rendered beside their anchors instead of through
    a portal. Release only their collapsed-rail ancestor chain so fixed bubbles
    can leave the 36px action cell and the 55px sidebar shell. */
@@ -2106,7 +2158,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [dat
   content: 'ORCA LINK';
   position: absolute;
   z-index: 1;
-  top: calc(76px + (var(--orca-stage, 300px) - 76px) / 2);
+  top: calc(var(--orca-stage-top, 0px) + 76px + (var(--orca-stage, 300px) - 76px) / 2);
   left: 9px;
   transform: translateY(-50%);
   writing-mode: vertical-rl;
@@ -2804,7 +2856,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight {
   --orca-price-glow: rgba(35, 138, 88, 0.72);
   position: absolute;
   z-index: 2;
-  top: 55px;
+  top: calc(55px + var(--orca-stage-top, 0px));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -2832,7 +2884,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight {
 }
 
 body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > .pricingLight {
-  top: 46px;
+  top: calc(46px + var(--orca-stage-top, 0px));
   left: 4px;
   transform: none;
   gap: 4px;
