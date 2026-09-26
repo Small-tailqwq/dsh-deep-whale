@@ -95,6 +95,14 @@ dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-man
 
 This works for both sources: npm installs move to the newest release, GitHub installs pull the latest `main`. Refresh the page afterwards; no DSH restart is needed. If this profile contains only these skins, `dsh plugin --profile web update` updates everything at once.
 
+A new npm release only becomes available to `update` 24 hours after it is published; until then `update` quietly stays on the previous version (a default delay in the pnpm bundled with DSH, meant to guard against malicious packages). To get a specific new release right away, reinstall it with `@^<version>` after the package name; version numbers are listed under [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
+
+```sh
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.6'
+```
+
+Keep the `^`: without it the package is pinned to that exact version and later `update` runs won't upgrade it.
+
 ## Troubleshooting
 
 **The skin disappeared after upgrading DSH**

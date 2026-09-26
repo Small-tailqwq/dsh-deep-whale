@@ -1,137 +1,82 @@
 ---
 name: dsh-skin-install
-description: 迁移、切换、更新或验证 DSH Web 的 dsh-deep-whale 皮肤（skin-manager + maid-atelier + orca-link）。普通首次安装直接运行 README 的一行 GitHub 命令即可，不需要 AI；本技能处理旧包迁移、本地 link、指定提交、互斥切换与故障验证。
+description: 处理 DSH Web 上 dsh-deep-whale 皮肤（skin-manager + maid-atelier + orca-link）的非常规安装与运维：从本地 clone 安装、加载本地修改、测试指定提交、迁移旧 `@dsh-external/*` 包、切换皮肤与修复互斥、更新后版本不变、升级 DSH 后皮肤被停用、皮肤不加载的诊断。从 npm 或 GitHub 的普通首次安装按仓库 INSTALL.md 执行，不需要本技能。
 ---
 
-# dsh-deep-whale 皮肤安装与切换
+# dsh-deep-whale 皮肤安装与运维
 
-目标：让 DSH Web 皮肤快速且可恢复地生效。**普通首次安装直接使用仓库 README 的 npm 一行命令（三个 `@smalltailqwq` 包，默认 `latest`），不需要 AI 预处理；皮肤互斥由 skin-manager 的启动兜底负责（检测到两套及以上皮肤同时启用 → 原子回退官方默认）。**本地开发与指定提交仍须保证互斥。切换和已安装 npm / link / GitHub 依赖的代码更新走热加载；初次新增包才重启；更新与指定提交测试只在用户要求时发生。
+从 npm 或 GitHub 的普通首次安装只按仓库 `INSTALL.md` 的三步做，不进入本技能。本技能只给流程；包名、皮肤清单和署名链以现场读取为准，不要凭记忆。
 
-**本技能只给流程指导，具体事实以现场读取为准**：仓库会更新（新增皮肤、改署名链），不要依赖本文件或记忆中的清单，实时读取。
+## 红线
 
-## 效率红线（任何场景都必须遵守）
+- 调用预算：切换 ≤ 8 次工具调用，安装 ≤ 20 次，更新 ≤ 6 次。超出说明在重复劳动，停下汇报已完成的动作和卡住的点。
+- 同一信息只取一次。状态以 `dsh plugin --profile <name> list` 与 `dsh --profile <name> --dump-config` 的各一次输出为准。不读 DSH 源码，不递归扫描 `~/.dsh` 或全局 `node_modules`，不手改 `node_modules` 与 lockfile。
+- 不自行停止或重启正在运行的 DSH 进程：若你运行在 DSH 内，这会结束你自己的会话。需要重启时把启动命令交给用户；只有你自己启动的冷启动探针可以自行终止。
+- 不整文件重写 patch YAML；互斥行只经皮肤管理器或本技能脚本写入。
+- 页面观感由用户刷新后自行确认；只在用户反馈异常时诊断。
 
-- **一步一条命令**：同一个信息只获取一次；验证以 `dsh --profile <name> --dump-config` 的一次输出为准，不要再去 grep/read dsh 安装目录源码求证 patch 语义。
-- **调用预算**：已安装→切换 ≤ 8 次工具调用；初次安装 ≤ 20 次；更新 ≤ 6 次。超预算说明在重复劳动，立即停止并汇报已完成动作。
-- **默认不调用 `dsh-plugin-verify`，禁止读 dsh 源码包**。只有用户明确反馈“不生效/报错”时才进入诊断。
-- 页面观感（装饰是否好看、设置面板布局）由用户刷新后自行确认，不由你逐项核对。
+## 先分场景
 
-## 先判断场景（决定走哪条路）
+先运行一次 `dsh --version && dsh plugin --profile <name> list`（profile 通常是 `web`）。列表里 npm 来源显示版本号，GitHub 来源显示 `github:`，本地来源显示 `link:`。
 
-先查当前 dsh 环境：`dsh plugin --profile <name> list`（实际 profile 名如 web）。本仓库三个发行包：`@smalltailqwq/dsh-client-ui-skin-deep-whale-manager`、`@smalltailqwq/dsh-client-ui-skin-maid-atelier`、`@smalltailqwq/dsh-client-ui-skin-orca-link`（npm 安装显示为版本依赖，GitHub 安装显示为 `github:`，本地路径安装显示为 `link:`）：
+- 有 `@linxin666/dsh-web-all`（dsh-web）：停止。dsh-web 自带适配过的皮肤，请用户从它的皮肤中心安装，不要把本仓库的包加进同一 profile。
+- 有 `@dsh-external/*`（0.1.3 之前的占位包名）：先 `remove` 实际列出的那几个（pnpm 对未安装的名字会报错），再装 `@smalltailqwq/*`。新旧包名不能并存。
+- 然后按用户意图：切换皮肤 → A；从本地 clone 安装或加载本地修改 → B；更新 → C；测试指定提交 → D；皮肤消失、不加载或界面错乱 → E。
 
-- **三包均已安装 → 场景 A 切换**：直接热切换，不 clone、不提问、不介绍，**跳过“重启安全闸门”与扫描清单**。
-- **未安装或只装了部分 → 场景 B 首次/补齐安装**：
-  - 用户要正式版：按仓库 README 从 npm 安装三个 `latest` 包（也可让用户自行执行，无需 AI）——**不要 clone**；
-  - 用户要本地开发版/测试指定提交：走本地 link 流程（复用已有 clone，找不到才 `git clone --depth 1`）。
-  - 若发现 `@dsh-external/dsh-client-ui-skin-deep-whale-manager`、`@dsh-external/dsh-client-ui-skin-maid-atelier` 或 `@dsh-external/dsh-client-ui-skin-orca-link`：它们是 `0.1.3` 前的占位 scope 身份，必须先移除全部已安装旧键，再添加对应的 `@smalltailqwq/*` 包；新旧身份禁止并存。
-  - 若发现 `@dsh-external/dsh-deep-whale`（历史“聚合根包”，只存在于未合并的实验分支）：先移除它，再按三包安装，禁止与三包并存。
-- **用户明确要求“更新/检查更新” → 场景 C 更新**：才对比远端/重新解析。
-- **用户要求加载本地修改或测试指定提交 → 场景 D 验证开发版本**：保护当前工作区和正在运行的 DSH。
+## 共用规则：互斥与版本准入
 
-## 重启安全闸门（仅在新增/删除插件包等确实需要重启时执行）
+- 同一时间只能启用一套皮肤。管理器（wiring id `ui-skin-deep-whale-manager`）不是皮肤，保持启用。
+- 开关写在两个 patch 层：`~/.dsh/profiles/<profile>/cordis.patch.yml` 与 `~/.dsh/cordis.patch.yml`（home 层优先），每条是 `- id: <skin.json 的 wiring.id>` 加 `disabled: true|false`。**没有条目的皮肤默认启用**，所以只留一套时必须显式停用其余每一套。
+- 管理器每次启动时若算出两套以上皮肤启用，会原子回退到官方默认并写入互斥行；已有零套或一套启用的选择保持不变。
+- 版本准入（DSH 0.1.7+）：皮肤 `package.json` 的 `peerDependencies['@deepseek-ai/dsh']` 不包含运行中的 DSH 版本时，宿主会停用该皮肤，**即使 patch 写的是 `disabled: false`**。管理器只声明下限，不受影响。放行只对“这个皮肤版本 + 这个 DSH 版本”生效，由宿主记录在 profile 的 `compatibility.json`，不要手写这个文件。放行有风险，必须先征得用户同意，再让用户在「设置 → 皮肤管理」里点该皮肤「切换」并确认，或运行 `dsh plugin --profile <name> allow-version <包名>@<皮肤版本> --dsh-version <DSH 版本> --accept-risk`。
 
-**AI 不得自行 kill 或重启正在运行的 dsh web 进程**——宿主进程被杀，当前会话立即断线，任务无法收尾。需要重启时：把准确的启动命令（含 DSH_HOME/端口/环境）交给**用户**执行，或在用户明确授权后由你执行；冷启动探针（独立的 `--port 0` 临时进程）除外，可自行启动与终止。
+## A 切换皮肤
 
-DSH Web 正在运行不代表磁盘上的 profile 能再次启动；旧进程可能仍持有修改前的插件图。不要把“当前页面可用”当作冷启动证据，也不要在检查前建议用户重启。
+三个包都已安装时，用户点名目标皮肤就直接执行，不提问、不介绍作者。用户没说目标时，用一句话列出已安装的皮肤问一下。
 
-1. 读取目标皮肤的 `package.json.name` 与 `skin.json.package`，两者必须相同。
-2. 检查 `~/.dsh/profiles/<profile>/package.json`：依赖键、`dsh.profile.bundles` 条目和本地 link 目标的真实包名必须一致。发现别名或旧 scope 时，先用 `dsh plugin --profile <name> remove <错误键>` 移除，再用目标目录的绝对路径 `add`；**若包名/依赖键正确、只是 link 路径过期或不可访问，直接对新绝对路径执行 `add` 覆盖链接，不要先 remove。**不要手改或追查 `node_modules`、pnpm lockfile；异常后只重跑一次 `plugin list`，仍失败就停下汇报。
-3. 运行 `dsh plugin --profile <name> list` 和 `dsh --profile <name> --dump-config`。目标 entry 必须能组合、包名正确且启停状态符合预期。
-4. 只有确实需要重启时，先运行 `dsh --profile <name> --help` 核对当前 CLI 参数，再在保留现有进程的情况下启动冷启动探针。当前已验证语法是 `dsh --profile <name> --no-open --port 0`；若现场 CLI 没有 `--no-open`，使用其 help 所示启动语法并设置 `BROWSER=echo` 抑制弹窗。等待它打印临时 URL 后，只终止这个探针进程。探针失败则保留原进程，修复后重试；禁止让用户用生产端口重启来“试试看”。
-5. 冷启动探针成功后才替换原进程，并验证固定端口返回 HTTP 200。核对启动页 client roster：HTML 中必须存在 manager 与当前启用皮肤的 `/plugins/<真实包名>/client.js` 引用——0.1.1rc2+ 即启动页的 `<script src>` 标签，旧版本在 `window.__DSH_BOOT__` JSON 的 url 字段里，两种载体都落在同一 URL 模式上；被停用的皮肤可以不出现。只匹配裸包名、只看 `--dump-config` 或只看 API 都不能证明 client bundle 已注册。终止进程时只操作刚刚记录的精确 PID/会话，不按进程名批量结束。
+1. 首选皮肤管理器：请用户在「设置 → 皮肤管理」点目标皮肤的「切换」；或向运行中的 DSH 同源发送 `POST /api/dsh/skins`，body 为 `{ "target": "<skin-id|official>" }`。服务端校验目标并原子写入两个 patch 层。返回 409 `incompatible-version` 表示被版本准入拦下，按 E 第 2 步处理。
+2. 管理器不可用时：有 clone 就运行 `node <clone 绝对路径>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile <name> --target <skin-id|official>`；没有 clone 就按共用规则手改两个 patch 层。文件若还是默认模板（注释加一行 `[]`），用条目列表替换 `[]` 那一行。
+3. 配置会热重载，不需要重启，请用户刷新页面。用一次 `--dump-config` 验证：目标皮肤 `disabled: false`，其余皮肤 `true`，管理器 `false`。到此结束。
 
-诊断必须有界：热加载未发生时先查 link 目标、`lib/client.js` 哈希、boot entry 与 `--dump-config`；不要递归扫描整个 `~/.dsh`、全局 `node_modules`，也不要用长时间 SSE 请求碰运气。
+## B 从本地 clone 安装
 
-## 场景 A：切换（已安装）—— 快速切换，不啰嗦
+1. 复用已有 clone；没有才运行 `git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale`。`lib/` 是提交型构建产物，clone 下来即可安装，不需要构建。
+2. 首次安装时向用户交代署名与许可：读各皮肤目录的 `NOTICE`，逐套简述创作链并附作者主页；代码采用 MIT，美术（含 AI 生成的图片）采用 CC BY-NC-SA 4.0，禁止商用。补装或切换时不重复交代。
+3. **在 add 之前**预置互斥（add 之后再写会出现两套叠加的窗口）：`node <clone 绝对路径>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile <name> --target <skin-id|official>`。脚本从 clone 读取各 `skin.json`，复用管理器的原子写入与回滚，保留 patch 中的其他内容。脚本失败就停止，不要继续 add。
+4. 依次 `dsh plugin --profile <name> add <clone 绝对路径>/skin-manager` 与需要的皮肤子目录。
+   - 必须 add 子目录；仓库根没有 `package.json`，会直接失败。
+   - 用绝对路径。相对路径按运行 dsh 的目录解析，算错时不报错，但皮肤不会生效；裸目录名会被当作 npm 包名，返回 404。
+   - 同名包已 link 到同一目录就跳过；link 路径失效时直接对新路径 add 覆盖，不要先 remove。
+5. 新增包需要重启：先完成下面的「重启前检查」，再把启动命令交给用户。
 
-用户点名目标皮肤（如"切到女仆皮肤"/"切到 orca-link"）后直接执行，**不提问、不介绍作者与许可**：
+## C 更新（仅用户明确要求时）
 
-**首选：皮肤管理器 UI/API 切换**（skin-manager 已安装时）：
-1. 告知用户在设置 → 皮肤管理页点击目标皮肤的"切换"按钮（或脚本调用 `POST /api/dsh/skins { target }`，同源校验后服务端执行）；
-2. 服务端 `useSkin` 等价于手改两个 patch 层（目标 `disabled: false`、其余 `disabled: true`），**带 catalog 校验与原子回滚**，比手改更安全；
-3. 保存即热重载生效（配置 HMR），**无需重启**；告知用户刷新页面即可，会话不受影响；
-4. 快速验证：`dsh --profile <name> --dump-config` 一次输出，确认目标皮肤行 `disabled: false`、其余皮肤 `disabled: true`、管理器 `disabled: false`。到此结束，不做其他验证。
+- npm 或 GitHub 来源：`dsh plugin --profile <name> update '<包名>' ...`。npm 来源更新到最新发布版，GitHub 来源拉取 `main` 最新提交。
+- **24 小时规则**：DSH 内置的 pnpm 11 默认 `minimumReleaseAge` 为 1 天，发布不满 24 小时的 npm 版本会被静默跳过，不报错，停在上一版。更新后版本没变时，先用 `npm view <包名> time --json` 看发布时间，不要重试或排查。要马上用某个新版，运行 `dsh plugin --profile <name> add '<包名>@^<版本>'`：pnpm 会把该版本记为例外并安装，依赖仍记为版本范围。不要写成不带 `^` 的精确版本，那样依赖会被锁死，以后的 `update` 不再升级。也可以改用 GitHub 来源。
+- 本地 link：在 clone 里 `git fetch origin` 后 `git pull --ff-only`。
+- bundle 内容变化会热加载，请用户刷新页面；只有新增或删除包才需要重启。更新后用一次 `list` 确认版本。
 
-**备选（无 skin-manager 插件 / 脚本化批处理）：手改两个 patch 层**：
-1. 修改**两个** patch 层（都改，home 层覆盖 profile 层）：
-   - `~/.dsh/profiles/<profile>/cordis.patch.yml`
-   - `~/.dsh/cordis.patch.yml`
-2. 目标皮肤 `disabled: false`，其余已安装皮肤各补一行 `disabled: true`。注意：patch 里没有行的皮肤默认**启用**，所以"只保留一套"必须显式停用其余每一套。
-3. 保存即热重载生效（配置 HMR），**无需重启**；告知用户刷新页面即可，会话不受影响。
-4. 快速验证：`dsh --profile <name> --dump-config` 一次输出，确认目标皮肤行 `disabled: false`、其余皮肤 `disabled: true`。到此结束。
+## D 加载本地修改或测试指定提交
 
-若用户只说了"切换皮肤"而未指明哪一套，才用一句话列出已安装皮肤询问目标。
+- 本地修改：在改动的包目录运行 `npm run build`，确认 `lib/` 与 `skin.build.json` 已更新（绝不手改指纹）。请用户刷新页面；没生效时在皮肤管理里切到官方默认再切回，触发热加载。
+- 指定提交：不要在用户的工作区 checkout 或 restore。用 `git worktree add --detach <临时目录> <commit>` 建临时工作树，再用绝对路径把同名包 add 到其中的子目录。记下原 link 路径；测试结束后按用户指示 add 回原路径，并删除临时工作树。
+- 重新 link 后核对依赖键仍等于目标 `package.json.name`。包名变了就先 remove 旧键再 add，并完成「重启前检查」。
 
-## 场景 B：首次/补齐安装
+## E 诊断：皮肤消失、不加载或界面错乱
 
-### 1. 确定安装来源
+按顺序检查，命中就停：
 
-- **正式安装（推荐）**：无需 clone，按 README 从 npm 添加三个 `@smalltailqwq/*` 包；未指定 dist-tag 时使用稳定的 `latest`。安装全部三个包，把 manager 常驻、两套皮肤都装上，互斥交给首次重启时的 manager 兜底，不需要预置脚本。需要直接跟随仓库 `main` 时才使用三个 GitHub `#path:` spec（要求 pnpm ≥ 9，PowerShell 下必须单引号包裹）。
-- **本地开发 / 指定提交 / 弱网**：定位或 clone 仓库，然后按"独立子包安装"流程分别 add skin-manager 与目标皮肤的**子目录**绝对路径。**禁止 add 仓库根目录**（仓库根不是包，无 `package.json`，会直接失败）。本地 link 没有一行命令的自动兜底时序，add 之前先运行技能自带脚本预置互斥（见下）。
-- 只装一套皮肤（可带 manager）时没有互斥问题：patch 无行即启用，开箱即用。
+1. **界面错乱**（设置按钮消失、侧栏宽度异常、装饰叠在一起）：多半是两套皮肤同时启用，按 A 切到一套或官方默认。
+2. **升级 DSH 后皮肤消失**：比较 `dsh --version` 与已安装皮肤的 `peerDependencies['@deepseek-ai/dsh']`。不在范围内就是版本准入停用，属于预期行为：先按 C 更新；没有新版而用户仍想用，征得同意后按共用规则放行。
+3. **包在列表里但页面没变化**：`--dump-config` 看目标皮肤是否为 `disabled: false`；是的话请用户刷新页面。
+4. **仍不加载**：检查 link 目标与 `lib/client.js` 是否存在，再做冷启动探针，核对启动页是否引用该皮肤。图片 404 说明宿主进程仍在用旧的 node 半边，需要重启。
+5. **仍无法解释**：停下，把已收集的输出交给用户，建议到仓库 issue 反馈。不要扩大扫描范围或长时间轮询。
 
-### 2. 扫描皮肤清单（实时，勿硬编码）
+## 重启前检查与冷启动探针
 
-对仓库中每个含 `skin.json` 的目录，读取并汇总：
-- `id` / `name`（中文名）/ `nameEn` / `tagline`
-- `package`（npm 包名）、`wiring.id`（patch 层控制的插件 id）
-- `preview`（亮/暗预览图）
+仅在新增、删除包或诊断需要时执行。运行中的 DSH 可能仍持有旧的插件图，当前页面正常不能证明磁盘上的 profile 能再次启动。
 
-### 3. 与用户交互：安装范围与激活目标必须分开表达
-
-安装默认覆盖**全部三个发行包**（manager 常驻 + 两套皮肤），激活哪套在安装后由用户在设置页选择。若用户点名目标皮肤（如"安装 maid-atelier"），说明：装完重启后 manager 兜底会先回退官方默认，首次启动后即可在设置页一键激活；本地 link 流程则可在 add 前用脚本预置目标状态。只有用户明确要求"只安装这一套/最小安装"时，才缩小注册范围；即使最小安装，也必须显式停用其他已经安装的皮肤。
-
-### 4. 向用户交代版权署名链与许可（初次安装必做）
-
-- **署名链**：读取本次将安装的每套皮肤的 `NOTICE`（署名链权威来源）与 README，逐套简述创作链（"一创 XX → 二创 XX → 本皮肤 XX"），附作者主页链接。**以 NOTICE 实际内容为准**，不要凭记忆介绍。
-- **许可**：以皮肤 `LICENSE`、`LICENSE-ARTWORK` 与 `NOTICE` 为准。代码采用 MIT；美术（包括背景、按钮图像、装饰、AI 生成图片及内嵌副本）采用 CC BY-NC-SA 4.0，禁止商业性使用，保留完整署名链，衍生美术须相同方式共享。MIT 不授予美术商用权限。
-
-注意：README 一行命令本身是"皮肤安装指令"，技能主动执行三条 add 时同样要交代署名链与许可；用户自装时确认其已读过 README 即可。
-
-### 5. 注册包
-
-- **正式安装**：
-  ```sh
-  dsh plugin --profile <name> add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' && dsh plugin --profile <name> add '@smalltailqwq/dsh-client-ui-skin-maid-atelier' && dsh plugin --profile <name> add '@smalltailqwq/dsh-client-ui-skin-orca-link'
-  ```
-  PowerShell 下把 `&&` 换成 `;`，包名保持单引号。三条 add 之间不手写 patch——首次重启时 skin-manager 兜底负责回退与写入互斥行。
-- **独立子包（本地开发/弱网）**：add 之前先预置互斥（add 后再写会留下叠加窗口）：
-  `node <仓库绝对路径>/.agents/skills/dsh-skin-install/scripts/stage-mutual-exclusion.mjs --profile <name> --target <skin-id|official>`
-  脚本复用 skin-manager 的托管块、原子写入和双层回滚逻辑，并保留 patch 中所有非托管内容。**禁止用重定向、整文件覆盖或重新生成整个 YAML 的方式写 patch。**脚本失败即停止，不得继续 add。
-  然后依次 `dsh plugin --profile <name> add <仓库绝对路径>/<目录>`（skin-manager、目标皮肤等；本地路径自动按 `link:` 注册）。已正确 link 到同一 clone 的包跳过，不 remove、不重复 add。
-- 新增插件包需要重启，但必须先通过“重启安全闸门”的一致性检查与冷启动探针；**重启由用户执行**（见闸门：AI 不自行杀宿主进程）。
-- add 完成后不要再次手写 patch；运行 `--dump-config` 验证预置状态仍然成立，再进入冷启动探针。若新增过程中任一步失败，已安装包可以保留，但必须维持预置的安全状态并向用户说明未完成项。
-
-### 6. 验证生效
-
-- `dsh plugin --profile <name> list`：正式安装应看到三个 `@smalltailqwq/*` npm 依赖；GitHub 路径应看到三个 `github:` 依赖；本地流程应看到三/两个 `link:` 依赖。
-- `dsh --profile <name> --dump-config` 一次输出：manager 行 `disabled: false`；皮肤恰一套 `false`（或首次重启前的过渡态——干净环境两套都无 disabled 行，启动兜底后才会写入；若 home 层残留互斥行则直接沿用）。
-- 走重启安全闸门完成冷启动，并核对启动页 client roster：manager 与当前启用皮肤必须存在（`/plugins/<真实包名>/client.js`）。不得用配置树、裸包名匹配或 API 返回替代此项。
-- 安装了 skin-manager 时，`GET /api/dsh/skins` 能返回目录即可；**不要**核对定制卡片等页面细节。
-- **不要调用 `dsh-plugin-verify`，不要读 dsh 源码。** 页面效果由用户刷新后自行确认；只有用户反馈异常才进入诊断。
-- 告知用户刷新页面查看效果；皮肤异常（控制台报错、布局问题）时收集现象再排查。
-
-## 场景 C：更新（仅用户明确要求时）
-
-默认**不做任何网络同步**——已安装就原样使用。仅当用户明确表达"更新皮肤/检查更新"时：
-
-1. **npm / GitHub 依赖（正式安装）**：`dsh plugin --profile <name> update @smalltailqwq/dsh-client-ui-skin-deep-whale-manager @smalltailqwq/dsh-client-ui-skin-maid-atelier @smalltailqwq/dsh-client-ui-skin-orca-link`（npm 依赖重新解析 `latest`，GitHub 依赖重新解析仓库最新提交；不带包名的全量 update 也可以），再用 `plugin list` 与 `--dump-config` 验证。
-2. **本地 link**：才执行 `git fetch origin`、比较并 `git pull --ff-only`。
-3. bundle 内容更新通常热加载；只有包身份或插件图变化才重启。
-
-## 场景 D：加载本地修改或测试指定提交
-
-- **当前 link 的子包目录里的源码修改**：先按仓库脚本构建并确认提交型 `lib/` 同步，再通过 patch 禁用/启用目标 entry 触发热加载；记录并复核 PID，正常情况下不重启。
-- **测试指定提交**：禁止对用户正在使用的工作区执行 `git restore --source=<commit> --worktree -- <skin>`。创建临时 detached worktree，在其中构建并验证，然后用绝对路径把同名包重新 link 到该 worktree；记录原 link 路径，测试结束后才能按用户指示恢复。
-- 重新 link 后先核对依赖键仍等于目标 `package.json.name`。若包身份改变，按“移除旧键 → 绝对路径 add → dump-config → 冷启动探针”的顺序处理，不能依赖旧进程内存里的插件图。
-- 热加载失败时不要触碰未变化的 patch 文件伪造刷新，也不要立即建议重启；先走有界诊断。只有新增/删除插件包或启动图确实无法热更新时才使用安全重启流程。
-
-## 已知要点（判断用，非写死事实）
-
-- 本仓库皮肤是纯展示层 client 插件：不注入服务、不发 Cordis 事件、不触达模型请求；图片素材随包分发于 `assets/runtime/`，由皮肤 node 半边的同源路由提供，激活不依赖远程资源；新增/升级后若图片 404，说明宿主进程仍持有旧 node 半边，需要按重启安全闸门重启。
-- 皮肤可热切换，`wiring.id` 即 patch 层控制的插件 id；皮肤中心/互斥切换机制兼容。
-- **skin-manager 插件**（`@smalltailqwq/dsh-client-ui-skin-deep-whale-manager`）在设置面板注册"皮肤管理"分类：发现已安装皮肤（`GET /api/dsh/skins`，依据是 profile 依赖中导出有效 `skin.json`——`package` 匹配包名——的包）；一键激活（`POST /api/dsh/skins { target }`，同源校验 + catalog 校验 + 两 patch 层原子写入回滚）、皮肤定制声明渲染。启动时若按 profile→home 优先级计算出同时启用两套及以上皮肤，管理器会自动原子切到“官方默认”并写入互斥行；已有零套或一套启用的合法选择保持不变。安装皮肤后管理器自动发现,无需额外配置。
-- 皮肤子包本身**不带**默认 `disabled`（patch 无行 = 启用）；互斥的责任在管理器（启动兜底 + 原子切换），不要求用户预置脚本。预置脚本仅用于本地 link 流程与恢复工具。
-- npm 一行安装 = 三个 `@smalltailqwq/*` 包，默认使用 `latest`；GitHub `#path:` 子包是跟随 `main` 的备用来源（仓库根不是包），要求 **pnpm ≥ 9**，PowerShell 中 `#` 是注释起始，spec 必须单引号；更新命令里 `@` 开头 token 加引号更稳。
-- 仓库 README 提供安装/更新/互斥/验证/排查的完整说明；反馈问题走仓库 issue，不要联系画师本人。
+1. 目标皮肤 `package.json.name` 与 `skin.json.package` 相同，profile 的依赖键也与之一致；有别名或旧 scope 时先 remove 再用绝对路径 add。
+2. `dsh --profile <name> --dump-config` 能正常组合，管理器与目标皮肤的启停状态符合预期。
+3. 保留原进程，另起探针 `dsh --profile <name> --no-open --port 0`（参数若有变化，先看 `dsh --profile <name> --help`）。等它打印临时 URL 后取启动页 HTML，确认包含管理器和已启用皮肤的 `/plugins/<包名>/client.js`，停用的皮肤可以不出现。然后按记录的 PID 只终止这个探针，不按进程名批量结束。探针失败就修复后重试，不要让用户“重启试试”。
+4. 探针通过后，把启动命令交给用户重启。

@@ -52,7 +52,7 @@ Don't verify further unless the user reports a problem; then use the README trou
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-Works for both sources; the user refreshes the page afterwards, with no restart. The pnpm bundled with DSH skips npm versions younger than 24 hours without reporting an error, so `update` can stay on the previous release. To take a specific new release immediately, `add` it with its exact version, e.g. `'@smalltailqwq/dsh-client-ui-skin-orca-link@0.1.6'`; pnpm records that version as an exception and installs it.
+Works for both sources; the user refreshes the page afterwards, with no restart. The pnpm bundled with DSH skips npm versions younger than 24 hours without reporting an error, so `update` can stay on the previous release. To take a specific new release immediately, `add` it with a caret range, e.g. `'@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.6'`: pnpm records that version as an exception, installs it and keeps the dependency as a range. Without the `^` the dependency is pinned and later `update` runs no longer upgrade it.
 
 ## Beyond a normal install
 
