@@ -2,7 +2,7 @@
   "name": "@smalltailqwq/dsh-client-ui-skin-orca-link",
   "description": "A cool little black-whale operator, square corners throughout and icons redrawn in straight lines; functional by day, soothing by night.",
   "icon": "assets/plugin-icon.svg",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

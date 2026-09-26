@@ -2,7 +2,7 @@
   "name": "@smalltailqwq/dsh-client-ui-skin-maid-atelier",
   "description": "Two whale maids, navy lace and a chibi sidebar turn DSH into a maid atelier.",
   "icon": "assets/plugin-icon.png",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
