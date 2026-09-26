@@ -35,7 +35,17 @@ Click an image for the full size.
 > [!NOTE]
 > If you use dsh-web (you installed `@linxin666/dsh-web-all`), install `maid-atelier` and `orca-link` from dsh-web's own skin center instead of running the commands below. The two distributions are adapted separately, and mixing them in one profile breaks the layout.
 
-Copy the command for your shell and run it — no need to clone the repository:
+You can install from npm or from GitHub. Both give you the same skins; they differ in how quickly updates arrive:
+
+| | npm (recommended) | GitHub |
+|---|---|---|
+| What you get | Published releases with fixed version numbers | The latest code on the `main` branch |
+| When fixes reach you | About 24 hours after a release (the pnpm bundled with DSH only installs versions that are at least a day old) | As soon as a fix is merged |
+| Network | Works with npm registry mirrors | Needs access to GitHub |
+
+If you're not sure, pick npm. Copy the command for your shell and run it — no need to clone the repository.
+
+**Install from npm**
 
 ```sh
 # Linux / macOS / WSL
@@ -46,6 +56,20 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manage
 # PowerShell
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
+
+**Install from GitHub**
+
+```sh
+# Linux / macOS / WSL
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+```powershell
+# PowerShell
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+Both sources use the same package names, so whichever you install last replaces the other. To switch sources, just run the other set of commands.
 
 Then **restart DSH once**, open **Settings → Skins** and click **Switch** on the skin you want. From then on, switching skins takes effect immediately without restarting.
 
@@ -69,7 +93,7 @@ dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-mana
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-Refresh the page afterwards; no DSH restart is needed. If this profile contains only these skins, `dsh plugin --profile web update` updates everything at once.
+This works for both sources: npm installs move to the newest release, GitHub installs pull the latest `main`. Refresh the page afterwards; no DSH restart is needed. If this profile contains only these skins, `dsh plugin --profile web update` updates everything at once.
 
 ## Troubleshooting
 
@@ -118,11 +142,9 @@ Restart DSH once afterwards. Your chosen skin and its settings carry over; the r
 </details>
 
 <details>
-<summary><b>Installing from GitHub or a local folder (development / restricted networks)</b></summary>
+<summary><b>Installing from a local folder (development / testing a specific commit)</b></summary>
 
-To follow the GitHub `main` branch directly, replace each package name with `github:Small-tailqwq/dsh-deep-whale#path:/<subfolder>` (requires pnpm ≥ 9; wrap it in single quotes in PowerShell).
-
-For local development, or when npm is unreachable, clone the repository and install from its folders:
+For local development, or to test a specific commit, clone the repository and install from its folders:
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale
@@ -135,7 +157,7 @@ dsh plugin --profile web add <absolute clone path>/orca-link
 - The `node` line is optional. It picks the default skin in advance so the first start already shows it; `--target` accepts `maid-atelier`, `orca-link` or `official`. Without it, the first start shows the official UI and you pick a skin under **Settings → Skins**.
 - Prefer **absolute paths**. On Windows both slash styles work, e.g. `C:/Users/<you>/code/dsh-deep-whale/maid-atelier`.
 - Don't pass a bare folder name: `dsh plugin --profile web add maid-atelier` is treated as an npm package name and fails with 404. Relative paths must start with `./` or `../` and are resolved from **the folder you run dsh in**, not the skin repository. A wrong relative path won't raise an error — the skin just won't load.
-- npm, GitHub and local folders all install the same package name; the last `add` wins, so don't mix them.
+- A local folder installs the same package name as the npm and GitHub sources; the last `add` wins.
 
 </details>
 

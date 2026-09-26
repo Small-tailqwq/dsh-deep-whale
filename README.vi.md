@@ -35,7 +35,17 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 > [!NOTE]
 > Nếu bạn dùng dsh-web (đã cài `@linxin666/dsh-web-all`), hãy cài `maid-atelier` và `orca-link` từ trung tâm giao diện của chính dsh-web, đừng chạy các lệnh bên dưới. Hai bản được điều chỉnh riêng, cài lẫn vào cùng một profile sẽ làm giao diện hiển thị sai.
 
-Chỉ cần sao chép lệnh phù hợp với shell của bạn và chạy, không cần clone kho:
+Bạn có thể cài từ npm hoặc từ GitHub. Cả hai đều là cùng một bộ giao diện, chỉ khác ở tốc độ nhận bản cập nhật:
+
+| | npm (khuyến nghị) | GitHub |
+|---|---|---|
+| Nhận được gì | Các bản phát hành chính thức với số phiên bản cố định | Code mới nhất trên nhánh `main` |
+| Khi nào nhận được bản sửa lỗi | Khoảng 24 giờ sau khi phát hành (pnpm đi kèm DSH chỉ cài các phiên bản đã phát hành ít nhất một ngày) | Ngay khi bản sửa được gộp |
+| Mạng | Dùng được với mirror của npm registry | Cần truy cập được GitHub |
+
+Nếu không chắc, hãy chọn npm. Chỉ cần sao chép lệnh phù hợp với shell của bạn và chạy, không cần clone kho.
+
+**Cài từ npm**
 
 ```sh
 # Linux / macOS / WSL
@@ -46,6 +56,20 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manage
 # PowerShell
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
+
+**Cài từ GitHub**
+
+```sh
+# Linux / macOS / WSL
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+```powershell
+# PowerShell
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+Hai nguồn dùng cùng tên package, nên nguồn cài sau sẽ thay thế nguồn cài trước. Muốn đổi nguồn, chỉ cần chạy bộ lệnh còn lại.
 
 Sau đó **khởi động lại DSH một lần**, mở «Cài đặt → Quản lý giao diện» và nhấn «Chuyển» trên giao diện bạn muốn. Từ đó trở đi, đổi giao diện có hiệu lực ngay, không cần khởi động lại.
 
@@ -69,7 +93,7 @@ dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-mana
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-Cập nhật xong chỉ cần tải lại trang, không cần khởi động lại DSH. Nếu profile này chỉ có các giao diện của kho, có thể chạy `dsh plugin --profile web update` để cập nhật tất cả.
+Lệnh này dùng được cho cả hai nguồn: nguồn npm sẽ lên bản phát hành mới nhất, nguồn GitHub sẽ kéo code mới nhất trên `main`. Cập nhật xong chỉ cần tải lại trang, không cần khởi động lại DSH. Nếu profile này chỉ có các giao diện của kho, có thể chạy `dsh plugin --profile web update` để cập nhật tất cả.
 
 ## Khi gặp sự cố
 
@@ -118,11 +142,9 @@ Sau đó khởi động lại DSH một lần. Giao diện bạn đã chọn và
 </details>
 
 <details>
-<summary><b>Cài từ GitHub hoặc thư mục cục bộ (phát triển / mạng hạn chế)</b></summary>
+<summary><b>Cài từ thư mục cục bộ (phát triển / thử một commit cụ thể)</b></summary>
 
-Để theo dõi trực tiếp nhánh GitHub `main`, thay mỗi tên package bằng `github:Small-tailqwq/dsh-deep-whale#path:/<thư-mục-con>` (cần pnpm ≥ 9; trong PowerShell phải bọc bằng dấu nháy đơn).
-
-Khi phát triển cục bộ hoặc không kết nối được npm, hãy clone kho và cài từ các thư mục:
+Khi phát triển cục bộ hoặc muốn thử một commit cụ thể, hãy clone kho và cài từ các thư mục:
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale
@@ -135,7 +157,7 @@ dsh plugin --profile web add <đường dẫn tuyệt đối tới bản clone>/
 - Dòng `node` là tùy chọn. Nó chọn sẵn giao diện mặc định để lần khởi động đầu đã hiển thị giao diện đó; `--target` nhận `maid-atelier`, `orca-link` hoặc `official`. Bỏ qua thì lần đầu sẽ là giao diện chính thức, sau đó chuyển trong Quản lý giao diện.
 - Nên dùng **đường dẫn tuyệt đối**. Trên Windows dùng dấu gạch chéo nào cũng được, ví dụ `C:/Users/<bạn>/code/dsh-deep-whale/maid-atelier`.
 - Đừng chỉ ghi tên thư mục: `dsh plugin --profile web add maid-atelier` sẽ bị hiểu là tên package npm và báo lỗi 404. Đường dẫn tương đối phải bắt đầu bằng `./` hoặc `../` và được tính từ **thư mục nơi bạn chạy lệnh dsh**, không phải thư mục kho giao diện. Đường dẫn sai sẽ không báo lỗi, chỉ là giao diện không được tải.
-- npm, GitHub và thư mục cục bộ đều cài cùng một tên package; lần `add` cuối cùng sẽ được dùng, vì vậy đừng trộn lẫn.
+- Thư mục cục bộ cài cùng tên package với nguồn npm và GitHub; lần `add` cuối cùng sẽ được dùng.
 
 </details>
 

@@ -35,7 +35,17 @@
 > [!NOTE]
 > 如果你用的是 dsh-web（装过 `@linxin666/dsh-web-all`），请直接在 dsh-web 自带的皮肤中心里安装 `maid-atelier` 和 `orca-link`，不要再运行下面的命令。两边的皮肤是分别适配的，装在同一个 profile 里会让界面显示错乱。
 
-复制对应系统的命令运行即可，不需要 clone 仓库：
+皮肤可以从 npm 或 GitHub 安装，两种来源装的是同一套皮肤，区别在于更新节奏：
+
+| | npm（推荐） | GitHub |
+|---|---|---|
+| 拿到的版本 | 正式发布的版本，有固定版本号 | `main` 分支上的最新代码 |
+| 什么时候能用上修复 | 发版后约 24 小时（DSH 内置的 pnpm 默认只安装发布满一天的版本） | 修复合并后马上就能装 |
+| 网络 | 可以配置 npm 镜像源，国内一般更稳 | 需要能访问 GitHub |
+
+拿不准就选 npm。复制对应系统的命令运行即可，不需要 clone 仓库。
+
+**从 npm 安装**
 
 ```sh
 # Linux / macOS / WSL
@@ -46,6 +56,20 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manage
 # PowerShell
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-maid-atelier'; dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
+
+**从 GitHub 安装**
+
+```sh
+# Linux / macOS / WSL
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+```powershell
+# PowerShell
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+两种来源用的是同一个包名，后装的会替换先装的。想从一种换到另一种，直接用另一组命令重新装一遍即可。
 
 装好后**重启一次 DSH**，然后打开「设置 → 皮肤管理」，在想用的皮肤上点「切换」就好。之后换皮肤都是即时生效，不用再重启。
 
@@ -69,7 +93,7 @@ dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-mana
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-更新后刷新页面即可，不需要重启 DSH。如果这个 profile 里只装了本仓库的皮肤，也可以直接运行 `dsh plugin --profile web update` 更新全部插件。
+这条命令对 npm 和 GitHub 两种来源都适用：npm 来源会更新到最新发布的版本，GitHub 来源会拉取 `main` 上的最新代码。更新后刷新页面即可，不需要重启 DSH。如果这个 profile 里只装了本仓库的皮肤，也可以直接运行 `dsh plugin --profile web update` 更新全部插件。
 
 ## 遇到问题
 
@@ -118,11 +142,9 @@ dsh plugin --profile web remove '@dsh-external/dsh-client-ui-skin-deep-whale-man
 </details>
 
 <details>
-<summary><b>从 GitHub 或本地目录安装（开发 / 网络受限时）</b></summary>
+<summary><b>从本地目录安装（开发 / 测试指定提交）</b></summary>
 
-想直接跟随 GitHub `main` 分支，可以把包名换成 `github:Small-tailqwq/dsh-deep-whale#path:/<子目录>`（需要 pnpm ≥ 9，PowerShell 下要用单引号包住）。
-
-本地开发或 npm 连不上时，可以 clone 仓库后按目录安装：
+本地开发，或者想测试某个指定提交时，可以 clone 仓库后按目录安装：
 
 ```sh
 git clone --depth 1 https://github.com/Small-tailqwq/dsh-deep-whale
@@ -135,7 +157,7 @@ dsh plugin --profile web add <clone 的绝对路径>/orca-link
 - 第二行 `node` 命令可以跳过。它的作用是提前选好默认皮肤，让第一次启动直接就是这套皮肤；`--target` 可以写 `maid-atelier`、`orca-link` 或 `official`（官方默认）。跳过的话，首次启动是官方界面，再去皮肤管理里切换即可。
 - 路径请尽量写**绝对路径**，Windows 下正斜杠、反斜杠都行，例如 `C:/Users/<你>/code/dsh-deep-whale/maid-atelier`。
 - 不要只写目录名：`dsh plugin --profile web add maid-atelier` 会被当成 npm 包名去下载，结果 404。相对路径要以 `./` 或 `../` 开头，并且是相对于你**运行 dsh 命令时所在的目录**，不是皮肤仓库目录；路径算错时命令不会报错，但皮肤不会生效。
-- npm、GitHub、本地目录三种来源对应的是同一个包名，以最后一次 `add` 为准，不要混着装。
+- 本地目录和 npm、GitHub 来源用的是同一个包名，以最后一次 `add` 为准。
 
 </details>
 

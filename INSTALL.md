@@ -30,6 +30,20 @@ dsh plugin --profile web update @smalltailqwq/dsh-client-ui-skin-deep-whale-mana
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
+## Following GitHub `main` instead
+
+npm is the default. If the user wants fixes as soon as they are merged (npm releases only become installable about 24 hours after publishing, because the pnpm bundled with DSH defaults `minimumReleaseAge` to one day), install the same three packages from GitHub instead:
+
+```sh
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+```powershell
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+```
+
+Both sources use the same package names, so the last `add` wins. The update commands above work for either source.
+
 ## Migrating from the old placeholder scope
 
 Installations made from GitHub before `0.1.3` use `@dsh-external/*` dependency keys. That scope was only a source-level placeholder for this project. Remove all three old keys before adding the npm packages above; otherwise DSH can retain duplicate plugin identities.
