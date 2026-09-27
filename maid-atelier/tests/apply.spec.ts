@@ -1745,7 +1745,24 @@ describe('Maid Atelier skin apply', () => {
     expect(paneRule).toContain('pointer-events: none')
     expect(bodyRule).toContain('grid-row: 2')
     expect(bodyRule).not.toMatch(/filter|transform|contain/)
-    expect(CSS).toMatch(new RegExp(`\\[data-ds-dark-theme\\]\\s+${masked}::before\\s*\\{[^}]*rgba\\(10, 20, 48, 0\\.52\\)`))
+    expect(CSS).toMatch(new RegExp(`\\[data-ds-dark-theme\\]\\s+${masked}::before\\s*\\{[^}]*rgba\\(10, 20, 48, 0\\.64\\)`))
+    // The pane is the only glass layer: expanded members lie flat on it.
+    const flatRule = CSS.match(
+      /\[data-step-process-body\]:is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*:is\(([^{]*)\)\s*\{([^}]*)\}/,
+    )
+    expect(flatRule?.[1]).toContain("[data-variant='think'] > [data-open='true'] > [data-disclosure-row] + *")
+    expect(flatRule?.[1]).toContain("[data-variant]:not([data-variant='think']) > [data-open='true']")
+    expect(flatRule?.[2]).toMatch(/background: transparent[^}]*box-shadow: none[^}]*backdrop-filter: none/s)
+    // A padded max-content body must stay inside its column, or the process
+    // group's scroll body grows a horizontal scrollbar.
+    const thinkBodies = [...CSS.matchAll(/\[data-variant='think'\] > \[data-open='true'\] > \[data-disclosure-row\] \+ \* \{([^}]*)\}/g)]
+    expect(thinkBodies).toHaveLength(2)
+    for (const [, rule] of thinkBodies) {
+      expect(rule).toContain('box-sizing: border-box')
+      expect(rule).toContain('max-width: 100%')
+    }
+    // The chip padding drops the host's gap under an open group title.
+    expect(CSS).toMatch(/button\[data-process-activity\]\[aria-expanded='true'\]\s*\{[^}]*margin-bottom: 10px/)
 
     document.body.innerHTML = `
       <div data-step-process data-fixture="masked">
