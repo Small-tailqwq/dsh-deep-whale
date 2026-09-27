@@ -3145,7 +3145,10 @@ body[data-dsh-maid-atelier] [data-composer-card]
   [data-slot='conversation.input.model']
   [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
   > [role='menu'][class$='_menu'] {
-  background: rgba(232, 238, 249, 0.98);
+  --maid-model-menu-surface: rgba(232, 238, 249, 0.98);
+  --maid-model-group-title: #8a6a36;
+  --maid-model-group-rule: rgba(197, 164, 104, 0.34);
+  background: var(--maid-model-menu-surface);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -3154,7 +3157,39 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
   [data-slot='conversation.input.model']
   [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
   > [role='menu'][class$='_menu'] {
-  background: rgba(24, 40, 80, 0.98);
+  --maid-model-menu-surface: rgba(24, 40, 80, 0.98);
+  --maid-model-group-title: #d1b47e;
+  --maid-model-group-rule: rgba(214, 184, 126, 0.26);
+}
+
+/* Provider titles are sticky and paint `--dsw-specific-menu`, a different
+   layer tone than the skin's menu surface, so each title read as a hard
+   band. Paint them with the menu's own surface, fading at the lower edge so
+   scrolled options dissolve beneath the title, and separate providers with a
+   soft gold rule instead of a colour change. */
+body[data-dsh-maid-atelier] [data-composer-card]
+  [data-slot='conversation.input.model']
+  [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
+  > [role='menu'][class$='_menu'] [role='group'] > [class$='_groupTitle'] {
+  padding: 6px 8px 5px;
+  color: var(--maid-model-group-title);
+  background: linear-gradient(
+    180deg,
+    var(--maid-model-menu-surface) calc(100% - 4px),
+    transparent
+  );
+  letter-spacing: 0.04em;
+}
+
+body[data-dsh-maid-atelier] [data-composer-card]
+  [data-slot='conversation.input.model']
+  [class$='_root']:has(> button[class$='_trigger'][aria-haspopup='menu'])
+  > [role='menu'][class$='_menu'] [role='group'] + [role='group'] {
+  margin-top: 4px;
+  padding-top: 4px;
+  background:
+    linear-gradient(90deg, transparent, var(--maid-model-group-rule) 18%, var(--maid-model-group-rule) 82%, transparent)
+    top / 100% 1px no-repeat;
 }
 
 body[data-dsh-maid-atelier] [data-phase='hero']
