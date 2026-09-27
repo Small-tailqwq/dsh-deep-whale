@@ -1729,6 +1729,48 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant='think'\][^{]*\+ \*\s*\{[^}]*color: #c7d2e9/s)
   })
 
+  it('frosts masked process groups from outside their Backdrop Root', () => {
+    // A scrollable process group fades its edges with mask-image, so blurs on
+    // its members sample nothing. The pane must sit beside the masked body,
+    // and the body itself must stay filter-free for non-portaled tooltips.
+    const masked = String.raw`\[data-step-process\]:not\(\[hidden\], \[data-group-expanded-mode\]\):has\(\s*> \[data-step-process-body\]:is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*\)`
+    const rootRule = CSS.match(new RegExp(`body\\[data-dsh-maid-atelier\\]\\s+${masked}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+    const paneRule = CSS.match(new RegExp(`body\\[data-dsh-maid-atelier\\]\\s+${masked}::before\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+    const bodyRule = CSS.match(
+      /\[data-group-expanded-mode\]\)\s*> \[data-step-process-body\]:is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(rootRule).toContain('display: grid')
+    expect(paneRule).toContain('grid-row: 2')
+    expect(paneRule).toContain('backdrop-filter: blur(12px)')
+    expect(paneRule).toContain('pointer-events: none')
+    expect(bodyRule).toContain('grid-row: 2')
+    expect(bodyRule).not.toMatch(/filter|transform|contain/)
+    expect(CSS).toMatch(new RegExp(`\\[data-ds-dark-theme\\]\\s+${masked}::before\\s*\\{[^}]*rgba\\(10, 20, 48, 0\\.52\\)`))
+
+    document.body.innerHTML = `
+      <div data-step-process data-fixture="masked">
+        <div><button data-process-activity="thinking"></button></div>
+        <div data-step-process-body data-scroll-down="true"></div>
+      </div>
+      <div data-step-process data-fixture="fits">
+        <div><button data-process-activity="thinking"></button></div>
+        <div data-step-process-body></div>
+      </div>
+      <div data-step-process data-group-expanded-mode="true" data-fixture="expanded">
+        <div hidden></div>
+        <div data-step-process-body data-scroll-down="true"></div>
+      </div>
+      <div data-step-process hidden="until-found" data-fixture="hidden">
+        <div><button data-process-activity="thinking"></button></div>
+        <div data-step-process-body data-scroll-up="true"></div>
+      </div>
+    `
+    const matches = document.querySelectorAll(
+      '[data-step-process]:not([hidden], [data-group-expanded-mode]):has(> [data-step-process-body]:is([data-scroll-up], [data-scroll-down]))',
+    )
+    expect([...matches].map((element) => element.getAttribute('data-fixture'))).toEqual(['masked'])
+  })
+
   it('keeps the light-theme composer statistics legible over the backdrop', () => {
     const dockRule = CSS.match(
       /body\[data-dsh-maid-atelier\] \[data-composer-card\] \+ div\[class\*='dock'\]\s*\{([^}]*)\}/s,

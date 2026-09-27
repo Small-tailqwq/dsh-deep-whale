@@ -4733,21 +4733,26 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   backdrop-filter: blur(8px) saturate(0.92);
 }
 
+/* The expanded reasoning body is a multi-line reading surface, not a row
+   strip: the strip's horizontal fade leaves the right half of a paragraph on
+   an 8% wash. Keep the sticky header strip above, and give the body an even
+   porcelain pane with a stronger blur and a hairline edge. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   [data-variant='think'] > [data-open='true'] > [data-disclosure-row] + * {
   display: inline-block;
   width: max-content;
   max-width: 100%;
   align-self: flex-start;
+  margin-top: 4px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: linear-gradient(
-    90deg,
-    rgba(248, 250, 255, 0.32),
-    rgba(248, 250, 255, 0.2) 72%,
-    rgba(248, 250, 255, 0.08)
+    135deg,
+    rgba(248, 250, 255, 0.56),
+    rgba(248, 250, 255, 0.4)
   );
-  backdrop-filter: blur(8px) saturate(0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(12px) saturate(0.92);
   color: #34486f;
   line-height: 1.65;
 }
@@ -4758,17 +4763,76 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   width: max-content;
   max-width: 100%;
   align-self: flex-start;
+  margin-top: 4px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: linear-gradient(
-    90deg,
-    rgba(10, 20, 48, 0.58),
-    rgba(13, 25, 59, 0.4) 72%,
-    rgba(13, 25, 59, 0.16)
+    135deg,
+    rgba(10, 20, 48, 0.7),
+    rgba(18, 31, 67, 0.52)
   );
-  backdrop-filter: blur(8px) saturate(0.92);
+  box-shadow: inset 0 0 0 1px rgba(151, 169, 216, 0.18);
+  backdrop-filter: blur(12px) saturate(0.92);
   color: #c7d2e9;
   line-height: 1.65;
+}
+
+/* Process groups cap their member list at a fixed height and fade the
+   scroll edges with `mask-image` once members overflow, which is what
+   expanding a reasoning block usually triggers. A mask makes the scroll body
+   a Backdrop Root: every member blur inside it samples only the group's own
+   transparent paint, so rows and the reasoning body above lose their frost
+   and the palace art shows through sharp. Lay one frosted pane under the
+   masked body instead. It is the group root's pseudo-element, stacked into
+   the body's grid cell, so the scroll body never gains a filter and never
+   becomes the containing block of the host's non-portaled fixed tooltips.
+   The host mirrors its fade classes on data-scroll-up / data-scroll-down,
+   which exist only while the group is collapsed-mode, visible, and
+   scrollable. */
+body[data-dsh-maid-atelier]
+  [data-step-process]:not([hidden], [data-group-expanded-mode]):has(
+    > [data-step-process-body]:is([data-scroll-up], [data-scroll-down])
+  ) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-dsh-maid-atelier]
+  [data-step-process]:not([hidden], [data-group-expanded-mode])
+  > [data-step-process-body]:is([data-scroll-up], [data-scroll-down]) {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+body[data-dsh-maid-atelier]
+  [data-step-process]:not([hidden], [data-group-expanded-mode]):has(
+    > [data-step-process-body]:is([data-scroll-up], [data-scroll-down])
+  )::before {
+  content: '';
+  grid-row: 2;
+  grid-column: 1;
+  margin: -4px -8px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(248, 250, 255, 0.34),
+    rgba(248, 250, 255, 0.2)
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px) saturate(0.92);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-step-process]:not([hidden], [data-group-expanded-mode]):has(
+    > [data-step-process-body]:is([data-scroll-up], [data-scroll-down])
+  )::before {
+  background: linear-gradient(
+    135deg,
+    rgba(10, 20, 48, 0.52),
+    rgba(13, 25, 59, 0.34)
+  );
+  box-shadow: inset 0 0 0 1px rgba(151, 169, 216, 0.16);
 }
 
 /* Present uses its own tool owner, outside data-variant. Expanded output and
