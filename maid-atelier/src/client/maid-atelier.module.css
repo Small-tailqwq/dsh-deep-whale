@@ -4800,12 +4800,15 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
    masked body instead. It is the group root's pseudo-element, stacked into
    the body's grid cell, so the scroll body never gains a filter and never
    becomes the containing block of the host's non-portaled fixed tooltips.
-   The host mirrors its fade classes on data-scroll-up / data-scroll-down,
-   which exist only while the group is collapsed-mode, visible, and
-   scrollable. */
+   The host mirrors its fade classes on data-scroll-up / data-scroll-down.
+   It clears them when the group root is hidden or in expanded mode, but
+   collapsing the group title only hides the body (`hidden="until-found"`,
+   a zero-height box) and leaves the last edges behind, so the body's own
+   hidden state is excluded too; otherwise the pane shrinks to an 8px bar
+   under the collapsed title. */
 body[data-dsh-maid-atelier]
   [data-step-process]:not([hidden], [data-group-expanded-mode]):has(
-    > [data-step-process-body]:is([data-scroll-up], [data-scroll-down])
+    > [data-step-process-body]:not([hidden]):is([data-scroll-up], [data-scroll-down])
   ) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -4813,14 +4816,14 @@ body[data-dsh-maid-atelier]
 
 body[data-dsh-maid-atelier]
   [data-step-process]:not([hidden], [data-group-expanded-mode])
-  > [data-step-process-body]:is([data-scroll-up], [data-scroll-down]) {
+  > [data-step-process-body]:not([hidden]):is([data-scroll-up], [data-scroll-down]) {
   grid-row: 2;
   grid-column: 1;
 }
 
 body[data-dsh-maid-atelier]
   [data-step-process]:not([hidden], [data-group-expanded-mode]):has(
-    > [data-step-process-body]:is([data-scroll-up], [data-scroll-down])
+    > [data-step-process-body]:not([hidden]):is([data-scroll-up], [data-scroll-down])
   )::before {
   content: '';
   grid-row: 2;
@@ -4839,7 +4842,7 @@ body[data-dsh-maid-atelier]
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-step-process]:not([hidden], [data-group-expanded-mode]):has(
-    > [data-step-process-body]:is([data-scroll-up], [data-scroll-down])
+    > [data-step-process-body]:not([hidden]):is([data-scroll-up], [data-scroll-down])
   )::before {
   background: linear-gradient(
     135deg,
@@ -4856,7 +4859,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
    header keep their wash, and code, terminal and diff blocks keep their own
    opaque surfaces. */
 body[data-dsh-maid-atelier]
-  [data-step-process-body]:is([data-scroll-up], [data-scroll-down])
+  [data-step-process-body]:not([hidden]):is([data-scroll-up], [data-scroll-down])
   :is(
     [data-variant='think'] > [data-open='true'] > [data-disclosure-row] + *,
     [data-variant]:not([data-variant='think']) > [data-open='true'],

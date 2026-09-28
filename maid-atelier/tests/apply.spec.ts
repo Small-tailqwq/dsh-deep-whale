@@ -1733,11 +1733,13 @@ describe('Maid Atelier skin apply', () => {
     // A scrollable process group fades its edges with mask-image, so blurs on
     // its members sample nothing. The pane must sit beside the masked body,
     // and the body itself must stay filter-free for non-portaled tooltips.
-    const masked = String.raw`\[data-step-process\]:not\(\[hidden\], \[data-group-expanded-mode\]\):has\(\s*> \[data-step-process-body\]:is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*\)`
+    // Collapsing the group hides only the body and leaves stale scroll edges,
+    // so a hidden body must not keep the pane alive as a zero-height bar.
+    const masked = String.raw`\[data-step-process\]:not\(\[hidden\], \[data-group-expanded-mode\]\):has\(\s*> \[data-step-process-body\]:not\(\[hidden\]\):is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*\)`
     const rootRule = CSS.match(new RegExp(`body\\[data-dsh-maid-atelier\\]\\s+${masked}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
     const paneRule = CSS.match(new RegExp(`body\\[data-dsh-maid-atelier\\]\\s+${masked}::before\\s*\\{([^}]*)\\}`))?.[1] ?? ''
     const bodyRule = CSS.match(
-      /\[data-group-expanded-mode\]\)\s*> \[data-step-process-body\]:is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*\{([^}]*)\}/,
+      /\[data-group-expanded-mode\]\)\s*> \[data-step-process-body\]:not\(\[hidden\]\):is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*\{([^}]*)\}/,
     )?.[1] ?? ''
     expect(rootRule).toContain('display: grid')
     expect(paneRule).toContain('grid-row: 2')
@@ -1748,7 +1750,7 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(new RegExp(`\\[data-ds-dark-theme\\]\\s+${masked}::before\\s*\\{[^}]*rgba\\(10, 20, 48, 0\\.64\\)`))
     // The pane is the only glass layer: expanded members lie flat on it.
     const flatRule = CSS.match(
-      /\[data-step-process-body\]:is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*:is\(([^{]*)\)\s*\{([^}]*)\}/,
+      /\[data-step-process-body\]:not\(\[hidden\]\):is\(\[data-scroll-up\], \[data-scroll-down\]\)\s*:is\(([^{]*)\)\s*\{([^}]*)\}/,
     )
     expect(flatRule?.[1]).toContain("[data-variant='think'] > [data-open='true'] > [data-disclosure-row] + *")
     expect(flatRule?.[1]).toContain("[data-variant]:not([data-variant='think']) > [data-open='true']")
@@ -1777,13 +1779,17 @@ describe('Maid Atelier skin apply', () => {
         <div hidden></div>
         <div data-step-process-body data-scroll-down="true"></div>
       </div>
+      <div data-step-process data-fixture="collapsed">
+        <div><button data-process-activity="thinking" aria-expanded="false"></button></div>
+        <div data-step-process-body hidden="until-found" data-scroll-down="true"></div>
+      </div>
       <div data-step-process hidden="until-found" data-fixture="hidden">
         <div><button data-process-activity="thinking"></button></div>
         <div data-step-process-body data-scroll-up="true"></div>
       </div>
     `
     const matches = document.querySelectorAll(
-      '[data-step-process]:not([hidden], [data-group-expanded-mode]):has(> [data-step-process-body]:is([data-scroll-up], [data-scroll-down]))',
+      '[data-step-process]:not([hidden], [data-group-expanded-mode]):has(> [data-step-process-body]:not([hidden]):is([data-scroll-up], [data-scroll-down]))',
     )
     expect([...matches].map((element) => element.getAttribute('data-fixture'))).toEqual(['masked'])
   })
