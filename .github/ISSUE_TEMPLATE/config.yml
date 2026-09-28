@@ -1,1 +1,5 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
+contact_links:
+  - name: 工坊 / skin-center / dsh-web-all 安装的皮肤问题
+    url: https://github.com/zhu1090093659/dsh-web/issues
+    about: 通过 dsh-web 皮肤工坊、skin-center 或 @linxin666/dsh-web-all 安装的皮肤是 dsh-web 维护的移植版，与本仓库独立插件不是同一产物，请直接到 dsh-web 反馈。

@@ -8,6 +8,11 @@ body:
       value: |
         请尽量填写完整，缺少环境信息的报告会被直接打回。
 
+        > **先确认皮肤来源**：通过 dsh-web 皮肤工坊、skin-center 或 `@linxin666/dsh-web-all` 安装的皮肤
+        > 是 dsh-web 维护的移植版（版本号通常为 0.3.x），与本仓库的独立插件不是同一产物，
+        > 请**先到 [dsh-web issues](https://github.com/zhu1090093659/dsh-web/issues) 反馈**。
+        > 只有按本仓库 README / INSTALL 安装的皮肤，或 dsh-web 维护者确认需要本仓库处理的问题，才在这里提交。
+
         ### 给 AI 助手（dsh / DeepSeek 系）的提交说明
         - 本模板允许由 dsh 等 AI 助手代填并提交。DeepSeek 系列模型（含 deepseek-v4）不支持视觉/多模态，
           无法自行截取问题截图——**截图字段可留空**，在描述末尾注明「截图由用户补充」，
@@ -38,14 +43,22 @@ body:
   - type: dropdown
     id: dsh-web-ecosystem
     attributes:
-      label: 是否使用 dsh-web 生态链
-      description: 如果使用，请同时把问题反馈到 https://github.com/zhu1090093659/dsh-web/issues ，以便核对 dsh-web 的组合组件与适配皮肤。
+      label: 皮肤来源 / 是否使用 dsh-web 生态链
+      description: 工坊、skin-center 或 dsh-web-all 安装的皮肤请先到 https://github.com/zhu1090093659/dsh-web/issues 反馈，并在下方填写上游 issue 链接。
       options:
-        - 否，直接运行 DSH
-        - 是，安装了 @linxin666/dsh-web-all 或其他 dsh-web 组件
+        - 否，按本仓库 README / INSTALL 安装，直接运行 DSH
+        - 是，但已在 dsh-web 反馈过（下方附链接）
         - 不确定
     validations:
       required: true
+  - type: input
+    id: upstream-issue
+    attributes:
+      label: dsh-web 上游 issue 链接
+      description: 使用 dsh-web 生态链时必填；不使用可留空
+      placeholder: https://github.com/zhu1090093659/dsh-web/issues/...
+    validations:
+      required: false
   - type: input
     id: skin-version
     attributes:
