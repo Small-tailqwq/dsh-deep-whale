@@ -4146,21 +4146,16 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 
 /* dsh-better-display's Reader draws its own transcript: answers are
    `article[data-reader-answer]` and the user text sits in the `user` module
-   class under a keyed (or pending-submission) cluster, so none of the native row hooks above match and
-   the text lands straight on the artwork (#140). Give both the same porcelain
-   plates as native bubbles. The user bubble also paints
-   `--dsw-specific-bubble`, rebound here as the fallback if the class hook
-   changes. The Reader root never paints `--dsw-alias-bg-base` itself; only
-   its surfaces do (sticky toolbar and process lanes, live fold, dialogs), and
-   the skin's page-level `transparent` let scrolled answers show through those
-   pinned rows. Rebind it to the answer porcelain inside the Reader. */
+   class under a keyed (or pending-submission) cluster, so none of the native
+   row hooks above match and the text lands straight on the artwork (#140).
+   Give both the same porcelain plates as native bubbles. The user bubble also
+   paints `--dsw-specific-bubble`, rebound here as the fallback if the class
+   hook changes. */
 body[data-dsh-maid-atelier] [data-dsh-better-display] {
-  --dsw-alias-bg-base: rgba(248, 250, 255, 0.98);
   --dsw-specific-bubble: rgba(232, 237, 249, 0.95);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-display] {
-  --dsw-alias-bg-base: rgba(18, 31, 67, 0.98);
   --dsw-specific-bubble: rgba(30, 47, 90, 0.97);
 }
 
