@@ -1729,6 +1729,26 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant='think'\][^{]*\+ \*\s*\{[^}]*color: #c7d2e9/s)
   })
 
+  it('seats the full-workspace settings shell below the desktop window strip', () => {
+    // Windows paints caption buttons over the shell titlebar and macOS keeps
+    // its traffic-light band; the web shell has neither.
+    expect(CSS).toMatch(/html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\]\s*\{[^}]*--maid-window-strip: var\(--dsh-windows-titlebar-height, 40px\)/)
+    expect(CSS).toMatch(/html\[data-platform='darwin'\] body\[data-dsh-maid-atelier\]\s*\{[^}]*--maid-window-strip: var\(--dsh-frame-top-clearance, 0px\)/)
+    const workspace = CSS.match(
+      /@media \(max-width: 1099px\), \(max-height: 680px\) \{[\s\S]*?> \[role='dialog'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(workspace).toContain('width: 100dvw')
+    expect(workspace).toContain('height: calc(100dvh - var(--maid-window-strip, 0px))')
+    expect(workspace).toContain('margin-top: var(--maid-window-strip, 0px)')
+    expect(workspace).not.toMatch(/height: 100d?vh;/)
+    // The host panel only clears the macOS strip at desktop size.
+    const desktop = CSS.match(
+      /@media \(min-width: 1100px\) and \(min-height: 681px\) \{\s*html\[data-windows-titlebar\][^{]*> \[role='dialog'\]\s*\{([^}]*)\}/,
+    )?.[1] ?? ''
+    expect(desktop).toContain('height: min(800px, calc(100vh - 48px - var(--maid-window-strip, 0px)))')
+    expect(desktop).toContain('margin-top: var(--maid-window-strip, 0px)')
+  })
+
   it('frosts masked process groups from outside their Backdrop Root', () => {
     // A scrollable process group fades its edges with mask-image, so blurs on
     // its members sample nothing. The pane must sit beside the masked body,
@@ -2245,9 +2265,10 @@ describe('Maid Atelier skin apply', () => {
     const fullScreenRule = CSS.match(
       /@media \(max-width: 1099px\), \(max-height: 680px\)\s*\{([\s\S]*?)\n\}/,
     )?.[1] ?? ''
+    // Its height gives up the desktop window strip (zero on the web shell).
     expect(fullScreenRule).toContain('width: 100vw')
-    expect(fullScreenRule).toContain('height: 100vh')
-    expect(fullScreenRule).toContain('height: 100dvh')
+    expect(fullScreenRule).toContain('height: calc(100vh - var(--maid-window-strip, 0px))')
+    expect(fullScreenRule).toContain('height: calc(100dvh - var(--maid-window-strip, 0px))')
     expect(fullScreenRule).toContain('border-radius: 0')
 
     // Phones move the category rail above the content as a 3-across grid.
@@ -2272,7 +2293,14 @@ describe('Maid Atelier skin apply', () => {
 
     // The default centered opening position is kept: no docked large-screen
     // layout, no baseline size/position overrides on the settings overlay.
-    expect(CSS).not.toMatch(/@media \(min-width: 1100px\) and \(min-height: 681px\)/)
+    // The only large-screen rule clears the Windows titlebar strip and keeps
+    // the host's centering.
+    const largeScreenBlocks = [...CSS.matchAll(
+      /@media \(min-width: 1100px\) and \(min-height: 681px\) \{([\s\S]*?)\n\}/g,
+    )].map(match => match[1] ?? '')
+    expect(largeScreenBlocks).toHaveLength(1)
+    expect(largeScreenBlocks[0]).toMatch(/^\s*html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\]\[data-maid-settings-open\]/)
+    expect(largeScreenBlocks[0]).not.toMatch(/justify-content|align-items|padding/)
     expect(CSS).not.toMatch(
       /data-maid-settings-open[\s\S]*?\[role='presentation'\]\s*\{[^}]*justify-content: flex-start/s,
     )

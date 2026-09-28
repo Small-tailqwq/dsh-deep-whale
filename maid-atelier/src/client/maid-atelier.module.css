@@ -5358,17 +5358,47 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
    surface from the block above stays intact at every size;
    `data-maid-settings-open` is projected by index.ts from the live dialog,
    so every rule below self-restores on close. */
+/* Desktop shells keep a window strip above the page. Windows paints its
+   caption buttons over the titlebar the shell sizes as
+   --dsh-windows-titlebar-height; macOS reserves the traffic-light band the
+   host publishes as --dsh-frame-top-clearance. The full workspace below
+   starts under that strip, as the host's own full-window overlays do; the
+   web shell has no strip. */
+html[data-windows-titlebar] body[data-dsh-maid-atelier] {
+  --maid-window-strip: var(--dsh-windows-titlebar-height, 40px);
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier] {
+  --maid-window-strip: var(--dsh-frame-top-clearance, 0px);
+}
+
+/* The host's desktop-size panel reserves the frame clearance only on macOS,
+   so on a short Windows window it centers its top edge under the caption
+   strip. Mirror its height formula minus the strip and center the panel in
+   the area below the titlebar instead. */
+@media (min-width: 1100px) and (min-height: 681px) {
+  html[data-windows-titlebar] body[data-dsh-maid-atelier][data-maid-settings-open]
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+    height: min(800px, calc(100vh - 48px - var(--maid-window-strip, 0px)));
+    margin-top: var(--maid-window-strip, 0px);
+  }
+}
+
 /* Any viewport below the desktop threshold becomes a full workspace: no
-   centering tax, crushed columns or clipped lower controls. */
+   centering tax, crushed columns or clipped lower controls. The host overlay
+   centers the dialog in the whole window, so a top margin equal to the
+   height it gives up keeps the margin box window-tall and seats the dialog
+   exactly under the window strip. */
 @media (max-width: 1099px), (max-height: 680px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
     :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: 100vw;
     width: 100dvw;
     max-width: none;
-    height: 100vh;
-    height: 100dvh;
+    height: calc(100vh - var(--maid-window-strip, 0px));
+    height: calc(100dvh - var(--maid-window-strip, 0px));
     max-height: none;
+    margin-top: var(--maid-window-strip, 0px);
     border: 0;
     border-radius: 0;
     box-shadow: none;

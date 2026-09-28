@@ -999,9 +999,12 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
     padding-left: calc(var(--orca-sidebar-width) + 16px);
   }
 
+  /* The docked panel sits on the bottom edge; its height also gives up the
+     desktop window strip so a short window cannot push its top under the
+     titlebar menu and caption buttons. */
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: min(760px, calc(100vw - 108px));
-    height: min(680px, calc(100vh - 36px));
+    height: min(680px, calc(100vh - 36px - var(--orca-window-strip, 0px)));
   }
 
   body[data-dsh-orca-link][data-orca-sidebar-wide]
@@ -1030,7 +1033,7 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
     :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
     justify-content: center;
     align-items: center;
-    padding: 24px;
+    padding: calc(24px + var(--orca-window-strip, 0px)) 24px 24px;
   }
 
   html[data-dsh-whale-orca-settings-layout='centered']
@@ -1046,7 +1049,7 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
     body[data-dsh-orca-link][data-orca-sidebar-wide]
     :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: min(800px, calc(100vw - 48px));
-    height: min(760px, calc(100vh - 48px));
+    height: min(760px, calc(100vh - 48px - var(--orca-window-strip, 0px)));
     transform-origin: center;
   }
 
@@ -1070,8 +1073,25 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [ro
   border-radius: 0;
 }
 
+/* Desktop shells keep a window strip above the page. Windows paints its
+   caption buttons over the titlebar the shell sizes as
+   --dsh-windows-titlebar-height; macOS reserves the traffic-light band the
+   host publishes as --dsh-frame-top-clearance. The full workspace below
+   starts under that strip, as the host's own full-window overlays do; the
+   web shell has no strip. */
+html[data-windows-titlebar] body[data-dsh-orca-link] {
+  --orca-window-strip: var(--dsh-windows-titlebar-height, 40px);
+}
+
+html[data-platform='darwin'] body[data-dsh-orca-link] {
+  --orca-window-strip: var(--dsh-frame-top-clearance, 0px);
+}
+
 /* Any viewport below the desktop dock threshold becomes a full workspace: no
-   centering tax, crushed columns or clipped lower controls. */
+   centering tax, crushed columns or clipped lower controls. The overlay
+   centers the dialog in the whole window, so a top margin equal to the
+   height it gives up keeps the margin box window-tall and seats the dialog
+   exactly under the window strip. */
 @media (max-width: 1099px), (max-height: 680px) {
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
     padding: 0;
@@ -1080,9 +1100,10 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [ro
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
     width: 100vw;
     max-width: none;
-    height: 100vh;
-    height: 100dvh;
+    height: calc(100vh - var(--orca-window-strip, 0px));
+    height: calc(100dvh - var(--orca-window-strip, 0px));
     max-height: none;
+    margin-top: var(--orca-window-strip, 0px);
     border: 0;
     box-shadow: none;
   }
