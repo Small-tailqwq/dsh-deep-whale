@@ -5037,6 +5037,47 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is(
   --dsw-alias-label-tertiary: #b8c5e1;
 }
 
+/* The changed-files hover preview is a portaled card, and the host paints it
+   from `--dsw-alias-bg-layer-1`, which this skin keeps translucent for page
+   chrome. Behind a preview that means the transcript reads through the card
+   and competes with its own top path: the message text showed up washed out
+   across the header while the host's deliberately lighter path ink sank into
+   it. Identify the card by the host's inline `--dsh-hover-preview-fade` and the
+   FileDiff root it holds — the `:has()` scope keeps the compact hover cards on
+   the host's dark plate with the static label it expects — and give it the
+   porcelain reading floor plus the reading ink the changed-files card uses.
+   The floor is fully opaque: a preview is read, not glanced through, and any
+   residual alpha let long transcript lines ghost behind the path. The path
+   row also carries its own solid plate and a gold hairline, so the file name
+   stays legible even if the card match ever misses (host DOM drift). */
+body[data-dsh-maid-atelier] > [style*='--dsh-hover-preview-fade']:has(> [data-changes-hover-preview]) {
+  background: #f9fafd;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] > [style*='--dsh-hover-preview-fade']:has(> [data-changes-hover-preview]) {
+  background: #0a1430;
+}
+
+body[data-dsh-maid-atelier] [data-changes-hover-preview] > :has(> [data-changes-preview-path]) {
+  border-bottom-color: rgba(197, 164, 104, 0.42);
+  background: #eef2fa;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-changes-hover-preview] > :has(> [data-changes-preview-path]) {
+  border-bottom-color: rgba(197, 164, 104, 0.34);
+  background: #121f43;
+}
+
+body[data-dsh-maid-atelier] [data-changes-hover-preview] [data-changes-preview-path] {
+  color: #1f2d52;
+  font-weight: 500;
+  text-shadow: none;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-changes-hover-preview] [data-changes-preview-path] {
+  color: #e3e9f7;
+}
+
 body[data-dsh-maid-atelier] [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row] {
   width: max-content;
   max-width: 100%;
