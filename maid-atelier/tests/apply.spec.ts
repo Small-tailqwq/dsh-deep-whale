@@ -1729,6 +1729,24 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant='think'\][^{]*\+ \*\s*\{[^}]*color: #c7d2e9/s)
   })
 
+  it('seats the running line on a liquid glass capsule with a compositor-only hover', () => {
+    const capsule = "body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent']"
+    const rule = (suffix: string): string => CSS.match(
+      new RegExp(`${capsule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${suffix}\\s*\\{([^}]*)\\}`),
+    )?.[1] ?? ''
+    expect(rule('')).toContain('backdrop-filter: blur(10px) saturate(1.25)')
+    expect(rule('')).toContain('border-radius: 999px')
+    expect(rule('')).toContain('isolation: isolate')
+    expect(rule('')).toContain('overflow: hidden')
+    expect(rule('::before')).toContain('pointer-events: none')
+    expect(rule('::after')).toContain('pointer-events: none')
+    // The hover band animates transform only.
+    expect(rule(':hover::after')).toMatch(/transition: transform \d+ms/)
+    expect(rule(':hover::after')).not.toMatch(/\b(left|width|background-position):/)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\] \[data-chat-running\] > \[class\*='runningContent'\]\s*\{[^}]*--maid-glass-tint: rgba\(28, 44, 90, 0\.62\)/)
+    expect(CSS).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^@]*\[data-chat-running\] > \[class\*='runningContent'\]::after\s*\{\s*display: none;/)
+  })
+
   it('seats the full-workspace settings shell below the desktop window strip', () => {
     // Windows paints caption buttons over the shell titlebar and macOS keeps
     // its traffic-light band; the web shell has neither.

@@ -4918,6 +4918,103 @@ body[data-dsh-maid-atelier]
   backdrop-filter: none;
 }
 
+/* DSH 0.2 ends a running transcript with a "deep diving for …" line straight
+   over the palace art. Seat its whale-and-clock content on a small liquid
+   glass capsule: a porcelain tint over a blurred, slightly saturated
+   backdrop, a specular top rim and a shaded lower rim for thickness, and a
+   gold hairline. Hover sweeps one light band across it; the band moves by
+   transform only, so the pass stays on the compositor. The host divider
+   above keeps its own rule. */
+body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent'] {
+  --maid-glass-tint: rgba(250, 251, 255, 0.5);
+  --maid-glass-tint-low: rgba(236, 241, 252, 0.34);
+  --maid-glass-rim: rgba(255, 255, 255, 0.78);
+  --maid-glass-shade: rgba(82, 106, 168, 0.18);
+  --maid-glass-edge: rgba(197, 164, 104, 0.4);
+  --maid-glass-glint: rgba(255, 255, 255, 0.55);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 3px 12px 3px 9px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: linear-gradient(
+    180deg,
+    var(--maid-glass-tint),
+    var(--maid-glass-tint-low)
+  );
+  box-shadow:
+    inset 0 1px 0 var(--maid-glass-rim),
+    inset 0 -1px 0 var(--maid-glass-shade),
+    inset 0 0 0 1px var(--maid-glass-edge),
+    0 4px 14px rgba(19, 38, 87, 0.1);
+  backdrop-filter: blur(10px) saturate(1.25);
+  transition: box-shadow 220ms ease;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-chat-running] > [class*='runningContent'] {
+  --maid-glass-tint: rgba(28, 44, 90, 0.62);
+  --maid-glass-tint-low: rgba(12, 22, 52, 0.5);
+  --maid-glass-rim: rgba(190, 206, 245, 0.3);
+  --maid-glass-shade: rgba(0, 0, 0, 0.3);
+  --maid-glass-edge: rgba(211, 180, 119, 0.34);
+  --maid-glass-glint: rgba(190, 210, 255, 0.28);
+}
+
+/* Specular sheen: a soft highlight across the upper half of the capsule. */
+body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent']::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 50%;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--maid-glass-glint), transparent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Hover light band, parked left of the capsule until the pointer arrives. */
+body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent']::after {
+  content: '';
+  position: absolute;
+  inset: -40% auto -40% 0;
+  width: 42%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    var(--maid-glass-glint) 45%,
+    rgba(255, 244, 217, 0.4) 55%,
+    transparent
+  );
+  transform: translateX(-120%) skewX(-18deg);
+  transition: transform 0s;
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent']:hover {
+  box-shadow:
+    inset 0 1px 0 var(--maid-glass-rim),
+    inset 0 -1px 0 var(--maid-glass-shade),
+    inset 0 0 0 1px var(--maid-gold),
+    0 4px 18px rgba(19, 38, 87, 0.16),
+    0 0 12px rgba(197, 164, 104, 0.22);
+}
+
+body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent']:hover::after {
+  transform: translateX(340%) skewX(-18deg);
+  transition: transform 720ms cubic-bezier(0.22, 0.78, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent'] {
+    transition: none;
+  }
+
+  body[data-dsh-maid-atelier] [data-chat-running] > [class*='runningContent']::after {
+    display: none;
+  }
+}
+
 /* Present uses its own tool owner, outside data-variant. Expanded output and
    changed-file rows need a shared reading floor, not nested blur layers. */
 body[data-dsh-maid-atelier] :is(
