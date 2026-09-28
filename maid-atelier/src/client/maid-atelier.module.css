@@ -4144,6 +4144,58 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
+/* dsh-better-display's Reader draws its own transcript: answers are
+   `article[data-reader-answer]` and the user text sits in the `user` module
+   class under a keyed (or pending-submission) cluster, so none of the native row hooks above match and
+   the text lands straight on the artwork (#140). Give both the same porcelain
+   plates as native bubbles. The user bubble also paints
+   `--dsw-specific-bubble`, rebound here as the fallback if the class hook
+   changes. The Reader root never paints `--dsw-alias-bg-base` itself; only
+   its surfaces do (sticky toolbar and process lanes, live fold, dialogs), and
+   the skin's page-level `transparent` let scrolled answers show through those
+   pinned rows. Rebind it to the answer porcelain inside the Reader. */
+body[data-dsh-maid-atelier] [data-dsh-better-display] {
+  --dsw-alias-bg-base: rgba(248, 250, 255, 0.98);
+  --dsw-specific-bubble: rgba(232, 237, 249, 0.95);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-display] {
+  --dsw-alias-bg-base: rgba(18, 31, 67, 0.98);
+  --dsw-specific-bubble: rgba(30, 47, 90, 0.97);
+}
+
+body[data-dsh-maid-atelier] [data-dsh-better-display]
+  :is([data-reader-key], [data-reader-pending-submission]):not([data-reader-answer])
+  > div:is([class$='_user'], [class*='_user ']) {
+  border: 1px solid rgba(197, 164, 104, 0.48);
+  background: rgba(232, 237, 249, 0.95);
+  box-shadow: 0 6px 20px rgba(19, 38, 87, 0.1);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-display]
+  :is([data-reader-key], [data-reader-pending-submission]):not([data-reader-answer])
+  > div:is([class$='_user'], [class*='_user ']) {
+  background: rgba(30, 47, 90, 0.97);
+}
+
+body[data-dsh-maid-atelier] [data-dsh-better-display] article[data-reader-answer] {
+  box-sizing: border-box;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 14px 18px;
+  border: 1px solid rgba(197, 164, 104, 0.42);
+  border-radius: 18px 18px 18px 7px;
+  background: rgba(248, 250, 255, 0.94);
+  box-shadow: 0 4px 14px rgba(19, 38, 87, 0.08);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-dsh-better-display] article[data-reader-answer] {
+  border-color: rgba(211, 180, 119, 0.4);
+  background: rgba(18, 31, 67, 0.94);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
 /* DSH marks >=4-column tables as `md-table-wide`, but the live content width
    can now be resized. Fitting candidates stay inside the assistant bubble;
    table-card marks this renderer-owned wrapper only while its natural table

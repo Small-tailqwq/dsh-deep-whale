@@ -1941,6 +1941,48 @@ describe('Maid Atelier skin apply', () => {
     expect(hidden()).toBe(false)
   })
 
+  it('plates Better Display reader answers and user text like native bubbles', () => {
+    const plateRules = flatCssRules(CSS).filter(rule =>
+      rule.selector.includes('[data-dsh-better-display]')
+      && /background:\s*rgba/.test(rule.body),
+    )
+    const plated = (element: Element) => plateRules.some(rule => element.matches(rule.selector))
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    // Markup and CSS-module class names follow dsh-better-display 0.3.0 Reader.tsx.
+    document.body.innerHTML = `<div data-dsh-better-display="0.3.0"><div data-chat-flow="">
+      <section data-reader-turn="1">
+        <div class="fQyGsq_userCluster" data-reader-anchor data-reader-key="u1">
+          <div class="fQyGsq_userImages"></div>
+          <div class="fQyGsq_user"><p>question</p></div>
+          <div class="fQyGsq_userActions"></div>
+        </div>
+        <article class="fQyGsq_answer" data-reader-answer data-reader-anchor data-reader-key="a1"><p>answer</p></article>
+        <article class="fQyGsq_processCommentary"><p>step</p></article>
+      </section>
+      <div class="fQyGsq_userCluster" data-reader-pending-submission>
+        <div class="fQyGsq_user" id="pending"><div class="fQyGsq_blocks">sending</div></div>
+      </div>
+    </div></div>`
+    const cluster = document.querySelector('[data-reader-key="u1"]')!
+    expect(plated(document.querySelector('.fQyGsq_user')!)).toBe(true)
+    expect(plated(document.getElementById('pending')!)).toBe(true)
+    expect(plated(document.querySelector('[data-reader-answer]')!)).toBe(true)
+    expect(plated(cluster)).toBe(false)
+    expect(plated(document.querySelector('.fQyGsq_userImages')!)).toBe(false)
+    expect(plated(document.querySelector('.fQyGsq_userActions')!)).toBe(false)
+    expect(plated(document.querySelector('.fQyGsq_processCommentary')!)).toBe(false)
+
+    document.body.setAttribute('data-ds-dark-theme', '')
+    const darkAnswer = plateRules.filter(rule =>
+      rule.selector.includes('[data-ds-dark-theme]')
+      && document.querySelector('[data-reader-answer]')!.matches(rule.selector))
+    expect(darkAnswer.map(rule => rule.body).join(' ')).toContain('rgba(18, 31, 67, 0.94)')
+    document.body.removeAttribute('data-ds-dark-theme')
+
+    document.body.removeAttribute('data-dsh-maid-atelier')
+    expect(plated(document.querySelector('[data-reader-answer]')!)).toBe(false)
+  })
+
   it('lets the lower sidebar swag own the bottom boundary without a rectangular tint seam', () => {
     const innerFrameRule = CSS.match(/\:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div::before\s*\{([^}]*)\}/s)?.[1] ?? ''
     const fadeRule = CSS.match(/\:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) \[class\*='fade'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
