@@ -13,7 +13,7 @@ dsh --version && dsh plugin --profile web list
 Stop at the first rule that matches:
 
 - **`@linxin666/dsh-web-all` is listed** (dsh-web): stop. dsh-web ships its own adapted `maid-atelier` and `orca-link`; tell the user to install them from dsh-web's skin center. Never add this repository's packages to that profile.
-- **DSH is older than 0.1.7-rc.1**: stop and ask the user to upgrade DSH first. Current releases target DSH 0.1.7.
+- **DSH is older than 0.1.7-rc.1**: stop and ask the user to upgrade DSH first. Current releases target DSH 0.1.7 and 0.2.
 - **Any `@dsh-external/*` package is listed** (installs from before 0.1.3): remove them, then continue with step 2. Keep only the names that were actually listed; pnpm fails on a name that isn't installed.
 
   ```sh

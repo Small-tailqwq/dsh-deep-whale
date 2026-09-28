@@ -107,7 +107,7 @@ Keep the `^`: without it the package is pinned to that exact version and later `
 
 **The skin disappeared after upgrading DSH**
 
-Each skin declares the DSH versions it has been adapted to (currently the 0.1.7 series). When DSH moves ahead of a skin, DSH disables the skin and falls back to the official UI, so an outdated skin can't hide controls such as the input box.
+Each skin declares the DSH versions it has been adapted to (currently the 0.1.7 and 0.2 series). When DSH moves ahead of a skin, DSH disables the skin and falls back to the official UI, so an outdated skin can't hide controls such as the input box.
 
 Update the skins first. If no update is out yet and you'd like to keep using the old skin, open **Settings → Skins**: the disabled skin shows “Not declared for DSH x.y.z; disabled automatically”. Click **Switch** and confirm. This approval covers only the current skin version and DSH version and is checked again when either changes; you can switch back to **Official Default** at any time.
 

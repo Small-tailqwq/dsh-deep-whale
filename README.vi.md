@@ -107,7 +107,7 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.6'
 
 **Giao diện biến mất sau khi nâng cấp DSH**
 
-Mỗi giao diện chỉ khai báo hỗ trợ những phiên bản DSH đã được điều chỉnh (hiện là dòng 0.1.7). Khi DSH mới hơn giao diện, DSH sẽ tự tắt giao diện và trở về giao diện chính thức, tránh việc giao diện cũ che mất các điều khiển như ô nhập.
+Mỗi giao diện chỉ khai báo hỗ trợ những phiên bản DSH đã được điều chỉnh (hiện là dòng 0.1.7 và 0.2). Khi DSH mới hơn giao diện, DSH sẽ tự tắt giao diện và trở về giao diện chính thức, tránh việc giao diện cũ che mất các điều khiển như ô nhập.
 
 Hãy cập nhật giao diện trước. Nếu chưa có bản mới mà vẫn muốn dùng tạm bản cũ, mở «Cài đặt → Quản lý giao diện»: giao diện bị tắt sẽ được ghi chú là chưa khai báo hỗ trợ phiên bản DSH hiện tại. Nhấn «Chuyển» và xác nhận. Việc cho phép này chỉ áp dụng cho phiên bản giao diện và phiên bản DSH hiện tại, sẽ được kiểm tra lại khi một trong hai thay đổi; bạn có thể quay về «Mặc định chính thức» bất cứ lúc nào.
 

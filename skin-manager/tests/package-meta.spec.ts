@@ -38,7 +38,7 @@ describe.each(packages)('%s plugin metadata', (dir) => {
   it('declares the DSH range the host admits it on, without asking pnpm to install DSH', () => {
     // Skins stop at the next minor so an unadapted skin falls back to the
     // official UI; the manager stays usable so it can offer the manual override.
-    const range = dir === 'skin-manager' ? '>=0.1.7-rc.1' : '>=0.1.7-rc.1 <0.1.8-0'
+    const range = dir === 'skin-manager' ? '>=0.1.7-rc.1' : '>=0.1.7-rc.1 <0.3.0-0'
     expect(manifest.peerDependencies['@deepseek-ai/dsh']).toBe(range)
     expect(manifest.peerDependenciesMeta['@deepseek-ai/dsh']).toEqual({ optional: true })
   })
