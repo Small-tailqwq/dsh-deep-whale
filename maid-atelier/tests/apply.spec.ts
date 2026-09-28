@@ -2474,6 +2474,9 @@ describe('Maid Atelier skin apply', () => {
     const shieldRule = CSS.match(
       /\[data-maid-workspace-row\] > \[class\*='folder'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const workspaceRowRule = CSS.match(
+      /\[data-maid-workspace-row\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     const sessionRowRule = CSS.match(
       /\[data-maid-session-row\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -2490,11 +2493,22 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain('--maid-workspace-ribbon-art')
     expect(shieldRule).toContain('background: var(--maid-workspace-crest-art)')
     expect(shieldRule).not.toContain('clip-path')
+    // The group row is a title bar the height of the title's line box; `auto`
+    // keeps a host that still renders the session-count subtitle unclipped, and
+    // the skin manager's range control feeds the custom property.
+    expect(workspaceRowRule).toContain('height: auto')
+    expect(workspaceRowRule).toContain('min-height: var(--maid-workspace-row-height, 22px)')
+    expect(workspaceRowRule).toContain('padding: 1px 10px 1px 7px')
+    expect(shieldRule).toContain('height: min(calc(var(--maid-workspace-row-height, 22px) - 2px), 34px)')
+    expect(CSS).not.toMatch(/\[data-maid-workspace-active\] > \[class\*='folder'\]\s*\{/)
     expect(ribbonShapeRule).toContain('border-image-source: var(--maid-workspace-ribbon-art)')
     expect(ribbonShapeRule).toContain('border-image-slice: 0 145 0 140 fill')
-    expect(ribbonShapeRule).toContain('border-image-width: 0 36px 0 35px')
+    // The band, its overhang, the side slices and the shadow all derive from the
+    // row height, so the roll keeps the artwork's proportions at every height.
+    expect(ribbonShapeRule).toContain('--maid-workspace-ribbon-box: calc(var(--maid-workspace-row-height, 22px) * 1.273)')
+    expect(ribbonShapeRule).toContain('border-image-width: 0 calc(var(--maid-workspace-ribbon-box) * 0.604) 0 calc(var(--maid-workspace-ribbon-box) * 0.583)')
+    expect(ribbonShapeRule).toContain('inset: calc(-1 * var(--maid-workspace-ribbon-overhang)) 0 calc(-1 * var(--maid-workspace-ribbon-overhang)) -12px')
     expect(ribbonShapeRule).toContain('border-image-repeat: stretch')
-    expect(ribbonShapeRule).toContain('inset: -3px 0 -3px -12px')
     // One continuous reveal plus a separate settle: per-stop easing used to
     // stall the reveal at 70% before the swallowtail.
     expect(ribbonShapeRule).toContain('maidAtelierWorkspaceRibbonEnter 440ms cubic-bezier(0.22, 0.78, 0.2, 1) both')

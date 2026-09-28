@@ -2485,11 +2485,18 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.workspaces'] ::-webkit-scrollbar
   corner-shape: round;
 }
 
+/* A Workspace group is a title bar, not a two-line card: the row sizes to the
+   title's own 20px line box (1px of air) and stays there unless the skin
+   manager raises `--maid-workspace-row-height` — the 22px fallback here is the
+   customization default. `auto` rather than a fixed height keeps a host that
+   still renders the session-count subtitle (the 0.1.7 line) growing to its
+   second line instead of clipping it. */
 body[data-dsh-maid-atelier] [data-maid-workspace-row] {
   isolation: isolate;
   position: relative;
-  height: 54px;
-  padding: 7px 10px 7px 7px;
+  height: auto;
+  min-height: var(--maid-workspace-row-height, 22px);
+  padding: 1px 10px 1px 7px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -2507,11 +2514,14 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row] > * {
   z-index: 2;
 }
 
+/* The crest follows the row — the badge is the row's leading icon — bounded by
+   the 34px shield the design shipped with, so the 22px default keeps its 20px
+   badge and a tall row does not balloon the artwork. */
 body[data-dsh-maid-atelier] [data-maid-workspace-row] > [class*='folder'] {
   display: inline-flex;
-  width: 28px;
-  height: 34px;
-  margin: 4px 0 0 -7px;
+  width: min(calc(var(--maid-workspace-row-height, 22px) - 2px), 34px);
+  height: min(calc(var(--maid-workspace-row-height, 22px) - 2px), 34px);
+  margin: 0 0 0 -7px;
   background: var(--maid-workspace-crest-art) center / contain no-repeat;
   color: transparent;
   filter: drop-shadow(0 2px 3px rgba(2, 8, 28, 0.48));
@@ -2561,12 +2571,10 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active] {
   text-shadow: 0 1px 2px rgba(2, 8, 28, 0.54);
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-active] > [class*='folder'] {
-  width: 30px;
-  height: 38px;
-  margin-block-start: 0;
-}
-
+/* The 20px title bar cannot seat a larger crest without pushing the row past
+   the title's line box, so the active Workspace keeps the same shield and
+   reads as current through the ribbon, its brighter palette, and the text
+   shadow above. */
 body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] {
   margin-inline-start: -4px;
 }
@@ -2576,20 +2584,27 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active]:hover {
 }
 
 /* Preserve the source's 140px rolled edge and 145px folded tail; only the
-   flat center band stretches with the live sidebar width. */
+   flat center band stretches with the live sidebar width. Band, vertical
+   overhang, side slices and shadow all derive from the row height, so the
+   ribbon stays synchronized with the text at every height the skin manager
+   offers: 1.273 is the 28px box the 22px default produces — the artwork's own
+   ~70% band then lands on the title's 20px line box — and the slice factors are
+   140/240 and 145/240, which keep the roll's proportions whatever the height. */
 body[data-dsh-maid-atelier] [data-maid-workspace-active]::before {
+  --maid-workspace-ribbon-box: calc(var(--maid-workspace-row-height, 22px) * 1.273);
+  --maid-workspace-ribbon-overhang: calc((var(--maid-workspace-ribbon-box) - var(--maid-workspace-row-height, 22px)) / 2);
   content: '';
   position: absolute;
   box-sizing: border-box;
-  inset: -3px 0 -3px -12px;
+  inset: calc(-1 * var(--maid-workspace-ribbon-overhang)) 0 calc(-1 * var(--maid-workspace-ribbon-overhang)) -12px;
   z-index: 0;
   border-style: solid;
-  border-width: 0 36px 0 35px;
+  border-width: 0 calc(var(--maid-workspace-ribbon-box) * 0.604) 0 calc(var(--maid-workspace-ribbon-box) * 0.583);
   border-image-source: var(--maid-workspace-ribbon-art);
   border-image-slice: 0 145 0 140 fill;
-  border-image-width: 0 36px 0 35px;
+  border-image-width: 0 calc(var(--maid-workspace-ribbon-box) * 0.604) 0 calc(var(--maid-workspace-ribbon-box) * 0.583);
   border-image-repeat: stretch;
-  filter: drop-shadow(0 5px 8px rgba(2, 8, 28, 0.4));
+  filter: drop-shadow(0 calc(var(--maid-workspace-ribbon-box) * 0.107) calc(var(--maid-workspace-ribbon-box) * 0.214) rgba(2, 8, 28, 0.4));
   /* Two single-segment animations: the reveal runs one continuous
      deceleration from the rolled edge through the swallowtail, and the slide
      settles with its own slight overshoot. The former multi-stop keyframes

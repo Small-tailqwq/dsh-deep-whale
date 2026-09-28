@@ -3,6 +3,7 @@ import {
   SKIN_CUSTOMIZATION_PROTOCOL,
   SkinAttributeProjector,
   type SkinCustomizationState,
+  type SkinSettingValue,
 } from '../../../skin-manager/src/protocol.ts'
 
 const ATTR_ART = 'data-dsh-whale-maid-art'
@@ -14,6 +15,57 @@ const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
 const ATTR_NAV_MODE = 'data-maid-nav-mode'
 /** Navigation layouts the stylesheet implements; anything else falls back to the default. */
 const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
+
+/**
+ * Workspace row height control. The 22px default is also the stylesheet's
+ * `--maid-workspace-row-height` fallback, so a skin without a manager renders
+ * the compact row; the range starts there because the title's own line box sets
+ * the floor.
+ */
+const WORKSPACE_ROW_HEIGHT_DEFAULT = 22
+const WORKSPACE_ROW_HEIGHT_MIN = 22
+const WORKSPACE_ROW_HEIGHT_MAX = 44
+const WORKSPACE_ROW_HEIGHT_PROPERTY = '--maid-workspace-row-height'
+
+/**
+ * Style-property twin of {@link SkinAttributeProjector}: a length control cannot
+ * ride an attribute — the stylesheet would need one rule per pixel value — so the
+ * owned custom property is written inline on the same root and released only
+ * while it still holds the value this writer set.
+ */
+class SkinPropertyProjector {
+  private readonly originals = new Map<string, string>()
+  private readonly owned = new Map<string, string>()
+
+  constructor(private readonly root: HTMLElement = document.documentElement) {}
+
+  set(name: string, value: string): void {
+    if (!this.originals.has(name)) this.originals.set(name, this.root.style.getPropertyValue(name))
+    this.root.style.setProperty(name, value)
+    this.owned.set(name, value)
+  }
+
+  release(): void {
+    for (const [name, original] of [...this.originals]) {
+      if (this.root.style.getPropertyValue(name) === this.owned.get(name)) {
+        if (original === '') this.root.style.removeProperty(name)
+        else this.root.style.setProperty(name, original)
+      }
+      this.originals.delete(name)
+      this.owned.delete(name)
+    }
+  }
+}
+
+/**
+ * Normalize the row height: a manager that predates the control, a missing value
+ * or a forged one all mean the skin default, and the result is rounded so the
+ * written length never carries sub-pixel noise.
+ */
+function workspaceRowHeight(value: SkinSettingValue | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return WORKSPACE_ROW_HEIGHT_DEFAULT
+  return Math.min(WORKSPACE_ROW_HEIGHT_MAX, Math.max(WORKSPACE_ROW_HEIGHT_MIN, Math.round(value)))
+}
 
 /**
  * The lineup is DeepSeek Flash and DeepSeek Pro, so the display name only
@@ -32,6 +84,7 @@ export function modelFamily(name: string): 'pro' | 'flash' | null {
 /** Expose controls and keep every resulting DOM mutation skin-owned. */
 export function installMaidCustomization(root: HTMLElement = document.documentElement): () => void {
   const projector = new SkinAttributeProjector(root)
+  const properties = new SkinPropertyProjector(root)
   let observer: MutationObserver | undefined
   let frame: number | undefined
   let activeState: SkinCustomizationState | null = null
@@ -110,6 +163,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
       activeState = null
       stopModelObserver()
       projector.release()
+      properties.release()
       return
     }
     if (activeState === null) window.addEventListener('resize', onResize)
@@ -124,6 +178,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
     const navMode = state.values.mobileNav
     projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
+    properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
   }
 
   return exposeSkinCustomization({
@@ -221,6 +276,19 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
           { value: 'capsule', label: '空态胶囊（点击展开）', labelEn: 'Idle capsule (click to expand)' },
           { value: 'scroll', label: '上滚隐去 · 下滚渐现', labelEn: 'Hide on scroll up · show on scroll down' },
         ],
+      },
+      {
+        key: 'workspaceRowHeight',
+        type: 'range',
+        label: '工作区条目行高',
+        labelEn: 'Workspace row height',
+        description: '左侧栏「工作区」分组条目的高度，单位像素；文件夹徽章与当前工作区的缎带按同一比例缩放。',
+        descriptionEn: 'Height of the sidebar Workspace group row in pixels; the folder crest and the active Workspace ribbon scale with it.',
+        defaultValue: WORKSPACE_ROW_HEIGHT_DEFAULT,
+        min: WORKSPACE_ROW_HEIGHT_MIN,
+        max: WORKSPACE_ROW_HEIGHT_MAX,
+        step: 1,
+        unit: 'px',
       },
     ],
     apply,

@@ -10,6 +10,7 @@ import { normalizeSkinValues } from '../../skin-manager/src/client/preferences.t
 afterEach(() => {
   vi.restoreAllMocks()
   document.body.innerHTML = ''
+  document.documentElement.style.removeProperty('--maid-workspace-row-height')
   for (const attribute of [...document.documentElement.attributes]) {
     if (attribute.name.startsWith('data-dsh-whale-') || attribute.name.startsWith('data-maid-composer-') || attribute.name.startsWith('data-maid-nav-')) {
       document.documentElement.removeAttribute(attribute.name)
@@ -24,7 +25,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'workspaceRowHeight'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },
@@ -97,6 +98,51 @@ describe('maid customization declaration', () => {
 
     dispose()
     expect(document.documentElement.hasAttribute('data-maid-nav-mode')).toBe(false)
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('exposes the workspace row height as a range and projects it as an owned length', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    const rowHeight = definition.settings.find(setting => setting.key === 'workspaceRowHeight')
+    expect(rowHeight?.type).toBe('range')
+    expect(rowHeight?.defaultValue).toBe(22)
+    expect(rowHeight && rowHeight.type === 'range' ? [rowHeight.min, rowHeight.max, rowHeight.step, rowHeight.unit] : [])
+      .toEqual([22, 44, 1, 'px'])
+
+    // The manager clamps stored values; the skin clamps again, so a forged state
+    // or one written by a manager that predates the control never lands as a
+    // length the stylesheet cannot use.
+    const values = normalizeSkinValues(definition, { workspaceRowHeight: 30 })
+    expect(values.workspaceRowHeight).toBe(30)
+    definition.apply({ values, visibility: { sfwMode: true } })
+    expect(document.documentElement.style.getPropertyValue('--maid-workspace-row-height')).toBe('30px')
+    definition.apply({ values: { ...values, workspaceRowHeight: 999 }, visibility: { sfwMode: true } })
+    expect(document.documentElement.style.getPropertyValue('--maid-workspace-row-height')).toBe('44px')
+    definition.apply({ values: { ...values, workspaceRowHeight: 12 }, visibility: { sfwMode: true } })
+    expect(document.documentElement.style.getPropertyValue('--maid-workspace-row-height')).toBe('22px')
+    definition.apply({ values: normalizeSkinValues(definition, {}), visibility: { sfwMode: true } })
+    expect(document.documentElement.style.getPropertyValue('--maid-workspace-row-height')).toBe('22px')
+
+    dispose()
+    expect(document.documentElement.style.getPropertyValue('--maid-workspace-row-height')).toBe('')
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('restores a pre-existing row-height property instead of clearing it', () => {
+    document.documentElement.style.setProperty('--maid-workspace-row-height', '18px')
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    definition.apply({ values: normalizeSkinValues(definition, { workspaceRowHeight: 26 }), visibility: { sfwMode: true } })
+    expect(document.documentElement.style.getPropertyValue('--maid-workspace-row-height')).toBe('26px')
+    dispose()
+    expect(document.documentElement.style.getPropertyValue('--maid-workspace-row-height')).toBe('18px')
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
 
