@@ -14,6 +14,12 @@ body[data-dsh-maid-atelier] {
   --maid-gold: #c5a468;
   --maid-gold-soft: #e2cfaa;
   --maid-ink: #172347;
+  /* Typeface of the sidebar Workspace list (group rows, Session rows, the
+     section heading and its search field). One variable keeps every Workspace
+     surface on a single source of truth for the manager's switch; the serif
+     stack is the skin's own default, and the manager can point the variable at
+     the host family or at the conversation choice. */
+  --maid-workspace-font: Georgia, 'Times New Roman', serif;
   --maid-glass: rgba(248, 250, 255, 0.68);
   --maid-shadow: 0 18px 54px rgba(15, 30, 72, 0.2), 0 2px 8px rgba(15, 30, 72, 0.12);
 
@@ -1622,7 +1628,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-sidebar] {
 
 body[data-dsh-maid-atelier] [class*='sectionHeader'] {
   color: #d9bd83;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
   letter-spacing: 0.025em;
   text-shadow: 0 1px 2px rgba(2, 7, 24, 0.62);
 }
@@ -1688,7 +1694,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [c
 
 body[data-dsh-maid-atelier] [class*='searchInput'] {
   color: #f8f3e8;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
 }
 
 body[data-dsh-maid-atelier] [class*='searchInput']::placeholder {
@@ -2501,7 +2507,7 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row] {
   border-radius: 0;
   background: transparent;
   color: #f4ead5;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
   overflow: visible;
 }
 
@@ -2670,7 +2676,7 @@ body[data-dsh-maid-atelier] [data-maid-session-row] {
   border-radius: 0;
   background: transparent;
   color: #d7c8a8;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
   box-shadow: none;
 }
 
@@ -6004,6 +6010,18 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
     [data-conversation-scroll]:has([data-conversation-composer-overlay]) > [data-composer-seat] {
     right: 0;
   }
+}
+
+/* Workspace typography: the sidebar list has its own switch, so the serif
+   atelier stack can stay the skin default while a reader who wants one typeface
+   across the app moves it. `conversation` mirrors the conversation control, so a
+   single gesture keeps both surfaces on the same family; serif needs no rule
+   because the variable's own default already is the serif stack. */
+html[data-dsh-whale-maid-workspace-font='system']
+  body[data-dsh-maid-atelier],
+html[data-dsh-whale-maid-workspace-font='conversation'][data-dsh-whale-maid-font='system']
+  body[data-dsh-maid-atelier] {
+  --maid-workspace-font: var(--dsw-font-family, system-ui, sans-serif);
 }
 
 /* Optional conversation typography from #22. Code keeps its existing

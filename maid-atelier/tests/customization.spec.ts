@@ -25,7 +25,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'workspaceRowHeight'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'workspaceRowHeight'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },
@@ -98,6 +98,31 @@ describe('maid customization declaration', () => {
 
     dispose()
     expect(document.documentElement.hasAttribute('data-maid-nav-mode')).toBe(false)
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('exposes the workspace typography as its own select', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    const workspaceFont = definition.settings.find(setting => setting.key === 'workspaceFont')
+    expect(workspaceFont?.type).toBe('select')
+    expect(workspaceFont?.defaultValue).toBe('serif')
+    expect(workspaceFont && workspaceFont.type === 'select' ? workspaceFont.options.map(option => option.value) : [])
+      .toEqual(['serif', 'system', 'conversation'])
+
+    const values = normalizeSkinValues(definition, { workspaceFont: 'conversation' })
+    definition.apply({ values, visibility: { sfwMode: true } })
+    expect(document.documentElement.getAttribute('data-dsh-whale-maid-workspace-font')).toBe('conversation')
+    // An unknown value — a state forged by a manager written against a later
+    // declaration — means the skin default rather than a second, unstyled mode.
+    definition.apply({ values: { ...values, workspaceFont: 'comic' }, visibility: { sfwMode: true } })
+    expect(document.documentElement.getAttribute('data-dsh-whale-maid-workspace-font')).toBe('serif')
+
+    dispose()
+    expect(document.documentElement.hasAttribute('data-dsh-whale-maid-workspace-font')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
 

@@ -2091,6 +2091,26 @@ describe('Maid Atelier skin apply', () => {
     expect(settingsRule).toContain('border-image-width: 0 34px')
   })
 
+  it('lets the sidebar Workspace typography follow its own switch', () => {
+    // One variable carries every Workspace surface, so the manager needs a single
+    // arm per mode; serif is the variable's own default and needs no rule.
+    expect(CSS).toContain("--maid-workspace-font: Georgia, 'Times New Roman', serif")
+    for (const surface of [
+      /\[class\*='sectionHeader'\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[class\*='searchInput'\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[data-maid-workspace-row\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[data-maid-session-row\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+    ]) {
+      expect(CSS).toMatch(surface)
+    }
+    expect(CSS).toMatch(
+      /html\[data-dsh-whale-maid-workspace-font='system'\][\s\S]*?--maid-workspace-font: var\(--dsw-font-family, system-ui, sans-serif\)/,
+    )
+    expect(CSS).toMatch(
+      /html\[data-dsh-whale-maid-workspace-font='conversation'\]\[data-dsh-whale-maid-font='system'\][\s\S]*?--maid-workspace-font: var\(--dsw-font-family, system-ui, sans-serif\)/,
+    )
+  })
+
   it('retires the sidebar stacking context while the settings dialog is open', () => {
     // SettingsPanel is a position:fixed layer mounted inside the sidebar
     // content root, not in a document portal. The root carries
