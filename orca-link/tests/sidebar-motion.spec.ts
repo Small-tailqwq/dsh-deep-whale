@@ -61,7 +61,7 @@ describe('ORCA LINK sidebar motion', () => {
     )?.groups?.selector ?? ''
     expect(lifted).toContain("button[data-dsh-part='sidebar-entry']")
     expect(lifted).toContain('[data-plugin-entry]')
-    expect(css).toContain("> :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))")
+    expect(css).toContain('> :first-child[data-orca-sidebar-entries]')
     expect(css).toContain('> :not([role=\'tooltip\'], [data-orca-link-wordmark], [data-plugin-entry])')
     expect(css).toContain(
       "button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > *",

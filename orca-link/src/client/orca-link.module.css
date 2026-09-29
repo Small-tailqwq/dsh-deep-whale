@@ -1476,7 +1476,7 @@ body[data-dsh-orca-link]
    model and effort picker. The official menu keeps ownership of focus,
    keyboard navigation and selection; ORCA only redraws its existing states. */
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell'], [class$='_groupTitle'], [role='menuitemradio'] [class$='_modelName']) {
+  [role='menu'][class$='_menu'][data-orca-model-menu] {
   width: min(276px, calc(100vw - 32px));
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--orca-graphite) 34%, transparent);
@@ -1488,14 +1488,14 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme]
-  [role='menu'][class$='_menu']:has([class$='_cell'], [class$='_groupTitle'], [role='menuitemradio'] [class$='_modelName']) {
+  [role='menu'][class$='_menu'][data-orca-model-menu] {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 10%, transparent), transparent 42%),
     #0f151f;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle'] {
+  [role='menu'][class$='_menu'][data-orca-menu-groups] [class$='_groupTitle'] {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1508,12 +1508,12 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme]
-  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle'] {
+  [role='menu'][class$='_menu'][data-orca-menu-groups] [class$='_groupTitle'] {
   background: #0f151f;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle']::before {
+  [role='menu'][class$='_menu'][data-orca-menu-groups] [class$='_groupTitle']::before {
   width: 4px;
   height: 4px;
   content: '';
@@ -1521,7 +1521,7 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName']) [role='menuitemradio'] {
+  [role='menu'][class$='_menu'][data-orca-menu-models] [role='menuitemradio'] {
   min-height: 38px;
   padding: 6px 8px;
   border: 0;
@@ -1531,14 +1531,14 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menu'][class$='_menu'][data-orca-menu-models]
   [role='menuitemradio']:is(:hover, :focus-visible) {
   border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
   background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menu'][class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] {
   border-left-color: var(--orca-blue);
   background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 16%, transparent), transparent 74%);
@@ -1546,27 +1546,27 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menu'][class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'] [class$='_modelName'] {
   font: 600 12px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace;
   letter-spacing: 0.01em;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menu'][class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'] [class$='_description'] {
   margin-top: 2px;
   font-size: 11px;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menu'][class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] [class$='_check'] > svg {
   display: none;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [role='menu'][class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] [class$='_check']::before {
   width: 7px;
   height: 7px;
@@ -1577,18 +1577,18 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell']) [role='menuitem'] {
+  [role='menu'][class$='_menu'][data-orca-menu-cells] [role='menuitem'] {
   border-radius: 0;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell']) [class$='_cell'] {
+  [role='menu'][class$='_menu'][data-orca-menu-cells] [class$='_cell'] {
   min-height: 40px;
   border-left: 2px solid transparent;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell']) [class$='_cell']:hover {
+  [role='menu'][class$='_menu'][data-orca-menu-cells] [class$='_cell']:hover {
   border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
   background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
 }
@@ -1762,7 +1762,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
    original margin still does the stage push. */
 body[data-dsh-orca-link][data-orca-sidebar-wide]
   [data-slot='sidebar']
-  > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))
+  > :first-child[data-orca-sidebar-entries]
   [class*='regionArea'] {
   margin-top: 0;
 }

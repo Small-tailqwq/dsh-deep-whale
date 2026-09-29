@@ -946,9 +946,9 @@ describe('Maid Atelier skin apply', () => {
   it('aligns docked composer controls and paints context usage gold over blue', () => {
     expect(CSS).toMatch(/\[data-phase='active'\] \[data-composer-card\] > \[class\*='row'\]\s*\{[^}]*padding: 2px 14px 10px/s)
     expect(CSS).toMatch(/button\[class\*='add'\][\s\S]*?width: 38px[\s\S]*?border-radius: 50%/)
-    expect(CSS).toMatch(/\[class\*='modes'\] button\[class\*='trigger'\]:has\(\[class\*='triggerIcon'\]\)/)
-    expect(CSS).toMatch(/button\[class\$='_trigger'\]\[aria-haspopup='dialog'\]:has\(> svg circle\[class\$='_fill'\]\)\s*circle\[class\$='_track'\]\s*\{[^}]*stroke: #4d6bab/s)
-    expect(CSS).toMatch(/button\[class\$='_trigger'\]\[aria-haspopup='dialog'\]:has\(> svg circle\[class\$='_track'\]\)\s*circle\[class\$='_fill'\]\s*\{[^}]*stroke: #d3a957/s)
+    expect(CSS).toMatch(/\[class\*='modes'\] button\[class\*='trigger'\]\[data-maid-mode-trigger\]/)
+    expect(CSS).toMatch(/button\[class\$='_trigger'\]\[aria-haspopup='dialog'\]\[data-maid-context-fill\]\s*circle\[class\$='_track'\]\s*\{[^}]*stroke: #4d6bab/s)
+    expect(CSS).toMatch(/button\[class\$='_trigger'\]\[aria-haspopup='dialog'\]\[data-maid-context-track\]\s*circle\[class\$='_fill'\]\s*\{[^}]*stroke: #d3a957/s)
     expect(CSS).toMatch(/\[role='dialog'\] \[class\$='_header'\][\s\S]*?color: #172347/)
     expect(CSS).toMatch(/\[class\*='triggerEffort'\]\s*\{[^}]*color: #a77c36/s)
   })
@@ -1034,17 +1034,17 @@ describe('Maid Atelier skin apply', () => {
       /button\[class\*='newSession'\] svg\s*\{([^}]*)\}/g,
     )].map(match => match[1] ?? '').find(rule => rule.includes('#efd7a1')) ?? ''
     const collapsedFootRule = [...CSS.matchAll(
-      /\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/g,
+      /\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]\[data-maid-settings-trigger\]\s*\{([^}]*)\}/g,
     )].map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
     const collapsedSessionRule = [...CSS.matchAll(/button\[class\*='newSession'\]\s*\{([^}]*)\}/g)]
       .map(match => match[1] ?? '').find(rule => rule.includes('border-image: none')) ?? ''
     const collapsedFootAreaRule = [...CSS.matchAll(/\[data-maid-sidebar-footer\]\s*\{([^}]*)\}/g)]
       .map(match => match[1] ?? '').find(rule => rule.includes('display: flex')) ?? ''
     const sharedRailRule = CSS.match(
-      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\)\s*\{([^}]*)\}/s,
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] button\[aria-haspopup='dialog'\]\[data-maid-settings-trigger\]\s*\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const sharedRailHoverRule = CSS.match(
-      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\):is\(:hover, :focus-visible\)\s*\{([^}]*)\}/s,
+      /:is\(\s*\[class\*='logoRow'\] \[class\*='toggle'\],[\s\S]*?\[data-slot='sidebar\.settings'\] button\[aria-haspopup='dialog'\]\[data-maid-settings-trigger\]\s*\):is\(:hover, :focus-visible\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(toggleRule).toContain('border-radius: 50%')
     expect(sharedRailRule).toContain('width: var(--maid-rail-control-size)')
@@ -1070,13 +1070,13 @@ describe('Maid Atelier skin apply', () => {
       /body\[data-dsh-maid-atelier\]\[data-maid-sidebar-size='rail'\][^{]+:is\(\[class\*='iconButton'\], \[class\*='searchButton'\]\)[^{]+\{/g,
     )].map(match => match[0] ?? '')
     const centeredSettingsContentRule = CSS.match(
-      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/s,
+      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]\[data-maid-settings-trigger\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const centeredSettingsLabelRule = CSS.match(
       /\[data-slot='settings\.trigger'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const constrainedSettingsRule = [...CSS.matchAll(
-      /button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/g,
+      /button\[aria-haspopup='dialog'\]\[data-maid-settings-trigger\]\s*\{([^}]*)\}/g,
     )].map(match => match[1] ?? '').find(rule => rule.includes('flex: 1 1 112px')) ?? ''
     const connectionRule = CSS.match(
       /> :is\(button\[data-phase\], \[role='status'\]\)\s*\{([^}]*)\}/s,
@@ -1465,13 +1465,13 @@ describe('Maid Atelier skin apply', () => {
 
   it('rebuilds the hero logo surround, caption rule, and embedded circular controls', () => {
     const headlineRule = CSS.match(
-      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='headline'\]\[data-maid-hero-headline\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const medallionRule = CSS.match(
-      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\) > \[class\*='fish'\]\s*\{([^}]*)\}/s,
+      /\[class\*='headline'\]\[data-maid-hero-headline\] > \[class\*='fish'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const captionRule = CSS.match(
-      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\)::after\s*\{([^}]*)\}/s,
+      /\[class\*='headline'\]\[data-maid-hero-headline\]::after\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const addRule = CSS.match(
       /\[data-composer-card\] button\[class\*='add'\]\s*\{([^}]*)\}/s,
@@ -1480,7 +1480,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-composer-card\] button\[class\*='primary'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const titleGroupRule = CSS.match(
-      /\[class\*='headline'\]:has\(> \[class\*='fish'\]\) > \[class\*='titleGroup'\]\s*\{([^}]*)\}/s,
+      /\[class\*='headline'\]\[data-maid-hero-headline\] > \[class\*='titleGroup'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const titleRule = CSS.match(
       /body\[data-dsh-maid-atelier\]\s*\[data-phase='hero'\]\s*\[class\*='titleGroup'\] > span:not\(\[class\*='previewBadge'\]\)\s*\{([^}]*)\}/s,
@@ -1620,7 +1620,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('themes Cordis footer actions and approval panels without displacing settings', () => {
     expect(CSS).toMatch(
-      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{[^}]*margin-inline: 0/s,
+      /:not\(\[data-maid-sidebar-size='rail'\]\)[\s\S]*?\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]\[data-maid-settings-trigger\]\s*\{[^}]*margin-inline: 0/s,
     )
     expect(CSS).toMatch(
       /\[data-maid-sidebar-footer\]\s*\{[^}]*flex: 0 0 auto[^}]*min-height: calc\(var\(--maid-sidebar-swag-height\) \+ 82px\)/s,
@@ -2149,7 +2149,7 @@ describe('Maid Atelier skin apply', () => {
       /\[class\*='sectionHeader'\]:has\(\[class\*='searchSlotExpanded'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const settingsRule = CSS.match(
-      /\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]:has\(> \[data-slot='settings\.trigger'\]\)\s*\{([^}]*)\}/s,
+      /\[data-slot='sidebar\.settings'\][\s\S]*?button\[aria-haspopup='dialog'\]\[data-maid-settings-trigger\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(headingRule).toContain('color: #d9bd83')
     expect(searchRule).toContain('border: 1px solid rgba(225, 191, 124, 0.72)')

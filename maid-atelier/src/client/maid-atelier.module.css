@@ -1072,7 +1072,7 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
+    button[aria-haspopup='dialog'][data-maid-settings-trigger] {
   position: relative;
   z-index: 1;
   width: 100%;
@@ -1101,7 +1101,7 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
+    button[aria-haspopup='dialog'][data-maid-settings-trigger] {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
@@ -1113,7 +1113,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
+    button[aria-haspopup='dialog'][data-maid-settings-trigger]
     [data-slot='settings.trigger'] {
   line-height: normal;
 }
@@ -1124,8 +1124,8 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :has(> [data-slot='settings.launcher']):has(> :is(button[data-phase], [role='status']))
-    > [data-slot='settings.launcher'] > button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
+    > [data-maid-settings-launcher-row][data-maid-settings-status-row]
+    > [data-slot='settings.launcher'] > button[aria-haspopup='dialog'][data-maid-settings-trigger] {
   flex: 1 1 112px;
   width: auto;
   padding-inline: 8px;
@@ -1137,7 +1137,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :has(> [data-slot='settings.launcher'])
+    > [data-maid-settings-launcher-row]
     > :is(button[data-phase], [role='status']) {
   flex: 0 1 96px;
   grid-template-columns: 14px minmax(0, 1fr);
@@ -1158,7 +1158,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :has(> [data-slot='settings.launcher'])
+    > [data-maid-settings-launcher-row]
     > :is(button[data-phase], [role='status'])
     > span[aria-hidden='true'] + span {
   min-width: 0;
@@ -1168,7 +1168,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :has(> [data-slot='settings.launcher'])
+    > [data-maid-settings-launcher-row]
     > :is(button[data-phase], [role='status'])
     > span[aria-hidden='true'] + span > span {
   max-width: 100%;
@@ -1179,7 +1179,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :has(> [data-slot='settings.launcher'])
+    > [data-maid-settings-launcher-row]
     > button[data-phase]:is(:hover, :focus-visible) {
   color: #fff1ce;
   border-color: rgba(244, 218, 164, 0.94);
@@ -1191,7 +1191,7 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    > :has(> [data-slot='settings.launcher'])
+    > [data-maid-settings-launcher-row]
     > [role='status'] {
   color: #c8e4c7;
   border-color: rgba(167, 211, 167, 0.72);
@@ -1201,14 +1201,14 @@ body[data-dsh-maid-atelier]:not([data-maid-sidebar-size='rail'])
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])::before {
+    button[aria-haspopup='dialog'][data-maid-settings-trigger]::before {
   content: none;
 }
 
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']):is(:hover, :focus-visible) {
+    button[aria-haspopup='dialog'][data-maid-settings-trigger]:is(:hover, :focus-visible) {
   color: #fff8e8;
   background: none;
   filter: brightness(1.1) drop-shadow(0 5px 12px rgba(2, 8, 28, 0.3));
@@ -1219,7 +1219,7 @@ body[data-dsh-maid-atelier]
 body[data-dsh-maid-atelier]
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) svg {
+    button[aria-haspopup='dialog'][data-maid-settings-trigger] svg {
   color: #e8c77f;
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.62));
 }
@@ -1329,7 +1329,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [data-maid-sidebar-fo
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger']) {
+    button[aria-haspopup='dialog'][data-maid-settings-trigger] {
   width: 38px;
   min-width: 38px;
   min-height: 38px;
@@ -1348,7 +1348,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     [data-maid-sidebar-footer]
     [data-slot='sidebar.settings']
-    button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])::before {
+    button[aria-haspopup='dialog'][data-maid-settings-trigger]::before {
   display: none;
 }
 
@@ -1785,7 +1785,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog'][data-maid-settings-trigger]
     ) {
   box-sizing: border-box;
   width: var(--maid-rail-control-size);
@@ -1821,7 +1821,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
       button[class*='newSession'],
       [class*='sectionHeader'] [class*='iconButton'],
       [class*='search'] [class*='searchButton'],
-      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog']:has(> [data-slot='settings.trigger'])
+      [data-maid-sidebar-footer] [data-slot='sidebar.settings'] button[aria-haspopup='dialog'][data-maid-settings-trigger]
     ):is(:hover, :focus-visible) {
   color: #fff1ce;
   border-color: rgba(244, 218, 164, 0.94);
@@ -2943,7 +2943,7 @@ body[data-dsh-maid-atelier] [class*='headline'] {
 }
 
 body[data-dsh-maid-atelier] [data-phase='hero']
-  [class*='headline']:has(> [class*='fish']) {
+  [class*='headline'][data-maid-hero-headline] {
   position: relative;
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -2961,7 +2961,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
 }
 
 body[data-dsh-maid-atelier] [data-phase='hero']
-  [class*='headline']:has(> [class*='fish'])::before {
+  [class*='headline'][data-maid-hero-headline]::before {
   content: '';
   position: absolute;
   top: 34px;
@@ -2976,7 +2976,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
 }
 
 body[data-dsh-maid-atelier] [data-phase='hero']
-  [class*='headline']:has(> [class*='fish'])::after {
+  [class*='headline'][data-maid-hero-headline]::after {
   content: '';
   position: absolute;
   right: 8%;
@@ -2991,7 +2991,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
 }
 
 body[data-dsh-maid-atelier] [data-phase='hero']
-  [class*='headline']:has(> [class*='fish']) > [class*='fish'] {
+  [class*='headline'][data-maid-hero-headline] > [class*='fish'] {
   position: static !important;
   inset: auto;
   box-sizing: border-box;
@@ -3025,7 +3025,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
    `display: contents` element centre the pair instead of auto-placing it into
    the first track. */
 body[data-dsh-maid-atelier] [data-phase='hero']
-  [class*='headline']:has(> [class*='fish']) > [class*='titleGroup'] {
+  [class*='headline'][data-maid-hero-headline] > [class*='titleGroup'] {
   display: contents !important;
   grid-column: 2;
   grid-row: 2;
@@ -3054,7 +3054,7 @@ body[data-dsh-maid-atelier] [data-phase='hero'] [class*='previewBadge'] {
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='hero']
-  [class*='headline']:has(> [class*='fish']) > [class*='fish'] {
+  [class*='headline'][data-maid-hero-headline] > [class*='fish'] {
   color: #6f86be;
   background: rgba(238, 242, 251, 0.76);
 }
@@ -3765,7 +3765,7 @@ body[data-dsh-maid-atelier] [data-composer-card] > [class*='row']
 
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] button[class*='add'],
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]
-  [class*='modes'] button[class*='trigger']:has([class*='triggerIcon']) {
+  [class*='modes'] button[class*='trigger'][data-maid-mode-trigger] {
   display: grid;
   box-sizing: border-box;
   place-items: center;
@@ -3784,13 +3784,13 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]
 }
 
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]
-  [class*='modes'] button[class*='trigger']:has([class*='triggerIcon'])
+  [class*='modes'] button[class*='trigger'][data-maid-mode-trigger]
   :is([class*='triggerLabel'], [class*='chevron']) {
   display: none;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] [data-composer-card]
-  :is(button[class*='add'], [class*='modes'] button[class*='trigger']:has([class*='triggerIcon'])) {
+  :is(button[class*='add'], [class*='modes'] button[class*='trigger'][data-maid-mode-trigger]) {
   border-color: rgba(211, 180, 119, 0.72);
   color: #ead39f;
   background: rgba(28, 45, 88, 0.82);
@@ -3859,7 +3859,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] [class*='tr
    occupied share. The popover repeats that grammar, using three gold values
    only to preserve its system/tools/messages breakdown. */
 body[data-dsh-maid-atelier] [data-composer-card]
-  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_track']):has(> svg circle[class$='_fill']) {
+  button[class$='_trigger'][aria-haspopup='dialog'][data-maid-context-track][data-maid-context-fill] {
   width: 30px;
   height: 30px;
   border: 1px solid rgba(69, 94, 153, 0.22);
@@ -3867,14 +3867,14 @@ body[data-dsh-maid-atelier] [data-composer-card]
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_fill'])
+  button[class$='_trigger'][aria-haspopup='dialog'][data-maid-context-fill]
   circle[class$='_track'] {
   stroke: #4d6bab;
   stroke-width: 2.2;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_track'])
+  button[class$='_trigger'][aria-haspopup='dialog'][data-maid-context-track]
   circle[class$='_fill'] {
   stroke: #d3a957;
   stroke-width: 2.4;
@@ -3882,74 +3882,74 @@ body[data-dsh-maid-atelier] [data-composer-card]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_track']):has(> svg circle[class$='_fill']) {
+  button[class$='_trigger'][aria-haspopup='dialog'][data-maid-context-track][data-maid-context-fill] {
   border-color: rgba(125, 153, 216, 0.24);
   background: rgba(39, 60, 112, 0.56);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  button[class$='_trigger'][aria-haspopup='dialog']:has(> svg circle[class$='_fill'])
+  button[class$='_trigger'][aria-haspopup='dialog'][data-maid-context-fill]
   circle[class$='_track'] {
   stroke: #7896d4;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_bar'] {
   background: rgba(71, 103, 174, 0.68);
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_segment'] {
   background: var(--meter-tint, #d3a957);
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_header'],
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_header'] :is(span, div) {
   color: #172347;
   text-shadow: none;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_headline'] {
   color: #56678c;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_header'],
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_header'] :is(span, div) {
   color: #f2e7cf;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [role='dialog'] [class$='_headline'] {
   color: #afbddb;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [class$='_colorSystem'] {
   --meter-tint: #f0d99f;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [class$='_colorTools'] {
   --meter-tint: #dfbd73;
 }
 
 body[data-dsh-maid-atelier] [data-composer-card]
-  span:has(> button[class$='_trigger'][aria-haspopup='dialog'] > svg circle[class$='_track'])
+  span[data-maid-context-meter]
   [class$='_colorMessages'] {
   --meter-tint: #c99a43;
 }
@@ -3960,7 +3960,7 @@ body[data-dsh-maid-atelier] [data-composer-card]
   }
 
   body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]
-    :is(button[class*='add'], [class*='modes'] button[class*='trigger']:has([class*='triggerIcon'])) {
+    :is(button[class*='add'], [class*='modes'] button[class*='trigger'][data-maid-mode-trigger]) {
     width: 34px;
     min-width: 34px;
     height: 34px;

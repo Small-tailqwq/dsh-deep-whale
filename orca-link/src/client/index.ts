@@ -1,5 +1,6 @@
 /** ORCA LINK presentation-only client skin. */
 import type { Context } from '@deepseek-ai/cordis'
+import { installOrcaRelationalMarkers } from './relational-markers.ts'
 import {
   ORCA_LINK_DARK_ACTIVE_ART,
   ORCA_LINK_DARK_HERO_ART,
@@ -124,6 +125,7 @@ function syncSidebarWidth(body: HTMLElement, pane: Element, dragging: boolean): 
 
 export function apply(ctx: Context): void {
   const body = document.body
+  installOrcaRelationalMarkers(ctx)
   ctx.effect(() => installOrcaCustomization(), 'ui-skin-orca-link: customization declaration')
   // The loader claims untagged <style> tags for whichever plugin loads last and
   // sweeps them when it unloads; hand other plugins' tags back before that.

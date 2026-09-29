@@ -52,6 +52,7 @@ import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.ge
 import { installMaidTableCards } from './table-card.ts'
 import { installMaidPageIcons } from './page-icons.ts'
 import { releaseClaimedStyles } from './release-claimed-styles.ts'
+import { installMaidRelationalMarkers } from './relational-markers.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
@@ -501,6 +502,7 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
  */
 export function apply(ctx: Context): void {
   const body = document.body
+  installMaidRelationalMarkers(ctx)
   ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
   // The loader claims untagged <style> tags for whichever plugin loads last and
   // sweeps them when it unloads; hand other plugins' tags back before that.

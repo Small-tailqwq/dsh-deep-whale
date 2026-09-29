@@ -8,7 +8,7 @@ const css = readFileSync(
 
 describe('composer model menu styling', () => {
   it('scopes the equipment-list surface to the composer model menu', () => {
-    expect(css).toContain("[role='menu'][class$='_menu']:has([class$='_cell'], [class$='_groupTitle'], [role='menuitemradio'] [class$='_modelName'])")
+    expect(css).toContain("[role='menu'][class$='_menu'][data-orca-model-menu]")
     expect(css).toContain('width: min(276px, calc(100vw - 32px))')
   })
 
