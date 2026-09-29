@@ -48,6 +48,10 @@ body[data-dsh-maid-atelier] {
   --dsw-alias-label-caption: #8a94aa;
   /* DSH 0.2's running line under the transcript mixes the DeepSeek blue; keep it on the brand indigo. */
   --dsw-alias-label-deep-diving: #526aa8;
+  /* 0.2.0-rc.2's sticky menu-group heading paints itself with this fill while a
+     group scrolls; bind it to the porcelain menu surface so the host's grey
+     plate never shows through between the gold headings. */
+  --dsw-alias-menu-group-header-fill: rgba(224, 231, 246, 0.94);
   --dsw-alias-state-business-primary: #536eae;
   --dsw-alias-state-business-tertiary: #e1e7f5;
   --dsw-shadow-lv2: var(--maid-shadow);
@@ -87,6 +91,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] {
   --dsw-alias-label-tertiary: #96a6c9;
   --dsw-alias-label-caption: #7f90b4;
   --dsw-alias-label-deep-diving: #9bb0e1;
+  --dsw-alias-menu-group-header-fill: rgba(32, 49, 91, 0.94);
   --dsw-alias-state-business-primary: #9bb0e1;
   --dsw-alias-state-business-tertiary: #293d73;
   --dsw-specific-input-major: rgba(17, 30, 66, 0.88);

@@ -85,6 +85,9 @@ body[data-dsh-orca-link] {
   --dsw-alias-label-secondary: #343b47 !important;
   --dsw-alias-label-tertiary: #778399 !important;
   --dsw-alias-label-caption: #8d98aa !important;
+  /* 0.2.0-rc.2's sticky menu-group heading defaults to a host grey plate while
+     a group scrolls; keep it on the ORCA menu surface instead. */
+  --dsw-alias-menu-group-header-fill: #fbf7ef !important;
   --dsw-alias-state-business-primary: #4b483f !important;
   --dsw-alias-state-business-tertiary: #ddd8cc !important;
   --dsw-specific-bubble: rgba(232, 228, 218, 0.84) !important;
@@ -607,6 +610,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] {
   --dsw-alias-label-secondary: #c8d2e2 !important;
   --dsw-alias-label-tertiary: #8998af !important;
   --dsw-alias-label-caption: #718198 !important;
+  --dsw-alias-menu-group-header-fill: #0f151f !important;
   --dsw-alias-state-business-primary: #4d91ff !important;
   --dsw-alias-state-business-tertiary: #183459 !important;
   --dsw-specific-bubble: rgba(24, 42, 66, 0.9) !important;
@@ -1476,7 +1480,7 @@ body[data-dsh-orca-link]
    model and effort picker. The official menu keeps ownership of focus,
    keyboard navigation and selection; ORCA only redraws its existing states. */
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-model-menu] {
+  [class$='_menu'][data-orca-model-menu] {
   width: min(276px, calc(100vw - 32px));
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--orca-graphite) 34%, transparent);
@@ -1488,14 +1492,21 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme]
-  [role='menu'][class$='_menu'][data-orca-model-menu] {
+  [class$='_menu'][data-orca-model-menu] {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 10%, transparent), transparent 42%),
     #0f151f;
 }
 
+/* 0.2.0-rc.2 moves `role='menu'` onto the scroll list inside the menu surface.
+   The surface owns the ORCA plate and its gradient, so the nested list must
+   stay clear instead of repainting an opaque plate over them. */
+body[data-dsh-orca-link] [class$='_menu'][data-orca-model-menu] [role='menu'] {
+  background: transparent;
+}
+
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-groups] [class$='_groupTitle'] {
+  [class$='_menu'][data-orca-menu-groups] :is([class$='_groupTitle'], [data-menu-group-heading]) {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1508,12 +1519,12 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme]
-  [role='menu'][class$='_menu'][data-orca-menu-groups] [class$='_groupTitle'] {
+  [class$='_menu'][data-orca-menu-groups] :is([class$='_groupTitle'], [data-menu-group-heading]) {
   background: #0f151f;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-groups] [class$='_groupTitle']::before {
+  [class$='_menu'][data-orca-menu-groups] :is([class$='_groupTitle'], [data-menu-group-heading])::before {
   width: 4px;
   height: 4px;
   content: '';
@@ -1521,7 +1532,7 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-models] [role='menuitemradio'] {
+  [class$='_menu'][data-orca-menu-models] [role='menuitemradio'] {
   min-height: 38px;
   padding: 6px 8px;
   border: 0;
@@ -1531,14 +1542,14 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-models]
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio']:is(:hover, :focus-visible) {
   border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
   background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-models]
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] {
   border-left-color: var(--orca-blue);
   background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 16%, transparent), transparent 74%);
@@ -1546,27 +1557,27 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-models]
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'] [class$='_modelName'] {
   font: 600 12px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace;
   letter-spacing: 0.01em;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-models]
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'] [class$='_description'] {
   margin-top: 2px;
   font-size: 11px;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-models]
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] [class$='_check'] > svg {
   display: none;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-models]
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] [class$='_check']::before {
   width: 7px;
   height: 7px;
@@ -1577,18 +1588,18 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-cells] [role='menuitem'] {
+  [class$='_menu'][data-orca-menu-cells] [role='menuitem'] {
   border-radius: 0;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-cells] [class$='_cell'] {
+  [class$='_menu'][data-orca-menu-cells] [class$='_cell'] {
   min-height: 40px;
   border-left: 2px solid transparent;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu'][data-orca-menu-cells] [class$='_cell']:hover {
+  [class$='_menu'][data-orca-menu-cells] [class$='_cell']:hover {
   border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
   background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
 }
