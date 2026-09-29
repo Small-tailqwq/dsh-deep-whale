@@ -236,19 +236,19 @@ describe('Orca Link skin apply', () => {
     expect(character?.dataset.orcaLinkStatus).toBe('standby')
     expect(character?.querySelector<HTMLElement>('[data-orca-link-character-sprite]')?.style.getPropertyValue('--orca-link-status-atlas'))
       .toContain('/skin-assets/orca-link/')
-    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('336px')
+    expect(pane.parentElement!.style.getPropertyValue('--orca-sidebar-width')).toBe('336px')
     // The stage width hangs on the pane, not the body: a write restyles the sidebar subtree only.
     expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('336px')
     expect(document.body.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
-    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
+    expect(pane.parentElement!.hasAttribute('data-orca-sidebar-wide')).toBe(true)
     await fiber.dispose()
     expect(document.querySelector('[data-orca-link-wordmark]')).toBeNull()
     expect(document.querySelector('[data-orca-link-signal]')).toBeNull()
     expect(document.querySelector('[data-orca-link-character]')).toBeNull()
     expect(document.querySelector('[data-original-wordmark]')).not.toBeNull()
-    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('')
+    expect(pane.parentElement!.style.getPropertyValue('--orca-sidebar-width')).toBe('')
     expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
-    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(false)
+    expect(pane.parentElement!.hasAttribute('data-orca-sidebar-wide')).toBe(false)
   })
 
   it('seats the signal chip in the logo row behind the macOS top strip', async () => {
@@ -291,9 +291,9 @@ describe('Orca Link skin apply', () => {
     let measuredWidth = 55
     pane.getBoundingClientRect = () => ({ width: measuredWidth } as DOMRect)
     fiber = await mount()
-    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('56px')
+    expect(pane.parentElement!.style.getPropertyValue('--orca-sidebar-width')).toBe('56px')
 
-    const setProperty = vi.spyOn(document.body.style, 'setProperty')
+    const setProperty = vi.spyOn(pane.parentElement!.style, 'setProperty')
     frame.style.gridTemplateColumns = '280px minmax(0px, 1fr) 0px'
     for (const intermediate of [72, 164, 238, 280]) {
       measuredWidth = intermediate
@@ -301,7 +301,7 @@ describe('Orca Link skin apply', () => {
     }
     const widthWrites = setProperty.mock.calls.filter(([property]) => property === '--orca-sidebar-width')
     expect(widthWrites).toEqual([['--orca-sidebar-width', '280px']])
-    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
+    expect(pane.parentElement!.hasAttribute('data-orca-sidebar-wide')).toBe(true)
   })
 
   it('follows a sidebar drag without restyling the document per pointer frame', async () => {
@@ -330,7 +330,7 @@ describe('Orca Link skin apply', () => {
     expect(document.body.hasAttribute('data-orca-sidebar-dragging')).toBe(true)
 
     // An earlier test may already hold this spy; count only this drag's writes.
-    const setProperty = vi.spyOn(document.body.style, 'setProperty')
+    const setProperty = vi.spyOn(pane.parentElement!.style, 'setProperty')
     setProperty.mockClear()
     for (const width of [296, 310, 326]) {
       frame.style.gridTemplateColumns = `${width}px minmax(0px, 1fr) 0px`
@@ -339,14 +339,17 @@ describe('Orca Link skin apply', () => {
       expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe(`${width}px`)
       expect(spine.style.transform).toBe(`translateX(${width - 4}px)`)
     }
-    // ...while the body-level copy, which restyles every node, waits for the drop.
+    // ...while the sidebar slot's copy, which restyles the whole sidebar subtree, waits for the drop.
     expect(setProperty.mock.calls.filter(([property]) => property === '--orca-sidebar-width')).toEqual([])
 
     frame.removeAttribute('data-dragging')
     await Promise.resolve()
     expect(document.body.hasAttribute('data-orca-sidebar-dragging')).toBe(false)
     expect(spine.style.transform).toBe('')
-    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('326px')
+    expect(pane.parentElement!.style.getPropertyValue('--orca-sidebar-width')).toBe('326px')
+    expect(spine.style.getPropertyValue('--orca-sidebar-width')).toBe('326px')
+    // The body never carries the width while no settings overlay exists.
+    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('')
     await fiber.dispose()
     expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
   })
@@ -372,15 +375,47 @@ describe('Orca Link skin apply', () => {
     frame.style.gridTemplateColumns = '56px minmax(0px, 1fr) 0px'
     pane.getBoundingClientRect = () => ({ width: 56 } as DOMRect)
     notifyResize()
-    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(false)
+    expect(pane.parentElement!.hasAttribute('data-orca-sidebar-wide')).toBe(false)
     expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('280px')
 
     const setProperty = vi.spyOn(pane.style, 'setProperty')
     frame.style.gridTemplateColumns = '280px minmax(0px, 1fr) 0px'
     pane.getBoundingClientRect = () => ({ width: 280 } as DOMRect)
     notifyResize()
-    expect(setProperty).not.toHaveBeenCalled()
-    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
+    expect(setProperty.mock.calls.filter(([property]) => property === '--orca-sidebar-art-width')).toEqual([])
+    expect(pane.parentElement!.hasAttribute('data-orca-sidebar-wide')).toBe(true)
+  })
+
+  it('mirrors the sidebar width on the body only while the settings overlay exists', async () => {
+    document.body.innerHTML = `
+      <div id="root"><div data-slot="root"><div style="grid-template-columns: 280px minmax(0px, 1fr) 0px"></div></div></div>
+      <div data-slot="sidebar"><div><div><button type="button"><svg></svg></button></div></div></div>
+    `
+    const pane = document.querySelector<HTMLElement>("[data-slot='sidebar'] > :first-child")!
+    pane.getBoundingClientRect = () => ({ width: 280 } as DOMRect)
+    fiber = await mount()
+    // The sidebar slot owns the state: a body write would restyle the whole document per toggle.
+    expect(pane.parentElement!.hasAttribute('data-orca-sidebar-wide')).toBe(true)
+    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(false)
+    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('')
+    expect(document.body.hasAttribute('data-orca-settings-sidebar-wide')).toBe(false)
+
+    // The settings portal is outside the sidebar, so it gets a body copy for as long as it lives.
+    const mask = document.createElement('div')
+    mask.setAttribute('role', 'presentation')
+    mask.innerHTML = '<div role="dialog" aria-modal="true" data-shortcut-modal="settings"></div>'
+    document.body.append(mask)
+    await Promise.resolve(); await Promise.resolve()
+    expect(document.body.hasAttribute('data-orca-settings-open')).toBe(true)
+    expect(document.body.hasAttribute('data-orca-settings-sidebar-wide')).toBe(true)
+    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('280px')
+
+    mask.remove()
+    await Promise.resolve(); await Promise.resolve()
+    expect(document.body.hasAttribute('data-orca-settings-sidebar-wide')).toBe(false)
+    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('')
+    await fiber.dispose()
+    expect(pane.parentElement!.hasAttribute('data-orca-sidebar-wide')).toBe(false)
   })
 
   it('tracks only the current conversation in the sidebar link signal', async () => {
@@ -859,7 +894,7 @@ describe('Orca Link skin apply', () => {
     // Sidebar already expanded by the rail click; the row landed collapsed.
     // jsdom does not synthesize focus events for programmatic focus, so the
     // event a real browser fires is dispatched explicitly.
-    document.body.setAttribute('data-orca-sidebar-wide', '')
+    document.querySelector('[data-slot="sidebar"]')!.setAttribute('data-orca-sidebar-wide', '')
     input.focus()
     input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
     await new Promise(resolve => { setTimeout(resolve, 460) })

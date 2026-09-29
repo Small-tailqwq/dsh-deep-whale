@@ -57,7 +57,7 @@ describe('ORCA LINK sidebar motion', () => {
   // the takeover's own selectors must stay intact.
   it('treats a portalled plugin entry host as a sidebar entry', () => {
     const lifted = css.match(
-      /body\[data-dsh-orca-link\]\[data-orca-sidebar-wide\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
+      /body\[data-dsh-orca-link\] \[data-slot='sidebar'\]\[data-orca-sidebar-wide\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
     )?.groups?.selector ?? ''
     expect(lifted).toContain("button[data-dsh-part='sidebar-entry']")
     expect(lifted).toContain('[data-plugin-entry]')
@@ -85,7 +85,7 @@ describe('ORCA LINK sidebar motion', () => {
   // around it), which the Windows caption frame moves 16px up: the hover
   // frame drifted off the portrait and covered the Plugins row.
   it('gives the New Session hit plane exactly the portrait box', () => {
-    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)"
+    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)"
     const esc = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const block = (selector: string): string => css.match(new RegExp(`${esc(selector)}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
     const character = block("body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter")
@@ -119,7 +119,7 @@ describe('ORCA LINK sidebar motion', () => {
 
   it('lifts the official panel row out of the stage and above the hit plane', () => {
     const lifted = css.match(
-      /body\[data-dsh-orca-link\]\[data-orca-sidebar-wide\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
+      /body\[data-dsh-orca-link\] \[data-slot='sidebar'\]\[data-orca-sidebar-wide\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
     )?.groups?.selector ?? ''
     expect(lifted).toContain("nav[class*='panelList']")
     // The declaration block that follows the first `nav[class*=…]` selector.
