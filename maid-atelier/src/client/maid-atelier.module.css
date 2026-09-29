@@ -455,14 +455,14 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
    layer's pseudo-element), the bottom band drops and fades with the same pair
    `[data-maid-conversation-active]` uses. The seat test is the one the reading
    sheet uses, so a page is "art-free" for exactly one reason everywhere. */
-body[data-dsh-maid-atelier]
-  [class*='centerCol']:not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [class*='centerCol']
   > [data-skin-chrome='top-trim'] [data-skin-trim-layer] {
   transform: translateY(-100%);
 }
 
-body[data-dsh-maid-atelier]
-  [class*='centerCol']:not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [class*='centerCol']
   > [data-skin-chrome='bottom-trim'] {
   transform: translateY(100%);
   opacity: 0;
@@ -629,7 +629,7 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] > div > :not(
 body[data-dsh-maid-atelier]
   [class*='sidebarCol']
   > div
-  > :has([role='tooltip']) {
+  > [data-maid-tooltip-carrier] {
   z-index: auto;
 }
 
@@ -1358,13 +1358,13 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 body[data-dsh-maid-atelier][data-maid-cordis-panel-open]
   [class*='sidebarCol']
   > div
-  > :has([data-cordis-panel]) {
+  > [data-maid-cordis-carrier] {
   z-index: 40;
 }
 
 body[data-dsh-maid-atelier]
     [data-slot='sidebar.footer.action']
-    > :has([data-cordis-badge]) {
+    > [data-maid-badge-carrier] {
   width: 100%;
   margin-top: 0;
 }
@@ -1562,8 +1562,8 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-plugin-panel] {
    column after this pseudo-element) keep drawing over it. A panel that brings
    its own opaque floor now simply covers the sheet instead of being painted
    over by it. Host overlays portal to body and keep their own tier. */
-body[data-dsh-maid-atelier]
-  [class*='centerCol']:not(:has([data-phase])):not(:has([data-slot^='conversation.']))::before {
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [class*='centerCol']::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1578,7 +1578,7 @@ body[data-dsh-maid-atelier]
    traps nothing because host overlays portal to body. */
 body[data-dsh-maid-atelier]
   [data-slot='main']
-  > *:not(:has([data-phase])):not(:has([data-slot^='conversation.'])) {
+  > :not([data-slot='main.conversation']) {
   position: relative;
   z-index: 2;
 }
@@ -1589,7 +1589,7 @@ body[data-dsh-maid-atelier]
    disabled. `:where()` keeps the host and plugin rules able to outrank it. */
 body[data-dsh-maid-atelier]
   [data-slot='main']
-  > *:not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+  > :not([data-slot='main.conversation'])
   :where(button, [role='button']):disabled {
   opacity: 0.55;
 }
@@ -1980,7 +1980,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed],
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol']) {
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed]) {
     display: flex !important;
     flex-direction: column !important;
     grid-template-columns: none !important;
@@ -1993,7 +1993,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     div[data-sidebar-collapsed]
     > [class*='centerCol'],
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed])
     > [class*='centerCol'] {
     flex: 1 1 auto !important;
     width: 100% !important;
@@ -2005,7 +2005,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      While it is open the frame drops that track, the conversation keeps the
      full width, and the drawer floats (shared rule below). */
   html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol']) {
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed]) {
     display: flex !important;
     flex-direction: column !important;
     grid-template-columns: none !important;
@@ -2015,7 +2015,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed])
     > [class*='centerCol'] {
     flex: 1 1 auto !important;
     width: 100% !important;
@@ -2037,7 +2037,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      once it ends the column computes to no transform at all, so the panel is
      positioned right without disabling anything. */
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed])
     [class*='sidebarCol'] {
     animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) backwards;
   }
@@ -2054,7 +2054,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed])
     [class*='sidebarCol'] {
     animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) backwards;
   }
@@ -2419,7 +2419,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      keeps the full width and never moves. `rail` shares this rule so its own
      collapsed rail stays the host's, while opening it stops pushing the chat. */
   body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed])
     [class*='sidebarCol'] {
     position: fixed !important;
     top: 0 !important;
@@ -2436,7 +2436,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   body[data-dsh-maid-atelier]
-    div:has(> [class*='sidebarCol']) > [class*='handle'] {
+    [id='root'] > div[data-slot='root'] > div > [class*='handle'] {
     display: none !important;
   }
 
@@ -3336,7 +3336,7 @@ body[data-dsh-maid-atelier][data-maid-settings-in-sidebar]
 body[data-dsh-maid-atelier]
   [class*='sidebarCol']
   > div
-  > :has([role='dialog'][aria-modal='true']) {
+  > [data-maid-dialog-root] {
   z-index: auto !important;
 }
 
@@ -3366,7 +3366,7 @@ body[data-dsh-maid-atelier]
     [data-skin-chrome='sidebar-corners'],
     [role='tooltip']
   )
-  > :has([role='dialog'][aria-modal='true']) {
+  > [data-maid-dialog-carrier] {
   opacity: 1 !important;
   transition: none !important;
   animation: none !important;
@@ -5566,7 +5566,7 @@ body[data-dsh-maid-atelier] [role='tooltip'][data-side] {
    that bubble's containing block, so paint the glass on an isolated backing
    layer instead. */
 body[data-dsh-maid-atelier]
-  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))
+  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay])
   > [role='dialog'][aria-modal='true'] {
   --dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.68);
   isolation: isolate;
@@ -5574,7 +5574,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))
+  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay])
   > [role='dialog'][aria-modal='true']::before {
   content: '';
   position: absolute;
@@ -5586,7 +5586,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))
+  :is([data-slot='sidebar.settings'] [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay])
   > [role='dialog'][aria-modal='true'] {
   --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82);
 }
@@ -5622,7 +5622,7 @@ html[data-platform='darwin'] body[data-dsh-maid-atelier] {
    the area below the titlebar instead. */
 @media (min-width: 1100px) and (min-height: 681px) {
   html[data-windows-titlebar] body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] {
     height: min(800px, calc(100vh - 48px - var(--maid-window-strip, 0px)));
     margin-top: var(--maid-window-strip, 0px);
   }
@@ -5635,7 +5635,7 @@ html[data-platform='darwin'] body[data-dsh-maid-atelier] {
    exactly under the window strip. */
 @media (max-width: 1099px), (max-height: 680px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] {
     width: 100vw;
     width: 100dvw;
     max-width: none;
@@ -5651,18 +5651,18 @@ html[data-platform='darwin'] body[data-dsh-maid-atelier] {
 
 /* Only the category list scrolls; its title and the reserved hint footer stay
    outside the scrollport. The glass hint never covers a navigation button. */
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav {
   position: relative;
   min-height: 0;
   padding-bottom: 28px;
   overflow: hidden;
 }
 
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :first-child {
   flex-shrink: 0;
 }
 
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -5670,15 +5670,15 @@ body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presenta
   scrollbar-width: none;
 }
 
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
   display: none;
 }
 
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child > button {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child > button {
   flex-shrink: 0;
 }
 
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::before {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::before {
   content: '';
   position: absolute;
   bottom: 4px;
@@ -5695,7 +5695,7 @@ body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presenta
   pointer-events: none;
 }
 
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::after {
+body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::after {
   content: '';
   position: absolute;
   bottom: 12px;
@@ -5709,25 +5709,25 @@ body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presenta
   pointer-events: none;
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::before {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::before {
   border-color: rgba(211, 180, 119, 0.48);
   background: rgba(24, 40, 80, 0.65);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.08);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-maid-settings-more]::after {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::after {
   border-color: #d3b477;
 }
 
 /* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] {
     flex-direction: column;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav {
     box-sizing: border-box;
     flex-direction: row;
     align-items: stretch;
@@ -5739,7 +5739,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: start;
@@ -5749,39 +5749,39 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
     align-self: flex-start;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav button {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav button {
     min-width: 0;
     height: 36px;
     padding: 7px 8px;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div {
     min-height: 0;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :first-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :first-child {
     min-height: 46px;
     height: auto;
     padding: 8px 10px;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child {
     padding: 0 14px 16px;
   }
 }
 
 @media (max-width: 420px) {
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -5793,24 +5793,24 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings
    uses the same row contract and stacks with it. */
 @media (max-width: 520px) {
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) {
     align-items: stretch;
     flex-direction: column;
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_rowText'] {
     width: 100%;
     padding-right: 0;
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) > :last-child,
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     box-sizing: border-box;
     width: 100%;
@@ -5818,13 +5818,13 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     justify-content: space-between;
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     :is([class$='_toggleRow'], [class$='_selectRow']) {
     align-items: stretch;
     flex-direction: column;
@@ -5832,13 +5832,13 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     :is([class$='_toggleRow'], [class$='_selectRow']) > span {
     width: 100%;
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_selectRow'] select {
     box-sizing: border-box;
     width: 100%;
@@ -6160,13 +6160,13 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav button {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav button {
     min-height: 44px;
     height: auto;
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :first-child > :last-child {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :first-child > :last-child {
     min-width: 44px;
     min-height: 44px;
   }
@@ -6188,7 +6188,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 
   body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div {
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 }
@@ -6449,7 +6449,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ * >
 
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [id='root'] > div[data-slot='root'] > div:not([data-sidebar-collapsed])
     [class*='sidebarCol'] {
     animation: none;
   }

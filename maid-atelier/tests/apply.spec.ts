@@ -87,7 +87,7 @@ function withoutReducedMotion(css: string): string {
  * silently. Specs assert this is non-empty for the same reason.
  */
 const SETTINGS_ROOT_STACKING_RULE = CSS.match(
-  /\[class\*='sidebarCol'\]\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+  /\[class\*='sidebarCol'\]\s*> div\s*> \[data-maid-dialog-root\]\s*\{([^}]*)\}/s,
 )?.[1] ?? ''
 
 /**
@@ -100,7 +100,7 @@ const SETTINGS_ROOT_STACKING_RULE = CSS.match(
  * child containing the dialog.
  */
 const SETTINGS_CARRIER_FADE_RULE = CSS.match(
-  /\[class\*='sidebarCol'\]\s*> div\s*> :not\([\s\S]*?\)\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+  /\[class\*='sidebarCol'\]\s*> div\s*> :not\([\s\S]*?\)\s*> \[data-maid-dialog-carrier\]\s*\{([^}]*)\}/s,
 )?.[1] ?? ''
 
 let fiber: Fiber | undefined
@@ -364,6 +364,59 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
 
     await fiber.dispose()
+  })
+
+  it('projects the keyed panel page and tags the settings portal mask without :has()', async () => {
+    document.body.innerHTML = `
+      <div data-slot="main" style="display: contents">
+        <div data-slot="main.conversation" style="display: contents"><main data-phase="hero"></main></div>
+      </div>
+    `
+    fiber = await mount()
+    const main = document.querySelector<HTMLElement>("[data-slot='main']")!
+    expect(document.body.hasAttribute('data-maid-panel-page')).toBe(false)
+
+    // A keyed panel page is the outlet's direct child, beside no conversation slot.
+    main.innerHTML = '<section data-plugin-panel></section>'
+    await flushMutations()
+    expect(document.body.hasAttribute('data-maid-panel-page')).toBe(true)
+
+    main.innerHTML = '<div data-slot="main.conversation" style="display: contents"><main data-phase="active"></main></div>'
+    await flushMutations()
+    expect(document.body.hasAttribute('data-maid-panel-page')).toBe(false)
+
+    // rc.2 portals the settings dialog to <body> inside a presentation mask; only
+    // that direct body child is tagged, and the tag leaves with the dialog.
+    const mask = document.createElement('div')
+    mask.setAttribute('role', 'presentation')
+    mask.innerHTML = '<div role="dialog" aria-modal="true" data-shortcut-modal="settings"></div>'
+    document.body.append(mask)
+    const unrelated = document.createElement('div')
+    unrelated.setAttribute('role', 'presentation')
+    unrelated.innerHTML = '<div role="dialog" aria-modal="true" data-shortcut-modal="shortcuts"></div>'
+    document.body.append(unrelated)
+    await flushMutations()
+    expect(mask.hasAttribute('data-maid-settings-overlay')).toBe(true)
+    expect(unrelated.hasAttribute('data-maid-settings-overlay')).toBe(false)
+
+    mask.remove()
+    await flushMutations()
+    expect(document.querySelector('[data-maid-settings-overlay]')).toBeNull()
+
+    document.body.append(mask)
+    await flushMutations()
+    expect(mask.hasAttribute('data-maid-settings-overlay')).toBe(true)
+    await fiber.dispose()
+    expect(mask.hasAttribute('data-maid-settings-overlay')).toBe(false)
+    expect(document.body.hasAttribute('data-maid-panel-page')).toBe(false)
+  })
+
+  it('keeps :has() probes out of the settings portal and panel-page rules', () => {
+    // Each of these was a :has() evaluated on every style pass; measured on a
+    // 1500-row transcript they cost ~40ms of style recalculation on one
+    // right-panel open. State now arrives as attributes the client projects.
+    expect(CSS).not.toContain(":where(:has(> [role='dialog'][data-shortcut-modal='settings']))")
+    expect(CSS).not.toContain(":not(:has([data-phase])):not(:has([data-slot^='conversation.']))")
   })
 
   it('restores pre-existing projected state attributes on dispose', async () => {
@@ -1304,7 +1357,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('releases a tooltip carrier without demoting the gold sidebar frame', () => {
     const tooltipCarrierRule = CSS.match(
-      /\[class\*='sidebarCol'\]\s*> div\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*> div\s*> \[data-maid-tooltip-carrier\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const frameRule = CSS.match(
       /\[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
@@ -1576,7 +1629,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-sidebar-size='rail'\] \[data-maid-sidebar-footer\]\s*\{[^}]*flex-basis: auto[^}]*padding: 5px 5px max\(12px, env\(safe-area-inset-bottom, 0px\)\)/s,
     )
     expect(CSS).toMatch(
-      /\[data-maid-cordis-panel-open\][\s\S]*?> :has\(\[data-cordis-panel\]\)\s*\{[^}]*z-index: 40/s,
+      /\[data-maid-cordis-panel-open\][\s\S]*?> \[data-maid-cordis-carrier\]\s*\{[^}]*z-index: 40/s,
     )
     expect(CSS).toMatch(/\[data-cordis-badge\]\s*\{[^}]*border: 1px solid[^}]*linear-gradient/s)
     expect(CSS).toMatch(
@@ -2174,7 +2227,7 @@ describe('Maid Atelier skin apply', () => {
     // rule may cancel this column's entrance.
     document.body.setAttribute('data-dsh-maid-atelier', '')
     document.body.innerHTML = `
-      <div class="fixture_frame">
+      <div id="root"><div data-slot="root"><div class="fixture_frame">
         <div class="fixture_sidebarCol">
           <div data-slot="sidebar" style="display: contents">
             <div class="fixture_root">
@@ -2192,7 +2245,7 @@ describe('Maid Atelier skin apply', () => {
             </div>
           </div>
         </div>
-      </div>
+      </div></div></div>
     `
     const column = document.querySelector('.fixture_sidebarCol')!
     const cancellations = flatCssRules(source)
@@ -2223,11 +2276,12 @@ describe('Maid Atelier skin apply', () => {
     document.body.removeAttribute('data-dsh-maid-atelier')
   })
 
-  it('targets the carrier suppression at the official footArea, not the SidebarRoot', () => {
+  it('tags the official footArea and SidebarRoot as dialog carriers, not the slot anchor', async () => {
     // The slot anchor is a display:contents wrapper, so the column's direct
     // div is NOT the SidebarRoot: the root (z-index release target) and the
-    // footArea (fade target) are different layers. Guard the selectors
-    // against regressing to the wrong element.
+    // footArea (fade target) are different layers. The client finds them by
+    // structure and tags them, because a `:has()` probe for the same ancestors
+    // was evaluated on every element of the document on every style pass.
     document.body.innerHTML = `
       <div class="fixture_sidebarCol">
         <div data-slot="sidebar" style="display: contents">
@@ -2251,14 +2305,29 @@ describe('Maid Atelier skin apply', () => {
     `
     const root = document.querySelector<HTMLElement>('.fixture_root')!
     const footArea = document.querySelector<HTMLElement>('.fixture_footArea')!
-    const rootRelease = document.querySelector(
-      "[class*='sidebarCol'] > div > :has([role='dialog'][aria-modal='true'])",
-    )
-    const carrier = document.querySelector(
-      "[class*='sidebarCol'] > div > :not([data-skin-chrome='sidebar-mascot'], [data-skin-chrome='sidebar-corners'], [role='tooltip']) > :has([role='dialog'][aria-modal='true'])",
-    )
-    expect(rootRelease).toBe(root)
-    expect(carrier).toBe(footArea)
+    fiber = await mount()
+    expect(root.hasAttribute('data-maid-dialog-root')).toBe(true)
+    expect(footArea.hasAttribute('data-maid-dialog-carrier')).toBe(true)
+    expect(root.hasAttribute('data-maid-dialog-carrier')).toBe(false)
+    expect(footArea.hasAttribute('data-maid-dialog-root')).toBe(false)
+
+    // The tag follows the dialog out and leaves nothing behind on dispose.
+    document.querySelector('[role="dialog"]')!.remove()
+    await flushMutations()
+    expect(root.hasAttribute('data-maid-dialog-root')).toBe(false)
+    expect(footArea.hasAttribute('data-maid-dialog-carrier')).toBe(false)
+    const tip = document.createElement('div')
+    tip.setAttribute('role', 'tooltip')
+    document.querySelector('.fixture_logoRow')!.append(tip)
+    await flushMutations()
+    expect(root.hasAttribute('data-maid-tooltip-carrier')).toBe(true)
+    tip.remove()
+    await flushMutations()
+    expect(root.hasAttribute('data-maid-tooltip-carrier')).toBe(false)
+    document.querySelector('.fixture_logoRow')!.append(tip)
+    await flushMutations()
+    await fiber.dispose()
+    expect(document.querySelector('[data-maid-tooltip-carrier], [data-maid-dialog-root], [data-maid-dialog-carrier], [data-maid-cordis-carrier], [data-maid-badge-carrier]')).toBeNull()
   })
 
   it('lets the official settings mask blur every skin-owned layer', () => {
@@ -2284,7 +2353,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const releasedSettingsRowRule = CSS.match(
-      /\[class\*='sidebarCol'\]\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*> div\s*> \[data-maid-dialog-root\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const preservedSidebarFrameRule = CSS.match(
       /:has\(\[role='dialog'\]\[aria-modal='true'\]\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
@@ -2318,7 +2387,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the settings panel translucent above the dimmed composer', () => {
     // rc.1 mounts the overlay in the settings slot; rc.2 portals it to <body>.
-    const overlay = /:is\(\[data-slot='sidebar\.settings'\] \[role='presentation'\], :where\(body\) > \[role='presentation'\]:where\(:has\(> \[role='dialog'\]\[data-shortcut-modal='settings'\]\)\)\)/.source
+    const overlay = /:is\(\[data-slot='sidebar\.settings'\] \[role='presentation'\], :where\(body\) > \[role='presentation'\]\[data-maid-settings-overlay\]\)/.source
     const settingsSurfaceRule = CSS.match(
       new RegExp(`${overlay}\\s*> \\[role='dialog'\\]\\[aria-modal='true'\\]\\s*\\{([^}]*)\\}`, 's'),
     )?.[1] ?? ''
@@ -2853,6 +2922,8 @@ describe('Maid Atelier skin apply', () => {
     // above both layers, keep the sheet on the column, keep it off the
     // conversation, and keep the darker label pair for dense card copy.
     document.body.setAttribute('data-dsh-maid-atelier', '')
+    // The client projects this from the `main` outlet; the column rules key on it.
+    document.body.setAttribute('data-maid-panel-page', '')
     document.body.innerHTML = `
       <div class="fixture_centerCol">
         <div data-skin-chrome="character-stage"></div>
@@ -2887,10 +2958,14 @@ describe('Maid Atelier skin apply', () => {
     expect(declarations(document.body, true)).toContain('--maid-reading-surface: rgba(10, 18, 42, 0.78);')
     // The conversation keeps the artwork to itself: the same column stops
     // matching the sheet as soon as the seat holds the transcript hooks.
+    // The host wraps the conversation in its own `main.conversation` slot, and the
+    // client drops the panel-page state with it.
     document.querySelector('[data-slot="main"]')!.innerHTML =
-      '<div data-phase="active"><header data-slot="conversation.header"></header></div>'
+      '<div data-slot="main.conversation" style="display: contents"><div data-phase="active"><header data-slot="conversation.header"></header></div></div>'
+    document.body.removeAttribute('data-maid-panel-page')
     expect(declarations(column, false)).not.toContain('--maid-reading-surface')
     document.body.removeAttribute('data-ds-dark-theme')
+    document.body.removeAttribute('data-maid-panel-page')
     document.body.removeAttribute('data-dsh-maid-atelier')
     document.body.innerHTML = ''
   })
@@ -2903,6 +2978,8 @@ describe('Maid Atelier skin apply', () => {
     // transition it already owns and dropping the bottom band with the
     // transform/opacity pair a running turn already uses.
     document.body.setAttribute('data-dsh-maid-atelier', '')
+    // The client projects this from the `main` outlet; the column rules key on it.
+    document.body.setAttribute('data-maid-panel-page', '')
     document.body.innerHTML = `
       <div class="fixture_centerCol">
         <div data-skin-chrome="character-stage"></div>
@@ -2925,9 +3002,12 @@ describe('Maid Atelier skin apply', () => {
     expect(band).toContain('opacity: 0;')
     // A conversation keeps its frame: the same column stops matching once the
     // seat holds the transcript hooks.
-    document.querySelector('[data-slot="main"]')!.innerHTML = '<div data-phase="active"></div>'
+    document.querySelector('[data-slot="main"]')!.innerHTML =
+      '<div data-slot="main.conversation" style="display: contents"><div data-phase="active"></div></div>'
+    document.body.removeAttribute('data-maid-panel-page')
     expect(declarations(landing, false)).not.toContain('transform: translateY(-100%);')
     expect(declarations(bottom, false)).not.toContain('transform: translateY(100%);')
+    document.body.removeAttribute('data-maid-panel-page')
     document.body.removeAttribute('data-dsh-maid-atelier')
     document.body.innerHTML = ''
   })
