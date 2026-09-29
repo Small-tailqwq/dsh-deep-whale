@@ -1782,7 +1782,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('stabilizes light-theme disclosure text over the illustrated backdrop', () => {
     const variantRule = CSS.match(
-      /:not\(\[data-ds-dark-theme\]\)\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\)\s*\{([^}]*)\}/s,
+      /:not\(\[data-ds-dark-theme\]\)\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\], \[data-tool='present'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const rowRule = CSS.match(
       /:not\(\[data-ds-dark-theme\]\)[\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row\]\s*\{([^}]*)\}/s,
@@ -1797,7 +1797,7 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).not.toMatch(/\[data-variant\] > \[data-open='true'\][^{}]*backdrop-filter: blur\(3px\)/)
     expect(CSS).toMatch(/:is\([\s\S]*?\) > \[data-disclosure-row\]\s*\{[^}]*background: transparent[^}]*backdrop-filter: none/s)
     expect(CSS).toMatch(/\[data-variant='think'\][^{]*\[data-disclosure-row\] \+ \*\s*\{[^}]*color: #34486f[^}]*line-height: 1\.65/s)
-    expect(CSS).toMatch(/\[data-ds-dark-theme\]\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\)\s*\{[^}]*#d3ddf2[^}]*#b8c5e1/s)
+    expect(CSS).toMatch(/\[data-ds-dark-theme\]\s+:is\(\[data-variant\], \[data-chat-flow-kind='context'\], \[data-tool='present'\]\)\s*\{[^}]*#d3ddf2[^}]*#b8c5e1/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?:is\(\[data-variant\], \[data-chat-flow-kind='context'\]\) \[data-disclosure-row\]\s*\{[^}]*rgba\(10, 20, 48, 0\.58\)/s)
     expect(CSS).toMatch(/\[data-ds-dark-theme\][\s\S]*?\[data-variant='think'\][^{]*\+ \*\s*\{[^}]*color: #c7d2e9/s)
   })

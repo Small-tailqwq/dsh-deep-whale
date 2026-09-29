@@ -322,6 +322,24 @@ body[data-dsh-orca-link] > [style*='--dsh-hover-preview-fade'] {
   border-radius: 0 !important;
 }
 
+/* The shared StateDot (session rows, todo, approval, plugin states) paints its
+   6px core on `::after` with a hard-coded 50% radius, and the numbered step
+   variant is a round badge; neither is a token surface. Both are an
+   aria-hidden span carrying `data-state`, so square that pair locally; the
+   ongoing spinner is an SVG glyph and keeps its ring. */
+body[data-dsh-orca-link] :where(span[data-state][aria-hidden='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+),
+body[data-dsh-orca-link] :where(span[data-state][aria-hidden='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+)::after {
+  border-radius: 0 !important;
+}
+
 /* Status tags (Tag's `data-tone`) are pills in the host. A panel page — the
    plugin manager, a conversation manager, whatever the next plugin ships — is
    a management surface with no high-churn content, and plugin pages draw
@@ -3699,6 +3717,8 @@ body[data-dsh-orca-link]
   > :has(> [data-conversation-scroll])
   > [data-width-handle][data-side]::after {
   width: 3px;
+  /* The host bar keeps a 2px radius; the signal rail is a hard line. */
+  border-radius: 0;
   background: linear-gradient(
     to bottom,
     transparent calc(var(--dsh-width-handle-pointer-y, 50%) - 50px),

@@ -3244,13 +3244,26 @@ body[data-dsh-maid-atelier] [role='menu'][class$='_menu']
   letter-spacing: 0.04em;
 }
 
+/* 0.2.0-rc.2 moved provider titles to the shared MenuGroup primitive. Its
+   heading is transparent until stuck, so only the gold ink carries over;
+   the host keeps its sticky fill for scrolled lists. */
+body[data-dsh-maid-atelier] [data-menu-material]
+  [data-menu-group] > [data-menu-group-heading] {
+  color: #8a6a36;
+  letter-spacing: 0.04em;
+}
+
 body[data-dsh-maid-atelier][data-ds-dark-theme] [role='menu'][class$='_menu']
-  [class*='_groups'] > [role='group'] > [class$='_groupTitle'] {
+  [class*='_groups'] > [role='group'] > [class$='_groupTitle'],
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-menu-material]
+  [data-menu-group] > [data-menu-group-heading] {
   color: #d1b47e;
 }
 
 body[data-dsh-maid-atelier] [role='menu'][class$='_menu']
-  [class*='_groups'] > [role='group'] + [role='group'] {
+  [class*='_groups'] > [role='group'] + [role='group'],
+body[data-dsh-maid-atelier] [data-menu-material]
+  [data-menu-group] + [data-menu-group] {
   --maid-model-group-rule: rgba(197, 164, 104, 0.36);
   margin-top: 4px;
   padding-top: 4px;
@@ -3260,7 +3273,9 @@ body[data-dsh-maid-atelier] [role='menu'][class$='_menu']
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [role='menu'][class$='_menu']
-  [class*='_groups'] > [role='group'] + [role='group'] {
+  [class*='_groups'] > [role='group'] + [role='group'],
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-menu-material]
+  [data-menu-group] + [data-menu-group] {
   --maid-model-group-rule: rgba(214, 184, 126, 0.28);
 }
 
@@ -4169,14 +4184,19 @@ body[data-dsh-maid-atelier] [data-turn-trigger]:hover {
    row (the host does not portal it), so it must stay out of the porcelain
    surface below: the tooltip keeps the host's own dark plate under a static
    white label, which a light bubble background would render unreadable. */
-body[data-dsh-maid-atelier] [class*='userRow'] [class*='bubble']:not([role='tooltip']) {
+/* 0.2.0-rc.2 adds a right-aligned `question-reply` chat node for answers that
+   arrive after the question timed out; it is the user's own words, so it
+   wears the user bubble's plate. The semantic row owns one bubble child. */
+body[data-dsh-maid-atelier] [class*='userRow'] [class*='bubble']:not([role='tooltip']),
+body[data-dsh-maid-atelier] [data-question-reply] > [class*='bubble'] {
   border: 1px solid rgba(197, 164, 104, 0.48);
   background: rgba(232, 237, 249, 0.95);
   box-shadow: 0 6px 20px rgba(19, 38, 87, 0.1);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [class*='userRow'] [class*='bubble']:not([role='tooltip']) {
+  [class*='userRow'] [class*='bubble']:not([role='tooltip']),
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-question-reply] > [class*='bubble'] {
   background: rgba(30, 47, 90, 0.97);
 }
 
@@ -4594,14 +4614,17 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
 /* Collapsed reasoning, tool, context, and workflow rows sit directly over detailed
    background art. A low-contrast porcelain wash stabilizes legibility without
    turning the compact disclosure list into a stack of message cards. */
+/* The present row is a ToolRow without the `data-variant` wrapper; since
+   0.2.0-rc.2 its title inherits the row's tertiary ink, so it joins the
+   same darker label pair as the other tool rows over the artwork. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
-  :is([data-variant], [data-chat-flow-kind='context']) {
+  :is([data-variant], [data-chat-flow-kind='context'], [data-tool='present']) {
   --dsw-alias-label-secondary: #2f4778;
   --dsw-alias-label-tertiary: #405273;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  :is([data-variant], [data-chat-flow-kind='context']) {
+  :is([data-variant], [data-chat-flow-kind='context'], [data-tool='present']) {
   --dsw-alias-label-secondary: #d3ddf2;
   --dsw-alias-label-tertiary: #b8c5e1;
 }
@@ -5495,7 +5518,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], 
    keeps it from inheriting a value already resolved against the page/chrome
    tokens: the Agent Team panel mounts inside the conversation header and
    paints itself with `--dsw-specific-menu`. */
-body[data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [data-radix-popper-content-wrapper] > *) {
+body[data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [data-menu-material], [data-radix-popper-content-wrapper] > *) {
   color: var(--dsw-alias-label-primary, #172347);
   text-shadow: none;
   --dsw-alias-bg-base: #f8faff;
@@ -5523,7 +5546,7 @@ body[data-dsh-maid-atelier] :is([role='dialog'], [role='menu'], [data-radix-popp
   box-shadow: var(--maid-shadow);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu'], [data-radix-popper-content-wrapper] > *) {
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu'], [data-menu-material], [data-radix-popper-content-wrapper] > *) {
   color: var(--dsw-alias-label-primary, #e7ecf7);
   --dsw-alias-bg-base: #0d193b;
   --dsw-alias-bg-layer-1: #121f43;
@@ -5548,6 +5571,16 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([role='dialog'], [role='menu
   --dsw-specific-input-major: rgba(17, 30, 66, 0.88);
   border-color: rgba(211, 180, 119, 0.66);
   box-shadow: var(--maid-shadow), inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Since 0.2.0-rc.2 the model picker's drilled pane keeps the rounded
+   MenuSurface as `role="group"` and moves `role="menu"` onto its inner,
+   square scroll list. The surface (marked by `data-menu-material`) owns the
+   overlay palette and shadow above; a menu list nested inside it is content,
+   so it must not paint a second, square-cornered shadow plate. Nested menu
+   surfaces carry their own material and keep their shadow. */
+body[data-dsh-maid-atelier] [data-menu-material] [role='menu']:not([data-menu-material]) {
+  box-shadow: none;
 }
 
 /* The host tooltip is not portalled: it mounts as a sibling of its control, so
