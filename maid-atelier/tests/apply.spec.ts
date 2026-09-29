@@ -2163,6 +2163,26 @@ describe('Maid Atelier skin apply', () => {
     expect(settingsRule).toContain('border-image-width: 0 34px')
   })
 
+  it('lets the sidebar Workspace typography follow its own switch', () => {
+    // One variable carries every Workspace surface, so the manager needs a single
+    // arm per mode; serif is the variable's own default and needs no rule.
+    expect(CSS).toContain("--maid-workspace-font: Georgia, 'Times New Roman', serif")
+    for (const surface of [
+      /\[class\*='sectionHeader'\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[class\*='searchInput'\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[data-maid-workspace-row\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[data-maid-session-row\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+    ]) {
+      expect(CSS).toMatch(surface)
+    }
+    expect(CSS).toMatch(
+      /html\[data-dsh-whale-maid-workspace-font='system'\][\s\S]*?--maid-workspace-font: var\(--dsw-font-family, system-ui, sans-serif\)/,
+    )
+    expect(CSS).toMatch(
+      /html\[data-dsh-whale-maid-workspace-font='conversation'\]\[data-dsh-whale-maid-font='system'\][\s\S]*?--maid-workspace-font: var\(--dsw-font-family, system-ui, sans-serif\)/,
+    )
+  })
+
   it('retires the sidebar stacking context while the settings dialog is open', () => {
     // SettingsPanel is a position:fixed layer mounted inside the sidebar
     // content root, not in a document portal. The root carries
@@ -2562,6 +2582,9 @@ describe('Maid Atelier skin apply', () => {
     const shieldRule = CSS.match(
       /\[data-maid-workspace-row\] > \[class\*='folder'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
+    const workspaceRowRule = CSS.match(
+      /\[data-maid-workspace-row\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
     const sessionRowRule = CSS.match(
       /\[data-maid-session-row\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -2578,11 +2601,22 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain('--maid-workspace-ribbon-art')
     expect(shieldRule).toContain('background: var(--maid-workspace-crest-art)')
     expect(shieldRule).not.toContain('clip-path')
+    // The group row is a title bar the height of the title's line box; `auto`
+    // keeps a host that still renders the session-count subtitle unclipped, and
+    // the skin manager's range control feeds the custom property.
+    expect(workspaceRowRule).toContain('height: auto')
+    expect(workspaceRowRule).toContain('min-height: var(--maid-workspace-row-height, 54px)')
+    expect(workspaceRowRule).toContain('padding: clamp(1px,')
+    expect(shieldRule).toContain('height: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 34px)')
+    expect(CSS).toMatch(/\[data-maid-workspace-active\] > \[class\*='folder'\]\s*\{/)
     expect(ribbonShapeRule).toContain('border-image-source: var(--maid-workspace-ribbon-art)')
     expect(ribbonShapeRule).toContain('border-image-slice: 0 145 0 140 fill')
-    expect(ribbonShapeRule).toContain('border-image-width: 0 36px 0 35px')
+    // The band, its overhang, the side slices and the shadow all derive from the
+    // row height, so the roll keeps the artwork's proportions at every height.
+    expect(ribbonShapeRule).toContain('--maid-workspace-ribbon-box: calc(var(--maid-workspace-row-height, 54px) * 10 / 9)')
+    expect(ribbonShapeRule).toContain('border-image-width: 0 calc(var(--maid-workspace-ribbon-box) * 0.6) 0 calc(var(--maid-workspace-ribbon-box) * 7 / 12)')
+    expect(ribbonShapeRule).toContain('inset: calc(-1 * var(--maid-workspace-ribbon-overhang)) 0 calc(-1 * var(--maid-workspace-ribbon-overhang)) -12px')
     expect(ribbonShapeRule).toContain('border-image-repeat: stretch')
-    expect(ribbonShapeRule).toContain('inset: -3px 0 -3px -12px')
     // One continuous reveal plus a separate settle: per-stop easing used to
     // stall the reveal at 70% before the swallowtail.
     expect(ribbonShapeRule).toContain('maidAtelierWorkspaceRibbonEnter 440ms cubic-bezier(0.22, 0.78, 0.2, 1) both')

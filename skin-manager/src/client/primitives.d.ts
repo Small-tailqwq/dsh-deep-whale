@@ -6,6 +6,9 @@
 declare module '@deepseek-ai/dsh-client-ui-primitives' {
   import type { ButtonHTMLAttributes, ForwardRefExoticComponent, ReactNode, RefAttributes } from 'react'
 
+  export function IconChevronUpOutline14(props: { size?: number, className?: string }): ReactNode
+  export function IconChevronDownOutline14(props: { size?: number, className?: string }): ReactNode
+
   export function Switch(props: {
     checked: boolean
     onChange(checked: boolean): void

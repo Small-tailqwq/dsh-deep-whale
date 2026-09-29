@@ -14,6 +14,7 @@ body[data-dsh-maid-atelier] {
   --maid-gold: #c5a468;
   --maid-gold-soft: #e2cfaa;
   --maid-ink: #172347;
+  --maid-workspace-font: Georgia, 'Times New Roman', serif;
   --maid-glass: rgba(248, 250, 255, 0.68);
   /* The frosted sheet every non-conversation `main` page reads on. Opaque
      enough to hold small type (a 40%-opacity disabled label still clears
@@ -1682,7 +1683,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-sidebar] {
 
 body[data-dsh-maid-atelier] [class*='sectionHeader'] {
   color: #d9bd83;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
   letter-spacing: 0.025em;
   text-shadow: 0 1px 2px rgba(2, 7, 24, 0.62);
 }
@@ -1747,7 +1748,7 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='search'][class*='sear
 
 body[data-dsh-maid-atelier] [class*='searchInput'] {
   color: #f8f3e8;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
 }
 
 body[data-dsh-maid-atelier] [class*='searchInput']::placeholder {
@@ -2544,16 +2545,18 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.workspaces'] ::-webkit-scrollbar
   corner-shape: round;
 }
 
+/* Let older hosts keep their subtitle without clipping at compact heights. */
 body[data-dsh-maid-atelier] [data-maid-workspace-row] {
   isolation: isolate;
   position: relative;
-  height: 54px;
-  padding: 7px 10px 7px 7px;
+  height: auto;
+  min-height: var(--maid-workspace-row-height, 54px);
+  padding: clamp(1px, calc((var(--maid-workspace-row-height, 54px) - 22px) * 0.1875 + 1px), 7px) 10px clamp(1px, calc((var(--maid-workspace-row-height, 54px) - 22px) * 0.1875 + 1px), 7px);
   border: 0;
   border-radius: 0;
   background: transparent;
   color: #f4ead5;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
   overflow: visible;
 }
 
@@ -2568,9 +2571,9 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row] > * {
 
 body[data-dsh-maid-atelier] [data-maid-workspace-row] > [class*='folder'] {
   display: inline-flex;
-  width: 28px;
-  height: 34px;
-  margin: 4px 0 0 -7px;
+  width: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 28px);
+  height: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 34px);
+  margin: min(4px, calc((var(--maid-workspace-row-height, 54px) - 22px) / 8)) 0 0 -7px;
   background: var(--maid-workspace-crest-art) center / contain no-repeat;
   color: transparent;
   filter: drop-shadow(0 2px 3px rgba(2, 8, 28, 0.48));
@@ -2621,8 +2624,8 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active] {
 }
 
 body[data-dsh-maid-atelier] [data-maid-workspace-active] > [class*='folder'] {
-  width: 30px;
-  height: 38px;
+  width: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 30px);
+  height: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 38px);
   margin-block-start: 0;
 }
 
@@ -2634,21 +2637,22 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active]:hover {
   background: transparent;
 }
 
-/* Preserve the source's 140px rolled edge and 145px folded tail; only the
-   flat center band stretches with the live sidebar width. */
+/* Scale the rolled edges with the banner; preserve the original 54px geometry. */
 body[data-dsh-maid-atelier] [data-maid-workspace-active]::before {
+  --maid-workspace-ribbon-box: calc(var(--maid-workspace-row-height, 54px) * 10 / 9);
+  --maid-workspace-ribbon-overhang: calc((var(--maid-workspace-ribbon-box) - var(--maid-workspace-row-height, 54px)) / 2);
   content: '';
   position: absolute;
   box-sizing: border-box;
-  inset: -3px 0 -3px -12px;
+  inset: calc(-1 * var(--maid-workspace-ribbon-overhang)) 0 calc(-1 * var(--maid-workspace-ribbon-overhang)) -12px;
   z-index: 0;
   border-style: solid;
-  border-width: 0 36px 0 35px;
+  border-width: 0 calc(var(--maid-workspace-ribbon-box) * 0.6) 0 calc(var(--maid-workspace-ribbon-box) * 7 / 12);
   border-image-source: var(--maid-workspace-ribbon-art);
   border-image-slice: 0 145 0 140 fill;
-  border-image-width: 0 36px 0 35px;
+  border-image-width: 0 calc(var(--maid-workspace-ribbon-box) * 0.6) 0 calc(var(--maid-workspace-ribbon-box) * 7 / 12);
   border-image-repeat: stretch;
-  filter: drop-shadow(0 5px 8px rgba(2, 8, 28, 0.4));
+  filter: drop-shadow(0 calc(var(--maid-workspace-ribbon-box) / 12) calc(var(--maid-workspace-ribbon-box) * 2 / 15) rgba(2, 8, 28, 0.4));
   /* Two single-segment animations: the reveal runs one continuous
      deceleration from the rolled edge through the swallowtail, and the slide
      settles with its own slight overshoot. The former multi-stop keyframes
@@ -2714,7 +2718,7 @@ body[data-dsh-maid-atelier] [data-maid-session-row] {
   border-radius: 0;
   background: transparent;
   color: #d7c8a8;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--maid-workspace-font);
   box-shadow: none;
 }
 
@@ -6048,6 +6052,14 @@ body[data-dsh-maid-atelier] [data-skin-chrome='titlebar-brand'] svg {
     [data-conversation-scroll]:has([data-conversation-composer-overlay]) > [data-composer-seat] {
     right: 0;
   }
+}
+
+/* The sidebar font remains independent of conversation typography by default. */
+html[data-dsh-whale-maid-workspace-font='system']
+  body[data-dsh-maid-atelier],
+html[data-dsh-whale-maid-workspace-font='conversation'][data-dsh-whale-maid-font='system']
+  body[data-dsh-maid-atelier] {
+  --maid-workspace-font: var(--dsw-font-family, system-ui, sans-serif);
 }
 
 /* Optional conversation typography from #22. Code keeps its existing

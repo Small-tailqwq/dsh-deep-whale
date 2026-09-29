@@ -46,3 +46,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
     </button>
   )
 })
+
+export function IconChevronUpOutline14({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} aria-hidden="true" />
+}
+
+export const IconChevronDownOutline14 = IconChevronUpOutline14
