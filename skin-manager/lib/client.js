@@ -1249,14 +1249,40 @@ window.__ModuleLoader__.load({
 									"aria-label": copy.increaseValue(label),
 									disabled: disabled || value >= setting.max,
 									onClick: () => change(1),
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronUpOutline14, { size: 9 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
+										width: "9",
+										height: "9",
+										viewBox: "0 0 14 14",
+										fill: "none",
+										"aria-hidden": "true",
+										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+											d: "m3 9 4-4 4 4",
+											stroke: "currentColor",
+											strokeWidth: "1.5",
+											strokeLinecap: "round",
+											strokeLinejoin: "round"
+										})
+									})
 								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 									type: "button",
 									className: skin_manager_module_css_default.stepperArrow,
 									"aria-label": copy.decreaseValue(label),
 									disabled: disabled || value <= setting.min,
 									onClick: () => change(-1),
-									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconChevronDownOutline14, { size: 9 })
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("svg", {
+										width: "9",
+										height: "9",
+										viewBox: "0 0 14 14",
+										fill: "none",
+										"aria-hidden": "true",
+										children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+											d: "m3 5 4 4 4-4",
+											stroke: "currentColor",
+											strokeWidth: "1.5",
+											strokeLinecap: "round",
+											strokeLinejoin: "round"
+										})
+									})
 								})]
 							})]
 						}), setting.unit && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
