@@ -25,7 +25,7 @@
  * the column is docked and must stay open.
  */
 const DRAWER_AUTO_COLLAPSE = 1024
-const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
+const SIDEBAR_COLUMN_SELECTOR = "[class*='sidebarCol']"
 const SESSION_ROW_SELECTOR = '[data-maid-session-row], [role="treeitem"][class*="sessionRow"]'
 const ROW_AFFORDANCE_SELECTOR = '[role="menu"], [role="dialog"], input, textarea, [aria-haspopup]'
 /** Popups own the tap that dismisses them, so the drawer waits its turn. */

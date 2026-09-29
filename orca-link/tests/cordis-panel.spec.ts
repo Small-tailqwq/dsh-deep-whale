@@ -28,7 +28,7 @@ function block(pattern: RegExp): string {
 
 /** The cordis-panel release rules, keyed on the body state maintained by JS. */
 const CORDIS_SIDEBAR_RULE = block(
-  /\[data-orca-cordis-panel-open\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
+  /\[data-orca-cordis-panel-open\]\s*:is\(\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
 )
 const CORDIS_CARRIER_RULE = block(
   /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:has\(\[data-cordis-panel\]\)\s*\{([^}]*)\}/,
@@ -42,10 +42,10 @@ const CORDIS_ROOT_RULE = block(
 
 /** Always-on sidebar layering the release rules have to neutralise. */
 const SIDEBAR_BASE_RULE = block(
-  /body\[data-dsh-orca-link\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
+  /body\[data-dsh-orca-link\]\s*:is\(\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
 )
 const SIDEBAR_CHILDREN_RULE = block(
-  /body\[data-dsh-orca-link\]\s*:is\(\[data-pane='sidebar'\],\s*\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*>\s*:not\(\[role='tooltip'\][^)]*\)\s*\{([^}]*)\}/,
+  /body\[data-dsh-orca-link\]\s*:is\(\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*>\s*:not\(\[role='tooltip'\][^)]*\)\s*\{([^}]*)\}/,
 )
 
 describe('ORCA LINK cordis panel stacking', () => {

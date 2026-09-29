@@ -87,7 +87,7 @@ function withoutReducedMotion(css: string): string {
  * silently. Specs assert this is non-empty for the same reason.
  */
 const SETTINGS_ROOT_STACKING_RULE = CSS.match(
-  /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+  /\[class\*='sidebarCol'\]\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
 )?.[1] ?? ''
 
 /**
@@ -100,7 +100,7 @@ const SETTINGS_ROOT_STACKING_RULE = CSS.match(
  * child containing the dialog.
  */
 const SETTINGS_CARRIER_FADE_RULE = CSS.match(
-  /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :not\([\s\S]*?\)\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+  /\[class\*='sidebarCol'\]\s*> div\s*> :not\([\s\S]*?\)\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
 )?.[1] ?? ''
 
 let fiber: Fiber | undefined
@@ -282,7 +282,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the mascot independent and leaves the native vector brand intact', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div>
           <div class="fixture_logoRow">
             <button class="fixture_brand"><svg aria-hidden="true"></svg></button>
@@ -308,7 +308,7 @@ describe('Maid Atelier skin apply', () => {
     fiber = await mount()
     document.body.insertAdjacentHTML(
       'beforeend',
-      '<div data-pane="sidebar"><div><button class="fixture_brand"><svg></svg></button></div></div>',
+      '<div class="AppFrame_sidebarCol"><div><button class="fixture_brand"><svg></svg></button></div></div>',
     )
     await flushMutations()
 
@@ -319,11 +319,11 @@ describe('Maid Atelier skin apply', () => {
 
   it('does not rescan the sidebar when ordinary conversation content changes', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar"><div></div></div>
+      <div class="AppFrame_sidebarCol"><div></div></div>
       <main data-phase="active"></main>
     `
     fiber = await mount()
-    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    const sidebar = document.querySelector<HTMLElement>("[class*='sidebarCol']")!
     const querySelectorAll = vi.spyOn(sidebar, 'querySelectorAll')
     const querySelector = vi.spyOn(document, 'querySelector')
 
@@ -407,7 +407,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('seats a sidebar frame copy beneath the open settings mask', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div>
           <div><div data-slot="sidebar.settings"><button aria-expanded="false">Settings</button></div></div>
         </div>
@@ -442,7 +442,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('follows the DSH 0.1.7-rc.2 settings panel portaled beside #root without slot workarounds', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div>
           <div><div data-slot="sidebar.settings"><button aria-expanded="false">Settings</button></div></div>
         </div>
@@ -483,7 +483,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('anchors the public rc.6 settings slot to the real sidebar footer', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div>
           <div class="fixture_footArea fixture_header"></div>
           <div class="fixture_footer">
@@ -506,7 +506,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('marks the active workspace group and its session tree, then retracts every hook', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div>
           <div role="tree">
             <div role="treeitem" aria-expanded="false"><span class="fixture_folder"></span></div>
@@ -543,7 +543,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('marks every Session row in the flat list without inventing a Workspace group', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div class="fixture_flatList" role="tree" aria-label="Sessions">
           <div role="treeitem" aria-selected="true"><span class="fixture_title">Current</span></div>
           <div role="treeitem" aria-selected="false"><span class="fixture_title">Other</span></div>
@@ -1122,11 +1122,11 @@ describe('Maid Atelier skin apply', () => {
 
   it('mirrors the sidebar column top as the curtain offset when a column exists', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div class="fixture_logoRow"><button class="fixture_brand"><svg></svg></button></div>
       </div>
     `
-    const column = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    const column = document.querySelector<HTMLElement>("[class*='sidebarCol']")!
     // jsdom has no layout; pretend the column sits 40px below the viewport top.
     vi.spyOn(column, 'getBoundingClientRect').mockReturnValue({
       top: 40, left: 0, right: 280, bottom: 760, width: 280, height: 720,
@@ -1297,14 +1297,14 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps delayed sidebar tooltips out of the rail flex layout', () => {
     const sidebarLayerSelector = CSS.match(
-      /body\[data-dsh-maid-atelier\] :is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div > :not\(([\s\S]*?)\)\s*\{/,
+      /body\[data-dsh-maid-atelier\] \[class\*='sidebarCol'\] > div > :not\(([\s\S]*?)\)\s*\{/,
     )?.[1] ?? ''
     expect(sidebarLayerSelector).toContain("[role='tooltip']")
   })
 
   it('releases a tooltip carrier without demoting the gold sidebar frame', () => {
     const tooltipCarrierRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*> div\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const frameRule = CSS.match(
       /\[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
@@ -1339,7 +1339,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('paints the sidebar double rule without shrinking the collapsed rail', () => {
     const sidebarRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(sidebarRule).toContain('border-right: 0')
     expect(sidebarRule).toContain('inset -1px 0 rgba(255, 245, 215, 0.82)')
@@ -1507,7 +1507,7 @@ describe('Maid Atelier skin apply', () => {
     // The ConversationRoot paints above the stage via position: relative
     // (no z-index — no new stacking context).
     const conversationRootRule = CSS.match(
-      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\)\s*:is\(\[data-phase='hero'\], \[data-phase='active'\], \[data-phase='settling'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='centerCol'\]\s*:is\(\[data-phase='hero'\], \[data-phase='active'\], \[data-phase='settling'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(conversationRootRule).toContain('position: relative')
     expect(conversationRootRule).not.toContain('z-index')
@@ -1539,7 +1539,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('recovers the rc.6 rail search after its stale click collapses the wide field', async () => {
     document.body.innerHTML = `
-      <div data-pane="sidebar">
+      <div class="AppFrame_sidebarCol">
         <div class="fixture_search">
           <button class="fixture_searchButton" type="button">search</button>
         </div>
@@ -1548,7 +1548,7 @@ describe('Maid Atelier skin apply', () => {
     fiber = await mount()
     document.querySelector<HTMLButtonElement>('.fixture_searchButton')!.click()
 
-    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    const sidebar = document.querySelector<HTMLElement>("[class*='sidebarCol']")!
     sidebar.innerHTML = `
       <div class="fixture_search">
         <input class="fixture_searchInput" />
@@ -2022,8 +2022,8 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('lets the lower sidebar swag own the bottom boundary without a rectangular tint seam', () => {
-    const innerFrameRule = CSS.match(/\:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div::before\s*\{([^}]*)\}/s)?.[1] ?? ''
-    const fadeRule = CSS.match(/\:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) \[class\*='fade'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const innerFrameRule = CSS.match(/\[class\*='sidebarCol'\] > div::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const fadeRule = CSS.match(/\[class\*='sidebarCol'\] \[class\*='fade'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     expect(innerFrameRule).toContain('inset: 9px 7px 0')
     expect(innerFrameRule).toContain('border: 0')
     expect(innerFrameRule).not.toContain('box-shadow')
@@ -2040,7 +2040,7 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     expect(pageHeaderRule).toContain('color: #f8f3e8')
     expect(CSS).not.toMatch(
-      /:is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\) \[class\*='header'\]\s*\{/,
+      /\[class\*='centerCol'\] \[class\*='header'\]\s*\{/,
     )
     expect(terminalRule).toContain('--dsw-alias-markdown-code-block: rgba(249, 250, 253, 0.97)')
     expect(terminalRule).toContain('--dsw-alias-label-primary: #172347')
@@ -2051,7 +2051,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('scales the lower sidebar swag at its source aspect ratio', () => {
     const sidebarInnerRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\] > div\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const footRule = CSS.match(/\[data-maid-sidebar-footer\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const swagRule = CSS.match(/\[data-maid-sidebar-footer\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -2252,10 +2252,10 @@ describe('Maid Atelier skin apply', () => {
     const root = document.querySelector<HTMLElement>('.fixture_root')!
     const footArea = document.querySelector<HTMLElement>('.fixture_footArea')!
     const rootRelease = document.querySelector(
-      ":is([data-pane='sidebar'], [class*='sidebarCol']) > div > :has([role='dialog'][aria-modal='true'])",
+      "[class*='sidebarCol'] > div > :has([role='dialog'][aria-modal='true'])",
     )
     const carrier = document.querySelector(
-      ":is([data-pane='sidebar'], [class*='sidebarCol']) > div > :not([data-skin-chrome='sidebar-mascot'], [data-skin-chrome='sidebar-corners'], [role='tooltip']) > :has([role='dialog'][aria-modal='true'])",
+      "[class*='sidebarCol'] > div > :not([data-skin-chrome='sidebar-mascot'], [data-skin-chrome='sidebar-corners'], [role='tooltip']) > :has([role='dialog'][aria-modal='true'])",
     )
     expect(rootRelease).toBe(root)
     expect(carrier).toBe(footArea)
@@ -2263,16 +2263,16 @@ describe('Maid Atelier skin apply', () => {
 
   it('lets the official settings mask blur every skin-owned layer', () => {
     const sidebarRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const sidebarInnerRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) > div\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\] > div\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const sidebarContentRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > :has\(\[data-maid-sidebar-footer\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*> div > :has\(\[data-maid-sidebar-footer\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const footerRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div > \[data-maid-sidebar-footer\]\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*> div > \[data-maid-sidebar-footer\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const topTrimRule = CSS.match(/\[data-skin-chrome='top-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const bottomTrimRule = CSS.match(/\[data-skin-chrome='bottom-trim'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -2284,7 +2284,7 @@ describe('Maid Atelier skin apply', () => {
       /\[data-maid-settings-open\] \[data-composer-card\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const releasedSettingsRowRule = CSS.match(
-      /:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
+      /\[class\*='sidebarCol'\]\s*> div\s*> :has\(\[role='dialog'\]\[aria-modal='true'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const preservedSidebarFrameRule = CSS.match(
       /:has\(\[role='dialog'\]\[aria-modal='true'\]\) \[data-skin-chrome='sidebar-corners'\]\s*\{([^}]*)\}/s,
@@ -2742,8 +2742,8 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the skin chrome aligned to the live sidebar width and restores the prior value', async () => {
     document.body.style.setProperty('--maid-sidebar-width', 'legacy')
-    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
-    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")
+    document.body.innerHTML = '<div class="AppFrame_sidebarCol"><div></div></div>'
+    const sidebar = document.querySelector<HTMLElement>("[class*='sidebarCol']")
     sidebar!.getBoundingClientRect = () => ({
       x: 0,
       y: 0,
@@ -2781,8 +2781,8 @@ describe('Maid Atelier skin apply', () => {
       unobserve(): void {}
       disconnect(): void {}
     })
-    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
-    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    document.body.innerHTML = '<div class="AppFrame_sidebarCol"><div></div></div>'
+    const sidebar = document.querySelector<HTMLElement>("[class*='sidebarCol']")!
 
     fiber = await mount()
     const bodyStyle = document.body.getAttribute('style')
@@ -2799,8 +2799,8 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('marks narrow and missing sidebars so Chat can reclaim the left gutter', async () => {
-    document.body.innerHTML = '<div data-pane="sidebar"><div></div></div>'
-    const sidebar = document.querySelector<HTMLElement>("[data-pane='sidebar']")!
+    document.body.innerHTML = '<div class="AppFrame_sidebarCol"><div></div></div>'
+    const sidebar = document.querySelector<HTMLElement>("[class*='sidebarCol']")!
     sidebar.getBoundingClientRect = () => ({
       x: 0,
       y: 0,

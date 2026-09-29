@@ -35,7 +35,7 @@ describe('ORCA LINK Windows caption controls', () => {
   it('outranks the stage rule that makes every sidebar-root child relative', () => {
     // The stage rule is `body :is(pane, [data-slot] > :first-child) > :not(...)`;
     // the caption rule carries html, the frame flag and the root's own classes.
-    expect(CSS).toMatch(/:is\(\[data-pane='sidebar'\], \[data-slot='sidebar'\] > :first-child\) > :not\(\[role='tooltip'\]/)
+    expect(CSS).toMatch(/:is\(\[data-slot='sidebar'\] > :first-child\) > :not\(\[role='tooltip'\]/)
     expect(CSS).toContain("html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]\n    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] {")
   })
 

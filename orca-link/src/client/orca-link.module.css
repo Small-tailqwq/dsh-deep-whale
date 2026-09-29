@@ -700,7 +700,7 @@ html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link] {
 }
 
 html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link][data-orca-sidebar-wide]
-  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+  :is([data-slot='sidebar'] > :first-child)::after {
   content: none;
 }
 
@@ -751,7 +751,7 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open] [id='root'] {
    z-index says. Release the isolation together with the promotion while the
    dialog is open; the `position: relative` from that block stays, and
    relative + z-index auto is not a stacking context. */
-body[data-dsh-orca-link][data-orca-settings-in-sidebar] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link][data-orca-settings-in-sidebar] :is([data-slot='sidebar'] > :first-child) {
   z-index: auto;
   isolation: auto;
 }
@@ -864,7 +864,7 @@ body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settin
    The host's real z=1 carrier is the direct foot-area child containing the
    panel, not the nested sidebar.footer.action slot. */
 body[data-dsh-orca-link][data-orca-cordis-panel-open]
-  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+  :is([data-slot='sidebar'] > :first-child) {
   z-index: auto;
   isolation: auto;
 }
@@ -1577,14 +1577,14 @@ body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
 
 /* The operator stage belongs to the sidebar only; its state actor is mounted as
    live chrome while this pseudo-element keeps the scrim and seam ruler. */
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child) {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   background-color: rgba(250, 247, 241, 0.64);
 }
 
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before {
   position: absolute;
   inset: var(--orca-stage-top, 0px) auto 0 0;
   z-index: 0;
@@ -1612,7 +1612,7 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
   will-change: opacity;
 }
 
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) > :not([role='tooltip'], [data-orca-link-wordmark], [data-plugin-entry]) {
+body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child) > :not([role='tooltip'], [data-orca-link-wordmark], [data-plugin-entry]) {
   position: relative;
   z-index: 1;
 }
@@ -1720,12 +1720,12 @@ body[data-dsh-orca-link]
    descendant space) — with a space it would release the root's child
    (already isolation: auto) and leave the root context intact. */
 body[data-dsh-orca-link]
-  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child):has([role='tooltip']) {
+  :is([data-slot='sidebar'] > :first-child):has([role='tooltip']) {
   z-index: auto;
   isolation: auto;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-slot='sidebar'] > :first-child)::before {
   opacity: 1;
   transition-duration: 200ms;
 }
@@ -2079,7 +2079,7 @@ html[data-windows-titlebar] body[data-dsh-orca-link]
 /* The Windows frame rounds the conversation column's top-left corner under
    the caption (`--dsh-windows-content-radius`, 16px). ORCA's shape contract
    is square throughout. */
-html[data-windows-titlebar] body[data-dsh-orca-link] :is([data-pane='conversation'], [class*='centerCol']) {
+html[data-windows-titlebar] body[data-dsh-orca-link] [class*='centerCol'] {
   border-radius: 0;
 }
 
@@ -2147,7 +2147,7 @@ body[data-dsh-orca-link][data-orca-window-resuming] [data-slot='sidebar'] [role=
 }
 
 /* Vertical identity label riding the stage's left edge (White Route language). */
-body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-slot='sidebar'] > :first-child)::after {
   content: 'ORCA LINK';
   position: absolute;
   z-index: 1;
@@ -2183,11 +2183,11 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='
   backdrop-filter: blur(10px) saturate(1.03);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link][data-ds-dark-theme] :is([data-slot='sidebar'] > :first-child) {
   background-color: rgba(8, 12, 19, 0.88);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+body[data-dsh-orca-link][data-ds-dark-theme] :is([data-slot='sidebar'] > :first-child)::before {
   background-image:
     linear-gradient(180deg, rgba(8, 12, 19, 0.68) 0%, rgba(8, 12, 19, 0.08) 76px),
     linear-gradient(180deg,
@@ -2203,7 +2203,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] .statusCharacterBubble {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-sidebar-wide] :is([data-slot='sidebar'] > :first-child)::after {
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
 }
 
@@ -3495,8 +3495,8 @@ body[data-dsh-orca-link] {
 @media (max-width: 900px) {
   body[data-dsh-orca-link] .lightScene { display: none; }
   body[data-dsh-orca-link][data-ds-dark-theme] .darkScene { display: none; }
-  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before,
-  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after { display: none; }
+  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before,
+  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::after { display: none; }
   body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea'] {
     margin-top: 0;
     border-top: none;
@@ -3532,7 +3532,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .pricingLight,
   body[data-dsh-orca-link] .pricingLamp,
   body[data-dsh-orca-link] .pricingTooltip,
-  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before { transition: none; }
+  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before { transition: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
   body[data-dsh-orca-link] .signalDot,
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > :first-child,

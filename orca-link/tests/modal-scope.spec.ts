@@ -82,7 +82,7 @@ describe('ORCA modal style boundaries', () => {
     // descendant space) — with a space it releases the root's child and
     // leaves the root context intact.
     const rootRule = css.match(
-      /:is\(\[data-pane='sidebar'\], \[data-slot='sidebar'\]\s*> :first-child\):has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+      /:is\(\[data-slot='sidebar'\]\s*> :first-child\):has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(carrierRule).not.toBe('')
     expect(carrierRule).toContain('z-index: auto')

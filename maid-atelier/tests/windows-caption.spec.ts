@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest'
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
   .replaceAll('\r\n', '\n')
 
-const SCOPE = /html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\] \[data-sidebar-collapsed\]\s*:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\) \[class\*='root'\]\[class\*='collapsed'\]\s*:is\(\[class\*='logoRow'\] button\[class\*='toggle'\], button\[class\*='newSession'\]\)/.source
+const SCOPE = /html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\] \[data-sidebar-collapsed\]\s*\[class\*='sidebarCol'\] \[class\*='root'\]\[class\*='collapsed'\]\s*:is\(\[class\*='logoRow'\] button\[class\*='toggle'\], button\[class\*='newSession'\]\)/.source
 
 function block(suffix: string): string {
   return CSS.match(new RegExp(`${SCOPE}${suffix}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
@@ -69,7 +69,7 @@ describe('Maid Atelier Windows caption controls', () => {
 
   it('drops the Windows frame corner on the conversation column', () => {
     expect(CSS).toMatch(
-      /html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\] :is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\)\s*\{\s*border-radius: 0;/,
+      /html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\] \[class\*='centerCol'\]\s*\{\s*border-radius: 0;/,
     )
   })
 
@@ -101,7 +101,7 @@ describe('Maid Atelier Windows caption controls', () => {
     // Windows layout while settings was open.
     expect(CSS).not.toMatch(/\[data-maid-settings-open\][^{]*\[class\*='frame'\]:has\(\[data-slot='sidebar\.settings'\]\)/)
     expect(CSS).toMatch(/\[data-maid-settings-in-sidebar\] \[class\*='frame'\]:has\(\[data-slot='sidebar\.settings'\]\)/)
-    expect(CSS).toMatch(/\[data-maid-settings-in-sidebar\]\s*:is\(\[data-pane='sidebar'\], \[class\*='sidebarCol'\]\)\s*> div\s*> :not\(/)
+    expect(CSS).toMatch(/\[data-maid-settings-in-sidebar\]\s*\[class\*='sidebarCol'\]\s*> div\s*> :not\(/)
   })
 
   it('does not key the caption treatment on the stale sidebar-size flag', () => {

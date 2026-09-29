@@ -54,7 +54,7 @@ describe('ORCA LINK Windows caption menubar', () => {
       /\[class\*='root'\]:not\(\[class\*='collapsed'\]\) > \[class\*='logoRow'\] > button\[class\*='toggle'\]:is\(:hover, :focus-visible\)\s*\{\s*background: color-mix\(in srgb, var\(--dsw-alias-label-secondary\) 14%, transparent\);/,
     )
     expect(CSS).toMatch(
-      /html\[data-windows-titlebar\] body\[data-dsh-orca-link\] :is\(\[data-pane='conversation'\], \[class\*='centerCol'\]\)\s*\{\s*border-radius: 0;/,
+      /html\[data-windows-titlebar\] body\[data-dsh-orca-link\] \[class\*='centerCol'\]\s*\{\s*border-radius: 0;/,
     )
   })
 })

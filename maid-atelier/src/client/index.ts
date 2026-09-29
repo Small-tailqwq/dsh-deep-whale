@@ -56,8 +56,8 @@ const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const VIEWPORT_RESIZE_SETTLE_MS = 120
-const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
-const CONVERSATION_COLUMN_SELECTOR = ":is([data-pane='conversation'], [class*='centerCol'])"
+const SIDEBAR_COLUMN_SELECTOR = "[class*='sidebarCol']"
+const CONVERSATION_COLUMN_SELECTOR = "[class*='centerCol']"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = ":scope > [class*='mask']"
 // Through DSH 0.1.7-rc.1 the panel mounts inside the settings slot; from rc.2 it

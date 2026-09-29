@@ -92,7 +92,7 @@ describe('ORCA LINK sidebar motion', () => {
 
   it('moves the absolute stage below the macOS window-button strip', () => {
     expect(css).toContain("html[data-platform='darwin'] body[data-dsh-orca-link] {\n  --orca-stage-top: 34px;\n}")
-    expect(css).toMatch(/:is\(\[data-pane='sidebar'\], \[data-slot='sidebar'\] > :first-child\)::before \{\s*position: absolute;\s*inset: var\(--orca-stage-top, 0px\) auto 0 0;/)
+    expect(css).toMatch(/:is\(\[data-slot='sidebar'\] > :first-child\)::before \{\s*position: absolute;\s*inset: var\(--orca-stage-top, 0px\) auto 0 0;/)
     expect(css).toContain('top: calc(46px + var(--orca-stage-top, 0px));')
     expect(css).toContain("[class*='logoRow'] > [class*='brand'] {\n  visibility: hidden;\n}")
   })

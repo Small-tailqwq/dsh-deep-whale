@@ -140,7 +140,7 @@ body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
 /* The conversation column is the stage's containing block. It stays
    z-index auto (no new stacking context), so fixed popups keep their
    page-level tier. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) {
+body[data-dsh-maid-atelier] [class*='centerCol'] {
   position: relative;
 }
 
@@ -148,7 +148,7 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
    without a z-index lifts it into the positioned band AFTER the stage in DOM
    order, so chat rows, the header and the composer paint above the artwork
    while fixed popups inside it keep painting at page level. */
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol'])
+body[data-dsh-maid-atelier] [class*='centerCol']
   :is([data-phase='hero'], [data-phase='active'], [data-phase='settling']) {
   position: relative;
 }
@@ -456,13 +456,13 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
    `[data-maid-conversation-active]` uses. The seat test is the one the reading
    sheet uses, so a page is "art-free" for exactly one reason everywhere. */
 body[data-dsh-maid-atelier]
-  :is([data-pane='conversation'], [class*='centerCol']):not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+  [class*='centerCol']:not(:has([data-phase])):not(:has([data-slot^='conversation.']))
   > [data-skin-chrome='top-trim'] [data-skin-trim-layer] {
   transform: translateY(-100%);
 }
 
 body[data-dsh-maid-atelier]
-  :is([data-pane='conversation'], [class*='centerCol']):not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+  [class*='centerCol']:not(:has([data-phase])):not(:has([data-slot^='conversation.']))
   > [data-skin-chrome='bottom-trim'] {
   transform: translateY(100%);
   opacity: 0;
@@ -563,9 +563,8 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-s
   box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
 }
 
-/* Pane surfaces. Class-substring fallbacks support the current product build;
-   data-pane hooks support the forward-facing skin facade. */
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) {
+/* Pane surfaces, matched by the AppFrame column class substrings. */
+body[data-dsh-maid-atelier] [class*='sidebarCol'] {
   --dsw-alias-label-primary: #f8f3e8;
   --dsw-alias-label-secondary: #d7def0;
   --dsw-alias-label-tertiary: #b5c1dd;
@@ -588,7 +587,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) {
     inset -3px 0 rgba(226, 207, 166, 0.72);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+body[data-dsh-maid-atelier] [class*='sidebarCol'] > div {
   isolation: auto;
   position: relative;
   overflow: hidden;
@@ -601,7 +600,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > 
     inset -8px 0 18px rgba(0, 0, 0, 0.26);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > div::before {
+body[data-dsh-maid-atelier] [class*='sidebarCol'] > div::before {
   content: '';
   position: absolute;
   inset: 9px 7px 0;
@@ -614,7 +613,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > 
 /* Tooltip bubbles are fixed-position siblings of the rail controls. Keeping
    them out of this stacking helper prevents their delayed mount from becoming
    another row in the sidebar's column flex layout. */
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > div > :not(
+body[data-dsh-maid-atelier] [class*='sidebarCol'] > div > :not(
     [data-skin-chrome='sidebar-mascot'],
     [data-skin-chrome='sidebar-corners'],
     [role='tooltip']
@@ -628,7 +627,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) > 
    the tooltip's native overlay layer can cross the frame without moving the
    gold chrome below the sidebar surface. */
 body[data-dsh-maid-atelier]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sidebarCol']
   > div
   > :has([role='tooltip']) {
   z-index: auto;
@@ -682,7 +681,7 @@ body[data-dsh-maid-atelier] [data-skin-corner='bottom-left'] {
   transform: scale(-1);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='fade'] {
+body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='fade'] {
   background: none;
 }
 
@@ -721,17 +720,8 @@ body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   transform: translateX(-50%) translateZ(0);
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) {
+body[data-dsh-maid-atelier] [class*='centerCol'] {
   background: transparent;
-}
-
-body[data-dsh-maid-atelier] [data-pane='details'] {
-  background: rgba(242, 246, 253, 0.82);
-  border-left-color: rgba(197, 164, 104, 0.52);
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-pane='details'] {
-  background: rgba(11, 23, 55, 0.9);
 }
 
 /* Sidebar controls use porcelain and gold instead of the stock gray system. */
@@ -837,21 +827,21 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='logoRow'] [c
    navigation layout shares this, because the toggle is the host's in all three. */
 @media (hover: none) {
   body[data-dsh-maid-atelier]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     [class*='root'][class*='collapsed']
     [class*='logoRow'] [class*='toggle']:hover [class*='panelIcon'] {
     display: none;
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     [class*='root'][class*='collapsed']
     [class*='logoRow'] [class*='toggle']:hover [class*='railMark'] {
     display: inline-flex;
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     [class*='root'][class*='collapsed']
     [class*='logoRow'] [class*='toggle']:hover {
     background: transparent;
@@ -947,7 +937,7 @@ body[data-dsh-maid-atelier] button[class*='newSession']:is(:hover, :focus-visibl
    parts lift these rules over the rail control list above, whose `:is()`
    carries the settings-trigger selector's specificity. */
 html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    [class*='sidebarCol'] [class*='root'][class*='collapsed']
     :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']) {
   width: 28px;
   min-width: 28px;
@@ -967,14 +957,14 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
 }
 
 html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    [class*='sidebarCol'] [class*='root'][class*='collapsed']
     :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']) svg {
   color: inherit;
   filter: none;
 }
 
 html[data-windows-titlebar] body[data-dsh-maid-atelier] [data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root'][class*='collapsed']
+    [class*='sidebarCol'] [class*='root'][class*='collapsed']
     :is([class*='logoRow'] button[class*='toggle'], button[class*='newSession']):is(:hover, :focus-visible) {
   background: var(--maid-caption-hover);
   color: var(--maid-caption-ink-hover);
@@ -1024,14 +1014,14 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier]
    left 12px, 28px round). This only squares the corner and matches the hover
    wash; it keys on the host's collapse state like the rules above. */
 html[data-windows-titlebar] body[data-dsh-maid-atelier]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root']:not([class*='collapsed'])
+    [class*='sidebarCol'] [class*='root']:not([class*='collapsed'])
     > [class*='logoRow'] > button[class*='toggle'] {
   border-radius: var(--maid-caption-control-radius);
   corner-shape: round;
 }
 
 html[data-windows-titlebar] body[data-dsh-maid-atelier]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='root']:not([class*='collapsed'])
+    [class*='sidebarCol'] [class*='root']:not([class*='collapsed'])
     > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible) {
   background: var(--maid-caption-hover);
   color: var(--maid-caption-ink-hover);
@@ -1043,7 +1033,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier]
    page under the caption. The skin paints one continuous palace stage behind
    the brand plate and the caption row, so the corner only clipped the
    artwork into a stray curve beside the plate. */
-html[data-windows-titlebar] body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']) {
+html[data-windows-titlebar] body[data-dsh-maid-atelier] [class*='centerCol'] {
   border-radius: 0;
 }
 
@@ -1297,7 +1287,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] button[class*='newSes
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is([class*='iconButton'], [class*='searchButton']):not([class*='toggle']):not([role='dialog'] *) {
   width: 38px;
   min-width: 38px;
@@ -1311,7 +1301,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is([class*='iconButton'], [class*='searchButton']):not([class*='toggle']):not([role='dialog'] *):is(:hover, :focus-visible) {
   border-color: rgba(225, 191, 124, 0.68);
   color: #fff1ce;
@@ -1366,7 +1356,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
    document portal. Promote that owning root while the panel is open so it
    follows the same overlay tier as portalled menus and dialogs. */
 body[data-dsh-maid-atelier][data-maid-cordis-panel-open]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sidebarCol']
   > div
   > :has([data-cordis-panel]) {
   z-index: 40;
@@ -1573,7 +1563,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-plugin-panel] {
    its own opaque floor now simply covers the sheet instead of being painted
    over by it. Host overlays portal to body and keep their own tier. */
 body[data-dsh-maid-atelier]
-  :is([data-pane='conversation'], [class*='centerCol']):not(:has([data-phase])):not(:has([data-slot^='conversation.']))::before {
+  [class*='centerCol']:not(:has([data-phase])):not(:has([data-slot^='conversation.']))::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1727,13 +1717,13 @@ body[data-dsh-maid-atelier] [class*='sectionHeader'] [class*='iconButton'] svg {
 /* The host centers the expanded 42px search capsule inside a 36px clipped header.
    Give the expanded row its own height so the porcelain rim remains intact. */
 body[data-dsh-maid-atelier]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sidebarCol']
   [class*='sectionHeader']:has([class*='searchSlotExpanded']) {
   height: 46px;
   overflow: visible;
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']) {
+body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']) {
   height: 42px;
   margin: 0 2px;
   padding-inline: 14px;
@@ -1746,7 +1736,7 @@ body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [c
   transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']):focus-within {
+body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']):focus-within {
   border-color: rgba(244, 218, 164, 0.94);
   background: linear-gradient(180deg, rgba(17, 39, 85, 0.68), rgba(8, 23, 59, 0.52));
   box-shadow:
@@ -1765,7 +1755,7 @@ body[data-dsh-maid-atelier] [class*='searchInput']::placeholder {
   opacity: 1;
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) :is([class*='searchButton'], [class*='clearButton']) {
+body[data-dsh-maid-atelier] [class*='sidebarCol'] :is([class*='searchButton'], [class*='clearButton']) {
   color: #d8bc80;
 }
 
@@ -1774,7 +1764,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='sectionHeade
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     [class*='search']:has(> [class*='searchButton']) {
   justify-content: center;
 }
@@ -1784,12 +1774,12 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
    clipping a larger child, while one selector keeps all five actions visually
    identical. */
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    [class*='sidebarCol'] {
   --maid-rail-control-size: 36px;
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is(
       [class*='logoRow'] [class*='toggle'],
       button[class*='newSession'],
@@ -1825,7 +1815,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is(
       [class*='logoRow'] [class*='toggle'],
       button[class*='newSession'],
@@ -1846,13 +1836,13 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is([class*='logoRow'], [class*='sectionHeader'], [class*='search']:has(> [class*='searchButton']), [class*='regionArea']) {
   overflow: visible;
 }
 
 body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     [class*='search']:has(> [class*='searchButton']) {
   border: 0;
   background: transparent;
@@ -1990,7 +1980,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed],
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol']) {
     display: flex !important;
     flex-direction: column !important;
     grid-template-columns: none !important;
@@ -2001,10 +1991,10 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    > :is([class*='centerCol'], [data-pane='conversation']),
+    > [class*='centerCol'],
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
-    > :is([class*='centerCol'], [data-pane='conversation']) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    > [class*='centerCol'] {
     flex: 1 1 auto !important;
     width: 100% !important;
     min-height: 0 !important;
@@ -2015,7 +2005,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      While it is open the frame drops that track, the conversation keeps the
      full width, and the drawer floats (shared rule below). */
   html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol']) {
     display: flex !important;
     flex-direction: column !important;
     grid-template-columns: none !important;
@@ -2025,8 +2015,8 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
-    > :is([class*='centerCol'], [data-pane='conversation']) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    > [class*='centerCol'] {
     flex: 1 1 auto !important;
     width: 100% !important;
     min-height: 0 !important;
@@ -2047,8 +2037,8 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      once it ends the column computes to no transform at all, so the panel is
      positioned right without disabling anything. */
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [class*='sidebarCol'] {
     animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) backwards;
   }
 
@@ -2059,13 +2049,13 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      keeps its own horizontal slide below. */
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    [class*='sidebarCol'] {
     animation: none;
   }
 
   html[data-maid-nav-mode='rail'] body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [class*='sidebarCol'] {
     animation: maidAtelierPhoneDrawerIn 220ms cubic-bezier(0.22, 0.78, 0.2, 1) backwards;
   }
 
@@ -2091,7 +2081,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    [class*='sidebarCol'] {
     position: fixed !important;
     top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
     right: auto !important;
@@ -2120,7 +2110,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is(div:has(> [class*='logoRow']), [class*='logoRow']) {
     box-sizing: border-box !important;
     display: flex !important;
@@ -2146,7 +2136,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     div:has(> [class*='logoRow']) > :not([class*='logoRow']) {
     display: none !important;
   }
@@ -2155,7 +2145,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
       div[data-sidebar-collapsed]
-      :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+      [class*='sidebarCol'] > div {
       box-sizing: border-box !important;
       display: flex !important;
       flex-direction: row !important;
@@ -2174,7 +2164,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
       div[data-sidebar-collapsed]
-      :is([data-pane='sidebar'], [class*='sidebarCol'])
+      [class*='sidebarCol']
       > div > :not([class*='logoRow']) {
       display: none !important;
     }
@@ -2186,7 +2176,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     [class*='logoRow'] button[class*='toggle'] {
     box-sizing: border-box !important;
     width: 48px !important;
@@ -2207,7 +2197,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='conversation'], [class*='centerCol'])
+    [class*='centerCol']
     header[class*='header'] {
     padding-left: 64px !important;
   }
@@ -2220,7 +2210,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      own compact round targets (36px), matching the rail variant below. */
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    [class*='sidebarCol'] {
     order: -1 !important;
     width: 100% !important;
     height: calc(48px + env(safe-area-inset-top, 0px)) !important;
@@ -2236,7 +2226,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   /* The sidebar root below the host's slot anchor: one horizontal row. */
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     div:has(> [class*='logoRow']) {
     flex-direction: row !important;
     align-items: center !important;
@@ -2252,7 +2242,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   @supports not (selector(:has(*))) {
     html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
       div[data-sidebar-collapsed]
-      :is([data-pane='sidebar'], [class*='sidebarCol']) > div {
+      [class*='sidebarCol'] > div {
       display: flex !important;
       flex-direction: row !important;
       align-items: center !important;
@@ -2266,7 +2256,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='logoRow'] {
+    [class*='sidebarCol'] [class*='logoRow'] {
     height: 48px !important;
     min-height: 48px !important;
     margin: 0 !important;
@@ -2281,7 +2271,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      needs its label on the phone navigation toggle. */
   @media (hover: none) {
     html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
-      :is([data-pane='sidebar'], [class*='sidebarCol'])
+      [class*='sidebarCol']
       [class*='logoRow'] > button[class*='toggle']:not(:focus-visible) + [role='tooltip'] {
       display: none !important;
     }
@@ -2289,7 +2279,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelList'] {
+    [class*='sidebarCol'] [class*='panelList'] {
     flex-direction: row !important;
     align-items: center !important;
     gap: 2px !important;
@@ -2299,7 +2289,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelRow'] {
+    [class*='sidebarCol'] [class*='panelRow'] {
     width: 36px !important;
     height: 36px !important;
     min-height: 36px !important;
@@ -2311,7 +2301,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      target with the rail variant's ink so the glyph stays legible. */
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) button[class*='newSession'] {
+    [class*='sidebarCol'] button[class*='newSession'] {
     box-sizing: border-box !important;
     width: 36px !important;
     min-width: 36px !important;
@@ -2332,7 +2322,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) button[class*='newSession'] svg {
+    [class*='sidebarCol'] button[class*='newSession'] svg {
     color: #f4dfa8 !important;
     stroke-width: 1.9;
     filter: drop-shadow(0 1px 2px rgba(1, 7, 24, 0.5));
@@ -2340,10 +2330,10 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='newSessionLabel'],
+    [class*='sidebarCol'] [class*='newSessionLabel'],
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='panelTitle'] {
+    [class*='sidebarCol'] [class*='panelTitle'] {
     display: none !important;
   }
 
@@ -2384,7 +2374,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   /* Rows that only make sense in the tall rail. */
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is(
       [class*='regionArea'],
       [class*='searchExpanded'],
@@ -2397,7 +2387,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is([class*='footArea'], [class*='settingsArea'], [class*='footerActions']) {
     flex-direction: row !important;
     align-items: center !important;
@@ -2407,7 +2397,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [data-maid-sidebar-footer] {
+    [class*='sidebarCol'] [data-maid-sidebar-footer] {
     flex-direction: row !important;
     min-height: 0 !important;
     padding: 0 !important;
@@ -2417,7 +2407,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol']) [data-maid-sidebar-footer]::before {
+    [class*='sidebarCol'] [data-maid-sidebar-footer]::before {
     display: none !important;
   }
 
@@ -2429,8 +2419,8 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      keeps the full width and never moves. `rail` shares this rule so its own
      collapsed rail stays the host's, while opening it stops pushing the chat. */
   body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [class*='sidebarCol'] {
     position: fixed !important;
     top: 0 !important;
     bottom: 0 !important;
@@ -2446,12 +2436,12 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   body[data-dsh-maid-atelier]
-    div:has(> :is([data-pane='sidebar'], [class*='sidebarCol'])) > [class*='handle'] {
+    div:has(> [class*='sidebarCol']) > [class*='handle'] {
     display: none !important;
   }
 
   body[data-dsh-maid-atelier]
-    :is([data-pane='sidebar'], [class*='sidebarCol']):has([class*='regionArea']:not([style*='display: none'])) {
+    [class*='sidebarCol']:has([class*='regionArea']:not([style*='display: none'])) {
     overscroll-behavior: contain !important;
   }
 
@@ -2468,7 +2458,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      this. */
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     > div > div:not([class*='collapsed'])
     > :not([class*='logoRow'], [class*='newSession'], [class*='regionArea'], [class*='footArea']) {
     display: none !important;
@@ -2479,7 +2469,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      it, so neither is reached by the sibling rule above. */
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     > div > div:not([class*='collapsed'])
     > [class*='logoRow'] > :not([class*='toggle']) {
     display: none !important;
@@ -2487,7 +2477,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     > div > div:not([class*='collapsed'])
     :is([data-plugin-entry], button[data-dsh-part='sidebar-entry']) {
     display: none !important;
@@ -2498,7 +2488,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
      — but the plugin action row above it is expanded content like any other. */
   html:not([data-maid-nav-mode='rail']) body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     > div > div:not([class*='collapsed'])
     > [class*='footArea'] > [class*='footerActions'] {
     display: none !important;
@@ -2531,7 +2521,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 @media (max-width: 420px) and (orientation: portrait) {
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
-    :is([data-pane='sidebar'], [class*='sidebarCol'])
+    [class*='sidebarCol']
     :is(
       [class*='brandName'],
       [class*='fallbackBrandName'],
@@ -3325,7 +3315,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
    footer release its local stacking context without demoting the content
    root that keeps workspace cards above the decorative mascot. */
 body[data-dsh-maid-atelier]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sidebarCol']
   > div > [data-maid-sidebar-footer] {
   z-index: auto;
 }
@@ -3336,7 +3326,7 @@ body[data-dsh-maid-atelier]
    Keep relative positioning so fixed descendants retain their coordinates.
    The relational selector also covers other modal dialogs in the sidebar. */
 body[data-dsh-maid-atelier][data-maid-settings-in-sidebar]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sidebarCol']
   > div
   > :not(
     [data-skin-chrome='sidebar-mascot'],
@@ -3344,7 +3334,7 @@ body[data-dsh-maid-atelier][data-maid-settings-in-sidebar]
     [role='tooltip']
   ),
 body[data-dsh-maid-atelier]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sidebarCol']
   > div
   > :has([role='dialog'][aria-modal='true']) {
   z-index: auto !important;
@@ -3369,7 +3359,7 @@ body[data-dsh-maid-atelier]
    release above stays its own rule because the carrier never had a
    stacking-context role to release. */
 body[data-dsh-maid-atelier]
-  :is([data-pane='sidebar'], [class*='sidebarCol'])
+  [class*='sidebarCol']
   > div
   > :not(
     [data-skin-chrome='sidebar-mascot'],
@@ -3415,8 +3405,8 @@ body[data-dsh-maid-atelier][data-maid-settings-open] [data-composer-card] {
    the slot mount only (DSH through 0.1.7-rc.1): the rc.2 body portal is not
    in this chain, and releasing the frame's overflow there shifted the
    Windows desktop layout while settings was open. */
-body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] :is([data-pane='sidebar'], [class*='sidebarCol']),
-body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] :is([data-pane='sidebar'], [class*='sidebarCol']) *:has([data-slot='sidebar.settings']),
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [class*='sidebarCol'],
+body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [class*='sidebarCol'] *:has([data-slot='sidebar.settings']),
 body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [data-slot='sidebar.settings'],
 body[data-dsh-maid-atelier][data-maid-settings-in-sidebar] [class*='frame']:has([data-slot='sidebar.settings']) {
   overflow: visible !important;
@@ -6459,8 +6449,8 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] :has(+ * >
 
 @media (prefers-reduced-motion: reduce) {
   body[data-dsh-maid-atelier]
-    div:not([data-sidebar-collapsed]):has(> :is([data-pane='sidebar'], [class*='sidebarCol']))
-    :is([data-pane='sidebar'], [class*='sidebarCol']) {
+    div:not([data-sidebar-collapsed]):has(> [class*='sidebarCol'])
+    [class*='sidebarCol'] {
     animation: none;
   }
 
