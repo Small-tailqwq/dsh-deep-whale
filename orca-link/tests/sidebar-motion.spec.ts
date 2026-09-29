@@ -20,10 +20,30 @@ describe('ORCA LINK sidebar motion', () => {
     expect(css).toContain('transform: translateX(16px) scale(1);')
   })
 
-  it('keeps the character stage width stable and wipes it horizontally', () => {
-    expect(css).toContain('width: calc(var(--orca-sidebar-art-width, 280px) - 30px);')
-    expect(css).toContain('clip-path: inset(0 100% 0 0);')
-    expect(css).toContain('will-change: clip-path, transform, opacity;')
+  it('keeps the character stage width stable and lets the pane edge wipe it', () => {
+    const rule = css.match(/:first-child > .statusCharacter {([^}]*)}/s)?.[1] ?? ''
+    expect(rule).toContain('width: calc(var(--orca-sidebar-art-width, 280px) - 30px);')
+    // No private clip or slide: a 180ms wipe outran the 300ms track and emptied the stage early.
+    expect(rule).not.toContain('clip-path')
+    expect(rule).not.toContain('transform: translateX')
+    expect(rule).toContain('transition: opacity 90ms linear calc(var(--orca-track-duration) - 90ms);')
+    expect(rule).toContain('will-change: opacity;')
+  })
+
+  it('runs every track-coupled layer on the host sidebar clock', () => {
+    expect(css).toContain('--orca-track-duration: var(--ds-transition-duration-slow, 300ms);')
+    expect(css).toContain('--orca-track-ease: var(--ds-ease-in-out, cubic-bezier(0.4, 0, 0.2, 1));')
+    expect(css).toContain('transform var(--orca-track-duration) var(--orca-track-ease)')
+    expect(css).toContain('transition: opacity var(--orca-track-duration) var(--orca-track-ease);')
+    expect(css).not.toContain('transition-duration: 200ms;')
+  })
+
+  it('moves the seam ruler by transform on the track clock and stops easing during a drag', () => {
+    const spine = css.match(/.spine {([^}]*)}/s)?.[1] ?? ''
+    expect(spine).toContain('left: 0;')
+    expect(spine).toContain('transform: translateX(calc(var(--orca-sidebar-width) - 4px));')
+    expect(spine).toContain('transition: transform var(--orca-track-duration) var(--orca-track-ease);')
+    expect(css).toContain('body[data-dsh-orca-link][data-orca-sidebar-dragging] .spine { transition: none; }')
   })
 
   it('hides stale sidebar tooltips during WebApp window resume', () => {

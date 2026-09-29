@@ -1,5 +1,11 @@
 body[data-dsh-orca-link] {
   --orca-sidebar-width: clamp(258px, 20.2vw, 326px);
+  /* The host eases its sidebar track for 0.3s on this curve; every skin layer
+     that moves with the track borrows the same clock instead of keeping a
+     private duration, so the stage, the wordmark and the seam ruler arrive
+     together with the pane edge rather than ahead of or behind it. */
+  --orca-track-duration: var(--ds-transition-duration-slow, 300ms);
+  --orca-track-ease: var(--ds-ease-in-out, cubic-bezier(0.4, 0, 0.2, 1));
   /* Sidebar art stage height, measured from the pane top; the browsing
      region's frosted panel starts exactly at this seam (120px of controls). */
   --orca-stage: clamp(240px, 34vh, 320px);
@@ -1608,8 +1614,8 @@ body[data-dsh-orca-link] .dshWordmark {
   transform: translateX(calc((var(--orca-sidebar-width, 56px) - 118px) / 2)) scale(0.28);
   transform-origin: center;
   transition:
-    opacity 220ms ease,
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 150ms ease,
+    transform var(--orca-track-duration) var(--orca-track-ease);
 }
 body[data-dsh-orca-link][data-orca-sidebar-wide] .dshWordmark {
   opacity: 1;
@@ -1670,7 +1676,7 @@ body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before {
   background-repeat: no-repeat;
   background-size: 100% 100%, 100% 100%, 100% 8px;
   opacity: 0;
-  transition: opacity 150ms var(--ds-ease-in-out, ease-in-out);
+  transition: opacity var(--orca-track-duration) var(--orca-track-ease);
   will-change: opacity;
 }
 
@@ -1789,7 +1795,6 @@ body[data-dsh-orca-link]
 
 body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-slot='sidebar'] > :first-child)::before {
   opacity: 1;
-  transition-duration: 200ms;
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter {
@@ -1798,28 +1803,25 @@ body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter
   z-index: 1;
   top: calc(58px + var(--orca-stage-top, 0px));
   left: 22px;
-  /* Keep one stable stage width while the sidebar track contracts. The
-     sidebar's own overflow edge then wipes the artwork away without ever
-     changing the sprite cell's aspect ratio. */
+  /* Keep one stable stage width while the sidebar track moves. The sidebar's
+     own overflow edge then wipes the artwork in and out at exactly the track's
+     speed, without ever changing the sprite cell's aspect ratio. The sprite
+     carries no clip or slide of its own — a private 180ms wipe outran the
+     300ms track and emptied the stage while the sidebar was still half open.
+     It only fades out in the last moments of a collapse, once the edge has
+     left too little of it to read as a figure. */
   width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
   height: calc(var(--orca-stage, 300px) - 66px);
   overflow: visible;
   pointer-events: none;
   opacity: 0;
-  clip-path: inset(0 100% 0 0);
-  transform: translateX(-8px);
-  transition:
-    opacity 100ms ease-in,
-    clip-path 180ms cubic-bezier(0.4, 0, 1, 1),
-    transform 180ms cubic-bezier(0.4, 0, 1, 1);
-  will-change: clip-path, transform, opacity;
+  transition: opacity 90ms linear calc(var(--orca-track-duration) - 90ms);
+  will-change: opacity;
 }
 
 body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > .statusCharacter {
   opacity: 1;
-  clip-path: inset(0);
-  transform: translateX(0);
-  transition-timing-function: ease-out, cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 120ms ease-out;
 }
 
 body[data-dsh-orca-link] .statusCharacterFrame {
@@ -3116,13 +3118,23 @@ body[data-dsh-orca-link] .pricingTooltipValue {
 /* Sidebar seam ruler: a tick strip centered on the column boundary replaces
    the old metal bar — mechanism through precision, not mass. */
 body[data-dsh-orca-link] .spine {
-  position: fixed; top: 0; bottom: 0; left: var(--orca-sidebar-width);
-  z-index: 850; width: 9px; transform: translateX(-4px);
+  position: fixed; top: 0; bottom: 0; left: 0;
+  z-index: 850; width: 9px;
+  /* Positioned by transform, not `left`: a compositor-only move that the
+     track clock can ease in step with the pane edge. A drag writes an inline
+     transform per pointer frame and drops the easing (see below). */
+  transform: translateX(calc(var(--orca-sidebar-width) - 4px));
+  transition: transform var(--orca-track-duration) var(--orca-track-ease);
+  will-change: transform;
   pointer-events: none;
   background: repeating-linear-gradient(180deg, var(--orca-line) 0 1px, transparent 1px 56px);
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
   mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
 }
+
+/* Dragging the sidebar handle writes widths at pointer cadence; easing them
+   would detach the seam from the handle. */
+body[data-dsh-orca-link][data-orca-sidebar-dragging] .spine { transition: none; }
 
 /* The seam is decorative in constrained layouts; retiring it avoids moving a
    body-level fixed layer alongside the AppFrame track transition. */
@@ -3590,6 +3602,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [role='button'],
   body[data-dsh-orca-link] .dshWordmark,
   body[data-dsh-orca-link] .statusCharacter,
+  body[data-dsh-orca-link] .spine,
   body[data-dsh-orca-link] .statusCharacterBubble,
   body[data-dsh-orca-link] .pricingLight,
   body[data-dsh-orca-link] .pricingLamp,

@@ -34,6 +34,7 @@ const DARK_ACTIVE_ART_PROPERTY = '--orca-link-dark-active-art'
 const SIDEBAR_WIDTH_PROPERTY = '--orca-sidebar-width'
 const SIDEBAR_ART_WIDTH_PROPERTY = '--orca-sidebar-art-width'
 const SIDEBAR_WIDE_ATTRIBUTE = 'data-orca-sidebar-wide'
+const SIDEBAR_DRAGGING_ATTRIBUTE = 'data-orca-sidebar-dragging'
 const APP_FRAME_SELECTOR = "[id='root'] > div[data-slot='root'] > div"
 const cls = (name: keyof typeof css): string => css[name] ?? ''
 
@@ -92,7 +93,7 @@ function mountDshWordmark(): boolean {
   return true
 }
 
-function syncSidebarWidth(body: HTMLElement, pane: Element): number {
+function syncSidebarWidth(body: HTMLElement, pane: Element, dragging: boolean): number {
   const measuredWidth = pane.getBoundingClientRect().width
   if (measuredWidth <= 0) return 0
 
@@ -105,7 +106,11 @@ function syncSidebarWidth(body: HTMLElement, pane: Element): number {
   const targetWidth = firstTrack === undefined ? measuredWidth : Number.parseFloat(firstTrack)
   const width = Number.isFinite(targetWidth) && targetWidth > 0 ? targetWidth : measuredWidth
   const serializedWidth = `${width}px`
-  if (body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY) !== serializedWidth) {
+  // A body-level custom property invalidates every inheriting node in the
+  // document. While the handle drags, widths arrive at pointer cadence, so the
+  // body copy waits for the drop (the frame observer flushes it) and the
+  // pane-scoped art width and the seam ruler follow the pointer instead.
+  if (!dragging && body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY) !== serializedWidth) {
     body.style.setProperty(SIDEBAR_WIDTH_PROPERTY, serializedWidth)
   }
   const wide = width > 96
@@ -128,8 +133,8 @@ export function apply(ctx: Context): void {
   const originalDarkHeroArt = body.style.getPropertyValue(DARK_HERO_ART_PROPERTY)
   const originalDarkActiveArt = body.style.getPropertyValue(DARK_ACTIVE_ART_PROPERTY)
   const originalSidebarWidth = body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY)
-  const originalSidebarArtWidth = body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY)
   const originalSidebarWide = body.hasAttribute(SIDEBAR_WIDE_ATTRIBUTE)
+  const originalSidebarDragging = body.hasAttribute(SIDEBAR_DRAGGING_ATTRIBUTE)
   body.dataset.dshOrcaLink = ''
   body.style.setProperty(LIGHT_HERO_ART_PROPERTY, `url("${ORCA_LINK_LIGHT_HERO_ART}")`)
   body.style.setProperty(LIGHT_ACTIVE_ART_PROPERTY, `url("${ORCA_LINK_LIGHT_ACTIVE_ART}")`)
@@ -178,25 +183,39 @@ export function apply(ctx: Context): void {
   })
   wordmarkObserver.observe(body, { childList: true, subtree: true })
 
+  const spine = document.createElement('div')
+  spine.className = cls('spine')
+  spine.dataset.skinChrome = 'spine'
+  spine.setAttribute('aria-hidden', 'true')
+
   let observedSidebar: Element | null = null
-  let sidebarArtWidthTimer: ReturnType<typeof setTimeout> | undefined
+  let observedFrame: Element | null = null
+  let originalArtWidth = ''
   const syncObservedSidebar = (pane: Element): void => {
-    const width = syncSidebarWidth(body, pane)
-    if (sidebarArtWidthTimer !== undefined) clearTimeout(sidebarArtWidthTimer)
-    sidebarArtWidthTimer = undefined
+    const dragging = body.hasAttribute(SIDEBAR_DRAGGING_ATTRIBUTE)
+    const width = syncSidebarWidth(body, pane, dragging)
     if (width <= 96) return
-    if (body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) === '') {
-      body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${width}px`)
-      return
+    // The stage keeps the last wide width while the track collapses (the
+    // narrow branch returns above), and follows a drag live. It hangs on the
+    // pane, not the body: every consumer is a pane descendant, so a write
+    // restyles the sidebar subtree instead of the whole document.
+    if (pane instanceof HTMLElement && pane.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) !== `${width}px`) {
+      pane.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${width}px`)
     }
-    if (body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) === `${width}px`) return
-    sidebarArtWidthTimer = setTimeout(() => {
-      const stableWidth = Number.parseFloat(body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY))
-      if (stableWidth > 96 && body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) !== `${stableWidth}px`) {
-        body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${stableWidth}px`)
-      }
-      sidebarArtWidthTimer = undefined
-    }, 180)
+    if (dragging) spine.style.transform = `translateX(${width - 4}px)`
+  }
+  const frameObserver = new MutationObserver(() => {
+    const dragging = observedFrame?.hasAttribute('data-dragging') === true
+    if (body.hasAttribute(SIDEBAR_DRAGGING_ATTRIBUTE) === dragging) return
+    body.toggleAttribute(SIDEBAR_DRAGGING_ATTRIBUTE, dragging)
+    if (dragging) return
+    // Drop: hand the seam back to the stylesheet and commit the final width.
+    spine.style.removeProperty('transform')
+    if (observedSidebar) syncObservedSidebar(observedSidebar)
+  })
+  const restoreArtWidth = (pane: HTMLElement): void => {
+    if (originalArtWidth === '') pane.style.removeProperty(SIDEBAR_ART_WIDTH_PROPERTY)
+    else pane.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, originalArtWidth)
   }
   const sidebarResizeObserver = typeof ResizeObserver === 'undefined'
     ? undefined
@@ -208,8 +227,16 @@ export function apply(ctx: Context): void {
     if (!pane) return false
     if (pane !== observedSidebar) {
       sidebarResizeObserver?.disconnect()
+      if (observedSidebar instanceof HTMLElement) restoreArtWidth(observedSidebar)
       observedSidebar = pane
+      originalArtWidth = pane instanceof HTMLElement ? pane.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) : ''
       sidebarResizeObserver?.observe(pane)
+    }
+    const frame = body.querySelector(APP_FRAME_SELECTOR)
+    if (frame !== observedFrame) {
+      frameObserver.disconnect()
+      observedFrame = frame
+      if (frame) frameObserver.observe(frame, { attributes: true, attributeFilter: ['data-dragging'] })
     }
     syncObservedSidebar(pane)
     return true
@@ -218,11 +245,6 @@ export function apply(ctx: Context): void {
     if (mountSidebarObserver()) sidebarMountObserver.disconnect()
   })
   if (!mountSidebarObserver()) sidebarMountObserver.observe(body, { childList: true, subtree: true })
-
-  const spine = document.createElement('div')
-  spine.className = cls('spine')
-  spine.dataset.skinChrome = 'spine'
-  spine.setAttribute('aria-hidden', 'true')
 
   const lightScene = document.createElement('div')
   lightScene.className = cls('lightScene')
@@ -279,9 +301,9 @@ export function apply(ctx: Context): void {
     else body.style.setProperty(DARK_ACTIVE_ART_PROPERTY, originalDarkActiveArt)
     if (originalSidebarWidth === '') body.style.removeProperty(SIDEBAR_WIDTH_PROPERTY)
     else body.style.setProperty(SIDEBAR_WIDTH_PROPERTY, originalSidebarWidth)
-    if (originalSidebarArtWidth === '') body.style.removeProperty(SIDEBAR_ART_WIDTH_PROPERTY)
-    else body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, originalSidebarArtWidth)
+    if (observedSidebar instanceof HTMLElement) restoreArtWidth(observedSidebar)
     body.toggleAttribute(SIDEBAR_WIDE_ATTRIBUTE, originalSidebarWide)
+    body.toggleAttribute(SIDEBAR_DRAGGING_ATTRIBUTE, originalSidebarDragging)
     lightScene.remove()
     darkScene.remove()
     spine.remove()
@@ -289,7 +311,7 @@ export function apply(ctx: Context): void {
     wordmarkObserver.disconnect()
     sidebarMountObserver.disconnect()
     sidebarResizeObserver?.disconnect()
-    if (sidebarArtWidthTimer !== undefined) clearTimeout(sidebarArtWidthTimer)
+    frameObserver.disconnect()
     document.querySelectorAll('[data-orca-link-wordmark]').forEach((wordmark) => wordmark.remove())
     document.querySelectorAll('[data-orca-link-signal]').forEach((chip) => chip.remove())
     document.querySelectorAll('[data-orca-link-brand]').forEach((brandButton) => {

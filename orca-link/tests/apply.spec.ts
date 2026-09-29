@@ -237,7 +237,9 @@ describe('Orca Link skin apply', () => {
     expect(character?.querySelector<HTMLElement>('[data-orca-link-character-sprite]')?.style.getPropertyValue('--orca-link-status-atlas'))
       .toContain('/skin-assets/orca-link/')
     expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('336px')
-    expect(document.body.style.getPropertyValue('--orca-sidebar-art-width')).toBe('336px')
+    // The stage width hangs on the pane, not the body: a write restyles the sidebar subtree only.
+    expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('336px')
+    expect(document.body.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
     expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
     await fiber.dispose()
     expect(document.querySelector('[data-orca-link-wordmark]')).toBeNull()
@@ -245,7 +247,7 @@ describe('Orca Link skin apply', () => {
     expect(document.querySelector('[data-orca-link-character]')).toBeNull()
     expect(document.querySelector('[data-original-wordmark]')).not.toBeNull()
     expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('')
-    expect(document.body.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
+    expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
     expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(false)
   })
 
@@ -299,6 +301,85 @@ describe('Orca Link skin apply', () => {
     }
     const widthWrites = setProperty.mock.calls.filter(([property]) => property === '--orca-sidebar-width')
     expect(widthWrites).toEqual([['--orca-sidebar-width', '280px']])
+    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
+  })
+
+  it('follows a sidebar drag without restyling the document per pointer frame', async () => {
+    let notifyResize = (): void => {}
+    class ResizeObserverStub {
+      constructor(callback: ResizeObserverCallback) { notifyResize = () => callback([], this as unknown as ResizeObserver) }
+      observe(): void {}
+      disconnect(): void {}
+      unobserve(): void {}
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    document.body.innerHTML = `
+      <div id="root"><div data-slot="root"><div style="grid-template-columns: 280px minmax(0px, 1fr) 0px"></div></div></div>
+      <div data-slot="sidebar"><div><div><button type="button"><svg></svg></button></div></div></div>
+    `
+    const pane = document.querySelector<HTMLElement>("[data-slot='sidebar'] > :first-child")!
+    const frame = document.querySelector<HTMLElement>("[id='root'] > div[data-slot='root'] > div")!
+    pane.getBoundingClientRect = () => ({ width: 280 } as DOMRect)
+    fiber = await mount()
+    const spine = document.querySelector<HTMLElement>("[data-skin-chrome='spine']")!
+    expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('280px')
+    expect(spine.style.transform).toBe('')
+
+    frame.setAttribute('data-dragging', '')
+    await Promise.resolve()
+    expect(document.body.hasAttribute('data-orca-sidebar-dragging')).toBe(true)
+
+    // An earlier test may already hold this spy; count only this drag's writes.
+    const setProperty = vi.spyOn(document.body.style, 'setProperty')
+    setProperty.mockClear()
+    for (const width of [296, 310, 326]) {
+      frame.style.gridTemplateColumns = `${width}px minmax(0px, 1fr) 0px`
+      notifyResize()
+      // The stage and the seam ruler follow at pointer cadence...
+      expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe(`${width}px`)
+      expect(spine.style.transform).toBe(`translateX(${width - 4}px)`)
+    }
+    // ...while the body-level copy, which restyles every node, waits for the drop.
+    expect(setProperty.mock.calls.filter(([property]) => property === '--orca-sidebar-width')).toEqual([])
+
+    frame.removeAttribute('data-dragging')
+    await Promise.resolve()
+    expect(document.body.hasAttribute('data-orca-sidebar-dragging')).toBe(false)
+    expect(spine.style.transform).toBe('')
+    expect(document.body.style.getPropertyValue('--orca-sidebar-width')).toBe('326px')
+    await fiber.dispose()
+    expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('')
+  })
+
+  it('keeps the stage width through a collapse and does not rewrite it on re-expand', async () => {
+    let notifyResize = (): void => {}
+    class ResizeObserverStub {
+      constructor(callback: ResizeObserverCallback) { notifyResize = () => callback([], this as unknown as ResizeObserver) }
+      observe(): void {}
+      disconnect(): void {}
+      unobserve(): void {}
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+    document.body.innerHTML = `
+      <div id="root"><div data-slot="root"><div style="grid-template-columns: 280px minmax(0px, 1fr) 0px"></div></div></div>
+      <div data-slot="sidebar"><div><div><button type="button"><svg></svg></button></div></div></div>
+    `
+    const pane = document.querySelector<HTMLElement>("[data-slot='sidebar'] > :first-child")!
+    const frame = document.querySelector<HTMLElement>("[id='root'] > div[data-slot='root'] > div")!
+    pane.getBoundingClientRect = () => ({ width: 280 } as DOMRect)
+    fiber = await mount()
+
+    frame.style.gridTemplateColumns = '56px minmax(0px, 1fr) 0px'
+    pane.getBoundingClientRect = () => ({ width: 56 } as DOMRect)
+    notifyResize()
+    expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(false)
+    expect(pane.style.getPropertyValue('--orca-sidebar-art-width')).toBe('280px')
+
+    const setProperty = vi.spyOn(pane.style, 'setProperty')
+    frame.style.gridTemplateColumns = '280px minmax(0px, 1fr) 0px'
+    pane.getBoundingClientRect = () => ({ width: 280 } as DOMRect)
+    notifyResize()
+    expect(setProperty).not.toHaveBeenCalled()
     expect(document.body.hasAttribute('data-orca-sidebar-wide')).toBe(true)
   })
 
