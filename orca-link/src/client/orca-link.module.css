@@ -329,10 +329,10 @@ body[data-dsh-orca-link] > [style*='--dsh-hover-preview-fade'] {
    the outlet's direct child; that split is the seat test every panel-page rule
    below shares, and it needs no `:has()` scan of the transcript. */
 body[data-dsh-orca-link] [data-tone],
-body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']),
-body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) *,
-body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) *::before,
-body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) *::after {
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']),
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) *,
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) *::before,
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) *::after {
   border-radius: 0 !important;
 }
 
@@ -383,8 +383,20 @@ body[data-dsh-orca-link] [data-sidebar-right-panel]:not([data-sidebar-right-pane
   :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
   background: var(--orca-reading-surface);
   backdrop-filter: blur(6px) saturate(0.95);
+  transition: backdrop-filter 120ms ease-out;
   border-color: var(--orca-line);
   border-radius: 0 !important;
+}
+
+/* The blur is recomputed every frame on a 344px x full-height layer that is
+   sliding, and in software raster that dropped about 40% of the frames of a
+   panel toggle (29 of 55 frames drawn). The host holds `data-animating` on the
+   frame for exactly the slide, so the panel slides on its plain translucent
+   surface and the blur eases in once it has settled. */
+body[data-dsh-orca-link] [data-animating] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
+  :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
+  backdrop-filter: none;
+  transition: none;
 }
 
 body[data-dsh-orca-link] [data-sidebar-right-panel='fullscreen']
@@ -439,13 +451,13 @@ body[data-dsh-orca-link] [data-plugin-panel] {
    with the column's `::before` also keeps the filter off every content
    ancestor: a filtered ancestor becomes the containing block of any
    `position: fixed` overlay a plugin draws inside its page. */
-body[data-dsh-orca-link]
-  [class*='centerCol']:has(> [data-slot='main'] > :not([data-slot='main.conversation'])) {
+body[data-dsh-orca-link][data-orca-panel-page]
+  [class*='centerCol'] {
   position: relative;
 }
 
-body[data-dsh-orca-link]
-  [class*='centerCol']:has(> [data-slot='main'] > :not([data-slot='main.conversation']))::before {
+body[data-dsh-orca-link][data-orca-panel-page]
+  [class*='centerCol']::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -459,7 +471,7 @@ body[data-dsh-orca-link]
    cards take the skin's own surface instead of the 24% base wash, so a row
    still reads as a row on the sheet. Host overlays portal to body, so the new
    stacking context traps nothing. */
-body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) {
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) {
   position: relative;
   z-index: 2;
   --dsw-alias-bg-base: var(--orca-surface);
@@ -469,7 +481,7 @@ body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation
    opaque floor this skin gave up. On the sheet a 12px label lands near 2.6:1;
    a third more opacity keeps the state readable while still reading as
    disabled. `:where()` keeps host and plugin rules able to outrank it. */
-body[data-dsh-orca-link]
+body[data-dsh-orca-link][data-orca-panel-page]
   [data-slot='main'] > :not([data-slot='main.conversation'])
   :where(button, [role='button']):disabled {
   opacity: 0.55;
@@ -883,7 +895,7 @@ body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .stan
    the dialog carrier opaque and animation-free while it owns the viewport,
    otherwise resizing across that breakpoint briefly fades the whole panel. */
 body[data-dsh-orca-link][data-orca-settings-open]
-  [data-slot='sidebar'] > :first-child > :has([role='dialog']) {
+  [data-slot='sidebar'] > :first-child > [data-orca-dialog-carrier] {
   position: relative;
   z-index: auto;
   opacity: 1 !important;
@@ -904,7 +916,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog'] {
    settings slots remain intact; ORCA only changes its spatial behavior.
    Large screens dock beside the settings trigger; every constrained viewport
    becomes a full workspace instead of squeezing an intermediate modal. */
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
   position: fixed;
   z-index: var(--orca-settings-overlay-z);
   isolation: isolate;
@@ -923,12 +935,12 @@ body[data-dsh-orca-link][data-orca-settings-open] > [role='presentation']:has(> 
   z-index: calc(var(--orca-settings-overlay-z) + 1);
 }
 
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > :first-child {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > :first-child {
   z-index: 0;
   animation: orcaSettingsMaskIn 170ms ease-out both;
 }
 
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
   width: min(800px, calc(100vw - 48px));
   max-width: none;
   height: min(760px, calc(100vh - 48px));
@@ -956,7 +968,7 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open]
 }
 
 body[data-dsh-orca-link][data-orca-cordis-panel-open]
-  [data-slot='sidebar'] > :first-child > :has([data-cordis-panel]) {
+  [data-slot='sidebar'] > :first-child > [data-orca-cordis-carrier] {
   position: relative;
   z-index: auto;
 }
@@ -974,9 +986,9 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open] [data-cordis-panel] {
    flow. The dialog's own mask and decorations live outside this subtree, and
    scrollbar pseudo-elements are not matched by `*` — the global square
    scrollbar styling keeps governing them. */
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *,
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::before,
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::after {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *,
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::before,
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::after {
   border-radius: 0 !important;
 }
 
@@ -1001,18 +1013,18 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [ro
 
 /* The title and signal chevron stay outside the scrolling category list.
    The footer reserves enough space for the chevron to clear every button. */
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
   position: relative;
   min-height: 0;
   padding-bottom: 24px;
   overflow: hidden;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :first-child {
   flex-shrink: 0;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
   /* Short docked lists keep the group's bottom alignment. */
   flex: 0 1 auto;
   min-height: 0;
@@ -1021,15 +1033,15 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
   scrollbar-width: none;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child > button {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child > button {
   flex-shrink: 0;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
   display: none;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-orca-settings-more]::after {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav[data-orca-settings-more]::after {
   content: '';
   position: absolute;
   bottom: 9px;
@@ -1046,31 +1058,31 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
 /* Large desktop: the panel opens immediately beside the sidebar trigger and
    grows from its lower-left corner. Navigation stays near the pointer. */
 @media (min-width: 1100px) and (min-height: 681px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     justify-content: flex-start;
     align-items: flex-end;
     padding: 18px 18px 18px 72px;
   }
 
   body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     padding-left: calc(var(--orca-sidebar-width) + 16px);
   }
 
   /* The docked panel sits on the bottom edge; its height also gives up the
      desktop window strip so a short window cannot push its top under the
      titlebar menu and caption buttons. */
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: min(760px, calc(100vw - 108px));
     height: min(680px, calc(100vh - 36px - var(--orca-window-strip, 0px)));
   }
 
   body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: min(760px, calc(100vw - var(--orca-sidebar-width) - 34px));
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
     /* Keep short navigation bottom-aligned; overflow starts at the first item. */
     justify-content: safe flex-end;
     padding-bottom: 24px;
@@ -1088,7 +1100,7 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     justify-content: center;
     align-items: center;
     padding: calc(24px + var(--orca-window-strip, 0px)) 24px 24px;
@@ -1096,16 +1108,16 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     padding-left: 24px;
   }
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'],
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'],
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: min(800px, calc(100vw - 48px));
     height: min(760px, calc(100vh - 48px - var(--orca-window-strip, 0px)));
     transform-origin: center;
@@ -1113,7 +1125,7 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
     justify-content: flex-start;
     padding-bottom: 24px;
   }
@@ -1151,11 +1163,11 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
    height it gives up keeps the margin box window-tall and seats the dialog
    exactly under the window strip. */
 @media (max-width: 1099px), (max-height: 680px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     padding: 0;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: 100vw;
     max-width: none;
     height: calc(100vh - var(--orca-window-strip, 0px));
@@ -1169,11 +1181,11 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
 
 /* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     flex-direction: column;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
     box-sizing: border-box;
     width: 100%;
     gap: 8px;
@@ -1182,40 +1194,40 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
     border-bottom: 1px solid var(--orca-line);
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: start;
     gap: 4px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav button {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav button {
     min-width: 0;
     height: 36px;
     padding: 7px 8px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div {
     min-height: 0;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :first-child {
     min-height: 46px;
     height: auto;
     padding: 8px 10px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child {
     padding: 0 14px 16px;
   }
 }
 
 @media (max-width: 420px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1225,24 +1237,24 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
    so descriptions remain normal sentences instead of vertical fragments. */
 @media (max-width: 520px) {
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) {
     align-items: stretch;
     flex-direction: column;
   }
 
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_rowText'] {
     width: 100%;
     padding-right: 0;
   }
 
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) > :last-child,
   body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) [class$='_selector'] {
     box-sizing: border-box;
     width: 100%;
@@ -1250,7 +1262,7 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
   }
 
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     justify-content: space-between;
   }
@@ -1789,7 +1801,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
 body[data-dsh-orca-link]
   [data-slot='sidebar']
   > :first-child
-  > :has([role='tooltip']) {
+  > [data-orca-tooltip-carrier] {
   z-index: auto;
 }
 
@@ -1802,11 +1814,11 @@ body[data-dsh-orca-link]
    the bubble's z-index: 100 competes at the frame level again. Everything
    else inside the root is absolutely positioned inside the sidebar box and
    never crosses the pane, so releasing the context cannot leak chrome.
-   NOTE: the :has() must sit on the SAME element as the :is() match (no
+   NOTE: the tag must sit on the SAME element as the :is() match (no
    descendant space) — with a space it would release the root's child
    (already isolation: auto) and leave the root context intact. */
 body[data-dsh-orca-link]
-  :is([data-slot='sidebar'] > :first-child):has([role='tooltip']) {
+  :is([data-slot='sidebar'] > :first-child)[data-orca-tooltip-root] {
   z-index: auto;
   isolation: auto;
 }
@@ -2349,18 +2361,18 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree']
   --orca-tree-guide: rgba(180, 199, 226, 0.18);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-expanded]) {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-group] {
   position: relative;
   padding: 3px 0 5px;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-expanded])
-  + div:has([role='treeitem'][aria-expanded]) {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-group]
+  + div[data-orca-workspace-group] {
   margin-top: 2px;
   border-top: 1px solid color-mix(in srgb, var(--orca-tree-guide) 72%, transparent);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-selected])::before {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-selectable]::before {
   position: absolute;
   z-index: 0;
   top: 41px;
@@ -2474,7 +2486,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded] {
   border-left-color: var(--orca-blue);
   background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 15%, transparent), color-mix(in srgb, var(--orca-blue) 3.5%, transparent) 72%, transparent);
@@ -2485,14 +2497,14 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
    workspace. The small square is deliberately independent from the open
    folder glyph, so an expanded inactive workspace cannot read as selected. */
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded]::before {
   background: var(--orca-blue);
   box-shadow: 3px 0 0 color-mix(in srgb, var(--orca-blue) 20%, transparent);
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded]::after {
   position: absolute;
   top: 16px;
@@ -2506,7 +2518,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded]
   svg[data-orca-link-icon^='folder-'] {
   color: var(--orca-blue);
@@ -2580,7 +2592,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='treeit
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded] {
   background: linear-gradient(90deg, rgba(77, 145, 255, 0.2), rgba(77, 145, 255, 0.06) 72%, transparent);
 }
@@ -2816,7 +2828,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-question-key] [class*='_badge
   color: var(--dsw-alias-brand-primary-invert);
 }
 
-body[data-dsh-orca-link] ::selection { color: #fff; background: var(--orca-blue); }
+body[data-dsh-orca-link]::selection { color: #fff; background: var(--orca-blue); }
 body[data-dsh-orca-link] ::-webkit-scrollbar { width: 9px; height: 9px; }
 body[data-dsh-orca-link] ::-webkit-scrollbar-track { background: transparent; }
 body[data-dsh-orca-link] ::-webkit-scrollbar-thumb {
@@ -3628,10 +3640,10 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before { transition: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
   body[data-dsh-orca-link] .signalDot,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > :first-child,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'],
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::before,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::after,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > :first-child,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'],
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::after,
   body[data-dsh-orca-link] [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge'])::after,
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] [data-composer-card],
   body[data-dsh-orca-link] [data-orca-composer-ghost],
@@ -3649,8 +3661,8 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::before,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::after { display: none; }
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::after { display: none; }
   body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
 }

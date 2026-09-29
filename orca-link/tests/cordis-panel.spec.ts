@@ -31,7 +31,7 @@ const CORDIS_SIDEBAR_RULE = block(
   /\[data-orca-cordis-panel-open\]\s*:is\(\[data-slot='sidebar'\]\s*>\s*:first-child\)\s*\{([^}]*)\}/,
 )
 const CORDIS_CARRIER_RULE = block(
-  /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:has\(\[data-cordis-panel\]\)\s*\{([^}]*)\}/,
+  /\[data-orca-cordis-panel-open\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*\[data-orca-cordis-carrier\]\s*\{([^}]*)\}/,
 )
 const CORDIS_PANEL_RULE = block(
   /\[data-orca-cordis-panel-open\]\s*\[data-cordis-panel\]\s*\{([^}]*)\}/,

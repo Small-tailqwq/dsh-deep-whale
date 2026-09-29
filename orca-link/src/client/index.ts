@@ -23,6 +23,7 @@ import { installOrcaTerminalPerformance } from './terminal-performance.ts'
 import { installOrcaWindowResume } from './window-resume.ts'
 import { releaseClaimedStyles } from './release-claimed-styles.ts'
 import { installOrcaWindowsMenu } from './windows-menu.ts'
+import { installOrcaWorkspaceMarks } from './workspace-marks.ts'
 import { installOrcaLightVisibility } from './work-light.ts'
 import { installOrcaBootError } from './boot-error.ts'
 import css from './orca-link.module.css'
@@ -131,6 +132,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => installOrcaBootError(), 'ui-skin-orca-link: boot failure presentation')
   ctx.effect(() => installOrcaPageIcons(), 'ui-skin-orca-link: page icons')
   ctx.effect(() => installOrcaWindowsMenu(body), 'ui-skin-orca-link: windows caption menubar')
+  ctx.effect(() => installOrcaWorkspaceMarks(body), 'ui-skin-orca-link: workspace group tags')
   const originalTitle = document.title
   const originalLightHeroArt = body.style.getPropertyValue(LIGHT_HERO_ART_PROPERTY)
   const originalLightActiveArt = body.style.getPropertyValue(LIGHT_ACTIVE_ART_PROPERTY)

@@ -9,25 +9,28 @@ const css = readFileSync(
 // The `main` outlet renders the conversation inside the host's own
 // `main.conversation` slot, or a keyed panel page as its direct child. That
 // split is the one seat test every panel-page rule shares.
+// State the client projects from the `main` outlet; every panel-page rule is gated on it, so a
+// whole-subtree `*` rule is fast-rejected by the ancestor filter while no panel page is open.
+const GATE = 'body[data-dsh-orca-link][data-orca-panel-page]'
 const PAGE = "[data-slot='main'] > :not([data-slot='main.conversation'])"
-const COLUMN = `[class*='centerCol']:has(> [data-slot='main'] > :not([data-slot='main.conversation']))`
+const COLUMN = "[class*='centerCol']"
 const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const block = (selector: string): string =>
   css.match(new RegExp(`${escape(selector)}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
 
 describe('ORCA panel pages', () => {
   it('reads on one frosted sheet hung on the column, in both themes', () => {
-    const sheet = block(`body[data-dsh-orca-link]\n  ${COLUMN}::before`)
+    const sheet = block(`${GATE}\n  ${COLUMN}::before`)
     expect(sheet).toContain('background: var(--orca-reading-surface)')
     expect(sheet).toMatch(/backdrop-filter: blur\(\d+px\)/)
     expect(sheet).toContain('pointer-events: none')
-    expect(block(`body[data-dsh-orca-link]\n  ${COLUMN}`)).toContain('position: relative')
+    expect(block(`${GATE}\n  ${COLUMN}`)).toContain('position: relative')
     expect(css).toMatch(/--orca-reading-surface: rgba\(251, 247, 239, [\d.]+\);/)
     expect(css).toMatch(/\[data-ds-dark-theme\] \{[\s\S]*?--orca-reading-surface: rgba\(14, 20, 30, [\d.]+\);/)
   })
 
   it('keeps the filter off the page root and lifts it above the sheet', () => {
-    const root = block(`body[data-dsh-orca-link] ${PAGE}`)
+    const root = block(`${GATE} ${PAGE}`)
     expect(root).toContain('position: relative')
     expect(root).toContain('z-index: 2')
     expect(root).toContain('--dsw-alias-bg-base: var(--orca-surface)')
@@ -39,12 +42,32 @@ describe('ORCA panel pages', () => {
       new RegExp(`(body\\[data-dsh-orca-link\\] \\[data-tone\\],[\\s\\S]*?)\\{\\s*border-radius: 0 !important;`),
     )?.[1] ?? ''
     for (const selector of [PAGE, `${PAGE} *`, `${PAGE} *::before`, `${PAGE} *::after`]) {
-      expect(rule).toContain(`body[data-dsh-orca-link] ${selector}`)
+      expect(rule).toContain(`${GATE} ${selector}`)
     }
   })
 
   it('does not scan the transcript to tell a panel page from the conversation', () => {
     expect(css).not.toMatch(/:not\(:has\(\[data-phase\]\)\)/)
+    expect(css).not.toContain(":has(> [data-slot='main'] >")
+  })
+
+  it('gates every whole-subtree rule on state that exists only while it applies', () => {
+    // A rule whose rightmost compound is `*` is evaluated on every element in the
+    // document; Chromium's ancestor filter rejects it in one step only when an
+    // ancestor compound names an attribute that is absent. Measured over six
+    // right-panel toggles on a 4000-row page: 155ms ungated, 6.6ms gated.
+    const ungated = css.match(
+      /^body\[data-dsh-orca-link\](?!\[data-orca-panel-page\])\s+\[data-slot='main'\] > :not\(\[data-slot='main\.conversation'\]\) \*/m,
+    )
+    expect(ungated).toBeNull()
+    const settings = css.match(/^body\[data-dsh-orca-link\](\[[^\]]+\])? :is\(\[data-slot='sidebar\.settings'\] \[role='dialog'\], \[role='dialog'\]\[data-shortcut-modal='settings'\]\) \*/gm) ?? []
+    expect(settings.length).toBeGreaterThanOrEqual(3)
+    for (const selector of settings) expect(selector).toContain('[data-orca-settings-open]')
+  })
+
+  it('styles ::selection on the body so it inherits, not on every element', () => {
+    expect(css).toContain('body[data-dsh-orca-link]::selection {')
+    expect(css).not.toContain('body[data-dsh-orca-link] ::selection')
   })
 
   it('leaves the plugin manager without an opaque floor of its own', () => {
@@ -54,7 +77,7 @@ describe('ORCA panel pages', () => {
   })
 
   it('keeps disabled controls readable on the sheet', () => {
-    const disabled = block(`body[data-dsh-orca-link]\n  ${PAGE}\n  :where(button, [role='button']):disabled`)
+    const disabled = block(`${GATE}\n  ${PAGE}\n  :where(button, [role='button']):disabled`)
     expect(disabled).toContain('opacity: 0.55')
   })
 })
@@ -77,6 +100,16 @@ describe('ORCA right panel', () => {
     expect(sheet).toContain('background: var(--orca-reading-surface)')
     expect(sheet).toMatch(/backdrop-filter: blur\(\d+px\)/)
     expect(sheet).toContain('border-radius: 0 !important')
+  })
+
+  it('slides the panel without a per-frame backdrop blur and eases the blur in once settled', () => {
+    const settled = block(`${RIGHT}${NOT_FULLSCREEN}
+  ${DOCK}`)
+    expect(settled).toContain('transition: backdrop-filter 120ms ease-out')
+    const sliding = block(`body[data-dsh-orca-link] [data-animating] [data-sidebar-right-panel]${NOT_FULLSCREEN}
+  ${DOCK}`)
+    expect(sliding).toContain('backdrop-filter: none')
+    expect(sliding).toContain('transition: none')
   })
 
   it('keeps an opaque floor for fullscreen and floating panels', () => {
