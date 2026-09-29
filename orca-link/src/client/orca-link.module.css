@@ -348,11 +348,10 @@ body[data-dsh-orca-link] [data-slot='conversation.session.header.utilities']
 
 /* Reading panes need their own opaque floor: the page's translucent base
    intentionally reveals the scene and is unsuitable for fullscreen content.
-   The floor follows the open state only. Since DSH 0.1.7 the panel container
-   stays mounted and visible while collapsed — only the docked items inside it
-   slide out — so an opaque container would paint a full-height band over the
-   conversation's right edge. DSH 0.1.6 hid the whole container, which is why
-   the unconditional rule used to be invisible. */
+   The floor follows the open state only. The panel container stays mounted
+   and visible while collapsed — only the docked items inside it slide out —
+   so an opaque container would paint a full-height band over the
+   conversation's right edge. */
 body[data-dsh-orca-link] [data-sidebar-right-panel][data-sidebar-right-open],
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
   background: var(--dsw-input-solid);
@@ -382,7 +381,7 @@ body[data-dsh-orca-link] [data-dockkit-tab-menu] {
   box-shadow: var(--orca-shadow);
 }
 
-/* The 0.1.6 plugin manager is one of those reading panes: a keyed `main` panel
+/* The plugin manager is one of those reading panes: a keyed `main` panel
    that replaces the conversation in the centre column with dense card and
    detail copy. Same floor, from the same token, so the scene never fights the
    management text for readability. */
@@ -456,19 +455,6 @@ body[data-dsh-orca-link] [data-dsh-better-sidebar] [class$='_terminal'] {
   overflow: clip;
 }
 
-/* Produced-file summaries synchronously measure their chips after resize.
-   Freeze each row at its own current width during AppFrame track motion; keep
-   the custom property on the row so invalidation cannot fan out from a shared
-   ancestor into the entire conversation subtree. */
-body[data-dsh-orca-link]
-  [data-produced-files-row][data-orca-responsive-width-locked] {
-  box-sizing: border-box;
-  flex: 0 0 var(--orca-responsive-locked-width) !important;
-  width: var(--orca-responsive-locked-width) !important;
-  min-width: var(--orca-responsive-locked-width) !important;
-  max-width: var(--orca-responsive-locked-width) !important;
-}
-
 body[data-dsh-orca-link] [data-orca-terminal-width-locked] {
   box-sizing: border-box;
   width: var(--orca-terminal-locked-width) !important;
@@ -476,19 +462,6 @@ body[data-dsh-orca-link] [data-orca-terminal-width-locked] {
   max-width: var(--orca-terminal-locked-width) !important;
   align-self: flex-start;
   overflow: clip;
-}
-
-/* Produced-file summaries synchronously measure their chips after resize.
-   Freeze each row at its own current width during AppFrame track motion; keep
-   the custom property on the row so invalidation cannot fan out from a shared
-   ancestor into the entire conversation subtree. */
-body[data-dsh-orca-link]
-  [data-produced-files-row][data-orca-responsive-width-locked] {
-  box-sizing: border-box;
-  flex: 0 0 var(--orca-responsive-locked-width) !important;
-  width: var(--orca-responsive-locked-width) !important;
-  min-width: var(--orca-responsive-locked-width) !important;
-  max-width: var(--orca-responsive-locked-width) !important;
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme] {
@@ -806,7 +779,6 @@ body[data-dsh-orca-link][data-orca-settings-in-sidebar]
 /* Full-screen settings owns the complete viewport. Host window toggles and
    ORCA's body-level telemetry are unrelated chrome, so remove them from both
    painting and hit testing until the dialog closes. */
-body[data-dsh-orca-link][data-orca-settings-open] [class*='toggleCluster'],
 body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .standby, .statusCharacter, .pricingLight) {
   opacity: 0;
   visibility: hidden;
@@ -1432,7 +1404,7 @@ body[data-dsh-orca-link]
   padding: 7px 8px 5px;
   border-bottom: 1px solid color-mix(in srgb, var(--orca-graphite) 16%, transparent);
   background: #fbf7ef;
-  color: var(--orca-graphite-soft);
+  color: var(--orca-muted);
   font: 600 10px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace;
   letter-spacing: 0.08em;
 }
@@ -1524,8 +1496,8 @@ body[data-dsh-orca-link]
 }
 
 /* Replace the production shell wordmark while preserving its new-session button.
-   rc8 nests the official mark and name inside slot divs below the brand button,
-   so the hide rules match both the flat rc7 shape and the nested rc8 shape. */
+   The official mark and name sit inside slot divs below the brand button; the
+   flat `> svg` rule also covers a mark rendered directly under it. */
 body[data-dsh-orca-link] [data-orca-link-brand] > svg,
 body[data-dsh-orca-link] [data-orca-link-brand] [data-slot='sidebar.brand.mark'] svg {
   display: none;
@@ -1668,7 +1640,7 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
    below: that takeover hides every child of a matching button, and a plugin
    row that copies the host's own button class is exactly the case it reaches.
 
-   0.1.6 adds a third row of the same shape: the official global panel list
+   The shell has a third row of the same shape: the official global panel list
    (`nav.panelList`, the Plugins entry) sits between New Session and the
    browsing region, so every injected row now inherits a flow anchor 44px
    lower. It is an official row rather than an injected one, but it lands in
@@ -3128,10 +3100,6 @@ body[data-dsh-orca-link] [data-phase='hero'] [class*='previewBadge'] {
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
   font-size: 9px; letter-spacing: 0.22em;
 }
-body[data-dsh-orca-link] [data-phase='hero'] [class*='heroGlow'] ellipse {
-  fill: var(--orca-blue);
-  fill-opacity: 0.06;
-}
 
 /* Hero and active phases share one signature terminal: squared corners, a
    stronger frame, and mechanical side arms bracketing the card. */
@@ -3603,14 +3571,6 @@ body[data-dsh-orca-link] {
   72%  { transform: translate(-0.018px, -0.062px) scaleX(var(--orca-character-mirror)); }
   86%  { transform: translate(0.090px, 0.034px) scaleX(var(--orca-character-mirror)); }
   100% { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
-}
-
-@keyframes orcaFilmGrainShift {
-  0%   { transform: translate(-7%, -8%) rotate(0.01deg); }
-  25%  { transform: translate(5%, -3%) rotate(-0.02deg); }
-  50%  { transform: translate(-3%, 7%) rotate(0.02deg); }
-  75%  { transform: translate(8%, 3%) rotate(-0.01deg); }
-  100% { transform: translate(-7%, -8%) rotate(0.01deg); }
 }
 
 /* The semantic handles are siblings of the conversation scrollport inside the

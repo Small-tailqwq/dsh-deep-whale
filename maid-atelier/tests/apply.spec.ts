@@ -2100,7 +2100,6 @@ describe('Maid Atelier skin apply', () => {
     )?.[1] ?? ''
     expect(headingRule).toContain('color: #d9bd83')
     expect(searchRule).toContain('border: 1px solid rgba(225, 191, 124, 0.72)')
-    expect(searchRule).toContain('--dsh-search-input-fill: transparent')
     expect(searchRule).toContain('margin: 0 2px')
     expect(expandedHeaderRule).toContain('height: 46px')
     expect(expandedHeaderRule).toContain('overflow: visible')

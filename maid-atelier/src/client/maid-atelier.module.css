@@ -563,12 +563,6 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-s
   box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
 }
 
-body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header
-  [class*='reroll']:not(:where([role='dialog'] *, [role='menu'] *, [data-radix-popper-content-wrapper] *)) {
-  border-color: rgba(225, 191, 124, 0.55);
-  background: rgba(255, 252, 243, 0.08);
-}
-
 /* Pane surfaces. Class-substring fallbacks support the current product build;
    data-pane hooks support the forward-facing skin facade. */
 body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) {
@@ -731,12 +725,12 @@ body[data-dsh-maid-atelier] :is([data-pane='conversation'], [class*='centerCol']
   background: transparent;
 }
 
-body[data-dsh-maid-atelier] :is([data-pane='details'], [class*='detailsCol']) {
+body[data-dsh-maid-atelier] [data-pane='details'] {
   background: rgba(242, 246, 253, 0.82);
   border-left-color: rgba(197, 164, 104, 0.52);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-pane='details'], [class*='detailsCol']) {
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-pane='details'] {
   background: rgba(11, 23, 55, 0.9);
 }
 
@@ -1529,7 +1523,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-sidebar-right-panel] :is([
   --dsw-alias-bg-base: #182850;
 }
 
-/* DSH 0.1.6 mounts the plugin manager as a keyed `main` panel: it REPLACES the
+/* The plugin manager mounts as a keyed `main` panel: it REPLACES the
    conversation inside the chat column, so it carries none of the `[data-phase]`
    hooks the row lift relies on. It used to bring its own reading floor
    (`rgba(242, 246, 253, .94)`) and its own `z-index: 2` lift; the seat-level
@@ -1730,7 +1724,7 @@ body[data-dsh-maid-atelier] [class*='sectionHeader'] [class*='iconButton'] svg {
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.68));
 }
 
-/* RC6 centers the expanded 42px search capsule inside a 36px clipped header.
+/* The host centers the expanded 42px search capsule inside a 36px clipped header.
    Give the expanded row its own height so the porcelain rim remains intact. */
 body[data-dsh-maid-atelier]
   :is([data-pane='sidebar'], [class*='sidebarCol'])
@@ -1740,7 +1734,6 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier] :is([data-pane='sidebar'], [class*='sidebarCol']) [class*='search'][class*='searchExpanded']:has(> input[class*='searchInput']) {
-  --dsh-search-input-fill: transparent;
   height: 42px;
   margin: 0 2px;
   padding-inline: 14px;
@@ -2871,7 +2864,7 @@ body[data-dsh-maid-atelier]
 
 body[data-dsh-maid-atelier]
   [data-maid-session-row]:not([data-maid-session-flat])[aria-selected='true']
-  > :is([class*='title'], [class*='time'], [class*='rowActions'], [class*='pinIndicator'], [class*='scheduleIndicator']) {
+  > :is([class*='title'], [class*='time'], [class*='rowActions'], [class*='pinIndicator']) {
   position: relative;
   z-index: 2;
 }
@@ -3034,7 +3027,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   transform: none !important;
 }
 
-/* 0.1.5-alpha.1 moved the title text and the preview badge into one
+/* The title text and the preview badge share one
    `.titleGroup` flex unit (HeroShell). Unwrap it inside the hero grid so the
    text keeps the centred middle column and the badge returns to the trailing
    column; the grid's column gap replaces the host's flex gap. The unit itself
