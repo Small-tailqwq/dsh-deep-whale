@@ -15,6 +15,10 @@ body[data-dsh-maid-atelier] {
   --maid-gold-soft: #e2cfaa;
   --maid-ink: #172347;
   --maid-glass: rgba(248, 250, 255, 0.68);
+  /* The frosted sheet every non-conversation `main` page reads on. Opaque
+     enough to hold small type (a 40%-opacity disabled label still clears
+     ~2.6:1), transparent enough that the palace stays a backdrop. */
+  --maid-reading-surface: rgba(249, 251, 255, 0.78);
   --maid-shadow: 0 18px 54px rgba(15, 30, 72, 0.2), 0 2px 8px rgba(15, 30, 72, 0.12);
 
   --dsw-alias-bg-base: transparent;
@@ -55,6 +59,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] {
   color: #e5eaf6;
   background-color: #080f27;
   --maid-glass: rgba(13, 25, 59, 0.74);
+  --maid-reading-surface: rgba(10, 18, 42, 0.78);
   --maid-shadow: 0 18px 58px rgba(0, 0, 0, 0.38), 0 2px 10px rgba(0, 0, 0, 0.3);
   --dsw-alias-bg-base: transparent;
   --dsw-alias-bg-layer-1: rgba(18, 31, 67, 0.9);
@@ -440,6 +445,27 @@ body[data-dsh-maid-atelier] [data-skin-chrome='bottom-trim']::after {
   transform: translateX(-50%);
   background: var(--maid-bottom-crest-art) center / contain no-repeat;
   filter: drop-shadow(0 3px 6px rgba(4, 11, 35, 0.34));
+}
+
+/* Both curtains belong to the conversation view. On a panel page they cut
+   across the plugin's own page head, its icons and its footer, and the page
+   cannot reserve room for chrome it does not know about, so they retract —
+   with the motion that already exists: the top band's two layers slide out
+   through their own 520ms transition (bow included, it rides the landing
+   layer's pseudo-element), the bottom band drops and fades with the same pair
+   `[data-maid-conversation-active]` uses. The seat test is the one the reading
+   sheet uses, so a page is "art-free" for exactly one reason everywhere. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='conversation'], [class*='centerCol']):not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+  > [data-skin-chrome='top-trim'] [data-skin-trim-layer] {
+  transform: translateY(-100%);
+}
+
+body[data-dsh-maid-atelier]
+  :is([data-pane='conversation'], [class*='centerCol']):not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+  > [data-skin-chrome='bottom-trim'] {
+  transform: translateY(100%);
+  opacity: 0;
 }
 
 /* pointer-events does not affect painting order. Keep the semantic workspace
@@ -1505,21 +1531,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-sidebar-right-panel] :is([
 
 /* DSH 0.1.6 mounts the plugin manager as a keyed `main` panel: it REPLACES the
    conversation inside the chat column, so it carries none of the `[data-phase]`
-   hooks the row lift above relies on. Its root is a static box, and a static
-   in-flow block paints BELOW both decorated layers the skin seats in that
-   column — the absolutely positioned character stage (z 0) and the top curtain
-   (z 1) — so the page header, the group headings and the whole second-level
-   detail page were hidden behind the palace art, and whatever did show sat
-   under the 48/76px trim band. Lifting the root to z 2 clears both and keeps
-   the band off a management page; the reading floor and the darker label pair
-   keep the dense copy off the artwork, the same treatment the details column
-   already gets. The panel root owns the scrollport, so the floor covers the
-   full column at any scroll offset. Host overlays (Modal, Toast, Menu) portal
-   to body, so the new stacking context traps nothing. */
+   hooks the row lift relies on. It used to bring its own reading floor
+   (`rgba(242, 246, 253, .94)`) and its own `z-index: 2` lift; the seat-level
+   sheet below now owns both for every panel page, and an opaque second floor
+   would only cover that sheet again. This hook keeps what the sheet does not
+   decide: a darker tertiary/caption pair for the dense card and detail copy. */
 body[data-dsh-maid-atelier] [data-plugin-panel] {
-  position: relative;
-  z-index: 2;
-  background: rgba(242, 246, 253, 0.94);
   --dsw-alias-label-primary: #172347;
   --dsw-alias-label-secondary: #4d5d7f;
   --dsw-alias-label-tertiary: #52658c;
@@ -1527,11 +1544,70 @@ body[data-dsh-maid-atelier] [data-plugin-panel] {
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-plugin-panel] {
-  background: rgba(11, 23, 55, 0.94);
   --dsw-alias-label-primary: #e7ecf7;
   --dsw-alias-label-secondary: #bdc9e3;
   --dsw-alias-label-tertiary: #96a6c9;
   --dsw-alias-label-caption: #8b9bbd;
+}
+
+/* The `main` seat renders either the conversation (the skin's stage) or a
+   global panel page — the plugin manager, a conversation manager, whatever the
+   next plugin ships — and both arrive through the one `[data-slot='main']`
+   outlet the host draws with `display: contents`. Stock gives that seat the
+   column's `--dsw-alias-bg-base` as its reading floor; this skin trades that
+   token away so the palace shows through, which left every panel page sitting
+   directly on the artwork: card fills resolved to transparent, and small or
+   toned-down labels lost the contrast they were designed against. Restoring
+   the floor per plugin only covers the plugins someone has already met, so the
+   sheet is keyed on the seat: an art-free page is one without the two hooks the
+   conversation alone owns — `[data-phase]` on the transcript root and the
+   `[data-slot='conversation.*']` seats inside it.
+
+   The sheet hangs on the column, not on the page root. Switching between two
+   keyed panels replaces the root element; a `backdrop-filter` sheet recreated
+   with it re-samples its whole backdrop on every switch, and a panel whose
+   first paint is a short loading line stretches it from a strip to the full
+   column. The column, the artwork and the trims stay put across such a switch,
+   so the sheet does too. Painting it with the column's `::before` also keeps
+   the filter off every content ancestor: a filtered ancestor becomes the
+   containing block of any `position: fixed` overlay a plugin draws inside its
+   own page.
+
+   Tiers: the sheet sits at 1 — above the character stage (0) and below the page
+   root (2, next rule) — while the top and bottom trims (1, appended to the
+   column after this pseudo-element) keep drawing over it. A panel that brings
+   its own opaque floor now simply covers the sheet instead of being painted
+   over by it. Host overlays portal to body and keep their own tier. */
+body[data-dsh-maid-atelier]
+  :is([data-pane='conversation'], [class*='centerCol']):not(:has([data-phase])):not(:has([data-slot^='conversation.']))::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--maid-reading-surface);
+  backdrop-filter: blur(16px) saturate(0.95);
+  pointer-events: none;
+}
+
+/* The page root only lifts; it must not carry the filter. `z-index: 2` clears
+   the stage (0), the sheet (1) and the trims (1), and the stacking context
+   traps nothing because host overlays portal to body. */
+body[data-dsh-maid-atelier]
+  [data-slot='main']
+  > *:not(:has([data-phase])):not(:has([data-slot^='conversation.'])) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Host primitives spend `disabled` as a 40% opacity budget, priced against the
+   opaque floor the skin gave up. On the sheet a 12px label lands near 2.6:1;
+   a third more opacity keeps the state readable while still reading as
+   disabled. `:where()` keeps the host and plugin rules able to outrank it. */
+body[data-dsh-maid-atelier]
+  [data-slot='main']
+  > *:not(:has([data-phase])):not(:has([data-slot^='conversation.']))
+  :where(button, [role='button']):disabled {
+  opacity: 0.55;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-cordis-row] {

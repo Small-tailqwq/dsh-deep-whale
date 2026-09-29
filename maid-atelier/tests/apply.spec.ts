@@ -36,6 +36,26 @@ function flatCssRules(css: string): Array<{ selector: string, body: string }> {
     .filter((rule) => !rule.selector.startsWith('@'))
 }
 
+/**
+ * Declarations of every flat rule whose selector matches `target` in the given
+ * theme. Pseudo-element rules match on their originating element, so a sheet
+ * painted by `::before` can be asserted through the element that owns it.
+ */
+function declarations(target: HTMLElement, dark: boolean): string {
+  document.body.toggleAttribute('data-ds-dark-theme', dark)
+  return flatCssRules(CSS)
+    .filter((rule) => rule.selector.startsWith('body[data-dsh-maid-atelier]'))
+    .filter((rule) => {
+      try {
+        return target.matches(rule.selector.replace(/::(before|after)\b/g, ''))
+      } catch {
+        return false
+      }
+    })
+    .map((rule) => rule.body)
+    .join('\n')
+}
+
 /** The stylesheet without its `prefers-reduced-motion` override blocks. */
 function withoutReducedMotion(css: string): string {
   let rest = css
@@ -2822,15 +2842,17 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.style.getPropertyValue('--maid-palace-art')).toBe(light)
   })
 
-  it('lifts the 0.1.6 plugin manager panel above the character stage', () => {
+  it('lifts every non-conversation main panel onto the column sheet', () => {
     // The plugin manager is a keyed `main` panel: it replaces the conversation
     // inside the chat column, so it carries none of the `[data-phase]` hooks the
     // stage lift relies on, and its static content painted UNDER the skin's two
     // decorated layers in that column (page header, group headings and the whole
     // second-level page were invisible; what did show sat under the trim band).
-    // Every rule that reaches the panel root is collected from the stylesheet
-    // and matched against this fixture, so an equivalent rewrite still has to
-    // declare the lift above both layers and the reading floor.
+    // Panels now take both the lift and the frosted sheet from the seat itself,
+    // so these rules are collected by matching their selectors against a fixture
+    // instead of reading source text: an equivalent rewrite still has to lift
+    // above both layers, keep the sheet on the column, keep it off the
+    // conversation, and keep the darker label pair for dense card copy.
     document.body.setAttribute('data-dsh-maid-atelier', '')
     document.body.innerHTML = `
       <div class="fixture_centerCol">
@@ -2845,31 +2867,68 @@ describe('Maid Atelier skin apply', () => {
       </div>
     `
     const panel = document.querySelector<HTMLElement>('[data-plugin-panel]')!
-    const declarations = (dark: boolean): string => {
-      document.body.toggleAttribute('data-ds-dark-theme', dark)
-      return flatCssRules(CSS)
-        .filter((rule) => rule.selector.startsWith('body[data-dsh-maid-atelier]'))
-        .filter((rule) => {
-          try {
-            return panel.matches(rule.selector)
-          } catch {
-            return false
-          }
-        })
-        .map((rule) => rule.body)
-        .join('\n')
-    }
-    const light = declarations(false)
-    expect(light).toContain('position: relative;')
-    // Above the character stage (z 0) and the top curtain (z 1), below the
-    // skin's interactive tiers (21 / 40 / 1000).
-    expect(light).toContain('z-index: 2;')
-    expect(light).toContain('background: rgba(242, 246, 253, 0.94);')
-    expect(light).toContain('--dsw-alias-label-tertiary: #52658c;')
-    const dark = declarations(true)
-    expect(dark).toContain('background: rgba(11, 23, 55, 0.94);')
-    expect(dark).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    const column = document.querySelector<HTMLElement>('.fixture_centerCol')!
+    const pageLight = declarations(panel, false)
+    expect(pageLight).toContain('position: relative;')
+    // Above the character stage (z 0), the sheet (z 1) and the top curtain
+    // (z 1), below the skin's interactive tiers (21 / 40 / 1000).
+    expect(pageLight).toContain('z-index: 2;')
+    expect(pageLight).toContain('--dsw-alias-label-tertiary: #52658c;')
+    expect(declarations(panel, true)).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    // No panel brings its own floor any more: an opaque second floor would cover
+    // the sheet again and read as a plain white page.
+    expect(pageLight).not.toContain('background: rgba(242, 246, 253, 0.94);')
+    // The sheet hangs on the column, so it survives a keyed-panel switch (the
+    // page root is replaced, the column is not) and stays under the content.
+    const sheetLight = declarations(column, false)
+    expect(sheetLight).toContain('background: var(--maid-reading-surface);')
+    expect(sheetLight).toContain('backdrop-filter: blur(16px) saturate(0.95);')
+    expect(sheetLight).toContain('z-index: 1;')
+    expect(declarations(document.body, false)).toContain('--maid-reading-surface: rgba(249, 251, 255, 0.78);')
+    expect(declarations(document.body, true)).toContain('--maid-reading-surface: rgba(10, 18, 42, 0.78);')
+    // The conversation keeps the artwork to itself: the same column stops
+    // matching the sheet as soon as the seat holds the transcript hooks.
+    document.querySelector('[data-slot="main"]')!.innerHTML =
+      '<div data-phase="active"><header data-slot="conversation.header"></header></div>'
+    expect(declarations(column, false)).not.toContain('--maid-reading-surface')
     document.body.removeAttribute('data-ds-dark-theme')
+    document.body.removeAttribute('data-dsh-maid-atelier')
+    document.body.innerHTML = ''
+  })
+
+  it('retracts both curtains on a panel page with their own motion', () => {
+    // The curtains frame the conversation. A plugin page owns the top and the
+    // bottom of the column itself — its page head, its icons, its footer — so
+    // the skin cannot reserve room for chrome it was not told about; it retracts
+    // the bands instead, sliding the top layer out through the transform
+    // transition it already owns and dropping the bottom band with the
+    // transform/opacity pair a running turn already uses.
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div class="fixture_centerCol">
+        <div data-skin-chrome="character-stage"></div>
+        <div data-slot="main" style="display: contents">
+          <section class="fixture_page" data-plugin-panel></section>
+        </div>
+        <div data-skin-chrome="top-trim">
+          <div data-skin-trim-layer="landing"></div>
+          <div data-skin-trim-layer="workspace"></div>
+        </div>
+        <div data-skin-chrome="bottom-trim"></div>
+      </div>
+    `
+    const landing = document.querySelector<HTMLElement>('[data-skin-trim-layer="landing"]')!
+    const bottom = document.querySelector<HTMLElement>('[data-skin-chrome="bottom-trim"]')!
+    // translateY(0) is the resting state, so the retraction is observable here.
+    expect(declarations(landing, false)).toContain('transform: translateY(-100%);')
+    const band = declarations(bottom, false)
+    expect(band).toContain('transform: translateY(100%);')
+    expect(band).toContain('opacity: 0;')
+    // A conversation keeps its frame: the same column stops matching once the
+    // seat holds the transcript hooks.
+    document.querySelector('[data-slot="main"]')!.innerHTML = '<div data-phase="active"></div>'
+    expect(declarations(landing, false)).not.toContain('transform: translateY(-100%);')
+    expect(declarations(bottom, false)).not.toContain('transform: translateY(100%);')
     document.body.removeAttribute('data-dsh-maid-atelier')
     document.body.innerHTML = ''
   })
