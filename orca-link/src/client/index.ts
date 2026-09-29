@@ -21,6 +21,7 @@ import { installOrcaSettingsOverlay } from './settings-overlay.ts'
 import { installOrcaStatusCharacter } from './status-character.ts'
 import { installOrcaTerminalPerformance } from './terminal-performance.ts'
 import { installOrcaWindowResume } from './window-resume.ts'
+import { releaseClaimedStyles } from './release-claimed-styles.ts'
 import { installOrcaWindowsMenu } from './windows-menu.ts'
 import { installOrcaLightVisibility } from './work-light.ts'
 import { installOrcaBootError } from './boot-error.ts'
@@ -123,6 +124,9 @@ function syncSidebarWidth(body: HTMLElement, pane: Element, dragging: boolean): 
 export function apply(ctx: Context): void {
   const body = document.body
   ctx.effect(() => installOrcaCustomization(), 'ui-skin-orca-link: customization declaration')
+  // The loader claims untagged <style> tags for whichever plugin loads last and
+  // sweeps them when it unloads; hand other plugins' tags back before that.
+  ctx.effect(() => () => releaseClaimedStyles(), 'ui-skin-orca-link: release styles claimed by the loader')
   ctx.effect(() => installOrcaLightVisibility(body), 'ui-skin-orca-link: decorative light visibility')
   ctx.effect(() => installOrcaBootError(), 'ui-skin-orca-link: boot failure presentation')
   ctx.effect(() => installOrcaPageIcons(), 'ui-skin-orca-link: page icons')
