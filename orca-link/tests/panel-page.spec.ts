@@ -58,3 +58,36 @@ describe('ORCA panel pages', () => {
     expect(disabled).toContain('opacity: 0.55')
   })
 })
+
+describe('ORCA right panel', () => {
+  const RIGHT = 'body[data-dsh-orca-link] [data-sidebar-right-panel]'
+  const DOCK = ":is([data-dockkit-host='dock'], [data-dockkit-empty])"
+  const NOT_FULLSCREEN = ":not([data-sidebar-right-panel='fullscreen'])"
+
+  it('paints no floor on the panel box, which the host leaves untransformed', () => {
+    const box = block(RIGHT)
+    expect(box).toContain('color: var(--orca-ink)')
+    expect(box).not.toContain('background')
+    // The old rule that painted the box while it was open must be gone.
+    expect(css).not.toContain('[data-sidebar-right-panel][data-sidebar-right-open]')
+  })
+
+  it('hangs the frosted sheet on the sliding docked items so it travels with them', () => {
+    const sheet = block(`${RIGHT}${NOT_FULLSCREEN}\n  ${DOCK}`)
+    expect(sheet).toContain('background: var(--orca-reading-surface)')
+    expect(sheet).toMatch(/backdrop-filter: blur\(\d+px\)/)
+    expect(sheet).toContain('border-radius: 0 !important')
+  })
+
+  it('keeps an opaque floor for fullscreen and floating panels', () => {
+    const solid = block(
+      `body[data-dsh-orca-link] [data-sidebar-right-panel='fullscreen']\n  ${DOCK},\n${RIGHT} [data-dockkit-float]`,
+    )
+    expect(solid).toContain('background: var(--dsw-input-solid)')
+  })
+
+  it('tints the tab strip over whatever floor is behind it instead of painting its own', () => {
+    const strip = block(`${RIGHT} [data-dockkit-strip],\n${RIGHT} [data-dockkit-float-grip]`)
+    expect(strip).toContain('color-mix(in srgb, var(--orca-blue) 5%, transparent)')
+  })
+})

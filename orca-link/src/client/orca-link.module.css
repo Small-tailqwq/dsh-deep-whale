@@ -363,16 +363,34 @@ body[data-dsh-orca-link] [data-slot='conversation.session.header.utilities']
   background: var(--orca-surface-strong);
 }
 
-/* Reading panes need their own opaque floor: the page's translucent base
-   intentionally reveals the scene and is unsuitable for fullscreen content.
-   The floor follows the open state only. The panel container stays mounted
-   and visible while collapsed — only the docked items inside it slide out —
-   so an opaque container would paint a full-height band over the
-   conversation's right edge. */
-body[data-dsh-orca-link] [data-sidebar-right-panel][data-sidebar-right-open],
+/* The right panel reads on the same frosted sheet as every other panel page.
+   The host draws no background on the panel box (`.panel`, a fixed-width layer
+   anchored to the frame's right edge that stays mounted while collapsed);
+   only the docked items inside it slide, on a 0.3s transform. The skin used to
+   paint an opaque floor on the box itself, which appeared and vanished at once
+   while the content slid — a slab popping in ahead of its own contents, and a
+   full-height band that hid the scene. The sheet hangs on the sliding items, so
+   it travels with them on the host's clock, and the scene stays visible behind
+   it. Floating panels escape the dock and have nothing behind them to slide
+   over, so they keep an opaque floor, and so does fullscreen, which covers the
+   whole frame. */
+body[data-dsh-orca-link] [data-sidebar-right-panel] {
+  color: var(--orca-ink);
+  border-color: var(--orca-line);
+}
+
+body[data-dsh-orca-link] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
+  :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
+  background: var(--orca-reading-surface);
+  backdrop-filter: blur(6px) saturate(0.95);
+  border-color: var(--orca-line);
+  border-radius: 0 !important;
+}
+
+body[data-dsh-orca-link] [data-sidebar-right-panel='fullscreen']
+  :is([data-dockkit-host='dock'], [data-dockkit-empty]),
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
   background: var(--dsw-input-solid);
-  color: var(--orca-ink);
   border-color: var(--orca-line);
   border-radius: 0 !important;
 }
@@ -383,7 +401,7 @@ body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
 
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-strip],
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float-grip] {
-  background: color-mix(in srgb, var(--orca-blue) 5%, var(--dsw-input-solid));
+  background: color-mix(in srgb, var(--orca-blue) 5%, transparent);
   border-bottom-color: var(--orca-line);
 }
 
