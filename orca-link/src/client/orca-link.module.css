@@ -2696,11 +2696,18 @@ body[data-dsh-orca-link] [data-question-key] :has(> input:focus) {
     inset 0 0 0 1px var(--orca-question-focus-wash);
 }
 
-body[data-dsh-orca-link] [data-question-key] textarea:focus {
+/* Inline answers keep the host's zero padding: `.field` shares one grid cell
+   between the mirror and the textarea, so text starts at the row's inner edge.
+   A bar drawn on the textarea itself therefore covers the first glyph. Draw it
+   on the row/block chrome instead — their own padding holds the indicator. */
+body[data-dsh-orca-link] [data-question-key] :is([class*='_customRow'], [class*='_customBlock']):focus-within {
   border-color: var(--orca-question-focus);
   box-shadow:
     inset 3px 0 0 var(--orca-question-focus),
     inset 0 0 0 1px var(--orca-question-focus-wash);
+}
+
+body[data-dsh-orca-link] [data-question-key] textarea:focus {
   caret-color: var(--orca-question-focus);
 }
 
