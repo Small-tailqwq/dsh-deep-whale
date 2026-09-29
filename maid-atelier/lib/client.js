@@ -1911,6 +1911,32 @@ window.__ModuleLoader__.load({
 			return restore;
 		}
 		//#endregion
+		//#region src/client/release-claimed-styles.ts
+		/**
+		* Package name the client loader stamps on this skin's `<style>` tags. Kept
+		* beside the helper (and pinned to package.json by a test) because the loader
+		* gives a bundle no way to ask for its own id.
+		*/
+		const SKIN_PACKAGE_ID = "@smalltailqwq/dsh-client-ui-skin-maid-atelier";
+		/**
+		* Hand back the `<style>` tags the loader claimed for this skin by mistake.
+		*
+		* After any plugin's factory runs, the client loader stamps every `<style>`
+		* without a `data-plugin` with that plugin's id ("HMR bookkeeping"), and once
+		* the plugin's effects have cleaned up it deletes every tag carrying the id.
+		* A skin is reloaded or switched away far more often than any other plugin, so
+		* styles other plugins inject at runtime (CSS-in-JS rule tags, lazily loaded
+		* component sheets) get claimed by the skin and then deleted with it: the
+		* stats pills and the conversation manager page lose their styling until a
+		* refresh. The tags the bundle itself emitted carry `data-plugin-css`; anything
+		* else carrying this skin's id is somebody else's, so drop the stamp and the
+		* loader's sweep passes them by.
+		*/
+		function releaseClaimedStyles(doc = document, id = SKIN_PACKAGE_ID) {
+			const claimed = doc.querySelectorAll(`style[data-plugin=${JSON.stringify(id)}]:not([data-plugin-css])`);
+			for (const style of claimed) style.removeAttribute("data-plugin");
+		}
+		//#endregion
 		//#region src/client/index.ts
 		const SKIN_TITLE = "深海女仆工坊 · DeepSeek Harness";
 		const SKIN_OWNER = "maid-atelier";
@@ -2239,6 +2265,7 @@ window.__ModuleLoader__.load({
 		function apply(ctx) {
 			const body = document.body;
 			ctx.effect(() => installMaidCustomization(), "ui-skin-maid-atelier: customization declaration");
+			ctx.effect(() => () => releaseClaimedStyles(), "ui-skin-maid-atelier: release styles claimed by the loader");
 			ctx.effect(() => installMaidBootError(), "ui-skin-maid-atelier: boot failure presentation");
 			const originalTitle = document.title;
 			const layoutResizeLease = createBodyAttributeLease(body, "data-maid-layout-resizing");
