@@ -16,6 +16,10 @@ body[data-dsh-orca-link] {
   --orca-line: rgba(43, 55, 72, 0.14);
   --orca-surface: rgba(253, 250, 244, 0.78);
   --orca-surface-strong: rgba(255, 252, 246, 0.92);
+  /* The frosted sheet every non-conversation `main` page reads on: opaque
+     enough to hold small type, transparent enough that the scene stays a
+     backdrop. */
+  --orca-reading-surface: rgba(251, 247, 239, 0.66);
   --orca-shadow: 0 18px 55px rgba(27, 39, 58, 0.12), 0 2px 5px rgba(27, 39, 58, 0.1);
   /* ORCA z-index ladder. DSH's own layer contract is menu 100, Modal 1000,
      portal menu 1100, so every ORCA chrome value stays below 1000: official
@@ -309,13 +313,20 @@ body[data-dsh-orca-link] > [style*='--dsh-hover-preview-fade'] {
   border-radius: 0 !important;
 }
 
-/* Status tags (Tag's `data-tone`) are pills in the host; the Plugins page is
-   a management surface with no high-churn content, so it takes the same
-   whole-subtree rectilinear pass the settings dialog already has. */
+/* Status tags (Tag's `data-tone`) are pills in the host. A panel page — the
+   plugin manager, a conversation manager, whatever the next plugin ships — is
+   a management surface with no high-churn content, and plugin pages draw
+   their cards and rows from their own hard-coded radii (a 10px card no token
+   reaches), so it takes the same whole-subtree rectilinear pass the settings
+   dialog already has. The `main` outlet renders either the conversation, which
+   the host wraps in its own `main.conversation` slot, or a keyed panel page as
+   the outlet's direct child; that split is the seat test every panel-page rule
+   below shares, and it needs no `:has()` scan of the transcript. */
 body[data-dsh-orca-link] [data-tone],
-body[data-dsh-orca-link] [data-plugin-panel] *,
-body[data-dsh-orca-link] [data-plugin-panel] *::before,
-body[data-dsh-orca-link] [data-plugin-panel] *::after {
+body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']),
+body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) *,
+body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) *::before,
+body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) *::after {
   border-radius: 0 !important;
 }
 
@@ -383,11 +394,61 @@ body[data-dsh-orca-link] [data-dockkit-tab-menu] {
 
 /* The plugin manager is one of those reading panes: a keyed `main` panel
    that replaces the conversation in the centre column with dense card and
-   detail copy. Same floor, from the same token, so the scene never fights the
-   management text for readability. */
+   detail copy. It used to bring an opaque floor of its own, which read as a
+   plain page next to every other panel; the column-level sheet below now
+   owns the floor for all of them, and a second opaque one would only cover it. */
 body[data-dsh-orca-link] [data-plugin-panel] {
-  background: var(--dsw-input-solid);
   color: var(--orca-ink);
+}
+
+/* Panel pages read on one frosted sheet. Stock gives the `main` seat the
+   column's `--dsw-alias-bg-base` as its floor; this skin makes that token
+   nearly transparent so the scene shows through, which left every panel page
+   sitting directly on the artwork: card fills resolved to a 24% wash and the
+   character ran behind the text. Restoring the floor per plugin only covers
+   plugins someone has already met, so the sheet is keyed on the seat.
+
+   It hangs on the column, not on the page root. Switching between two keyed
+   panels replaces the root element; a `backdrop-filter` layer recreated with
+   it re-samples its backdrop on every switch, and a page whose first paint is a
+   short loading line stretches it from a strip to the full column. Painting it
+   with the column's `::before` also keeps the filter off every content
+   ancestor: a filtered ancestor becomes the containing block of any
+   `position: fixed` overlay a plugin draws inside its page. */
+body[data-dsh-orca-link]
+  [class*='centerCol']:has(> [data-slot='main'] > :not([data-slot='main.conversation'])) {
+  position: relative;
+}
+
+body[data-dsh-orca-link]
+  [class*='centerCol']:has(> [data-slot='main'] > :not([data-slot='main.conversation']))::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--orca-reading-surface);
+  backdrop-filter: blur(6px) saturate(0.95);
+  pointer-events: none;
+}
+
+/* The page root only lifts above the sheet; it must not carry the filter. Its
+   cards take the skin's own surface instead of the 24% base wash, so a row
+   still reads as a row on the sheet. Host overlays portal to body, so the new
+   stacking context traps nothing. */
+body[data-dsh-orca-link] [data-slot='main'] > :not([data-slot='main.conversation']) {
+  position: relative;
+  z-index: 2;
+  --dsw-alias-bg-base: var(--orca-surface);
+}
+
+/* Host primitives spend `disabled` as a 40% opacity budget, priced against the
+   opaque floor this skin gave up. On the sheet a 12px label lands near 2.6:1;
+   a third more opacity keeps the state readable while still reading as
+   disabled. `:where()` keeps host and plugin rules able to outrank it. */
+body[data-dsh-orca-link]
+  [data-slot='main'] > :not([data-slot='main.conversation'])
+  :where(button, [role='button']):disabled {
+  opacity: 0.55;
 }
 
 /* Process groups have their own disclosure title outside DisclosureRow. */
@@ -475,6 +536,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] {
   --orca-line: rgba(180, 199, 226, 0.16);
   --orca-surface: rgba(12, 17, 26, 0.82);
   --orca-surface-strong: rgba(15, 21, 31, 0.94);
+  --orca-reading-surface: rgba(14, 20, 30, 0.72);
   --orca-shadow: 0 18px 55px rgba(0, 0, 0, 0.42), 0 2px 5px rgba(0, 0, 0, 0.32);
   color: var(--orca-ink);
   background-color: #090d14;
