@@ -1,11 +1,17 @@
 import { MANUAL_HIDDEN_ATTRIBUTE } from './composer-collapse.ts'
-import { COMPOSER_SCROLL_HIDE_ATTRIBUTE, observeOrcaFeature, orcaFeatureEnabled } from './customization.ts'
+import {
+  COMPOSER_BOTTOM_ONLY_ATTRIBUTE,
+  COMPOSER_SCROLL_HIDE_ATTRIBUTE,
+  observeOrcaFeature,
+  orcaFeatureEnabled,
+} from './customization.ts'
 import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
 const COMPOSER_SEAT_SELECTOR = '[data-composer-seat]'
 const COMPOSER_CARD_SELECTOR = '[data-composer-card]'
 const SCROLLPORT_SELECTOR = '[data-conversation-scroll]'
 const CHAT_FLOW_SELECTOR = '[data-chat-flow]'
+const TO_BOTTOM_SELECTOR = "button[class*='toBottom']"
 const NESTED_SCROLL_SURFACE_SELECTOR = [
   '[role="menu"]',
   '[role="listbox"]',
@@ -79,6 +85,34 @@ function composerBelongsToConversation(root: HTMLElement): boolean {
   const phase = root.dataset.phase ?? ''
   if (phase === 'hero' || phase === 'settling') return true
   return phase === 'active' && root.querySelector(CHAT_FLOW_SELECTOR) !== null
+}
+
+/**
+ * 「输入框置底」以宿主「回到底部」按钮为基准：ui-chat 只在 reader 离开最新
+ * 消息（内部 atBottom 为假）时才渲染它，所以按钮出现即表示应当收起输入框，
+ * 按钮缺席表示宿主仍认为停在尾部。距底部的几何判定只在按钮尚未渲染（或宿主
+ * 换掉该控件）时短路，正常滚到底部因此不会多一次 DOM 查询。
+ */
+function atConversationBottom(scrollport: HTMLElement): boolean {
+  const distanceToBottom = scrollport.scrollHeight - scrollport.scrollTop - scrollport.clientHeight
+  if (distanceToBottom <= BOTTOM_THRESHOLD) return true
+  return scrollport.querySelector(TO_BOTTOM_SELECTOR) === null
+}
+
+/**
+ * 回底控件的增删是置底判定唯一关心的结构变化。宿主在离开尾部之后才提交渲染，
+ * 所以本模块读到的 scroll 事件往往仍对应旧 DOM，而该次事件之后可能不再有滚动：
+ * 中键自动滚动与平滑滚动结束时就停在“按钮已经出现、输入框却没消失”。因此把
+ * 控件的出现/消失本身当作事件源。transcript 内的高频变更先按容器排除。
+ */
+function touchesBackToBottom(record: MutationRecord): boolean {
+  const target = record.target instanceof Element ? record.target : record.target.parentElement
+  if (target?.closest(CHAT_FLOW_SELECTOR) !== null) return false
+  for (const node of [...record.addedNodes, ...record.removedNodes]) {
+    if (node instanceof Element
+      && (node.matches(TO_BOTTOM_SELECTOR) || node.querySelector(TO_BOTTOM_SELECTOR) !== null)) return true
+  }
+  return false
 }
 
 function wheelBelongsToNestedSurface(event: WheelEvent, scrollport: HTMLElement): boolean {
@@ -176,6 +210,8 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
   }
 
   const scrollHideEnabled = (): boolean => orcaFeatureEnabled(doc, COMPOSER_SCROLL_HIDE_ATTRIBUTE)
+  // 与其它声明相反，这个开关默认关闭：只有明确写成 'on' 才生效。
+  const bottomOnlyEnabled = (): boolean => doc.documentElement.getAttribute(COMPOSER_BOTTOM_ONLY_ATTRIBUTE) === 'on'
 
   const blurSeat = (seat: HTMLElement): void => {
     const active = doc.activeElement
@@ -195,7 +231,11 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
 
   const hideSeat = (seat: HTMLElement): void => {
     if (isManualMotion(seat)) return
-    if (!seat.hasAttribute(HIDDEN_ATTRIBUTE)) markMotion(seat)
+    // The verdict runs again on every scroll frame, on control mounts and on
+    // switch flips; a same-value write is still a mutation record that the rest
+    // of the page pays for, so a settled state returns early.
+    if (seat.hasAttribute(HIDDEN_ATTRIBUTE)) return
+    markMotion(seat)
     seat.removeAttribute(INTERACTIVE_ATTRIBUTE)
     blurSeat(seat)
     seat.removeAttribute(ENTER_ATTRIBUTE)
@@ -207,6 +247,21 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     showSeat(seat)
     if (interruptEntry) seat.removeAttribute(ENTER_ATTRIBUTE)
     seat.setAttribute(INTERACTIVE_ATTRIBUTE, '')
+  }
+
+  /** 置底判定与写入：滚动方向不参与，位置即状态。 */
+  const applyBottomOnly = (scrollport: HTMLElement, seat: HTMLElement): void => {
+    if (atConversationBottom(scrollport)) showSeat(seat)
+    else hideSeat(seat)
+  }
+
+  /** 开关打开或会话换新时立刻按当前位置对齐，不必等待下一次滚动。 */
+  const synchronizeBottomOnly = (): void => {
+    if (!bottomOnlyEnabled()) return
+    scrollBindings.forEach((_, scrollport) => {
+      const seat = activeSeatOf(scrollport)
+      if (seat !== null) applyBottomOnly(scrollport, seat)
+    })
   }
 
   const enterSeat = (seat: HTMLElement): void => {
@@ -376,7 +431,8 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     }
 
     const onWheel = (event: WheelEvent): void => {
-      if (!scrollHideEnabled()) return
+      // 置底模式只看位置，滚轮方向不再驱动座内状态。
+      if (bottomOnlyEnabled() || !scrollHideEnabled()) return
       // Checked before the delta threshold: touchpad inertia tails emit small
       // deltas that still chain onto the transcript via the host's forwarding.
       if (wheelTargetsSeatDraft(event)) {
@@ -394,20 +450,36 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
       const top = scrollport.scrollTop
       const previousTop = binding.lastTop
       binding.lastTop = top
-      if (!scrollHideEnabled()) return
+      const bottomOnly = bottomOnlyEnabled()
+      if (!bottomOnly && !scrollHideEnabled()) return
       const seat = activeSeatOf(scrollport)
-      if (seat !== null) {
-        if (Date.now() < seatGestureUntil) return
-        const distanceToBottom = scrollport.scrollHeight - top - scrollport.clientHeight
-        if (distanceToBottom <= BOTTOM_THRESHOLD) showSeat(seat)
-        else if (previousTop !== null && top > previousTop + SCROLL_THRESHOLD) showSeat(seat)
-        else if (previousTop !== null && top < previousTop - SCROLL_THRESHOLD) hideSeat(seat)
+      if (seat === null) return
+      if (bottomOnly) {
+        applyBottomOnly(scrollport, seat)
+        return
       }
+      if (Date.now() < seatGestureUntil) return
+      const distanceToBottom = scrollport.scrollHeight - top - scrollport.clientHeight
+      if (distanceToBottom <= BOTTOM_THRESHOLD) showSeat(seat)
+      else if (previousTop !== null && top > previousTop + SCROLL_THRESHOLD) showSeat(seat)
+      else if (previousTop !== null && top < previousTop - SCROLL_THRESHOLD) hideSeat(seat)
     }
+    // The host commits the back-to-bottom control after the scroll event this
+    // module already read, and a gesture may end on that very event (middle-click
+    // autoscroll, smooth scroll): the control is on screen while the seat stays
+    // visible until the next scroll. Reacting to the control's own insertion and
+    // removal removes that dependency on timing.
+    const bottomObserver = new MutationObserver((records) => {
+      if (!bottomOnlyEnabled() || !records.some(touchesBackToBottom)) return
+      const seat = activeSeatOf(scrollport)
+      if (seat !== null) applyBottomOnly(scrollport, seat)
+    })
+    bottomObserver.observe(scrollport, { childList: true, subtree: true })
 
     scrollport.addEventListener('wheel', onWheel, { passive: true })
     scrollport.addEventListener('scroll', onScroll, { passive: true })
     binding.dispose = () => {
+      bottomObserver.disconnect()
       scrollport.removeEventListener('wheel', onWheel)
       scrollport.removeEventListener('scroll', onScroll)
     }
@@ -453,7 +525,9 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
           || previous === 'settling'
           || (previous === undefined && hasSeenHero)
         ) {
-          enterSeat(seat)
+          // 置底模式下刚接管的座按当前位置落定：不在底部就不播入场，直接收起。
+          if (bottomOnlyEnabled() && !atConversationBottom(scrollport)) hideSeat(seat)
+          else enterSeat(seat)
         }
       } else {
         if (!seat.hasAttribute(MANUAL_HIDDEN_ATTRIBUTE)) seat.removeAttribute(HIDDEN_ATTRIBUTE)
@@ -471,15 +545,25 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     attributes: true,
     attributeFilter: ['data-phase'],
   })
-  // Turning scroll-hide off must not strand a seat the last scroll tucked away;
-  // manual collapse keeps its own state (showSeat defers to it).
-  const disposeScrollHideSwitch = observeOrcaFeature(doc, [COMPOSER_SCROLL_HIDE_ATTRIBUTE], () => {
-    if (scrollHideEnabled()) return
-    scrollBindings.forEach((_, scrollport) => {
-      const seat = activeSeatOf(scrollport)
-      if (seat !== null) showSeat(seat)
-    })
-  })
+  // Switching either visibility switch must take effect at once: turning
+  // scroll-hide off must not strand a seat the last scroll tucked away, and the
+  // bottom-only mode aligns every seat with the current position when it takes
+  // over. Manual collapse keeps its own state (showSeat defers to it).
+  const disposeVisibilitySwitches = observeOrcaFeature(
+    doc,
+    [COMPOSER_SCROLL_HIDE_ATTRIBUTE, COMPOSER_BOTTOM_ONLY_ATTRIBUTE],
+    () => {
+      if (bottomOnlyEnabled()) {
+        synchronizeBottomOnly()
+        return
+      }
+      if (scrollHideEnabled()) return
+      scrollBindings.forEach((_, scrollport) => {
+        const seat = activeSeatOf(scrollport)
+        if (seat !== null) showSeat(seat)
+      })
+    },
+  )
   doc.addEventListener('keydown', onKeyDown, true)
   doc.addEventListener('click', onClick, true)
   doc.addEventListener('focusin', onFocusIn, true)
@@ -488,7 +572,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
 
   return () => {
     observer.disconnect()
-    disposeScrollHideSwitch()
+    disposeVisibilitySwitches()
     doc.removeEventListener('keydown', onKeyDown, true)
     doc.removeEventListener('click', onClick, true)
     doc.removeEventListener('focusin', onFocusIn, true)

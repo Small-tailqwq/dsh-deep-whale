@@ -25,7 +25,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'workspaceRowHeight'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'workspaceRowHeight'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },
@@ -36,6 +36,7 @@ describe('maid customization declaration', () => {
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-art')).toBe('hidden')
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-font')).toBe('serif')
     expect(document.documentElement.getAttribute('data-maid-composer-mode')).toBe('scroll')
+    expect(document.documentElement.getAttribute('data-maid-composer-bottom-only')).toBe('off')
     expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('topbar')
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-model-exit')).toBe('disabled')
     width.mockReturnValue(420)

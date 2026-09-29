@@ -437,22 +437,28 @@ window.__ModuleLoader__.load({
 		//#endregion
 		//#region src/client/composer-scroll.ts
 		/**
-		* Composer scroll-intent presentation: scrolling up through the transcript
-		* fades the docked composer out, scrolling back down (or reaching the
-		* bottom) fades it in. Ported from the ORCA LINK approach (see
-		* orca-link/src/client/composer-motion.ts) and gated by the skin-manager
-		* setting `composerMode` (`data-maid-composer-mode` on <html>, owned by
-		* installMaidCustomization; active only for the 'scroll' choice).
+		* Composer visibility presentation, driven by two skin-manager settings
+		* (attributes on <html>, owned by installMaidCustomization):
+		*
+		* - `composerMode` ('scroll'): scrolling up through the transcript fades the
+		*   docked composer out, scrolling back down (or reaching the bottom) fades
+		*   it in. Ported from the ORCA LINK approach (see
+		*   orca-link/src/client/composer-motion.ts).
+		* - `composerBottomOnly`: position instead of direction — the composer is
+		*   shown only while the reader sits at the newest message and disappears
+		*   while reading back. Turning it on takes over the 'scroll' mode entirely.
 		*
 		* The module only presents a reversible visibility state on the host's
-		* stable data hooks; it never submits prompts or creates sessions. When the
-		* switch is off (or the manager has not applied a state yet), every listener
-		* stays inert and no seat state is touched.
+		* stable data hooks; it never submits prompts or creates sessions. When
+		* neither switch is on (or the manager has not applied a state yet), every
+		* listener stays inert and no seat state is touched.
 		*/
 		const SCROLLPORT_SELECTOR = "[data-conversation-scroll]";
 		const COMPOSER_SEAT_SELECTOR = "[data-composer-seat]";
 		const CHAT_FLOW_SELECTOR = "[data-chat-flow]";
 		const MODE_ATTRIBUTE = "data-maid-composer-mode";
+		const BOTTOM_ONLY_ATTRIBUTE = "data-maid-composer-bottom-only";
+		const TO_BOTTOM_SELECTOR = "button[class*='toBottom']";
 		const HIDDEN_ATTRIBUTE = "data-maid-composer-hidden";
 		const INTERACTIVE_ATTRIBUTE = "data-maid-composer-interactive";
 		const NESTED_SCROLL_SURFACE_SELECTOR = [
@@ -477,6 +483,36 @@ window.__ModuleLoader__.load({
 		}
 		function scrollEnabled(doc) {
 			return doc.documentElement.getAttribute(MODE_ATTRIBUTE) === "scroll";
+		}
+		/** 「输入框置底」只跟随「是否停在最新消息处」，不再跟随滚动方向。 */
+		function bottomOnlyEnabled(doc) {
+			return doc.documentElement.getAttribute(BOTTOM_ONLY_ATTRIBUTE) === "on";
+		}
+		/** 当前生效的显隐模式；置底优先，两者皆无时模块保持惰性。 */
+		function activeMode(doc) {
+			if (bottomOnlyEnabled(doc)) return "bottom";
+			return scrollEnabled(doc) ? "scroll" : null;
+		}
+		/**
+		* 置底模式以宿主「回到底部」按钮为基准：ui-chat 只在 reader 离开最新消息
+		* （内部 atBottom 为假）时渲染该按钮，所以按钮出现即表示应当收起输入框，
+		* 按钮缺席表示宿主仍认为停在尾部。距底部的几何判定只用于在按钮尚未渲染
+		* （或宿主换掉该控件）时短路，正常滚到底部因此不会多一次 DOM 查询。
+		*/
+		function atConversationBottom(scrollport) {
+			if (scrollport.scrollHeight - scrollport.scrollTop - scrollport.clientHeight <= BOTTOM_THRESHOLD) return true;
+			return scrollport.querySelector(TO_BOTTOM_SELECTOR) === null;
+		}
+		/**
+		* 回底控件的增删是置底判定唯一关心的结构变化。宿主在离开尾部之后才提交渲染，
+		* 所以本模块读到的 scroll 事件往往仍对应旧 DOM，而该次事件之后可能不再有滚动：
+		* 中键自动滚动与平滑滚动结束时就停在“按钮已经出现、输入框却没消失”。因此把
+		* 控件的出现/消失本身当作事件源。transcript 内的高频变更先按容器排除。
+		*/
+		function touchesBackToBottom(record) {
+			if ((record.target instanceof Element ? record.target : record.target.parentElement)?.closest(CHAT_FLOW_SELECTOR) !== null) return false;
+			for (const node of [...record.addedNodes, ...record.removedNodes]) if (node instanceof Element && (node.matches(TO_BOTTOM_SELECTOR) || node.querySelector(TO_BOTTOM_SELECTOR) !== null)) return true;
+			return false;
 		}
 		function activeSeatOf(scrollport) {
 			if (phaseRootOf(scrollport)?.dataset.phase !== "active") return null;
@@ -567,29 +603,76 @@ window.__ModuleLoader__.load({
 				if (active instanceof HTMLElement && seat.contains(active)) active.blur();
 			};
 			const hideSeat = (seat) => {
-				if (!current() || !scrollEnabled(doc)) return;
+				if (!current() || activeMode(doc) === null) return;
+				if (seat.hasAttribute(HIDDEN_ATTRIBUTE)) return;
 				write(seat, INTERACTIVE_ATTRIBUTE, null);
 				blurSeat(seat);
 				write(seat, HIDDEN_ATTRIBUTE, "");
 			};
 			const showSeat = (seat) => {
+				if (!seat.hasAttribute(HIDDEN_ATTRIBUTE)) return;
 				write(seat, HIDDEN_ATTRIBUTE, null);
 			};
 			const activateSeat = (seat) => {
 				showSeat(seat);
 				write(seat, INTERACTIVE_ATTRIBUTE, "");
-				if (!scrollEnabled(doc)) write(seat, INTERACTIVE_ATTRIBUTE, null);
+				if (activeMode(doc) === null) write(seat, INTERACTIVE_ATTRIBUTE, null);
+			};
+			/** 置底判定与写入：滚动方向不参与，位置即状态。 */
+			const applyBottomOnly = (scrollport, seat) => {
+				if (atConversationBottom(scrollport)) showSeat(seat);
+				else hideSeat(seat);
+			};
+			const bottomObservers = /* @__PURE__ */ new Map();
+			const observeBottomControl = (scrollport) => {
+				if (bottomObservers.has(scrollport)) return;
+				const observer = new MutationObserver((records) => {
+					if (!current() || activeMode(doc) !== "bottom") return;
+					if (!records.some(touchesBackToBottom)) return;
+					const seat = activeSeatOf(scrollport);
+					if (seat !== null) applyBottomOnly(scrollport, seat);
+				});
+				observer.observe(scrollport, {
+					childList: true,
+					subtree: true
+				});
+				bottomObservers.set(scrollport, observer);
+			};
+			const releaseDetachedObservers = () => {
+				bottomObservers.forEach((observer, scrollport) => {
+					if (scrollport.isConnected) return;
+					observer.disconnect();
+					bottomObservers.delete(scrollport);
+				});
+			};
+			/** 开关打开或会话换新时立刻对齐一次，不必等待下一次滚动。 */
+			const synchronizeBottomOnly = () => {
+				if (!current() || activeMode(doc) !== "bottom") return;
+				releaseDetachedObservers();
+				doc.querySelectorAll(SCROLLPORT_SELECTOR).forEach((scrollport) => {
+					const seat = activeSeatOf(scrollport);
+					if (seat === null) return;
+					observeBottomControl(scrollport);
+					applyBottomOnly(scrollport, seat);
+				});
 			};
 			let seatGestureUntil = 0;
 			const onScroll = (event) => {
-				if (!current() || !scrollEnabled(doc)) return;
+				if (!current()) return;
 				const scrollport = event.target;
 				if (!(scrollport instanceof HTMLElement) || !scrollport.matches(SCROLLPORT_SELECTOR)) return;
+				const mode = activeMode(doc);
+				if (mode === null) return;
 				const seat = activeSeatOf(scrollport);
 				if (seat === null) return;
 				const top = scrollport.scrollTop;
 				const previousTop = lastTops.get(scrollport);
 				lastTops.set(scrollport, top);
+				if (mode === "bottom") {
+					observeBottomControl(scrollport);
+					applyBottomOnly(scrollport, seat);
+					return;
+				}
 				if (Date.now() < seatGestureUntil) return;
 				if (scrollport.scrollHeight - top - scrollport.clientHeight <= BOTTOM_THRESHOLD) {
 					showSeat(seat);
@@ -599,7 +682,8 @@ window.__ModuleLoader__.load({
 				else if (previousTop !== void 0 && top < previousTop - SCROLL_THRESHOLD) hideSeat(seat);
 			};
 			const onWheel = (event) => {
-				if (!current() || !scrollEnabled(doc)) return;
+				if (!current()) return;
+				if (activeMode(doc) !== "scroll") return;
 				if (wheelTargetsSeatDraft(event)) {
 					seatGestureUntil = Date.now() + SEAT_GESTURE_WINDOW_MS;
 					return;
@@ -635,19 +719,26 @@ window.__ModuleLoader__.load({
 			};
 			const stateObserver = new MutationObserver((records) => {
 				if (!current()) return;
-				if (!records.some((record) => record.type === "attributes" && record.attributeName === MODE_ATTRIBUTE)) return;
-				if (!scrollEnabled(doc)) clearSeatStates();
+				if (!records.some((record) => record.type === "attributes" && (record.attributeName === MODE_ATTRIBUTE || record.attributeName === BOTTOM_ONLY_ATTRIBUTE))) return;
+				const mode = activeMode(doc);
+				if (mode === null) clearSeatStates();
+				else if (mode === "bottom") synchronizeBottomOnly();
 			});
 			stateObserver.observe(doc.documentElement, {
 				attributes: true,
-				attributeFilter: [MODE_ATTRIBUTE]
+				attributeFilter: [MODE_ATTRIBUTE, BOTTOM_ONLY_ATTRIBUTE]
 			});
 			doc.addEventListener("scroll", onScroll, true);
 			doc.addEventListener("wheel", onWheel, true);
 			doc.addEventListener("focusin", onFocusIn, true);
 			doc.addEventListener("focusout", onFocusOut, true);
+			synchronizeBottomOnly();
 			return () => {
 				stateObserver.disconnect();
+				bottomObservers.forEach((observer) => {
+					observer.disconnect();
+				});
+				bottomObservers.clear();
 				doc.removeEventListener("scroll", onScroll, true);
 				doc.removeEventListener("wheel", onWheel, true);
 				doc.removeEventListener("focusin", onFocusIn, true);
@@ -1110,6 +1201,7 @@ window.__ModuleLoader__.load({
 		const ATTR_MODEL = "data-dsh-whale-model";
 		const ATTR_FLASH_GLASSES = "data-dsh-whale-maid-flash-glasses";
 		const ATTR_COMPOSER_MODE = "data-maid-composer-mode";
+		const ATTR_COMPOSER_BOTTOM_ONLY = "data-maid-composer-bottom-only";
 		const ATTR_NAV_MODE = "data-maid-nav-mode";
 		/** Navigation layouts the stylesheet implements; anything else falls back to the default. */
 		const NAV_MODES = /* @__PURE__ */ new Set([
@@ -1252,6 +1344,7 @@ window.__ModuleLoader__.load({
 				projector.set(ATTR_FLASH_GLASSES, state.values.flashGlasses === true ? "on" : "off");
 				synchronizeModelMode();
 				projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === "string" ? state.values.composerMode : "persistent");
+				projector.set(ATTR_COMPOSER_BOTTOM_ONLY, state.values.composerBottomOnly === true ? "on" : "off");
 				const navMode = state.values.mobileNav;
 				projector.set(ATTR_NAV_MODE, typeof navMode === "string" && NAV_MODES.has(navMode) ? navMode : "corner");
 				properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`);
@@ -1409,6 +1502,15 @@ window.__ModuleLoader__.load({
 								labelEn: "Hide on scroll up · show on scroll down"
 							}
 						]
+					},
+					{
+						key: "composerBottomOnly",
+						type: "boolean",
+						label: "输入框只在底部显示",
+						labelEn: "Show the composer only at the conversation bottom",
+						description: "只在滚到最新消息末尾时显示输入框，向上回看时它自然隐去、回到底部再显现。开启后接管上面的「上滚隐去 · 下滚渐现」。",
+						descriptionEn: "Show the composer only while the conversation sits at its newest message; it fades away while reading back and returns at the bottom. Takes over the scroll mode above.",
+						defaultValue: false
 					},
 					{
 						key: "workspaceRowHeight",

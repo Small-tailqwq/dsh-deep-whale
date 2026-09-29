@@ -5,6 +5,7 @@ import { installMaidComposerScroll } from '../src/client/composer-scroll.ts'
 const SCROLLPORT_HEIGHT = 300
 const SCROLLPORT_CONTENT_HEIGHT = 800
 const SWITCH = 'data-maid-composer-mode'
+const BOTTOM_SWITCH = 'data-maid-composer-bottom-only'
 
 interface Fixture {
   root: HTMLElement
@@ -24,7 +25,7 @@ function overflowBox(height: number, contentHeight: number): HTMLElement {
   return box
 }
 
-function mount(mode: string = 'scroll'): Fixture {
+function mount(mode: string = 'scroll', bottomOnly = false): Fixture {
   const root = document.createElement('div')
   root.dataset.phase = 'active'
   const scrollport = document.createElement('div')
@@ -47,7 +48,16 @@ function mount(mode: string = 'scroll'): Fixture {
   root.append(phaseBody)
   document.body.append(root)
   document.documentElement.setAttribute(SWITCH, mode)
+  if (bottomOnly) document.documentElement.setAttribute(BOTTOM_SWITCH, 'on')
   return { root, scrollport, seat, input, dispose: installMaidComposerScroll(document.body) }
+}
+
+/** 宿主 ui-chat 的「回到底部」控件：只在 reader 离开最新消息时渲染。 */
+function mountToBottomButton(scrollport: HTMLElement): HTMLButtonElement {
+  const button = document.createElement('button')
+  button.className = 'EvIC1a_toBottom'
+  scrollport.append(button)
+  return button
 }
 
 /** Seat 内挂一个溢出的草稿滚动盒（宿主 InputBar 的 capped `.scroll`）。 */
@@ -76,10 +86,12 @@ function nextMicrotask(): Promise<void> {
 beforeEach(() => {
   document.body.innerHTML = ''
   document.documentElement.removeAttribute(SWITCH)
+  document.documentElement.removeAttribute(BOTTOM_SWITCH)
 })
 
 afterEach(() => {
   document.documentElement.removeAttribute(SWITCH)
+  document.documentElement.removeAttribute(BOTTOM_SWITCH)
 })
 
 describe('maid composer scroll-intent', () => {
@@ -246,6 +258,79 @@ describe('maid composer scroll-intent', () => {
     wheel(scrollport, 120)
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
     disposeNewer()
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+  })
+})
+
+describe('maid composer bottom-only', () => {
+  it('hides the seat while the host renders its back-to-bottom control and shows it again at the tail', () => {
+    const { scrollport, seat, dispose } = mount('persistent', true)
+    const toBottom = mountToBottomButton(scrollport)
+
+    scrollTo(scrollport, 200)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    toBottom.remove()
+    scrollTo(scrollport, 180)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+    dispose()
+  })
+
+  it('takes over the scroll mode: direction no longer drives the seat', () => {
+    const { scrollport, seat, dispose } = mount('scroll', true)
+    mountToBottomButton(scrollport)
+
+    scrollTo(scrollport, 200) // 上滚回顾：位置在最新消息之外
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    scrollTo(scrollport, 350) // 下滚但尚未回到末尾：不再渐现
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    scrollTo(scrollport, SCROLLPORT_CONTENT_HEIGHT - SCROLLPORT_HEIGHT)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+    dispose()
+  })
+
+  it('aligns the seat the moment the switch flips, both ways', async () => {
+    const { scrollport, seat, dispose } = mount('persistent')
+    mountToBottomButton(scrollport)
+    scrollTo(scrollport, 200)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+
+    document.documentElement.setAttribute(BOTTOM_SWITCH, 'on')
+    await nextMicrotask()
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    document.documentElement.setAttribute(BOTTOM_SWITCH, 'off')
+    await nextMicrotask()
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+    dispose()
+  })
+
+  it('hides the seat when the control mounts after the scroll event (middle-click autoscroll)', async () => {
+    const { scrollport, seat, dispose } = mount('persistent', true)
+    scrollTo(scrollport, 200)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+
+    // 宿主在上一次滚动事件之后才提交控件：此后再没有滚动事件可以依赖。
+    mountToBottomButton(scrollport)
+    await nextMicrotask()
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    // 回到尾部时控件被卸载，同样立即恢复。
+    scrollport.querySelector<HTMLElement>('button')!.remove()
+    await nextMicrotask()
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+    dispose()
+  })
+
+  it('dispose clears the bottom-only seat state', () => {
+    const { scrollport, seat, dispose } = mount('persistent', true)
+    mountToBottomButton(scrollport)
+    scrollTo(scrollport, 200)
+    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    dispose()
     expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
   })
 })

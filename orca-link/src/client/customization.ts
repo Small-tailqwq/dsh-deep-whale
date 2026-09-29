@@ -6,6 +6,7 @@ import {
 } from '../../../skin-manager/src/protocol.ts'
 
 export const COMPOSER_SCROLL_HIDE_ATTRIBUTE = 'data-dsh-whale-orca-composer-scroll-hide'
+export const COMPOSER_BOTTOM_ONLY_ATTRIBUTE = 'data-dsh-whale-orca-composer-bottom-only'
 export const COMPOSER_HANDLES_ATTRIBUTE = 'data-dsh-whale-orca-composer-handles'
 export const HEADLINE_TYPEWRITER_ATTRIBUTE = 'data-dsh-whale-orca-headline-typewriter'
 
@@ -50,6 +51,8 @@ export function installOrcaCustomization(root: HTMLElement = document.documentEl
       state.values.centerSettings === true ? 'centered' : 'docked',
     )
     projector.set(COMPOSER_SCROLL_HIDE_ATTRIBUTE, state.values.scrollHideComposer === false ? 'off' : 'on')
+    // 与其它声明相反：这个开关默认关闭，所以缺省值不是 'on'。
+    projector.set(COMPOSER_BOTTOM_ONLY_ATTRIBUTE, state.values.composerBottomOnly === true ? 'on' : 'off')
     projector.set(COMPOSER_HANDLES_ATTRIBUTE, state.values.composerHandles === false ? 'off' : 'on')
     projector.set(HEADLINE_TYPEWRITER_ATTRIBUTE, state.values.headlineTypewriter === false ? 'off' : 'on')
   }
@@ -106,6 +109,15 @@ export function installOrcaCustomization(root: HTMLElement = document.documentEl
         description: '向上翻阅对话时收起输入框，向下滚动或回到底部时再显示。',
         descriptionEn: 'Tuck the composer away while reading back through the conversation; it returns when scrolling down or reaching the bottom.',
         defaultValue: true,
+      },
+      {
+        key: 'composerBottomOnly',
+        type: 'boolean',
+        label: '输入框只在底部显示',
+        labelEn: 'Show the composer only at the conversation bottom',
+        description: '只在滚到最新消息末尾时显示输入框，向上回看时它自然隐去、回到底部再显现。开启后接管上面的上滚隐藏。',
+        descriptionEn: 'Show the composer only while the conversation sits at its newest message; it fades away while reading back and returns at the bottom. Takes over the scroll-up hiding above.',
+        defaultValue: false,
       },
       {
         key: 'composerHandles',

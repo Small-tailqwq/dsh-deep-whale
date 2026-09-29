@@ -299,6 +299,7 @@ window.__ModuleLoader__.load({
 		//#endregion
 		//#region src/client/customization.ts
 		const COMPOSER_SCROLL_HIDE_ATTRIBUTE = "data-dsh-whale-orca-composer-scroll-hide";
+		const COMPOSER_BOTTOM_ONLY_ATTRIBUTE = "data-dsh-whale-orca-composer-bottom-only";
 		const COMPOSER_HANDLES_ATTRIBUTE = "data-dsh-whale-orca-composer-handles";
 		const HEADLINE_TYPEWRITER_ATTRIBUTE = "data-dsh-whale-orca-headline-typewriter";
 		/** A declared behaviour switch reads as enabled until the manager says 'off'. */
@@ -332,6 +333,7 @@ window.__ModuleLoader__.load({
 				projector.set("data-dsh-whale-orca-character-mirror", state.values.mirrorCharacter === true ? "mirrored" : "original");
 				projector.set("data-dsh-whale-orca-settings-layout", state.values.centerSettings === true ? "centered" : "docked");
 				projector.set(COMPOSER_SCROLL_HIDE_ATTRIBUTE, state.values.scrollHideComposer === false ? "off" : "on");
+				projector.set(COMPOSER_BOTTOM_ONLY_ATTRIBUTE, state.values.composerBottomOnly === true ? "on" : "off");
 				projector.set(COMPOSER_HANDLES_ATTRIBUTE, state.values.composerHandles === false ? "off" : "on");
 				projector.set(HEADLINE_TYPEWRITER_ATTRIBUTE, state.values.headlineTypewriter === false ? "off" : "on");
 			};
@@ -387,6 +389,15 @@ window.__ModuleLoader__.load({
 						description: "向上翻阅对话时收起输入框，向下滚动或回到底部时再显示。",
 						descriptionEn: "Tuck the composer away while reading back through the conversation; it returns when scrolling down or reaching the bottom.",
 						defaultValue: true
+					},
+					{
+						key: "composerBottomOnly",
+						type: "boolean",
+						label: "输入框只在底部显示",
+						labelEn: "Show the composer only at the conversation bottom",
+						description: "只在滚到最新消息末尾时显示输入框，向上回看时它自然隐去、回到底部再显现。开启后接管上面的上滚隐藏。",
+						descriptionEn: "Show the composer only while the conversation sits at its newest message; it fades away while reading back and returns at the bottom. Takes over the scroll-up hiding above.",
+						defaultValue: false
 					},
 					{
 						key: "composerHandles",
@@ -489,7 +500,7 @@ window.__ModuleLoader__.load({
 		const RESTORE_SIZE = 28;
 		const RESTORE_ORNAMENT = 6;
 		const RESTORE_CLEARANCE = 8;
-		const TO_BOTTOM_SELECTOR = "button[class*='toBottom']";
+		const TO_BOTTOM_SELECTOR$1 = "button[class*='toBottom']";
 		const TO_BOTTOM_CENTER_INSET = 33;
 		function clamp(value, min, max) {
 			return Math.min(max, Math.max(min, value));
@@ -580,7 +591,7 @@ window.__ModuleLoader__.load({
 				const rootRect = binding.root.getBoundingClientRect();
 				let left = clamp(rootRect.left + rootRect.width * anchor.leftRatio, rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8);
 				let top = clamp(rootRect.top + rootRect.height * anchor.topRatio, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8);
-				const toBottom = binding.root.querySelector(TO_BOTTOM_SELECTOR)?.getBoundingClientRect();
+				const toBottom = binding.root.querySelector(TO_BOTTOM_SELECTOR$1)?.getBoundingClientRect();
 				const hasToBottom = toBottom !== void 0 && toBottom.width > 0 && toBottom.height > 0;
 				if (hasToBottom) left = clamp(toBottom.left + toBottom.width / 2 - RESTORE_SIZE / 2, rootRect.left + 8, rootRect.right - RESTORE_SIZE - 8);
 				if (hasToBottom && left - RESTORE_ORNAMENT < toBottom.right + RESTORE_CLEARANCE && left + RESTORE_SIZE + RESTORE_ORNAMENT > toBottom.left - RESTORE_CLEARANCE && top < toBottom.bottom + RESTORE_CLEARANCE && top + RESTORE_SIZE > toBottom.top - RESTORE_CLEARANCE) top = clamp(toBottom.bottom + RESTORE_CLEARANCE, rootRect.top + 8, rootRect.bottom - RESTORE_SIZE - 8);
@@ -921,6 +932,7 @@ window.__ModuleLoader__.load({
 		const COMPOSER_CARD_SELECTOR = "[data-composer-card]";
 		const SCROLLPORT_SELECTOR = "[data-conversation-scroll]";
 		const CHAT_FLOW_SELECTOR = "[data-chat-flow]";
+		const TO_BOTTOM_SELECTOR = "button[class*='toBottom']";
 		const NESTED_SCROLL_SURFACE_SELECTOR = [
 			"[role=\"menu\"]",
 			"[role=\"listbox\"]",
@@ -966,6 +978,27 @@ window.__ModuleLoader__.load({
 			const phase = root.dataset.phase ?? "";
 			if (phase === "hero" || phase === "settling") return true;
 			return phase === "active" && root.querySelector(CHAT_FLOW_SELECTOR) !== null;
+		}
+		/**
+		* 「输入框置底」以宿主「回到底部」按钮为基准：ui-chat 只在 reader 离开最新
+		* 消息（内部 atBottom 为假）时才渲染它，所以按钮出现即表示应当收起输入框，
+		* 按钮缺席表示宿主仍认为停在尾部。距底部的几何判定只在按钮尚未渲染（或宿主
+		* 换掉该控件）时短路，正常滚到底部因此不会多一次 DOM 查询。
+		*/
+		function atConversationBottom(scrollport) {
+			if (scrollport.scrollHeight - scrollport.scrollTop - scrollport.clientHeight <= BOTTOM_THRESHOLD) return true;
+			return scrollport.querySelector(TO_BOTTOM_SELECTOR) === null;
+		}
+		/**
+		* 回底控件的增删是置底判定唯一关心的结构变化。宿主在离开尾部之后才提交渲染，
+		* 所以本模块读到的 scroll 事件往往仍对应旧 DOM，而该次事件之后可能不再有滚动：
+		* 中键自动滚动与平滑滚动结束时就停在“按钮已经出现、输入框却没消失”。因此把
+		* 控件的出现/消失本身当作事件源。transcript 内的高频变更先按容器排除。
+		*/
+		function touchesBackToBottom(record) {
+			if ((record.target instanceof Element ? record.target : record.target.parentElement)?.closest(CHAT_FLOW_SELECTOR) !== null) return false;
+			for (const node of [...record.addedNodes, ...record.removedNodes]) if (node instanceof Element && (node.matches(TO_BOTTOM_SELECTOR) || node.querySelector(TO_BOTTOM_SELECTOR) !== null)) return true;
+			return false;
 		}
 		function wheelBelongsToNestedSurface(event, scrollport) {
 			for (const candidate of event.composedPath()) {
@@ -1049,6 +1082,7 @@ window.__ModuleLoader__.load({
 				seat.style.removeProperty("--orca-composer-enter-distance");
 			};
 			const scrollHideEnabled = () => orcaFeatureEnabled(doc, COMPOSER_SCROLL_HIDE_ATTRIBUTE);
+			const bottomOnlyEnabled = () => doc.documentElement.getAttribute(COMPOSER_BOTTOM_ONLY_ATTRIBUTE) === "on";
 			const blurSeat = (seat) => {
 				const active = doc.activeElement;
 				if (active instanceof HTMLElement && seat.contains(active)) active.blur();
@@ -1062,7 +1096,8 @@ window.__ModuleLoader__.load({
 			};
 			const hideSeat = (seat) => {
 				if (isManualMotion(seat)) return;
-				if (!seat.hasAttribute(HIDDEN_ATTRIBUTE)) markMotion(seat);
+				if (seat.hasAttribute(HIDDEN_ATTRIBUTE)) return;
+				markMotion(seat);
 				seat.removeAttribute(INTERACTIVE_ATTRIBUTE);
 				blurSeat(seat);
 				seat.removeAttribute(ENTER_ATTRIBUTE);
@@ -1073,6 +1108,19 @@ window.__ModuleLoader__.load({
 				showSeat(seat);
 				if (interruptEntry) seat.removeAttribute(ENTER_ATTRIBUTE);
 				seat.setAttribute(INTERACTIVE_ATTRIBUTE, "");
+			};
+			/** 置底判定与写入：滚动方向不参与，位置即状态。 */
+			const applyBottomOnly = (scrollport, seat) => {
+				if (atConversationBottom(scrollport)) showSeat(seat);
+				else hideSeat(seat);
+			};
+			/** 开关打开或会话换新时立刻按当前位置对齐，不必等待下一次滚动。 */
+			const synchronizeBottomOnly = () => {
+				if (!bottomOnlyEnabled()) return;
+				scrollBindings.forEach((_, scrollport) => {
+					const seat = activeSeatOf(scrollport);
+					if (seat !== null) applyBottomOnly(scrollport, seat);
+				});
 			};
 			const enterSeat = (seat) => {
 				if (isManualMotion(seat)) return;
@@ -1224,7 +1272,7 @@ window.__ModuleLoader__.load({
 					dispose: () => {}
 				};
 				const onWheel = (event) => {
-					if (!scrollHideEnabled()) return;
+					if (bottomOnlyEnabled() || !scrollHideEnabled()) return;
 					if (wheelTargetsSeatDraft(event)) {
 						seatGestureUntil = Date.now() + SEAT_GESTURE_WINDOW_MS;
 						return;
@@ -1240,18 +1288,32 @@ window.__ModuleLoader__.load({
 					const top = scrollport.scrollTop;
 					const previousTop = binding.lastTop;
 					binding.lastTop = top;
-					if (!scrollHideEnabled()) return;
+					const bottomOnly = bottomOnlyEnabled();
+					if (!bottomOnly && !scrollHideEnabled()) return;
 					const seat = activeSeatOf(scrollport);
-					if (seat !== null) {
-						if (Date.now() < seatGestureUntil) return;
-						if (scrollport.scrollHeight - top - scrollport.clientHeight <= BOTTOM_THRESHOLD) showSeat(seat);
-						else if (previousTop !== null && top > previousTop + SCROLL_THRESHOLD) showSeat(seat);
-						else if (previousTop !== null && top < previousTop - SCROLL_THRESHOLD) hideSeat(seat);
+					if (seat === null) return;
+					if (bottomOnly) {
+						applyBottomOnly(scrollport, seat);
+						return;
 					}
+					if (Date.now() < seatGestureUntil) return;
+					if (scrollport.scrollHeight - top - scrollport.clientHeight <= BOTTOM_THRESHOLD) showSeat(seat);
+					else if (previousTop !== null && top > previousTop + SCROLL_THRESHOLD) showSeat(seat);
+					else if (previousTop !== null && top < previousTop - SCROLL_THRESHOLD) hideSeat(seat);
 				};
+				const bottomObserver = new MutationObserver((records) => {
+					if (!bottomOnlyEnabled() || !records.some(touchesBackToBottom)) return;
+					const seat = activeSeatOf(scrollport);
+					if (seat !== null) applyBottomOnly(scrollport, seat);
+				});
+				bottomObserver.observe(scrollport, {
+					childList: true,
+					subtree: true
+				});
 				scrollport.addEventListener("wheel", onWheel, { passive: true });
 				scrollport.addEventListener("scroll", onScroll, { passive: true });
 				binding.dispose = () => {
+					bottomObserver.disconnect();
 					scrollport.removeEventListener("wheel", onWheel);
 					scrollport.removeEventListener("scroll", onScroll);
 				};
@@ -1279,7 +1341,10 @@ window.__ModuleLoader__.load({
 						return;
 					}
 					if (phase === "active") {
-						if (wasOutsideChat || previous === "hero" || previous === "settling" || previous === void 0 && hasSeenHero) enterSeat(seat);
+						if (wasOutsideChat || previous === "hero" || previous === "settling" || previous === void 0 && hasSeenHero) {
+							if (bottomOnlyEnabled() && !atConversationBottom(scrollport)) hideSeat(seat);
+							else enterSeat(seat);
+						}
 					} else {
 						if (!seat.hasAttribute("data-orca-composer-manual-hidden")) seat.removeAttribute(HIDDEN_ATTRIBUTE);
 						if (phase === "hero") seat.removeAttribute(ENTER_ATTRIBUTE);
@@ -1295,7 +1360,11 @@ window.__ModuleLoader__.load({
 				attributes: true,
 				attributeFilter: ["data-phase"]
 			});
-			const disposeScrollHideSwitch = observeOrcaFeature(doc, [COMPOSER_SCROLL_HIDE_ATTRIBUTE], () => {
+			const disposeVisibilitySwitches = observeOrcaFeature(doc, [COMPOSER_SCROLL_HIDE_ATTRIBUTE, COMPOSER_BOTTOM_ONLY_ATTRIBUTE], () => {
+				if (bottomOnlyEnabled()) {
+					synchronizeBottomOnly();
+					return;
+				}
 				if (scrollHideEnabled()) return;
 				scrollBindings.forEach((_, scrollport) => {
 					const seat = activeSeatOf(scrollport);
@@ -1309,7 +1378,7 @@ window.__ModuleLoader__.load({
 			synchronize();
 			return () => {
 				observer.disconnect();
-				disposeScrollHideSwitch();
+				disposeVisibilitySwitches();
 				doc.removeEventListener("keydown", onKeyDown, true);
 				doc.removeEventListener("click", onClick, true);
 				doc.removeEventListener("focusin", onFocusIn, true);

@@ -13,6 +13,7 @@ const ATTR_MODEL_EXIT = 'data-dsh-whale-maid-model-exit'
 const ATTR_MODEL = 'data-dsh-whale-model'
 const ATTR_FLASH_GLASSES = 'data-dsh-whale-maid-flash-glasses'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
+const ATTR_COMPOSER_BOTTOM_ONLY = 'data-maid-composer-bottom-only'
 const ATTR_NAV_MODE = 'data-maid-nav-mode'
 /** Navigation layouts the stylesheet implements; anything else falls back to the default. */
 const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
@@ -172,6 +173,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     projector.set(ATTR_FLASH_GLASSES, state.values.flashGlasses === true ? 'on' : 'off')
     synchronizeModelMode()
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
+    projector.set(ATTR_COMPOSER_BOTTOM_ONLY, state.values.composerBottomOnly === true ? 'on' : 'off')
     const navMode = state.values.mobileNav
     projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
     properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
@@ -286,6 +288,15 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
           { value: 'capsule', label: '空态胶囊（点击展开）', labelEn: 'Idle capsule (click to expand)' },
           { value: 'scroll', label: '上滚隐去 · 下滚渐现', labelEn: 'Hide on scroll up · show on scroll down' },
         ],
+      },
+      {
+        key: 'composerBottomOnly',
+        type: 'boolean',
+        label: '输入框只在底部显示',
+        labelEn: 'Show the composer only at the conversation bottom',
+        description: '只在滚到最新消息末尾时显示输入框，向上回看时它自然隐去、回到底部再显现。开启后接管上面的「上滚隐去 · 下滚渐现」。',
+        descriptionEn: 'Show the composer only while the conversation sits at its newest message; it fades away while reading back and returns at the bottom. Takes over the scroll mode above.',
+        defaultValue: false,
       },
       {
         key: 'workspaceRowHeight',
