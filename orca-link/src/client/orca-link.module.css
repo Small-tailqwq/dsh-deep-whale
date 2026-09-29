@@ -633,11 +633,17 @@ body[data-dsh-orca-link] [id='root'] {
 body[data-dsh-orca-link] .lightScene {
   position: fixed;
   z-index: 0;
-  inset: 0;
+  /* The scene's frame ends where the conversation column does. A right panel —
+     the host's own sidebar, or the dock a plugin registers into it — reserves
+     width from that column, and the client entry publishes the reserve, so the
+     panel crops the scene's decorative side instead of the character standing
+     on the right of the art (see `scene-fit`). */
+  inset: 0 var(--orca-scene-clip-right, 0px) 0 0;
   display: block;
   overflow: hidden;
   pointer-events: none;
   background: #f6f1e7;
+  transition: right var(--orca-track-duration) var(--orca-track-ease);
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme] .lightScene {
@@ -668,7 +674,8 @@ body[data-dsh-orca-link] .lightSceneLayer {
   transition:
     opacity 640ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 640ms cubic-bezier(0.22, 1, 0.36, 1);
+    filter 640ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-position-x var(--orca-track-duration) var(--orca-track-ease);
 }
 
 body[data-dsh-orca-link] .lightSceneHero {
@@ -704,11 +711,14 @@ body[data-dsh-orca-link]:not([data-ds-dark-theme])[data-orca-scene='active'] .li
 body[data-dsh-orca-link] .darkScene {
   position: fixed;
   z-index: 0;
-  inset: 0;
+  /* Same frame as the light scene: end at the conversation column's right edge
+     so a right panel never covers the character. See `scene-fit`. */
+  inset: 0 var(--orca-scene-clip-right, 0px) 0 0;
   display: none;
   overflow: hidden;
   pointer-events: none;
   background: #090d14;
+  transition: right var(--orca-track-duration) var(--orca-track-ease);
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme] .darkScene {
@@ -739,7 +749,8 @@ body[data-dsh-orca-link] .darkSceneLayer {
   transition:
     opacity 640ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 640ms cubic-bezier(0.22, 1, 0.36, 1);
+    filter 640ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-position-x var(--orca-track-duration) var(--orca-track-ease);
 }
 
 body[data-dsh-orca-link] .darkSceneHero {
@@ -754,6 +765,17 @@ body[data-dsh-orca-link] .darkSceneActive {
   transform: scale(1.015) translateY(6px);
   filter: brightness(0.88) saturate(0.74) contrast(1.05) blur(2px);
   background-image: var(--orca-link-dark-active-art);
+}
+
+/* A right panel reserves width from the conversation column, so the scene ends
+   at the panel's edge. `cover` on that narrower box would center the art and
+   crop exactly the character — she stands on the right of the frame in every
+   scene — so a clipped scene anchors its crop to the art's right side instead,
+   and the panel takes the picture's decorative side. The client entry sets the
+   marker while the column really lost that width (see `scene-fit`). */
+body[data-dsh-orca-link][data-orca-scene-clipped]
+  :is(.lightSceneLayer, .darkSceneLayer) {
+  background-position-x: right;
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme][data-orca-scene='active'] .darkSceneHero {

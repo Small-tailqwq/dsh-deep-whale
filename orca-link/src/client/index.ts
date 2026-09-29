@@ -19,6 +19,7 @@ import { installOrcaPageIcons } from './page-icons.ts'
 import { installOrcaPricingLight } from './pricing-light.ts'
 import { installOrcaRailSearch } from './rail-search.ts'
 import { installOrcaScene } from './scene.ts'
+import { installOrcaSceneFit } from './scene-fit.ts'
 import { installOrcaSettingsOverlay } from './settings-overlay.ts'
 import { installOrcaStatusCharacter } from './status-character.ts'
 import { installOrcaTerminalPerformance } from './terminal-performance.ts'
@@ -153,6 +154,7 @@ export function apply(ctx: Context): void {
   body.style.setProperty(DARK_HERO_ART_PROPERTY, `url("${ORCA_LINK_DARK_HERO_ART}")`)
   body.style.setProperty(DARK_ACTIVE_ART_PROPERTY, `url("${ORCA_LINK_DARK_ACTIVE_ART}")`)
   const disposeScene = installOrcaScene(body)
+  const disposeSceneFit = installOrcaSceneFit(body)
   const disposeComposerMotion = installOrcaComposerMotion(body)
   const disposeComposerCollapse = installOrcaComposerCollapse(body)
   const disposeHeadlineTypewriter = installOrcaHeadlineTypewriter(body)
@@ -334,6 +336,7 @@ export function apply(ctx: Context): void {
 
   ctx.effect(() => () => {
     disposeScene()
+    disposeSceneFit()
     disposeLinkStatus()
     disposeStatusCharacter()
     disposePricingLight()
