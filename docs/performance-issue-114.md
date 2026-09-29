@@ -32,7 +32,7 @@
 
 除了单条选择器的匹配成本，还存在关系选择器带来的失效传播。Chromium trace 中，编辑器插入或删除节点会产生 `changedPseudo: has`，聊天容器收到的 invalidation set 同时包含 `class`、`span`、`div`、`svg` 等宽泛目标。即使首页或菜单不在显示，其 `A:has(B) C` 规则也会扩大集合，使转录内大量元素重新匹配样式。一次输入相关重算涉及约 6,957 个元素及伪元素；仅看 SelectorStats 排名容易漏掉这种关联。
 
-这与 [#114](https://github.com/Small-tailqwq/dsh-deep-whale/issues/114) 所述“重算次数更少，但每次更贵”相符。机制也可对照 Chromium 的 [invalidation set 构建源码](https://chromium.googlesource.com/chromium/src/+/71729e86fb31e3e968c4922a765c1029360f8e48/third_party/blink/renderer/core/css/invalidation/rule_invalidation_data_visitor.cc)；本次判断的直接依据是本机 trace 和对照测量。
+这与 [#114](https://github.com/Small-tailqwq/dsh-deep-whale/issues/114) 所述“重算次数更少，但每次更贵”相符。机制也可对照 Chromium 的 [invalidation set 构建源码（GitHub 镜像）](https://github.com/chromium/chromium/blob/71729e86fb31e3e968c4922a765c1029360f8e48/third_party/blink/renderer/core/css/invalidation/rule_invalidation_data_visitor.cc)；本次判断的直接依据是本机 trace 和对照测量。
 
 修复把这些特定关系投影为局部属性：
 
