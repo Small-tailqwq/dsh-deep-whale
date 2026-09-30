@@ -98,7 +98,7 @@ dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-man
 刚发布的 npm 新版要满 24 小时后才能通过 `update` 装上，在此之前 `update` 会停在上一个版本，也不会报错（这是 DSH 内置的 pnpm 为防范恶意包设的默认延迟）。想马上用上某个新版，可以在包名后面加上 `@^版本号` 重新安装，版本号可以在 [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases) 查到：
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.6'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.7'
 ```
 
 版本号前的 `^` 不要省：省掉后会固定在这个版本，以后的 `update` 就不会再升级了。
