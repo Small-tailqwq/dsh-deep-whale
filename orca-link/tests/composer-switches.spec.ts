@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { installOrcaComposerCollapse } from '../src/client/composer-collapse.ts'
 import { installOrcaComposerMotion } from '../src/client/composer-motion.ts'
 
@@ -119,6 +119,47 @@ describe('ORCA LINK composer switches', () => {
     toBottom.remove()
     scrollport.dispatchEvent(new Event('scroll'))
     expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+    dispose()
+  })
+
+  it('watches the transcript for the back-to-bottom control only while bottom-only is on', async () => {
+    const { scrollport } = mountConversation()
+    defineScrollGeometry(scrollport, 300, 800)
+    const observe = vi.spyOn(MutationObserver.prototype, 'observe')
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect')
+    try {
+      const transcriptObservers = (): MutationObserver[] => observe.mock.calls
+        .map(([target], i) => (target === scrollport ? observe.mock.contexts[i] as MutationObserver : null))
+        .filter((observer): observer is MutationObserver => observer !== null)
+      const dispose = installOrcaComposerMotion(document.body)
+      // Off by default: streamed transcript nodes must not allocate records.
+      expect(transcriptObservers()).toHaveLength(0)
+
+      document.documentElement.setAttribute(BOTTOM_ONLY, 'on')
+      await flush()
+      const [observer] = transcriptObservers()
+      expect(observer).toBeDefined()
+
+      document.documentElement.setAttribute(BOTTOM_ONLY, 'off')
+      await flush()
+      expect(disconnect.mock.contexts).toContain(observer)
+      dispose()
+    } finally {
+      observe.mockRestore()
+      disconnect.mockRestore()
+    }
+  })
+
+  it('releases the bindings of a replaced conversation once the next one mounts', async () => {
+    const { scrollport: first } = mountConversation()
+    const dispose = installOrcaComposerMotion(document.body)
+    const removed = vi.spyOn(first, 'removeEventListener')
+
+    // A conversation switch replaces the whole phase root and its scrollport.
+    mountConversation()
+    await flush()
+    await flush()
+    expect(removed.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(['scroll', 'wheel']))
     dispose()
   })
 

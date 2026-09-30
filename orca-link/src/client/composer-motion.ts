@@ -48,6 +48,8 @@ const SEAT_GESTURE_WINDOW_MS = 200
 
 interface ScrollBinding {
   lastTop: number | null
+  /** Connect the back-to-bottom observer only while bottom-only mode is on. */
+  syncBottomObserver: () => void
   dispose: () => void
 }
 
@@ -422,11 +424,19 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
 
   const bindScrollport = (scrollport: HTMLElement): void => {
     if (scrollBindings.has(scrollport)) return
+    // A conversation switch replaces the scrollport; its listeners and observer
+    // would keep the detached transcript alive, so drop them before binding.
+    scrollBindings.forEach((binding, bound) => {
+      if (bound.isConnected) return
+      binding.dispose()
+      scrollBindings.delete(bound)
+    })
     const binding: ScrollBinding = {
       // Reading scrollTop while a newly mounted conversation still has dirty
       // style forces a full-document layout. Establish the baseline on the
       // first reader interaction instead.
       lastTop: null,
+      syncBottomObserver: () => {},
       dispose: () => {},
     }
 
@@ -468,13 +478,23 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     // module already read, and a gesture may end on that very event (middle-click
     // autoscroll, smooth scroll): the control is on screen while the seat stays
     // visible until the next scroll. Reacting to the control's own insertion and
-    // removal removes that dependency on timing.
+    // removal removes that dependency on timing. The observer watches the whole
+    // transcript subtree, so it is connected only while the mode is on: with it
+    // off, every streamed node would still allocate a record for nothing.
     const bottomObserver = new MutationObserver((records) => {
       if (!bottomOnlyEnabled() || !records.some(touchesBackToBottom)) return
       const seat = activeSeatOf(scrollport)
       if (seat !== null) applyBottomOnly(scrollport, seat)
     })
-    bottomObserver.observe(scrollport, { childList: true, subtree: true })
+    let bottomObserving = false
+    binding.syncBottomObserver = () => {
+      const on = bottomOnlyEnabled()
+      if (on === bottomObserving) return
+      bottomObserving = on
+      if (on) bottomObserver.observe(scrollport, { childList: true, subtree: true })
+      else bottomObserver.disconnect()
+    }
+    binding.syncBottomObserver()
 
     scrollport.addEventListener('wheel', onWheel, { passive: true })
     scrollport.addEventListener('scroll', onScroll, { passive: true })
@@ -553,6 +573,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
     doc,
     [COMPOSER_SCROLL_HIDE_ATTRIBUTE, COMPOSER_BOTTOM_ONLY_ATTRIBUTE],
     () => {
+      scrollBindings.forEach(binding => binding.syncBottomObserver())
       if (bottomOnlyEnabled()) {
         synchronizeBottomOnly()
         return

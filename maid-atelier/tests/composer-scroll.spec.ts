@@ -324,6 +324,82 @@ describe('maid composer bottom-only', () => {
     dispose()
   })
 
+  it('releases the observer of a replaced conversation once the next one binds', () => {
+    const observed = new Map<Node, MutationObserver>()
+    const observe = vi.spyOn(MutationObserver.prototype, 'observe').mockImplementation(function (this: MutationObserver, target: Node) {
+      observed.set(target, this)
+    })
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect')
+    try {
+      const first = mount('persistent', true)
+      scrollTo(first.scrollport, 200)
+      const firstObserver = observed.get(first.scrollport)
+      expect(firstObserver).toBeDefined()
+
+      // A conversation switch replaces the whole phase root and its scrollport.
+      first.root.remove()
+      const next = first.root.cloneNode(true) as HTMLElement
+      document.body.append(next)
+      const nextScrollport = next.querySelector<HTMLElement>('[data-conversation-scroll]')!
+      Object.defineProperties(nextScrollport, {
+        clientHeight: { configurable: true, value: SCROLLPORT_HEIGHT },
+        scrollHeight: { configurable: true, value: SCROLLPORT_CONTENT_HEIGHT },
+      })
+      scrollTo(nextScrollport, 200)
+
+      expect(observed.get(nextScrollport)).toBeDefined()
+      expect(disconnect.mock.contexts).toContain(firstObserver)
+      first.dispose()
+    } finally {
+      observe.mockRestore()
+      disconnect.mockRestore()
+    }
+  })
+
+  it('disconnects the transcript observers when bottom-only mode turns off', async () => {
+    const observed = new Map<Node, MutationObserver>()
+    const observe = vi.spyOn(MutationObserver.prototype, 'observe')
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect')
+    try {
+      const { scrollport, dispose } = mount('persistent', true)
+      scrollTo(scrollport, 200)
+      observe.mock.calls.forEach(([target], i) => { observed.set(target, observe.mock.contexts[i] as MutationObserver) })
+      const transcriptObserver = observed.get(scrollport)
+      expect(transcriptObserver).toBeDefined()
+
+      document.documentElement.setAttribute(BOTTOM_SWITCH, 'off')
+      await nextMicrotask()
+      expect(disconnect.mock.contexts).toContain(transcriptObserver)
+      dispose()
+    } finally {
+      observe.mockRestore()
+      disconnect.mockRestore()
+    }
+  })
+
+  it('forgets the seat of a replaced conversation instead of holding its tree', () => {
+    const first = mount('persistent', true)
+    mountToBottomButton(first.scrollport)
+    scrollTo(first.scrollport, 200)
+    expect(first.seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+    first.root.remove()
+    const next = first.root.cloneNode(true) as HTMLElement
+    next.querySelector('[data-composer-seat]')!.removeAttribute('data-maid-composer-hidden')
+    document.body.append(next)
+    const nextScrollport = next.querySelector<HTMLElement>('[data-conversation-scroll]')!
+    Object.defineProperties(nextScrollport, {
+      clientHeight: { configurable: true, value: SCROLLPORT_HEIGHT },
+      scrollHeight: { configurable: true, value: SCROLLPORT_CONTENT_HEIGHT },
+    })
+    scrollTo(nextScrollport, 200)
+
+    // Only a remembered seat is restored on dispose; the detached one was dropped.
+    first.dispose()
+    expect(first.seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+    expect(next.querySelector('[data-composer-seat]')!.hasAttribute('data-maid-composer-hidden')).toBe(false)
+  })
+
   it('dispose clears the bottom-only seat state', () => {
     const { scrollport, seat, dispose } = mount('persistent', true)
     mountToBottomButton(scrollport)

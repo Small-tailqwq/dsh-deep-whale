@@ -574,6 +574,9 @@ window.__ModuleLoader__.load({
 			const current = () => ownership.token === token;
 			const remember = (seat) => {
 				if (ownership.originals.has(seat)) return;
+				ownership.originals.forEach((_, remembered) => {
+					if (!remembered.isConnected) ownership.originals.delete(remembered);
+				});
 				ownership.originals.set(seat, {
 					hidden: seat.getAttribute(HIDDEN_ATTRIBUTE),
 					interactive: seat.getAttribute(INTERACTIVE_ATTRIBUTE)
@@ -624,8 +627,22 @@ window.__ModuleLoader__.load({
 				else hideSeat(seat);
 			};
 			const bottomObservers = /* @__PURE__ */ new Map();
+			const releaseDetachedObservers = () => {
+				bottomObservers.forEach((observer, scrollport) => {
+					if (scrollport.isConnected) return;
+					observer.disconnect();
+					bottomObservers.delete(scrollport);
+				});
+			};
+			const releaseBottomObservers = () => {
+				bottomObservers.forEach((observer) => {
+					observer.disconnect();
+				});
+				bottomObservers.clear();
+			};
 			const observeBottomControl = (scrollport) => {
 				if (bottomObservers.has(scrollport)) return;
+				releaseDetachedObservers();
 				const observer = new MutationObserver((records) => {
 					if (!current() || activeMode(doc) !== "bottom") return;
 					if (!records.some(touchesBackToBottom)) return;
@@ -637,13 +654,6 @@ window.__ModuleLoader__.load({
 					subtree: true
 				});
 				bottomObservers.set(scrollport, observer);
-			};
-			const releaseDetachedObservers = () => {
-				bottomObservers.forEach((observer, scrollport) => {
-					if (scrollport.isConnected) return;
-					observer.disconnect();
-					bottomObservers.delete(scrollport);
-				});
 			};
 			/** 开关打开或会话换新时立刻对齐一次，不必等待下一次滚动。 */
 			const synchronizeBottomOnly = () => {
@@ -721,6 +731,7 @@ window.__ModuleLoader__.load({
 				if (!current()) return;
 				if (!records.some((record) => record.type === "attributes" && (record.attributeName === MODE_ATTRIBUTE || record.attributeName === BOTTOM_ONLY_ATTRIBUTE))) return;
 				const mode = activeMode(doc);
+				if (mode !== "bottom") releaseBottomObservers();
 				if (mode === null) clearSeatStates();
 				else if (mode === "bottom") synchronizeBottomOnly();
 			});
@@ -735,10 +746,7 @@ window.__ModuleLoader__.load({
 			synchronizeBottomOnly();
 			return () => {
 				stateObserver.disconnect();
-				bottomObservers.forEach((observer) => {
-					observer.disconnect();
-				});
-				bottomObservers.clear();
+				releaseBottomObservers();
 				doc.removeEventListener("scroll", onScroll, true);
 				doc.removeEventListener("wheel", onWheel, true);
 				doc.removeEventListener("focusin", onFocusIn, true);

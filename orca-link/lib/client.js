@@ -1267,8 +1267,14 @@ window.__ModuleLoader__.load({
 			};
 			const bindScrollport = (scrollport) => {
 				if (scrollBindings.has(scrollport)) return;
+				scrollBindings.forEach((binding, bound) => {
+					if (bound.isConnected) return;
+					binding.dispose();
+					scrollBindings.delete(bound);
+				});
 				const binding = {
 					lastTop: null,
+					syncBottomObserver: () => {},
 					dispose: () => {}
 				};
 				const onWheel = (event) => {
@@ -1306,10 +1312,18 @@ window.__ModuleLoader__.load({
 					const seat = activeSeatOf(scrollport);
 					if (seat !== null) applyBottomOnly(scrollport, seat);
 				});
-				bottomObserver.observe(scrollport, {
-					childList: true,
-					subtree: true
-				});
+				let bottomObserving = false;
+				binding.syncBottomObserver = () => {
+					const on = bottomOnlyEnabled();
+					if (on === bottomObserving) return;
+					bottomObserving = on;
+					if (on) bottomObserver.observe(scrollport, {
+						childList: true,
+						subtree: true
+					});
+					else bottomObserver.disconnect();
+				};
+				binding.syncBottomObserver();
 				scrollport.addEventListener("wheel", onWheel, { passive: true });
 				scrollport.addEventListener("scroll", onScroll, { passive: true });
 				binding.dispose = () => {
@@ -1361,6 +1375,7 @@ window.__ModuleLoader__.load({
 				attributeFilter: ["data-phase"]
 			});
 			const disposeVisibilitySwitches = observeOrcaFeature(doc, [COMPOSER_SCROLL_HIDE_ATTRIBUTE, COMPOSER_BOTTOM_ONLY_ATTRIBUTE], () => {
+				scrollBindings.forEach((binding) => binding.syncBottomObserver());
 				if (bottomOnlyEnabled()) {
 					synchronizeBottomOnly();
 					return;

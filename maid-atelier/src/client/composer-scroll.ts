@@ -170,6 +170,12 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   const current = (): boolean => ownership.token === token
   const remember = (seat: HTMLElement): void => {
     if (ownership.originals.has(seat)) return
+    // A conversation switch drops the old seat with its whole transcript; a
+    // detached seat has nothing left to restore, and its snapshot would keep
+    // that tree alive, so it goes before a new seat is remembered.
+    ownership.originals.forEach((_, remembered) => {
+      if (!remembered.isConnected) ownership.originals.delete(remembered)
+    })
     ownership.originals.set(seat, {
       hidden: seat.getAttribute(HIDDEN_ATTRIBUTE),
       interactive: seat.getAttribute(INTERACTIVE_ATTRIBUTE),
@@ -234,8 +240,25 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   // visible until the next scroll. Reacting to the control's own insertion and
   // removal removes that dependency on timing.
   const bottomObservers = new Map<HTMLElement, MutationObserver>()
+  // A conversation switch replaces the scrollport, and an observer keeps its
+  // detached transcript alive, so dropped ones are released whenever a new
+  // scrollport is bound instead of accumulating for the life of the page.
+  const releaseDetachedObservers = (): void => {
+    bottomObservers.forEach((observer, scrollport) => {
+      if (scrollport.isConnected) return
+      observer.disconnect()
+      bottomObservers.delete(scrollport)
+    })
+  }
+  // The observers watch whole transcript subtrees; outside bottom-only mode
+  // they would only allocate a record for every streamed node.
+  const releaseBottomObservers = (): void => {
+    bottomObservers.forEach(observer => { observer.disconnect() })
+    bottomObservers.clear()
+  }
   const observeBottomControl = (scrollport: HTMLElement): void => {
     if (bottomObservers.has(scrollport)) return
+    releaseDetachedObservers()
     const observer = new MutationObserver((records) => {
       if (!current() || activeMode(doc) !== 'bottom') return
       if (!records.some(touchesBackToBottom)) return
@@ -244,15 +267,6 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     })
     observer.observe(scrollport, { childList: true, subtree: true })
     bottomObservers.set(scrollport, observer)
-  }
-  // A conversation replaces its scrollport, so dropped ones are released on the
-  // next sweep instead of accumulating for the life of the page.
-  const releaseDetachedObservers = (): void => {
-    bottomObservers.forEach((observer, scrollport) => {
-      if (scrollport.isConnected) return
-      observer.disconnect()
-      bottomObservers.delete(scrollport)
-    })
   }
 
   /** 开关打开或会话换新时立刻对齐一次，不必等待下一次滚动。 */
@@ -353,6 +367,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     if (!records.some(record => record.type === 'attributes'
       && (record.attributeName === MODE_ATTRIBUTE || record.attributeName === BOTTOM_ONLY_ATTRIBUTE))) return
     const mode = activeMode(doc)
+    if (mode !== 'bottom') releaseBottomObservers()
     if (mode === null) clearSeatStates()
     else if (mode === 'bottom') synchronizeBottomOnly()
   })
@@ -371,8 +386,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
 
   return () => {
     stateObserver.disconnect()
-    bottomObservers.forEach(observer => { observer.disconnect() })
-    bottomObservers.clear()
+    releaseBottomObservers()
     doc.removeEventListener('scroll', onScroll, true)
     doc.removeEventListener('wheel', onWheel, true)
     doc.removeEventListener('focusin', onFocusIn, true)
