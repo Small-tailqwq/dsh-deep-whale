@@ -8,7 +8,7 @@ const css = readFileSync(
 
 // DSH 0.1.7-rc.1 mounts the settings panel inside its slot; rc.2 portals it to
 // <body>. Every settings selector accepts both mounts through these forms.
-const SETTINGS_OVERLAY = ":is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings'])))"
+const SETTINGS_OVERLAY = ":is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay])"
 const SETTINGS_DIALOG = ":is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings'])"
 const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -76,13 +76,13 @@ describe('ORCA modal style boundaries', () => {
 
   it('releases the tooltip carrier so fixed bubbles clear the conversation header', () => {
     const carrierRule = css.match(
-      /\[data-slot='sidebar'\]\s*> :first-child\s*> :has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+      /\[data-slot='sidebar'\]\s*> :first-child\s*> \[data-orca-tooltip-carrier\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    // The :has() must sit on the SAME element as the :is() match (no
+    // The tag must sit on the SAME element as the :is() match (no
     // descendant space) — with a space it releases the root's child and
     // leaves the root context intact.
     const rootRule = css.match(
-      /:is\(\[data-pane='sidebar'\], \[data-slot='sidebar'\]\s*> :first-child\):has\(\[role='tooltip'\]\)\s*\{([^}]*)\}/s,
+      /:is\(\[data-slot='sidebar'\]\s*> :first-child\)\[data-orca-tooltip-root\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(carrierRule).not.toBe('')
     expect(carrierRule).toContain('z-index: auto')

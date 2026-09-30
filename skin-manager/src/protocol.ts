@@ -108,6 +108,8 @@ export interface SelectSetting extends SettingBase<string> {
 
 export interface RangeSetting extends SettingBase<number> {
   type: 'range'
+  /** Optional number stepper; older managers keep rendering a slider. */
+  control?: 'slider' | 'stepper'
   min: number
   max: number
   step?: number

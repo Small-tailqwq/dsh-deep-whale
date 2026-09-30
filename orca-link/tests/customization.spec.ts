@@ -26,6 +26,7 @@ describe('ORCA LINK customization declaration', () => {
       'pricingLight',
       'centerSettings',
       'scrollHideComposer',
+      'composerBottomOnly',
       'composerHandles',
       'headlineTypewriter',
       'sfwMode',
@@ -45,6 +46,7 @@ describe('ORCA LINK customization declaration', () => {
       visibility: { sfwMode: false },
     })
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-composer-scroll-hide')).toBe('off')
+    expect(document.documentElement.getAttribute('data-dsh-whale-orca-composer-bottom-only')).toBe('off')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-composer-handles')).toBe('on')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-headline-typewriter')).toBe('off')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-character')).toBe('hidden')

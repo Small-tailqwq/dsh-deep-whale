@@ -1,5 +1,7 @@
 /** ORCA LINK presentation-only client skin. */
 import type { Context } from '@deepseek-ai/cordis'
+import { installOrcaRelationalMarkers } from './relational-markers.ts'
+import { acquireSidebarState } from './sidebar-state.ts'
 import {
   ORCA_LINK_DARK_ACTIVE_ART,
   ORCA_LINK_DARK_HERO_ART,
@@ -21,7 +23,9 @@ import { installOrcaSettingsOverlay } from './settings-overlay.ts'
 import { installOrcaStatusCharacter } from './status-character.ts'
 import { installOrcaTerminalPerformance } from './terminal-performance.ts'
 import { installOrcaWindowResume } from './window-resume.ts'
+import { releaseClaimedStyles } from './release-claimed-styles.ts'
 import { installOrcaWindowsMenu } from './windows-menu.ts'
+import { installOrcaWorkspaceMarks } from './workspace-marks.ts'
 import { installOrcaLightVisibility } from './work-light.ts'
 import { installOrcaBootError } from './boot-error.ts'
 import css from './orca-link.module.css'
@@ -34,6 +38,11 @@ const DARK_ACTIVE_ART_PROPERTY = '--orca-link-dark-active-art'
 const SIDEBAR_WIDTH_PROPERTY = '--orca-sidebar-width'
 const SIDEBAR_ART_WIDTH_PROPERTY = '--orca-sidebar-art-width'
 const SIDEBAR_WIDE_ATTRIBUTE = 'data-orca-sidebar-wide'
+// The settings overlay is a body-level portal, outside the sidebar slot that
+// owns the wide state; it reads a body copy that exists only while settings is open.
+const SETTINGS_SIDEBAR_WIDE_ATTRIBUTE = 'data-orca-settings-sidebar-wide'
+const SETTINGS_OPEN_ATTRIBUTE = 'data-orca-settings-open'
+const SIDEBAR_DRAGGING_ATTRIBUTE = 'data-orca-sidebar-dragging'
 const APP_FRAME_SELECTOR = "[id='root'] > div[data-slot='root'] > div"
 const cls = (name: keyof typeof css): string => css[name] ?? ''
 
@@ -92,44 +101,52 @@ function mountDshWordmark(): boolean {
   return true
 }
 
-function syncSidebarWidth(body: HTMLElement, pane: Element): number {
-  const measuredWidth = pane.getBoundingClientRect().width
-  if (measuredWidth <= 0) return 0
-
+// The sidebar slot owns its width and wide state; only the open settings
+// portal needs a body copy. Local writes leave the transcript out of the
+// inherited custom-property invalidation.
+function syncSidebarWidth(body: HTMLElement, pane: Element, dragging: boolean, state: ReturnType<typeof acquireSidebarState>): number {
   // AppFrame writes the transition's final grid tracks to its inline style
   // before animation begins. Prefer that endpoint over ResizeObserver's
-  // intermediate pane width so one open/close produces one body style write,
-  // not one inherited custom-property invalidation per rendered frame.
+  // intermediate pane width so one open/close produces one local style write,
+  // not one inherited custom-property invalidation per rendered frame. It is
+  // also readable without layout: measuring first forced a synchronous style
+  // pass over the whole document before the state writes below, and the writes
+  // then cost a second one.
   const frame = body.querySelector<HTMLElement>(APP_FRAME_SELECTOR)
   const firstTrack = frame?.style.gridTemplateColumns.trim().match(/^(-?(?:\d+|\d*\.\d+))px(?:\s|$)/)?.[1]
-  const targetWidth = firstTrack === undefined ? measuredWidth : Number.parseFloat(firstTrack)
-  const width = Number.isFinite(targetWidth) && targetWidth > 0 ? targetWidth : measuredWidth
+  const trackWidth = firstTrack === undefined ? Number.NaN : Number.parseFloat(firstTrack)
+  let width = trackWidth
+  if (!(width > 0)) {
+    width = pane.getBoundingClientRect().width
+    if (!(width > 0)) return 0
+  }
   const serializedWidth = `${width}px`
-  if (body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY) !== serializedWidth) {
-    body.style.setProperty(SIDEBAR_WIDTH_PROPERTY, serializedWidth)
-  }
-  const wide = width > 96
-  if (body.hasAttribute(SIDEBAR_WIDE_ATTRIBUTE) !== wide) {
-    body.toggleAttribute(SIDEBAR_WIDE_ATTRIBUTE, wide)
-  }
+  // While the handle drags, widths arrive at pointer cadence, so the sidebar's
+  // copy waits for the drop (the frame observer flushes it) and the pane-scoped
+  // art width and the seam ruler follow the pointer instead.
+  if (!dragging) state.setWidth(serializedWidth)
+  state.setWide(width > 96)
   return width
 }
 
 export function apply(ctx: Context): void {
   const body = document.body
+  installOrcaRelationalMarkers(ctx)
   ctx.effect(() => installOrcaCustomization(), 'ui-skin-orca-link: customization declaration')
+  // The loader claims untagged <style> tags for whichever plugin loads last and
+  // sweeps them when it unloads; hand other plugins' tags back before that.
+  ctx.effect(() => () => releaseClaimedStyles(), 'ui-skin-orca-link: release styles claimed by the loader')
   ctx.effect(() => installOrcaLightVisibility(body), 'ui-skin-orca-link: decorative light visibility')
   ctx.effect(() => installOrcaBootError(), 'ui-skin-orca-link: boot failure presentation')
   ctx.effect(() => installOrcaPageIcons(), 'ui-skin-orca-link: page icons')
   ctx.effect(() => installOrcaWindowsMenu(body), 'ui-skin-orca-link: windows caption menubar')
+  ctx.effect(() => installOrcaWorkspaceMarks(body), 'ui-skin-orca-link: workspace group tags')
   const originalTitle = document.title
   const originalLightHeroArt = body.style.getPropertyValue(LIGHT_HERO_ART_PROPERTY)
   const originalLightActiveArt = body.style.getPropertyValue(LIGHT_ACTIVE_ART_PROPERTY)
   const originalDarkHeroArt = body.style.getPropertyValue(DARK_HERO_ART_PROPERTY)
   const originalDarkActiveArt = body.style.getPropertyValue(DARK_ACTIVE_ART_PROPERTY)
-  const originalSidebarWidth = body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY)
-  const originalSidebarArtWidth = body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY)
-  const originalSidebarWide = body.hasAttribute(SIDEBAR_WIDE_ATTRIBUTE)
+  const originalSidebarDragging = body.hasAttribute(SIDEBAR_DRAGGING_ATTRIBUTE)
   body.dataset.dshOrcaLink = ''
   body.style.setProperty(LIGHT_HERO_ART_PROPERTY, `url("${ORCA_LINK_LIGHT_HERO_ART}")`)
   body.style.setProperty(LIGHT_ACTIVE_ART_PROPERTY, `url("${ORCA_LINK_LIGHT_ACTIVE_ART}")`)
@@ -178,25 +195,72 @@ export function apply(ctx: Context): void {
   })
   wordmarkObserver.observe(body, { childList: true, subtree: true })
 
+  const spine = document.createElement('div')
+  spine.className = cls('spine')
+  spine.dataset.skinChrome = 'spine'
+  spine.setAttribute('aria-hidden', 'true')
+
   let observedSidebar: Element | null = null
-  let sidebarArtWidthTimer: ReturnType<typeof setTimeout> | undefined
+  let observedFrame: Element | null = null
+  let originalArtWidth = ''
+  let lastSidebarWidth = 0
+  let sidebarState: ReturnType<typeof acquireSidebarState> | undefined
+  const settingsState = acquireSidebarState(body, SETTINGS_SIDEBAR_WIDE_ATTRIBUTE)
+  ctx.effect(() => () => {
+    sidebarState?.release()
+    settingsState.release()
+  }, 'ui-skin-orca-link: sidebar state ownership')
+  const syncSettingsSidebarState = (): void => {
+    // The settings portal needs a body copy only while it is open.
+    const open = body.hasAttribute(SETTINGS_OPEN_ATTRIBUTE) && lastSidebarWidth > 0
+    if (open) {
+      settingsState.setWidth(`${lastSidebarWidth}px`)
+      settingsState.setWide(lastSidebarWidth > 96)
+    } else {
+      settingsState.restore()
+    }
+  }
+
+  const settingsOpenObserver = new MutationObserver(syncSettingsSidebarState)
   const syncObservedSidebar = (pane: Element): void => {
-    const width = syncSidebarWidth(body, pane)
-    if (sidebarArtWidthTimer !== undefined) clearTimeout(sidebarArtWidthTimer)
-    sidebarArtWidthTimer = undefined
+    const dragging = body.hasAttribute(SIDEBAR_DRAGGING_ATTRIBUTE)
+    const width = syncSidebarWidth(body, pane, dragging, sidebarState!)
+    if (width > 0 && width !== lastSidebarWidth) {
+      lastSidebarWidth = width
+      syncSettingsSidebarState()
+      // The seam ruler is a body child, so it carries its own copy.
+      if (!dragging) spine.style.setProperty(SIDEBAR_WIDTH_PROPERTY, `${width}px`)
+    }
     if (width <= 96) return
-    if (body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) === '') {
-      body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${width}px`)
+    // The stage keeps the last wide width while the track collapses (the
+    // narrow branch returns above), and follows a drag live. It hangs on the
+    // pane, not the body: every consumer is a pane descendant, so a write
+    // restyles the sidebar subtree instead of the whole document.
+    if (pane instanceof HTMLElement && pane.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) !== `${width}px`) {
+      pane.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${width}px`)
+    }
+    if (dragging) spine.style.transform = `translateX(${width - 4}px)`
+  }
+  const frameObserver = new MutationObserver(() => {
+    const dragging = observedFrame?.hasAttribute('data-dragging') === true
+    if (body.hasAttribute(SIDEBAR_DRAGGING_ATTRIBUTE) === dragging) {
+      // The track or the collapse flag moved: commit the width state here, in
+      // the same task as the host's own attribute writes, so the frame's first
+      // style pass sees both. From the ResizeObserver (after layout) it cost a
+      // second full-document pass per toggle.
+      if (observedSidebar) syncObservedSidebar(observedSidebar)
       return
     }
-    if (body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) === `${width}px`) return
-    sidebarArtWidthTimer = setTimeout(() => {
-      const stableWidth = Number.parseFloat(body.style.getPropertyValue(SIDEBAR_WIDTH_PROPERTY))
-      if (stableWidth > 96 && body.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) !== `${stableWidth}px`) {
-        body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, `${stableWidth}px`)
-      }
-      sidebarArtWidthTimer = undefined
-    }, 180)
+    body.toggleAttribute(SIDEBAR_DRAGGING_ATTRIBUTE, dragging)
+    if (dragging) return
+    // Drop: hand the seam back to the stylesheet and commit the final width.
+    spine.style.removeProperty('transform')
+    if (lastSidebarWidth > 0) spine.style.setProperty(SIDEBAR_WIDTH_PROPERTY, `${lastSidebarWidth}px`)
+    if (observedSidebar) syncObservedSidebar(observedSidebar)
+  })
+  const restoreArtWidth = (pane: HTMLElement): void => {
+    if (originalArtWidth === '') pane.style.removeProperty(SIDEBAR_ART_WIDTH_PROPERTY)
+    else pane.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, originalArtWidth)
   }
   const sidebarResizeObserver = typeof ResizeObserver === 'undefined'
     ? undefined
@@ -208,8 +272,18 @@ export function apply(ctx: Context): void {
     if (!pane) return false
     if (pane !== observedSidebar) {
       sidebarResizeObserver?.disconnect()
+      if (observedSidebar instanceof HTMLElement) restoreArtWidth(observedSidebar)
+      sidebarState?.release()
       observedSidebar = pane
+      sidebarState = acquireSidebarState(pane.parentElement!, SIDEBAR_WIDE_ATTRIBUTE)
+      originalArtWidth = pane instanceof HTMLElement ? pane.style.getPropertyValue(SIDEBAR_ART_WIDTH_PROPERTY) : ''
       sidebarResizeObserver?.observe(pane)
+    }
+    const frame = body.querySelector(APP_FRAME_SELECTOR)
+    if (frame !== observedFrame) {
+      frameObserver.disconnect()
+      observedFrame = frame
+      if (frame) frameObserver.observe(frame, { attributes: true, attributeFilter: ['data-dragging', 'data-sidebar-collapsed', 'style'] })
     }
     syncObservedSidebar(pane)
     return true
@@ -217,12 +291,15 @@ export function apply(ctx: Context): void {
   const sidebarMountObserver = new MutationObserver(() => {
     if (mountSidebarObserver()) sidebarMountObserver.disconnect()
   })
+  ctx.effect(() => () => {
+    settingsOpenObserver.disconnect()
+    sidebarMountObserver.disconnect()
+    sidebarResizeObserver?.disconnect()
+    frameObserver.disconnect()
+    if (observedSidebar instanceof HTMLElement) restoreArtWidth(observedSidebar)
+  }, 'ui-skin-orca-link: sidebar observers')
+  settingsOpenObserver.observe(body, { attributes: true, attributeFilter: [SETTINGS_OPEN_ATTRIBUTE] })
   if (!mountSidebarObserver()) sidebarMountObserver.observe(body, { childList: true, subtree: true })
-
-  const spine = document.createElement('div')
-  spine.className = cls('spine')
-  spine.dataset.skinChrome = 'spine'
-  spine.setAttribute('aria-hidden', 'true')
 
   const lightScene = document.createElement('div')
   lightScene.className = cls('lightScene')
@@ -277,19 +354,12 @@ export function apply(ctx: Context): void {
     else body.style.setProperty(DARK_HERO_ART_PROPERTY, originalDarkHeroArt)
     if (originalDarkActiveArt === '') body.style.removeProperty(DARK_ACTIVE_ART_PROPERTY)
     else body.style.setProperty(DARK_ACTIVE_ART_PROPERTY, originalDarkActiveArt)
-    if (originalSidebarWidth === '') body.style.removeProperty(SIDEBAR_WIDTH_PROPERTY)
-    else body.style.setProperty(SIDEBAR_WIDTH_PROPERTY, originalSidebarWidth)
-    if (originalSidebarArtWidth === '') body.style.removeProperty(SIDEBAR_ART_WIDTH_PROPERTY)
-    else body.style.setProperty(SIDEBAR_ART_WIDTH_PROPERTY, originalSidebarArtWidth)
-    body.toggleAttribute(SIDEBAR_WIDE_ATTRIBUTE, originalSidebarWide)
+    body.toggleAttribute(SIDEBAR_DRAGGING_ATTRIBUTE, originalSidebarDragging)
     lightScene.remove()
     darkScene.remove()
     spine.remove()
     standby.remove()
     wordmarkObserver.disconnect()
-    sidebarMountObserver.disconnect()
-    sidebarResizeObserver?.disconnect()
-    if (sidebarArtWidthTimer !== undefined) clearTimeout(sidebarArtWidthTimer)
     document.querySelectorAll('[data-orca-link-wordmark]').forEach((wordmark) => wordmark.remove())
     document.querySelectorAll('[data-orca-link-signal]').forEach((chip) => chip.remove())
     document.querySelectorAll('[data-orca-link-brand]').forEach((brandButton) => {

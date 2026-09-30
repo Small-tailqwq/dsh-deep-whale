@@ -51,13 +51,15 @@ import { installMaidBootError } from './boot-error.ts'
 import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.generated.ts'
 import { installMaidTableCards } from './table-card.ts'
 import { installMaidPageIcons } from './page-icons.ts'
+import { releaseClaimedStyles } from './release-claimed-styles.ts'
+import { installMaidRelationalMarkers } from './relational-markers.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
 const SKIN_SYSTEM_CHROME_COLOR = '#0b193f'
 const VIEWPORT_RESIZE_SETTLE_MS = 120
-const SIDEBAR_COLUMN_SELECTOR = ":is([data-pane='sidebar'], [class*='sidebarCol'])"
-const CONVERSATION_COLUMN_SELECTOR = ":is([data-pane='conversation'], [class*='centerCol'])"
+const SIDEBAR_COLUMN_SELECTOR = "[class*='sidebarCol']"
+const CONVERSATION_COLUMN_SELECTOR = "[class*='centerCol']"
 const SETTINGS_TRIGGER_SELECTOR = "[data-slot='sidebar.settings'] > :is(button, [role='button'])"
 const SETTINGS_MASK_SELECTOR = ":scope > [class*='mask']"
 // Through DSH 0.1.7-rc.1 the panel mounts inside the settings slot; from rc.2 it
@@ -70,7 +72,59 @@ const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
 const ACTIVE_CHAT_SELECTOR = `${ACTIVE_CONVERSATION_SELECTOR} [data-chat-flow]`
 const WORKSPACE_SELECTOR = "header [role='tablist']"
 const CORDIS_PANEL_SELECTOR = '[data-cordis-panel]'
+// The `main` outlet renders the conversation inside the host's own
+// `main.conversation` slot, or a keyed panel page (plugin manager, conversation
+// manager, ...) as the outlet's direct child.
+const PANEL_PAGE_SELECTOR = "[data-slot='main'] > :not([data-slot='main.conversation'])"
+// Tags the rc.2 settings portal's mask (a direct body child) so CSS can match it
+// by attribute instead of a `:has()` probe evaluated on every style pass.
+const SETTINGS_OVERLAY_ATTRIBUTE = 'data-maid-settings-overlay'
 const TERMINAL_SELECTOR = '.xterm'
+// The sidebar releases a layer of its own chrome around a tooltip, a dialog or a
+// cordis panel mounted inside it. CSS can only reach that *ancestor* through
+// `:has()`, which cannot be fast-rejected: every style pass evaluated it on
+// every element in the document (17.5k in a long session; the four sidebar
+// probes alone were 20% of all selector time). The client tags the few sidebar
+// carriers instead, and the stylesheet matches the tag.
+const SIDEBAR_CARRIER_MARKS = {
+  tooltip: 'data-maid-tooltip-carrier',
+  dialogRoot: 'data-maid-dialog-root',
+  dialog: 'data-maid-dialog-carrier',
+  cordis: 'data-maid-cordis-carrier',
+  badge: 'data-maid-badge-carrier',
+} as const
+const SIDEBAR_CHROME_SELECTOR = "[data-skin-chrome='sidebar-mascot'], [data-skin-chrome='sidebar-corners'], [role='tooltip']"
+const MODAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true']"
+
+function markCarrier(element: Element, attribute: string, on: boolean): void {
+  if (element.hasAttribute(attribute) !== on) element.toggleAttribute(attribute, on)
+}
+
+/** Tag the sidebar root's children (and their children, for dialogs) that hold a tooltip, dialog or cordis panel. */
+function syncSidebarCarriers(): void {
+  const sidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR)
+  if (sidebar !== null) {
+    for (const child of sidebar.querySelectorAll(':scope > div > *')) {
+      markCarrier(child, SIDEBAR_CARRIER_MARKS.tooltip, child.querySelector("[role='tooltip']") !== null)
+      markCarrier(child, SIDEBAR_CARRIER_MARKS.dialogRoot, child.querySelector(MODAL_DIALOG_SELECTOR) !== null)
+      markCarrier(child, SIDEBAR_CARRIER_MARKS.cordis, child.querySelector(CORDIS_PANEL_SELECTOR) !== null)
+      if (child.matches(SIDEBAR_CHROME_SELECTOR)) continue
+      for (const inner of child.children) {
+        markCarrier(inner, SIDEBAR_CARRIER_MARKS.dialog, inner.querySelector(MODAL_DIALOG_SELECTOR) !== null)
+      }
+    }
+  }
+  for (const child of document.querySelectorAll("[data-slot='sidebar.footer.action'] > *")) {
+    markCarrier(child, SIDEBAR_CARRIER_MARKS.badge, child.querySelector('[data-cordis-badge]') !== null)
+  }
+}
+
+function clearSidebarCarriers(): void {
+  const selector = Object.values(SIDEBAR_CARRIER_MARKS).map(attribute => `[${attribute}]`).join(', ')
+  for (const element of document.querySelectorAll(selector)) {
+    for (const attribute of Object.values(SIDEBAR_CARRIER_MARKS)) element.removeAttribute(attribute)
+  }
+}
 
 interface AttributeLeaseState {
   originalValue: string | null
@@ -136,6 +190,8 @@ const PROJECTED_STATE_ATTRIBUTES = {
   // workarounds for that containment must not run against the rc.2 portal.
   settingsInSidebar: 'data-maid-settings-in-sidebar',
   workspace: 'data-maid-workspace',
+  // A keyed panel page (not the conversation) occupies the `main` outlet.
+  panelPage: 'data-maid-panel-page',
 } as const
 
 const PROJECTED_STATE_SELECTOR = [
@@ -143,6 +199,7 @@ const PROJECTED_STATE_SELECTOR = [
   '[data-chat-flow]',
   WORKSPACE_SELECTOR,
   CORDIS_PANEL_SELECTOR,
+  "[data-slot='main']",
   "[data-slot='sidebar.settings']",
   SETTINGS_PORTAL_DIALOG_SELECTOR,
 ].join(', ')
@@ -445,7 +502,11 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
  */
 export function apply(ctx: Context): void {
   const body = document.body
+  installMaidRelationalMarkers(ctx)
   ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
+  // The loader claims untagged <style> tags for whichever plugin loads last and
+  // sweeps them when it unloads; hand other plugins' tags back before that.
+  ctx.effect(() => () => releaseClaimedStyles(), 'ui-skin-maid-atelier: release styles claimed by the loader')
   ctx.effect(() => installMaidBootError(), 'ui-skin-maid-atelier: boot failure presentation')
   const originalTitle = document.title
   const layoutResizeLease = createBodyAttributeLease(body, 'data-maid-layout-resizing')
@@ -478,6 +539,7 @@ export function apply(ctx: Context): void {
   let recoverRailSearchFocus: ((event: MouseEvent) => void) | undefined
   let settingsBackdropFrame: HTMLDivElement | undefined
   let observer: MutationObserver | undefined
+  let taggedSettingsOverlay: Element | null = null
   let titlebarOverlay: WindowControlsOverlay | undefined
   let syncTitlebarHeight: (() => void) | undefined
   let titlebarSyncFrame: number | undefined
@@ -505,6 +567,9 @@ export function apply(ctx: Context): void {
       document.removeEventListener('click', recoverRailSearchFocus)
     }
     observer?.disconnect()
+    clearSidebarCarriers()
+    taggedSettingsOverlay?.removeAttribute(SETTINGS_OVERLAY_ATTRIBUTE)
+    taggedSettingsOverlay = null
     themeColorObserver?.disconnect()
     if (titlebarOverlay !== undefined && syncTitlebarHeight !== undefined) {
       titlebarOverlay.removeEventListener('geometrychange', syncTitlebarHeight)
@@ -757,6 +822,20 @@ export function apply(ctx: Context): void {
       PROJECTED_STATE_ATTRIBUTES.settingsInSidebar,
       document.querySelector(SETTINGS_SLOT_DIALOG_SELECTOR) !== null,
     )
+    set(
+      PROJECTED_STATE_ATTRIBUTES.panelPage,
+      document.querySelector(PANEL_PAGE_SELECTOR) !== null,
+    )
+    const portalMask = document.querySelector(SETTINGS_PORTAL_DIALOG_SELECTOR)?.parentElement ?? null
+    const overlay = portalMask !== null && portalMask.parentElement === body
+      && portalMask.getAttribute('role') === 'presentation'
+      ? portalMask
+      : null
+    if (overlay !== taggedSettingsOverlay) {
+      taggedSettingsOverlay?.removeAttribute(SETTINGS_OVERLAY_ATTRIBUTE)
+      overlay?.setAttribute(SETTINGS_OVERLAY_ATTRIBUTE, '')
+      taggedSettingsOverlay = overlay
+    }
   }
 
   let observedChatArea: HTMLElement | undefined
@@ -907,6 +986,7 @@ export function apply(ctx: Context): void {
     const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
     if (sidebar === null) clearSidebarWidth()
     else if (resizeObserver === undefined) applySidebarWidth(sidebar.getBoundingClientRect().width)
+    syncSidebarCarriers()
   }
 
   const isSkinChrome = (node: Node): boolean => (
@@ -994,11 +1074,12 @@ export function apply(ctx: Context): void {
         settingsStateChanged = true
       }
       if (!projectedStateChanged && appNodes.length > 0 && (appNodes.some(node => nodeTouches(node, PROJECTED_STATE_SELECTOR))
-        || target?.matches("header, [data-slot='sidebar.settings']") === true)) {
+        || target?.matches("header, [data-slot='main'], [data-slot='sidebar.settings']") === true)) {
         projectedStateChanged = true
       }
     }
-    if (projectedStateChanged) syncProjectedState()
+    if (projectedStateChanged || settingsStateChanged) syncProjectedState()
+    if (!sidebarStructureChanged && settingsStateChanged) syncSidebarCarriers()
     if (sidebarStructureChanged) syncSidebarDecorations()
     else if (workspaceStateChanged) decorateWorkspaceTree(decoratedElements)
     if (!sidebarStructureChanged && chatStructureChanged) {
@@ -1029,6 +1110,7 @@ export function apply(ctx: Context): void {
     subtree: true,
   })
 
+  syncSidebarCarriers()
   installMaidPageIcons(ctx)
 
   document.title = SKIN_TITLE

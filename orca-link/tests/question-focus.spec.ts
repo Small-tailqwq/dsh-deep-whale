@@ -20,6 +20,16 @@ describe('question composer focus styling', () => {
     expect(css).toContain('--orca-question-focus: #4a473f')
   })
 
+  it('keeps the focus bar off the zero-padding inline answer field', () => {
+    // The bar belongs on the row/block chrome; on the textarea itself it would
+    // cover the first glyph of an inline answer.
+    expect(css).toContain("[data-question-key] :is([class*='_customRow'], [class*='_customBlock']):focus-within")
+    const from = css.indexOf('[data-question-key] textarea:focus')
+    const textareaRule = css.slice(from, css.indexOf('}', from))
+    expect(textareaRule).not.toContain('inset 3px')
+    expect(textareaRule).toContain('caret-color: var(--orca-question-focus)')
+  })
+
   it('keeps question recommendation text readable in dark mode', () => {
     expect(css).toContain('--dsw-alias-button-info-fill: #4d91ff !important;')
   })

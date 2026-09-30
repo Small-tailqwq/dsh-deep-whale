@@ -3,17 +3,64 @@ import {
   SKIN_CUSTOMIZATION_PROTOCOL,
   SkinAttributeProjector,
   type SkinCustomizationState,
+  type SkinSettingValue,
 } from '../../../skin-manager/src/protocol.ts'
 
 const ATTR_ART = 'data-dsh-whale-maid-art'
 const ATTR_FONT = 'data-dsh-whale-maid-font'
+const ATTR_WORKSPACE_FONT = 'data-dsh-whale-maid-workspace-font'
 const ATTR_MODEL_EXIT = 'data-dsh-whale-maid-model-exit'
 const ATTR_MODEL = 'data-dsh-whale-model'
 const ATTR_FLASH_GLASSES = 'data-dsh-whale-maid-flash-glasses'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
+const ATTR_COMPOSER_BOTTOM_ONLY = 'data-maid-composer-bottom-only'
 const ATTR_NAV_MODE = 'data-maid-nav-mode'
 /** Navigation layouts the stylesheet implements; anything else falls back to the default. */
 const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
+
+const WORKSPACE_FONTS = new Set(['serif', 'system', 'conversation'])
+
+// Keep the original banner height unless the user chooses a compact layout.
+const WORKSPACE_ROW_HEIGHT_DEFAULT = 54
+const WORKSPACE_ROW_HEIGHT_MIN = 22
+const WORKSPACE_ROW_HEIGHT_MAX = 54
+const WORKSPACE_ROW_HEIGHT_PROPERTY = '--maid-workspace-row-height'
+
+/** Restore the original inline value and priority only while this writer owns it. */
+class SkinPropertyProjector {
+  private readonly originals = new Map<string, { value: string, priority: string }>()
+  private readonly owned = new Map<string, string>()
+
+  constructor(private readonly root: HTMLElement = document.documentElement) {}
+
+  set(name: string, value: string): void {
+    if (!this.originals.has(name)) {
+      this.originals.set(name, {
+        value: this.root.style.getPropertyValue(name),
+        priority: this.root.style.getPropertyPriority(name),
+      })
+    }
+    this.root.style.setProperty(name, value)
+    this.owned.set(name, value)
+  }
+
+  release(): void {
+    for (const [name, original] of this.originals) {
+      if (this.root.style.getPropertyValue(name) === this.owned.get(name)
+        && this.root.style.getPropertyPriority(name) === '') {
+        if (original.value === '') this.root.style.removeProperty(name)
+        else this.root.style.setProperty(name, original.value, original.priority)
+      }
+    }
+    this.originals.clear()
+    this.owned.clear()
+  }
+}
+
+function workspaceRowHeight(value: SkinSettingValue | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return WORKSPACE_ROW_HEIGHT_DEFAULT
+  return Math.min(WORKSPACE_ROW_HEIGHT_MAX, Math.max(WORKSPACE_ROW_HEIGHT_MIN, Math.round(value)))
+}
 
 /**
  * The lineup is DeepSeek Flash and DeepSeek Pro, so the display name only
@@ -32,6 +79,7 @@ export function modelFamily(name: string): 'pro' | 'flash' | null {
 /** Expose controls and keep every resulting DOM mutation skin-owned. */
 export function installMaidCustomization(root: HTMLElement = document.documentElement): () => void {
   const projector = new SkinAttributeProjector(root)
+  const properties = new SkinPropertyProjector(root)
   let observer: MutationObserver | undefined
   let frame: number | undefined
   let activeState: SkinCustomizationState | null = null
@@ -110,6 +158,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
       activeState = null
       stopModelObserver()
       projector.release()
+      properties.release()
       return
     }
     if (activeState === null) window.addEventListener('resize', onResize)
@@ -119,11 +168,15 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     const scheduleVisible = state.visibility.sfwMode !== false
     projector.set(ATTR_ART, artwork && scheduleVisible ? 'visible' : 'hidden')
     projector.set(ATTR_FONT, state.values.font === 'serif' ? 'serif' : 'system')
+    const workspaceFont = state.values.workspaceFont
+    projector.set(ATTR_WORKSPACE_FONT, typeof workspaceFont === 'string' && WORKSPACE_FONTS.has(workspaceFont) ? workspaceFont : 'serif')
     projector.set(ATTR_FLASH_GLASSES, state.values.flashGlasses === true ? 'on' : 'off')
     synchronizeModelMode()
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
+    projector.set(ATTR_COMPOSER_BOTTOM_ONLY, state.values.composerBottomOnly === true ? 'on' : 'off')
     const navMode = state.values.mobileNav
     projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
+    properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
   }
 
   return exposeSkinCustomization({
@@ -157,6 +210,20 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         options: [
           { value: 'system', label: '系统默认无衬线', labelEn: 'System default sans' },
           { value: 'serif', label: 'Georgia 衬线（#22）', labelEn: 'Georgia serif (#22)' },
+        ],
+      },
+      {
+        key: 'workspaceFont',
+        type: 'select',
+        label: '侧栏字体',
+        labelEn: 'Sidebar font',
+        description: '调整侧栏中工作区和会话标签的字体。',
+        descriptionEn: 'Font for workspace and conversation labels in the sidebar.',
+        defaultValue: 'serif',
+        options: [
+          { value: 'serif', label: 'Georgia 衬线（皮肤默认）', labelEn: 'Georgia serif (skin default)' },
+          { value: 'system', label: '系统默认无衬线', labelEn: 'System default sans' },
+          { value: 'conversation', label: '跟随对话区字体', labelEn: 'Follow the conversation font' },
         ],
       },
       {
@@ -221,6 +288,29 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
           { value: 'capsule', label: '空态胶囊（点击展开）', labelEn: 'Idle capsule (click to expand)' },
           { value: 'scroll', label: '上滚隐去 · 下滚渐现', labelEn: 'Hide on scroll up · show on scroll down' },
         ],
+      },
+      {
+        key: 'composerBottomOnly',
+        type: 'boolean',
+        label: '输入框只在底部显示',
+        labelEn: 'Show the composer only at the conversation bottom',
+        description: '只在滚到最新消息末尾时显示输入框，向上回看时它自然隐去、回到底部再显现。开启后接管上面的「上滚隐去 · 下滚渐现」。',
+        descriptionEn: 'Show the composer only while the conversation sits at its newest message; it fades away while reading back and returns at the bottom. Takes over the scroll mode above.',
+        defaultValue: false,
+      },
+      {
+        key: 'workspaceRowHeight',
+        type: 'range',
+        control: 'stepper',
+        label: '工作区横幅高度',
+        labelEn: 'Workspace banner height',
+        description: '仅影响工作区标签，不影响会话标签。',
+        descriptionEn: 'Only affects workspace labels, not conversation labels.',
+        defaultValue: WORKSPACE_ROW_HEIGHT_DEFAULT,
+        min: WORKSPACE_ROW_HEIGHT_MIN,
+        max: WORKSPACE_ROW_HEIGHT_MAX,
+        step: 1,
+        unit: 'px',
       },
     ],
     apply,

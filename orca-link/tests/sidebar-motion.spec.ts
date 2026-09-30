@@ -20,10 +20,30 @@ describe('ORCA LINK sidebar motion', () => {
     expect(css).toContain('transform: translateX(16px) scale(1);')
   })
 
-  it('keeps the character stage width stable and wipes it horizontally', () => {
-    expect(css).toContain('width: calc(var(--orca-sidebar-art-width, 280px) - 30px);')
-    expect(css).toContain('clip-path: inset(0 100% 0 0);')
-    expect(css).toContain('will-change: clip-path, transform, opacity;')
+  it('keeps the character stage width stable and lets the pane edge wipe it', () => {
+    const rule = css.match(/:first-child > .statusCharacter {([^}]*)}/s)?.[1] ?? ''
+    expect(rule).toContain('width: calc(var(--orca-sidebar-art-width, 280px) - 30px);')
+    // No private clip or slide: a 180ms wipe outran the 300ms track and emptied the stage early.
+    expect(rule).not.toContain('clip-path')
+    expect(rule).not.toContain('transform: translateX')
+    expect(rule).toContain('transition: opacity 90ms linear calc(var(--orca-track-duration) - 90ms);')
+    expect(rule).toContain('will-change: opacity;')
+  })
+
+  it('runs every track-coupled layer on the host sidebar clock', () => {
+    expect(css).toContain('--orca-track-duration: var(--ds-transition-duration-slow, 300ms);')
+    expect(css).toContain('--orca-track-ease: var(--ds-ease-in-out, cubic-bezier(0.4, 0, 0.2, 1));')
+    expect(css).toContain('transform var(--orca-track-duration) var(--orca-track-ease)')
+    expect(css).toContain('transition: opacity var(--orca-track-duration) var(--orca-track-ease);')
+    expect(css).not.toContain('transition-duration: 200ms;')
+  })
+
+  it('moves the seam ruler by transform on the track clock and stops easing during a drag', () => {
+    const spine = css.match(/.spine {([^}]*)}/s)?.[1] ?? ''
+    expect(spine).toContain('left: 0;')
+    expect(spine).toContain('transform: translateX(calc(var(--orca-sidebar-width) - 4px));')
+    expect(spine).toContain('transition: transform var(--orca-track-duration) var(--orca-track-ease);')
+    expect(css).toContain('body[data-dsh-orca-link][data-orca-sidebar-dragging] .spine { transition: none; }')
   })
 
   it('hides stale sidebar tooltips during WebApp window resume', () => {
@@ -37,11 +57,11 @@ describe('ORCA LINK sidebar motion', () => {
   // the takeover's own selectors must stay intact.
   it('treats a portalled plugin entry host as a sidebar entry', () => {
     const lifted = css.match(
-      /body\[data-dsh-orca-link\]\[data-orca-sidebar-wide\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
+      /body\[data-dsh-orca-link\] \[data-slot='sidebar'\]\[data-orca-sidebar-wide\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
     )?.groups?.selector ?? ''
     expect(lifted).toContain("button[data-dsh-part='sidebar-entry']")
     expect(lifted).toContain('[data-plugin-entry]')
-    expect(css).toContain("> :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))")
+    expect(css).toContain('> :first-child[data-orca-sidebar-entries]')
     expect(css).toContain('> :not([role=\'tooltip\'], [data-orca-link-wordmark], [data-plugin-entry])')
     expect(css).toContain(
       "button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > *",
@@ -65,7 +85,7 @@ describe('ORCA LINK sidebar motion', () => {
   // around it), which the Windows caption frame moves 16px up: the hover
   // frame drifted off the portrait and covered the Plugins row.
   it('gives the New Session hit plane exactly the portrait box', () => {
-    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)"
+    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)"
     const esc = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const block = (selector: string): string => css.match(new RegExp(`${esc(selector)}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
     const character = block("body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter")
@@ -92,14 +112,14 @@ describe('ORCA LINK sidebar motion', () => {
 
   it('moves the absolute stage below the macOS window-button strip', () => {
     expect(css).toContain("html[data-platform='darwin'] body[data-dsh-orca-link] {\n  --orca-stage-top: 34px;\n}")
-    expect(css).toMatch(/:is\(\[data-pane='sidebar'\], \[data-slot='sidebar'\] > :first-child\)::before \{\s*position: absolute;\s*inset: var\(--orca-stage-top, 0px\) auto 0 0;/)
+    expect(css).toMatch(/:is\(\[data-slot='sidebar'\] > :first-child\)::before \{\s*position: absolute;\s*inset: var\(--orca-stage-top, 0px\) auto 0 0;/)
     expect(css).toContain('top: calc(46px + var(--orca-stage-top, 0px));')
     expect(css).toContain("[class*='logoRow'] > [class*='brand'] {\n  visibility: hidden;\n}")
   })
 
   it('lifts the official panel row out of the stage and above the hit plane', () => {
     const lifted = css.match(
-      /body\[data-dsh-orca-link\]\[data-orca-sidebar-wide\]\s*\[data-slot='sidebar'\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
+      /body\[data-dsh-orca-link\] \[data-slot='sidebar'\]\[data-orca-sidebar-wide\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
     )?.groups?.selector ?? ''
     expect(lifted).toContain("nav[class*='panelList']")
     // The declaration block that follows the first `nav[class*=…]` selector.

@@ -1,5 +1,11 @@
 body[data-dsh-orca-link] {
   --orca-sidebar-width: clamp(258px, 20.2vw, 326px);
+  /* The host eases its sidebar track for 0.3s on this curve; every skin layer
+     that moves with the track borrows the same clock instead of keeping a
+     private duration, so the stage, the wordmark and the seam ruler arrive
+     together with the pane edge rather than ahead of or behind it. */
+  --orca-track-duration: var(--ds-transition-duration-slow, 300ms);
+  --orca-track-ease: var(--ds-ease-in-out, cubic-bezier(0.4, 0, 0.2, 1));
   /* Sidebar art stage height, measured from the pane top; the browsing
      region's frosted panel starts exactly at this seam (120px of controls). */
   --orca-stage: clamp(240px, 34vh, 320px);
@@ -16,6 +22,10 @@ body[data-dsh-orca-link] {
   --orca-line: rgba(43, 55, 72, 0.14);
   --orca-surface: rgba(253, 250, 244, 0.78);
   --orca-surface-strong: rgba(255, 252, 246, 0.92);
+  /* The frosted sheet every non-conversation `main` page reads on: opaque
+     enough to hold small type, transparent enough that the scene stays a
+     backdrop. */
+  --orca-reading-surface: rgba(251, 247, 239, 0.66);
   --orca-shadow: 0 18px 55px rgba(27, 39, 58, 0.12), 0 2px 5px rgba(27, 39, 58, 0.1);
   /* ORCA z-index ladder. DSH's own layer contract is menu 100, Modal 1000,
      portal menu 1100, so every ORCA chrome value stays below 1000: official
@@ -75,6 +85,9 @@ body[data-dsh-orca-link] {
   --dsw-alias-label-secondary: #343b47 !important;
   --dsw-alias-label-tertiary: #778399 !important;
   --dsw-alias-label-caption: #8d98aa !important;
+  /* 0.2.0-rc.2's sticky menu-group heading defaults to a host grey plate while
+     a group scrolls; keep it on the ORCA menu surface instead. */
+  --dsw-alias-menu-group-header-fill: #fbf7ef !important;
   --dsw-alias-state-business-primary: #4b483f !important;
   --dsw-alias-state-business-tertiary: #ddd8cc !important;
   --dsw-specific-bubble: rgba(232, 228, 218, 0.84) !important;
@@ -309,13 +322,38 @@ body[data-dsh-orca-link] > [style*='--dsh-hover-preview-fade'] {
   border-radius: 0 !important;
 }
 
-/* Status tags (Tag's `data-tone`) are pills in the host; the Plugins page is
-   a management surface with no high-churn content, so it takes the same
-   whole-subtree rectilinear pass the settings dialog already has. */
+/* The shared StateDot (session rows, todo, approval, plugin states) paints its
+   6px core on `::after` with a hard-coded 50% radius, and the numbered step
+   variant is a round badge; neither is a token surface. Both are an
+   aria-hidden span carrying `data-state`, so square that pair locally; the
+   ongoing spinner is an SVG glyph and keeps its ring. */
+body[data-dsh-orca-link] :where(span[data-state][aria-hidden='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+),
+body[data-dsh-orca-link] :where(span[data-state][aria-hidden='true']):not(
+  [data-slot='conversation.input.left'] *,
+  [data-slot='conversation.input.right'] *,
+  [data-slot='sidebar.footer.action'] *
+)::after {
+  border-radius: 0 !important;
+}
+
+/* Status tags (Tag's `data-tone`) are pills in the host. A panel page — the
+   plugin manager, a conversation manager, whatever the next plugin ships — is
+   a management surface with no high-churn content, and plugin pages draw
+   their cards and rows from their own hard-coded radii (a 10px card no token
+   reaches), so it takes the same whole-subtree rectilinear pass the settings
+   dialog already has. The `main` outlet renders either the conversation, which
+   the host wraps in its own `main.conversation` slot, or a keyed panel page as
+   the outlet's direct child; that split is the seat test every panel-page rule
+   below shares, and it needs no `:has()` scan of the transcript. */
 body[data-dsh-orca-link] [data-tone],
-body[data-dsh-orca-link] [data-plugin-panel] *,
-body[data-dsh-orca-link] [data-plugin-panel] *::before,
-body[data-dsh-orca-link] [data-plugin-panel] *::after {
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']),
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) *,
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) *::before,
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) *::after {
   border-radius: 0 !important;
 }
 
@@ -346,17 +384,60 @@ body[data-dsh-orca-link] [data-slot='conversation.session.header.utilities']
   background: var(--orca-surface-strong);
 }
 
-/* Reading panes need their own opaque floor: the page's translucent base
-   intentionally reveals the scene and is unsuitable for fullscreen content.
-   The floor follows the open state only. Since DSH 0.1.7 the panel container
-   stays mounted and visible while collapsed — only the docked items inside it
-   slide out — so an opaque container would paint a full-height band over the
-   conversation's right edge. DSH 0.1.6 hid the whole container, which is why
-   the unconditional rule used to be invisible. */
-body[data-dsh-orca-link] [data-sidebar-right-panel][data-sidebar-right-open],
+/* The right panel reads on the same frosted sheet as every other panel page.
+   The host draws no background on the panel box (`.panel`, a fixed-width layer
+   anchored to the frame's right edge that stays mounted while collapsed);
+   only the docked items inside it slide, on a 0.3s transform. The skin used to
+   paint an opaque floor on the box itself, which appeared and vanished at once
+   while the content slid — a slab popping in ahead of its own contents, and a
+   full-height band that hid the scene. The sheet hangs on the sliding items, so
+   it travels with them on the host's clock, and the scene stays visible behind
+   it. Floating panels escape the dock and have nothing behind them to slide
+   over, so they keep an opaque floor, and so does fullscreen, which covers the
+   whole frame. */
+body[data-dsh-orca-link] [data-sidebar-right-panel] {
+  color: var(--orca-ink);
+  border-color: var(--orca-line);
+}
+
+body[data-dsh-orca-link] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
+  :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
+  background-color: var(--orca-reading-surface);
+  backdrop-filter: blur(6px) saturate(0.95);
+  transition: background-color 220ms ease-out;
+  border-color: var(--orca-line);
+  border-radius: 0 !important;
+}
+
+/* The blur is recomputed every frame on a 344px x full-height layer that is
+   sliding, and in software raster that dropped about 40% of the frames of a
+   panel toggle (29 of 55 frames drawn). The host holds `data-animating` on the
+   frame for exactly the track toggle, so the blur stays off while it runs.
+   Dropping the blur alone let the panel slide over the sharp scene and then
+   snap to frosted once settled. Instead the sliding sheet wears a near-opaque
+   floor of the same paper tone — what the blur averages the scene into — so it
+   reads as the same sheet at no per-frame cost. Once settled the blur switches
+   on underneath that floor, where the switch is invisible, and the floor fades
+   back to translucent. The floor jumps in without a transition, because the
+   blur it stands in for is already gone. */
+body[data-dsh-orca-link] [data-animating] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
+  :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
+  background-color: color-mix(in srgb, var(--dsw-input-solid) 90%, transparent);
+  backdrop-filter: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-orca-link] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
+    :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
+    transition: none;
+  }
+}
+
+body[data-dsh-orca-link] [data-sidebar-right-panel='fullscreen']
+  :is([data-dockkit-host='dock'], [data-dockkit-empty]),
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
   background: var(--dsw-input-solid);
-  color: var(--orca-ink);
   border-color: var(--orca-line);
   border-radius: 0 !important;
 }
@@ -367,7 +448,7 @@ body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
 
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-strip],
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float-grip] {
-  background: color-mix(in srgb, var(--orca-blue) 5%, var(--dsw-input-solid));
+  background: color-mix(in srgb, var(--orca-blue) 5%, transparent);
   border-bottom-color: var(--orca-line);
 }
 
@@ -382,13 +463,63 @@ body[data-dsh-orca-link] [data-dockkit-tab-menu] {
   box-shadow: var(--orca-shadow);
 }
 
-/* The 0.1.6 plugin manager is one of those reading panes: a keyed `main` panel
+/* The plugin manager is one of those reading panes: a keyed `main` panel
    that replaces the conversation in the centre column with dense card and
-   detail copy. Same floor, from the same token, so the scene never fights the
-   management text for readability. */
+   detail copy. It used to bring an opaque floor of its own, which read as a
+   plain page next to every other panel; the column-level sheet below now
+   owns the floor for all of them, and a second opaque one would only cover it. */
 body[data-dsh-orca-link] [data-plugin-panel] {
-  background: var(--dsw-input-solid);
   color: var(--orca-ink);
+}
+
+/* Panel pages read on one frosted sheet. Stock gives the `main` seat the
+   column's `--dsw-alias-bg-base` as its floor; this skin makes that token
+   nearly transparent so the scene shows through, which left every panel page
+   sitting directly on the artwork: card fills resolved to a 24% wash and the
+   character ran behind the text. Restoring the floor per plugin only covers
+   plugins someone has already met, so the sheet is keyed on the seat.
+
+   It hangs on the column, not on the page root. Switching between two keyed
+   panels replaces the root element; a `backdrop-filter` layer recreated with
+   it re-samples its backdrop on every switch, and a page whose first paint is a
+   short loading line stretches it from a strip to the full column. Painting it
+   with the column's `::before` also keeps the filter off every content
+   ancestor: a filtered ancestor becomes the containing block of any
+   `position: fixed` overlay a plugin draws inside its page. */
+body[data-dsh-orca-link][data-orca-panel-page]
+  [class*='centerCol'] {
+  position: relative;
+}
+
+body[data-dsh-orca-link][data-orca-panel-page]
+  [class*='centerCol']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--orca-reading-surface);
+  backdrop-filter: blur(6px) saturate(0.95);
+  pointer-events: none;
+}
+
+/* The page root only lifts above the sheet; it must not carry the filter. Its
+   cards take the skin's own surface instead of the 24% base wash, so a row
+   still reads as a row on the sheet. Host overlays portal to body, so the new
+   stacking context traps nothing. */
+body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > :not([data-slot='main.conversation']) {
+  position: relative;
+  z-index: 2;
+  --dsw-alias-bg-base: var(--orca-surface);
+}
+
+/* Host primitives spend `disabled` as a 40% opacity budget, priced against the
+   opaque floor this skin gave up. On the sheet a 12px label lands near 2.6:1;
+   a third more opacity keeps the state readable while still reading as
+   disabled. `:where()` keeps host and plugin rules able to outrank it. */
+body[data-dsh-orca-link][data-orca-panel-page]
+  [data-slot='main'] > :not([data-slot='main.conversation'])
+  :where(button, [role='button']):disabled {
+  opacity: 0.55;
 }
 
 /* Process groups have their own disclosure title outside DisclosureRow. */
@@ -456,19 +587,6 @@ body[data-dsh-orca-link] [data-dsh-better-sidebar] [class$='_terminal'] {
   overflow: clip;
 }
 
-/* Produced-file summaries synchronously measure their chips after resize.
-   Freeze each row at its own current width during AppFrame track motion; keep
-   the custom property on the row so invalidation cannot fan out from a shared
-   ancestor into the entire conversation subtree. */
-body[data-dsh-orca-link]
-  [data-produced-files-row][data-orca-responsive-width-locked] {
-  box-sizing: border-box;
-  flex: 0 0 var(--orca-responsive-locked-width) !important;
-  width: var(--orca-responsive-locked-width) !important;
-  min-width: var(--orca-responsive-locked-width) !important;
-  max-width: var(--orca-responsive-locked-width) !important;
-}
-
 body[data-dsh-orca-link] [data-orca-terminal-width-locked] {
   box-sizing: border-box;
   width: var(--orca-terminal-locked-width) !important;
@@ -476,19 +594,6 @@ body[data-dsh-orca-link] [data-orca-terminal-width-locked] {
   max-width: var(--orca-terminal-locked-width) !important;
   align-self: flex-start;
   overflow: clip;
-}
-
-/* Produced-file summaries synchronously measure their chips after resize.
-   Freeze each row at its own current width during AppFrame track motion; keep
-   the custom property on the row so invalidation cannot fan out from a shared
-   ancestor into the entire conversation subtree. */
-body[data-dsh-orca-link]
-  [data-produced-files-row][data-orca-responsive-width-locked] {
-  box-sizing: border-box;
-  flex: 0 0 var(--orca-responsive-locked-width) !important;
-  width: var(--orca-responsive-locked-width) !important;
-  min-width: var(--orca-responsive-locked-width) !important;
-  max-width: var(--orca-responsive-locked-width) !important;
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme] {
@@ -502,6 +607,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] {
   --orca-line: rgba(180, 199, 226, 0.16);
   --orca-surface: rgba(12, 17, 26, 0.82);
   --orca-surface-strong: rgba(15, 21, 31, 0.94);
+  --orca-reading-surface: rgba(14, 20, 30, 0.72);
   --orca-shadow: 0 18px 55px rgba(0, 0, 0, 0.42), 0 2px 5px rgba(0, 0, 0, 0.32);
   color: var(--orca-ink);
   background-color: #090d14;
@@ -536,6 +642,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] {
   --dsw-alias-label-secondary: #c8d2e2 !important;
   --dsw-alias-label-tertiary: #8998af !important;
   --dsw-alias-label-caption: #718198 !important;
+  --dsw-alias-menu-group-header-fill: #0f151f !important;
   --dsw-alias-state-business-primary: #4d91ff !important;
   --dsw-alias-state-business-tertiary: #183459 !important;
   --dsw-specific-bubble: rgba(24, 42, 66, 0.9) !important;
@@ -726,8 +833,8 @@ html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link] {
   --orca-stage: 120px;
 }
 
-html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link][data-orca-sidebar-wide]
-  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
+  :is([data-slot='sidebar'] > :first-child)::after {
   content: none;
 }
 
@@ -778,7 +885,7 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open] [id='root'] {
    z-index says. Release the isolation together with the promotion while the
    dialog is open; the `position: relative` from that block stays, and
    relative + z-index auto is not a stacking context. */
-body[data-dsh-orca-link][data-orca-settings-in-sidebar] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link][data-orca-settings-in-sidebar] :is([data-slot='sidebar'] > :first-child) {
   z-index: auto;
   isolation: auto;
 }
@@ -806,7 +913,6 @@ body[data-dsh-orca-link][data-orca-settings-in-sidebar]
 /* Full-screen settings owns the complete viewport. Host window toggles and
    ORCA's body-level telemetry are unrelated chrome, so remove them from both
    painting and hit testing until the dialog closes. */
-body[data-dsh-orca-link][data-orca-settings-open] [class*='toggleCluster'],
 body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .standby, .statusCharacter, .pricingLight) {
   opacity: 0;
   visibility: hidden;
@@ -825,7 +931,7 @@ body[data-dsh-orca-link][data-orca-settings-open] :is(.spine, .signalChip, .stan
    the dialog carrier opaque and animation-free while it owns the viewport,
    otherwise resizing across that breakpoint briefly fades the whole panel. */
 body[data-dsh-orca-link][data-orca-settings-open]
-  [data-slot='sidebar'] > :first-child > :has([role='dialog']) {
+  [data-slot='sidebar'] > :first-child > [data-orca-dialog-carrier] {
   position: relative;
   z-index: auto;
   opacity: 1 !important;
@@ -846,7 +952,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog'] {
    settings slots remain intact; ORCA only changes its spatial behavior.
    Large screens dock beside the settings trigger; every constrained viewport
    becomes a full workspace instead of squeezing an intermediate modal. */
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
   position: fixed;
   z-index: var(--orca-settings-overlay-z);
   isolation: isolate;
@@ -865,12 +971,12 @@ body[data-dsh-orca-link][data-orca-settings-open] > [role='presentation']:has(> 
   z-index: calc(var(--orca-settings-overlay-z) + 1);
 }
 
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > :first-child {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > :first-child {
   z-index: 0;
   animation: orcaSettingsMaskIn 170ms ease-out both;
 }
 
-body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
   width: min(800px, calc(100vw - 48px));
   max-width: none;
   height: min(760px, calc(100vh - 48px));
@@ -892,13 +998,13 @@ body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settin
    The host's real z=1 carrier is the direct foot-area child containing the
    panel, not the nested sidebar.footer.action slot. */
 body[data-dsh-orca-link][data-orca-cordis-panel-open]
-  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+  :is([data-slot='sidebar'] > :first-child) {
   z-index: auto;
   isolation: auto;
 }
 
 body[data-dsh-orca-link][data-orca-cordis-panel-open]
-  [data-slot='sidebar'] > :first-child > :has([data-cordis-panel]) {
+  [data-slot='sidebar'] > :first-child > [data-orca-cordis-carrier] {
   position: relative;
   z-index: auto;
 }
@@ -916,9 +1022,9 @@ body[data-dsh-orca-link][data-orca-cordis-panel-open] [data-cordis-panel] {
    flow. The dialog's own mask and decorations live outside this subtree, and
    scrollbar pseudo-elements are not matched by `*` — the global square
    scrollbar styling keeps governing them. */
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *,
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::before,
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::after {
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *,
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::before,
+body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] [role='dialog'], [role='dialog'][data-shortcut-modal='settings']) *::after {
   border-radius: 0 !important;
 }
 
@@ -943,18 +1049,18 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] [role='dialog'], [ro
 
 /* The title and signal chevron stay outside the scrolling category list.
    The footer reserves enough space for the chevron to clear every button. */
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
   position: relative;
   min-height: 0;
   padding-bottom: 24px;
   overflow: hidden;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :first-child {
   flex-shrink: 0;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
   /* Short docked lists keep the group's bottom alignment. */
   flex: 0 1 auto;
   min-height: 0;
@@ -963,15 +1069,15 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
   scrollbar-width: none;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child > button {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child > button {
   flex-shrink: 0;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
   display: none;
 }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav[data-orca-settings-more]::after {
+body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav[data-orca-settings-more]::after {
   content: '';
   position: absolute;
   bottom: 9px;
@@ -988,31 +1094,31 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
 /* Large desktop: the panel opens immediately beside the sidebar trigger and
    grows from its lower-left corner. Navigation stays near the pointer. */
 @media (min-width: 1100px) and (min-height: 681px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     justify-content: flex-start;
     align-items: flex-end;
     padding: 18px 18px 18px 72px;
   }
 
-  body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+  body[data-dsh-orca-link][data-orca-settings-sidebar-wide]
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     padding-left: calc(var(--orca-sidebar-width) + 16px);
   }
 
   /* The docked panel sits on the bottom edge; its height also gives up the
      desktop window strip so a short window cannot push its top under the
      titlebar menu and caption buttons. */
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: min(760px, calc(100vw - 108px));
     height: min(680px, calc(100vh - 36px - var(--orca-window-strip, 0px)));
   }
 
-  body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-sidebar-wide]
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: min(760px, calc(100vw - var(--orca-sidebar-width) - 34px));
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
     /* Keep short navigation bottom-aligned; overflow starts at the first item. */
     justify-content: safe flex-end;
     padding-bottom: 24px;
@@ -1030,24 +1136,24 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     justify-content: center;
     align-items: center;
     padding: calc(24px + var(--orca-window-strip, 0px)) 24px 24px;
   }
 
   html[data-dsh-whale-orca-settings-layout='centered']
-    body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+    body[data-dsh-orca-link][data-orca-settings-sidebar-wide]
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     padding-left: 24px;
   }
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'],
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'],
   html[data-dsh-whale-orca-settings-layout='centered']
-    body[data-dsh-orca-link][data-orca-sidebar-wide]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+    body[data-dsh-orca-link][data-orca-settings-sidebar-wide]
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: min(800px, calc(100vw - 48px));
     height: min(760px, calc(100vh - 48px - var(--orca-window-strip, 0px)));
     transform-origin: center;
@@ -1055,7 +1161,7 @@ body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentatio
 
   html[data-dsh-whale-orca-settings-layout='centered']
     body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
     justify-content: flex-start;
     padding-bottom: 24px;
   }
@@ -1093,11 +1199,11 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
    height it gives up keeps the margin box window-tall and seats the dialog
    exactly under the window strip. */
 @media (max-width: 1099px), (max-height: 680px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
     padding: 0;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     width: 100vw;
     max-width: none;
     height: calc(100vh - var(--orca-window-strip, 0px));
@@ -1111,11 +1217,11 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
 
 /* Phones and narrow panes move the category rail above the content. */
 @media (max-width: 640px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
     flex-direction: column;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
     box-sizing: border-box;
     width: 100%;
     gap: 8px;
@@ -1124,40 +1230,40 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
     border-bottom: 1px solid var(--orca-line);
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: start;
     gap: 4px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :first-child {
     padding: 0 4px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav button {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav button {
     min-width: 0;
     height: 36px;
     padding: 7px 8px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div {
     min-height: 0;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :first-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :first-child {
     min-height: 46px;
     height: auto;
     padding: 8px 10px;
   }
 
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child {
     padding: 0 14px 16px;
   }
 }
 
 @media (max-width: 420px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav > :last-child {
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1167,24 +1273,24 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
    so descriptions remain normal sentences instead of vertical fragments. */
 @media (max-width: 520px) {
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) {
     align-items: stretch;
     flex-direction: column;
   }
 
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_rowText'] {
     width: 100%;
     padding-right: 0;
   }
 
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) > :last-child,
   body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_row']:has(> [class$='_rowText']) [class$='_selector'] {
     box-sizing: border-box;
     width: 100%;
@@ -1192,7 +1298,7 @@ html[data-platform='darwin'] body[data-dsh-orca-link] {
   }
 
   body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'] > nav + div > :last-child
+    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
     justify-content: space-between;
   }
@@ -1406,7 +1512,7 @@ body[data-dsh-orca-link]
    model and effort picker. The official menu keeps ownership of focus,
    keyboard navigation and selection; ORCA only redraws its existing states. */
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell'], [class$='_groupTitle'], [role='menuitemradio'] [class$='_modelName']) {
+  [class$='_menu'][data-orca-model-menu] {
   width: min(276px, calc(100vw - 32px));
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--orca-graphite) 34%, transparent);
@@ -1418,32 +1524,39 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme]
-  [role='menu'][class$='_menu']:has([class$='_cell'], [class$='_groupTitle'], [role='menuitemradio'] [class$='_modelName']) {
+  [class$='_menu'][data-orca-model-menu] {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 10%, transparent), transparent 42%),
     #0f151f;
 }
 
+/* 0.2.0-rc.2 moves `role='menu'` onto the scroll list inside the menu surface.
+   The surface owns the ORCA plate and its gradient, so the nested list must
+   stay clear instead of repainting an opaque plate over them. */
+body[data-dsh-orca-link] [class$='_menu'][data-orca-model-menu] [role='menu'] {
+  background: transparent;
+}
+
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle'] {
+  [class$='_menu'][data-orca-menu-groups] :is([class$='_groupTitle'], [data-menu-group-heading]) {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 7px 8px 5px;
   border-bottom: 1px solid color-mix(in srgb, var(--orca-graphite) 16%, transparent);
   background: #fbf7ef;
-  color: var(--orca-graphite-soft);
+  color: var(--orca-muted);
   font: 600 10px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace;
   letter-spacing: 0.08em;
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme]
-  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle'] {
+  [class$='_menu'][data-orca-menu-groups] :is([class$='_groupTitle'], [data-menu-group-heading]) {
   background: #0f151f;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_groupTitle']) [class$='_groupTitle']::before {
+  [class$='_menu'][data-orca-menu-groups] :is([class$='_groupTitle'], [data-menu-group-heading])::before {
   width: 4px;
   height: 4px;
   content: '';
@@ -1451,7 +1564,7 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName']) [role='menuitemradio'] {
+  [class$='_menu'][data-orca-menu-models] [role='menuitemradio'] {
   min-height: 38px;
   padding: 6px 8px;
   border: 0;
@@ -1461,14 +1574,14 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio']:is(:hover, :focus-visible) {
   border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
   background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] {
   border-left-color: var(--orca-blue);
   background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 16%, transparent), transparent 74%);
@@ -1476,27 +1589,27 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'] [class$='_modelName'] {
   font: 600 12px/1.4 ui-monospace, "SFMono-Regular", Consolas, monospace;
   letter-spacing: 0.01em;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'] [class$='_description'] {
   margin-top: 2px;
   font-size: 11px;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] [class$='_check'] > svg {
   display: none;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([role='menuitemradio'] [class$='_modelName'])
+  [class$='_menu'][data-orca-menu-models]
   [role='menuitemradio'][aria-checked='true'] [class$='_check']::before {
   width: 7px;
   height: 7px;
@@ -1507,25 +1620,25 @@ body[data-dsh-orca-link]
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell']) [role='menuitem'] {
+  [class$='_menu'][data-orca-menu-cells] [role='menuitem'] {
   border-radius: 0;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell']) [class$='_cell'] {
+  [class$='_menu'][data-orca-menu-cells] [class$='_cell'] {
   min-height: 40px;
   border-left: 2px solid transparent;
 }
 
 body[data-dsh-orca-link]
-  [role='menu'][class$='_menu']:has([class$='_cell']) [class$='_cell']:hover {
+  [class$='_menu'][data-orca-menu-cells] [class$='_cell']:hover {
   border-left-color: color-mix(in srgb, var(--orca-blue) 48%, transparent);
   background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
 }
 
 /* Replace the production shell wordmark while preserving its new-session button.
-   rc8 nests the official mark and name inside slot divs below the brand button,
-   so the hide rules match both the flat rc7 shape and the nested rc8 shape. */
+   The official mark and name sit inside slot divs below the brand button; the
+   flat `> svg` rule also covers a mark rendered directly under it. */
 body[data-dsh-orca-link] [data-orca-link-brand] > svg,
 body[data-dsh-orca-link] [data-orca-link-brand] [data-slot='sidebar.brand.mark'] svg {
   display: none;
@@ -1574,18 +1687,18 @@ body[data-dsh-orca-link] .dshWordmark {
   transform: translateX(calc((var(--orca-sidebar-width, 56px) - 118px) / 2)) scale(0.28);
   transform-origin: center;
   transition:
-    opacity 220ms ease,
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 150ms ease,
+    transform var(--orca-track-duration) var(--orca-track-ease);
 }
-body[data-dsh-orca-link][data-orca-sidebar-wide] .dshWordmark {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] .dshWordmark {
   opacity: 1;
   transform: translateX(16px) scale(1);
 }
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > :first-child::after {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > :first-child::after {
   animation: orcaWordmarkScan 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type > svg,
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > :first-child > button:first-of-type [data-slot='sidebar.brand.mark'] svg {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > :first-child > button:first-of-type > svg,
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > :first-child > button:first-of-type [data-slot='sidebar.brand.mark'] svg {
   opacity: 0;
 }
 body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
@@ -1605,14 +1718,14 @@ body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
 
 /* The operator stage belongs to the sidebar only; its state actor is mounted as
    live chrome while this pseudo-element keeps the scrim and seam ruler. */
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child) {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   background-color: rgba(250, 247, 241, 0.64);
 }
 
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before {
   position: absolute;
   inset: var(--orca-stage-top, 0px) auto 0 0;
   z-index: 0;
@@ -1636,11 +1749,11 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
   background-repeat: no-repeat;
   background-size: 100% 100%, 100% 100%, 100% 8px;
   opacity: 0;
-  transition: opacity 150ms var(--ds-ease-in-out, ease-in-out);
+  transition: opacity var(--orca-track-duration) var(--orca-track-ease);
   will-change: opacity;
 }
 
-body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) > :not([role='tooltip'], [data-orca-link-wordmark], [data-plugin-entry]) {
+body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child) > :not([role='tooltip'], [data-orca-link-wordmark], [data-plugin-entry]) {
   position: relative;
   z-index: 1;
 }
@@ -1668,7 +1781,7 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
    below: that takeover hides every child of a matching button, and a plugin
    row that copies the host's own button class is exactly the case it reaches.
 
-   0.1.6 adds a third row of the same shape: the official global panel list
+   The shell has a third row of the same shape: the official global panel list
    (`nav.panelList`, the Plugins entry) sits between New Session and the
    browsing region, so every injected row now inherits a flow anchor 44px
    lower. It is an official row rather than an injected one, but it lands in
@@ -1676,8 +1789,7 @@ body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :fir
    more: the wide stage's transparent New Session hit plane is painted at
    z-index 2 over the whole portrait area, which both hid the row behind the
    artwork and swallowed its clicks. */
-body[data-dsh-orca-link][data-orca-sidebar-wide]
-  [data-slot='sidebar']
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
   > :first-child
   > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
   position: relative;
@@ -1690,9 +1802,8 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
    stage-margin must retire or the region drops by a full stage and leaves a
    dead band between the entry and the workspace. Without the entry the
    original margin still does the stage push. */
-body[data-dsh-orca-link][data-orca-sidebar-wide]
-  [data-slot='sidebar']
-  > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
+  > :first-child[data-orca-sidebar-entries]
   [class*='regionArea'] {
   margin-top: 0;
 }
@@ -1701,8 +1812,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
    (ssh / task-board / skill-explorer) stack their rows one after the other,
    so a full stage-sized margin on every entry would separate each native row
    by 124–204px. The z-index promotion above still covers all entries. */
-body[data-dsh-orca-link][data-orca-sidebar-wide]
-  [data-slot='sidebar']
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
   > :first-child
   > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry])
   ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
@@ -1713,8 +1823,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
    the first row under New Session: that row already paid the stage offset, so
    the entry that follows it must not pay a second one. Same intent as the
    sibling rule above, different predecessor. */
-body[data-dsh-orca-link][data-orca-sidebar-wide]
-  [data-slot='sidebar']
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
   > :first-child
   > nav[class*='panelList']
   ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
@@ -1731,7 +1840,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide]
 body[data-dsh-orca-link]
   [data-slot='sidebar']
   > :first-child
-  > :has([role='tooltip']) {
+  > [data-orca-tooltip-carrier] {
   z-index: auto;
 }
 
@@ -1744,18 +1853,17 @@ body[data-dsh-orca-link]
    the bubble's z-index: 100 competes at the frame level again. Everything
    else inside the root is absolutely positioned inside the sidebar box and
    never crosses the pane, so releasing the context cannot leak chrome.
-   NOTE: the :has() must sit on the SAME element as the :is() match (no
+   NOTE: the tag must sit on the SAME element as the :is() match (no
    descendant space) — with a space it would release the root's child
    (already isolation: auto) and leave the root context intact. */
 body[data-dsh-orca-link]
-  :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child):has([role='tooltip']) {
+  :is([data-slot='sidebar'] > :first-child)[data-orca-tooltip-root] {
   z-index: auto;
   isolation: auto;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] :is([data-slot='sidebar'] > :first-child)::before {
   opacity: 1;
-  transition-duration: 200ms;
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter {
@@ -1764,28 +1872,25 @@ body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter
   z-index: 1;
   top: calc(58px + var(--orca-stage-top, 0px));
   left: 22px;
-  /* Keep one stable stage width while the sidebar track contracts. The
-     sidebar's own overflow edge then wipes the artwork away without ever
-     changing the sprite cell's aspect ratio. */
+  /* Keep one stable stage width while the sidebar track moves. The sidebar's
+     own overflow edge then wipes the artwork in and out at exactly the track's
+     speed, without ever changing the sprite cell's aspect ratio. The sprite
+     carries no clip or slide of its own — a private 180ms wipe outran the
+     300ms track and emptied the stage while the sidebar was still half open.
+     It only fades out in the last moments of a collapse, once the edge has
+     left too little of it to read as a figure. */
   width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
   height: calc(var(--orca-stage, 300px) - 66px);
   overflow: visible;
   pointer-events: none;
   opacity: 0;
-  clip-path: inset(0 100% 0 0);
-  transform: translateX(-8px);
-  transition:
-    opacity 100ms ease-in,
-    clip-path 180ms cubic-bezier(0.4, 0, 1, 1),
-    transform 180ms cubic-bezier(0.4, 0, 1, 1);
-  will-change: clip-path, transform, opacity;
+  transition: opacity 90ms linear calc(var(--orca-track-duration) - 90ms);
+  will-change: opacity;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > .statusCharacter {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > .statusCharacter {
   opacity: 1;
-  clip-path: inset(0);
-  transform: translateX(0);
-  transition-timing-function: ease-out, cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 120ms ease-out;
 }
 
 body[data-dsh-orca-link] .statusCharacterFrame {
@@ -1938,11 +2043,11 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='review'] [data-
    button's flow slot, which the desktop hosts move (issue: hover frame and
    portrait drifted apart and the frame covered the Plugins row). The
    pseudo-elements carry the stacking rung the button used to hold. */
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-orca-link-brand] {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [data-orca-link-brand] {
   pointer-events: none;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) {
   position: static;
   overflow: visible;
   border-color: transparent;
@@ -1951,12 +2056,12 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
   color: transparent;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > * {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > * {
   opacity: 0;
   pointer-events: none;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::before {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::before {
   position: absolute;
   z-index: 2;
   top: calc(58px + var(--orca-stage-top, 0px));
@@ -1979,7 +2084,7 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
   transition: opacity 160ms ease;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::after {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::after {
   position: absolute;
   z-index: 2;
   /* Bottom-right corner of the plane above, 3px / 4px inside it. */
@@ -1994,32 +2099,32 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::before,
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::before {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::before,
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::before {
   opacity: 0.62;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::after,
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::after {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::after,
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::after {
   opacity: 0.92;
   transform: translate(-2px, -2px);
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible {
+html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible {
   outline: none;
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > button:not([data-dsh-part='sidebar-entry']) {
   position: relative;
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry']) > svg {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > button:not([data-dsh-part='sidebar-entry']) > svg {
   opacity: 0;
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -2107,7 +2212,7 @@ html[data-windows-titlebar] body[data-dsh-orca-link]
 /* The Windows frame rounds the conversation column's top-left corner under
    the caption (`--dsh-windows-content-radius`, 16px). ORCA's shape contract
    is square throughout. */
-html[data-windows-titlebar] body[data-dsh-orca-link] :is([data-pane='conversation'], [class*='centerCol']) {
+html[data-windows-titlebar] body[data-dsh-orca-link] [class*='centerCol'] {
   border-radius: 0;
 }
 
@@ -2156,14 +2261,14 @@ html[data-platform='darwin'] body[data-dsh-orca-link]
 /* Official rail tooltips are rendered beside their anchors instead of through
    a portal. Release only their collapsed-rail ancestor chain so fixed bubbles
    can leave the 36px action cell and the 55px sidebar shell. */
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] > :first-child,
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [class*='regionArea'],
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [class*='sectionHeader'],
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [class*='headerActions'] {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child,
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) [class*='regionArea'],
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) [class*='sectionHeader'],
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) [class*='headerActions'] {
   overflow: visible;
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] [role='tooltip'] {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) [role='tooltip'] {
   z-index: var(--orca-z-tooltip);
 }
 
@@ -2175,7 +2280,7 @@ body[data-dsh-orca-link][data-orca-window-resuming] [data-slot='sidebar'] [role=
 }
 
 /* Vertical identity label riding the stage's left edge (White Route language). */
-body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] :is([data-slot='sidebar'] > :first-child)::after {
   content: 'ORCA LINK';
   position: absolute;
   z-index: 1;
@@ -2193,7 +2298,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] :is([data-pane='sidebar'], [dat
 /* The browsing region becomes a frosted glass panel pushed below the stage:
    the art never fights the session list for readability. The production
    shell measures 120px from the pane top to the region's normal position. */
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea'] {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea'] {
   isolation: isolate;
   margin-top: calc(var(--orca-stage, 300px) - 120px);
   border-top: 1px solid var(--orca-line);
@@ -2201,7 +2306,7 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='
   backdrop-filter: none;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea']::before {
   position: absolute;
   z-index: -1;
   inset: 0;
@@ -2211,11 +2316,11 @@ body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='
   backdrop-filter: blur(10px) saturate(1.03);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child) {
+body[data-dsh-orca-link][data-ds-dark-theme] :is([data-slot='sidebar'] > :first-child) {
   background-color: rgba(8, 12, 19, 0.88);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before {
+body[data-dsh-orca-link][data-ds-dark-theme] :is([data-slot='sidebar'] > :first-child)::before {
   background-image:
     linear-gradient(180deg, rgba(8, 12, 19, 0.68) 0%, rgba(8, 12, 19, 0.08) 76px),
     linear-gradient(180deg,
@@ -2231,11 +2336,11 @@ body[data-dsh-orca-link][data-ds-dark-theme] .statusCharacterBubble {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme][data-orca-sidebar-wide] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'][data-orca-sidebar-wide] :is([data-slot='sidebar'] > :first-child)::after {
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea']::before {
   background: rgba(10, 15, 23, 0.88);
 }
 
@@ -2273,7 +2378,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']:fo
   transform: translate(0, 0);
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-slot='sidebar'] button[aria-haspopup='dialog']::after {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) button[aria-haspopup='dialog']::after {
   top: auto;
   right: 3px;
   bottom: 3px;
@@ -2295,18 +2400,18 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree']
   --orca-tree-guide: rgba(180, 199, 226, 0.18);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-expanded]) {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-group] {
   position: relative;
   padding: 3px 0 5px;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-expanded])
-  + div:has([role='treeitem'][aria-expanded]) {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-group]
+  + div[data-orca-workspace-group] {
   margin-top: 2px;
   border-top: 1px solid color-mix(in srgb, var(--orca-tree-guide) 72%, transparent);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div:has([role='treeitem'][aria-selected])::before {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-selectable]::before {
   position: absolute;
   z-index: 0;
   top: 41px;
@@ -2420,7 +2525,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded] {
   border-left-color: var(--orca-blue);
   background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 15%, transparent), color-mix(in srgb, var(--orca-blue) 3.5%, transparent) 72%, transparent);
@@ -2431,14 +2536,14 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
    workspace. The small square is deliberately independent from the open
    folder glyph, so an expanded inactive workspace cannot read as selected. */
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded]::before {
   background: var(--orca-blue);
   box-shadow: 3px 0 0 color-mix(in srgb, var(--orca-blue) 20%, transparent);
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded]::after {
   position: absolute;
   top: 16px;
@@ -2452,7 +2557,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded]
   svg[data-orca-link-icon^='folder-'] {
   color: var(--orca-blue);
@@ -2526,7 +2631,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='treeit
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree']
-  > div:has([role='treeitem'][aria-selected='true'])
+  > div[data-orca-workspace-current]
   [role='treeitem'][aria-expanded] {
   background: linear-gradient(90deg, rgba(77, 145, 255, 0.2), rgba(77, 145, 255, 0.06) 72%, transparent);
 }
@@ -2634,11 +2739,18 @@ body[data-dsh-orca-link] [data-question-key] :has(> input:focus) {
     inset 0 0 0 1px var(--orca-question-focus-wash);
 }
 
-body[data-dsh-orca-link] [data-question-key] textarea:focus {
+/* Inline answers keep the host's zero padding: `.field` shares one grid cell
+   between the mirror and the textarea, so text starts at the row's inner edge.
+   A bar drawn on the textarea itself therefore covers the first glyph. Draw it
+   on the row/block chrome instead — their own padding holds the indicator. */
+body[data-dsh-orca-link] [data-question-key] :is([class*='_customRow'], [class*='_customBlock']):focus-within {
   border-color: var(--orca-question-focus);
   box-shadow:
     inset 3px 0 0 var(--orca-question-focus),
     inset 0 0 0 1px var(--orca-question-focus-wash);
+}
+
+body[data-dsh-orca-link] [data-question-key] textarea:focus {
   caret-color: var(--orca-question-focus);
 }
 
@@ -2762,7 +2874,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-question-key] [class*='_badge
   color: var(--dsw-alias-brand-primary-invert);
 }
 
-body[data-dsh-orca-link] ::selection { color: #fff; background: var(--orca-blue); }
+body[data-dsh-orca-link]::selection { color: #fff; background: var(--orca-blue); }
 body[data-dsh-orca-link] ::-webkit-scrollbar { width: 9px; height: 9px; }
 body[data-dsh-orca-link] ::-webkit-scrollbar-track { background: transparent; }
 body[data-dsh-orca-link] ::-webkit-scrollbar-thumb {
@@ -2792,7 +2904,7 @@ body[data-dsh-orca-link] .signalChip {
   opacity: 0;
   transition: opacity 220ms ease 90ms, color 160ms ease, border-color 160ms ease, background-color 160ms ease;
 }
-body[data-dsh-orca-link][data-orca-sidebar-wide] .signalChip { opacity: 1; }
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] .signalChip { opacity: 1; }
 body[data-dsh-orca-link] .signalDot {
   width: 6px; height: 6px; border-radius: 0;
   flex: 0 0 6px;
@@ -2904,7 +3016,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .pricingLight {
   will-change: transform, opacity;
 }
 
-body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] > :first-child > .pricingLight {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > .pricingLight {
   top: calc(46px + var(--orca-stage-top, 0px));
   left: 4px;
   transform: none;
@@ -2989,7 +3101,7 @@ body[data-dsh-orca-link] .pricingLamp {
   opacity: 0.3;
   transition: opacity 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
-body[data-dsh-orca-link][data-orca-sidebar-wide] .pricingLamp {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] .pricingLamp {
   width: 5px;
   height: 5px;
 }
@@ -3051,7 +3163,7 @@ body[data-dsh-orca-link] .pricingTooltip {
 }
 /* The detail card opens on hover only in the expanded sidebar; the collapsed
    rail keeps the light glance-only (no hover surface, default cursor). */
-body[data-dsh-orca-link][data-orca-sidebar-wide] .pricingLight:hover .pricingTooltip {
+body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] .pricingLight:hover .pricingTooltip {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -3082,13 +3194,23 @@ body[data-dsh-orca-link] .pricingTooltipValue {
 /* Sidebar seam ruler: a tick strip centered on the column boundary replaces
    the old metal bar — mechanism through precision, not mass. */
 body[data-dsh-orca-link] .spine {
-  position: fixed; top: 0; bottom: 0; left: var(--orca-sidebar-width);
-  z-index: 850; width: 9px; transform: translateX(-4px);
+  position: fixed; top: 0; bottom: 0; left: 0;
+  z-index: 850; width: 9px;
+  /* Positioned by transform, not `left`: a compositor-only move that the
+     track clock can ease in step with the pane edge. A drag writes an inline
+     transform per pointer frame and drops the easing (see below). */
+  transform: translateX(calc(var(--orca-sidebar-width) - 4px));
+  transition: transform var(--orca-track-duration) var(--orca-track-ease);
+  will-change: transform;
   pointer-events: none;
   background: repeating-linear-gradient(180deg, var(--orca-line) 0 1px, transparent 1px 56px);
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
   mask-image: linear-gradient(180deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
 }
+
+/* Dragging the sidebar handle writes widths at pointer cadence; easing them
+   would detach the seam from the handle. */
+body[data-dsh-orca-link][data-orca-sidebar-dragging] .spine { transition: none; }
 
 /* The seam is decorative in constrained layouts; retiring it avoids moving a
    body-level fixed layer alongside the AppFrame track transition. */
@@ -3127,10 +3249,6 @@ body[data-dsh-orca-link] [data-phase='hero'] [class*='previewBadge'] {
   color: var(--orca-muted); background: var(--orca-surface);
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
   font-size: 9px; letter-spacing: 0.22em;
-}
-body[data-dsh-orca-link] [data-phase='hero'] [class*='heroGlow'] ellipse {
-  fill: var(--orca-blue);
-  fill-opacity: 0.06;
 }
 
 /* Hero and active phases share one signature terminal: squared corners, a
@@ -3527,9 +3645,9 @@ body[data-dsh-orca-link] {
 @media (max-width: 900px) {
   body[data-dsh-orca-link] .lightScene { display: none; }
   body[data-dsh-orca-link][data-ds-dark-theme] .darkScene { display: none; }
-  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before,
-  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::after { display: none; }
-  body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea'] {
+  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before,
+  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::after { display: none; }
+  body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea'] {
     margin-top: 0;
     border-top: none;
     background: transparent;
@@ -3538,13 +3656,12 @@ body[data-dsh-orca-link] {
   /* The portrait stage is retired in this layout, so the entries' stage-sized
      offset would leave a blank band above the plugin rows; reset it with the
      rest of the stage chrome. The official panel row rides the same offset. */
-  body[data-dsh-orca-link][data-orca-sidebar-wide]
-    [data-slot='sidebar']
+  body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
     > :first-child
     > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
     margin-top: 0;
   }
-  body[data-dsh-orca-link][data-orca-sidebar-wide] [data-slot='sidebar'] [class*='regionArea']::before { display: none; }
+  body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea']::before { display: none; }
   body[data-dsh-orca-link] .spine,
   body[data-dsh-orca-link] .signalChip,
   body[data-dsh-orca-link] .statusCharacter { display: none; }
@@ -3560,17 +3677,18 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [role='button'],
   body[data-dsh-orca-link] .dshWordmark,
   body[data-dsh-orca-link] .statusCharacter,
+  body[data-dsh-orca-link] .spine,
   body[data-dsh-orca-link] .statusCharacterBubble,
   body[data-dsh-orca-link] .pricingLight,
   body[data-dsh-orca-link] .pricingLamp,
   body[data-dsh-orca-link] .pricingTooltip,
-  body[data-dsh-orca-link] :is([data-pane='sidebar'], [data-slot='sidebar'] > :first-child)::before { transition: none; }
+  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before { transition: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
   body[data-dsh-orca-link] .signalDot,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > :first-child,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog'],
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::before,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::after,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > :first-child,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'],
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::after,
   body[data-dsh-orca-link] [data-phase='hero'] [class*='titleGroup'] > span:not([class*='previewBadge'])::after,
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-entering] [data-composer-card],
   body[data-dsh-orca-link] [data-orca-composer-ghost],
@@ -3588,8 +3706,8 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::before,
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation']:where(:has(> [role='dialog'][data-shortcut-modal='settings']))) > [role='dialog']::after { display: none; }
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::before,
+  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::after { display: none; }
   body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
 }
@@ -3605,14 +3723,6 @@ body[data-dsh-orca-link] {
   100% { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
 }
 
-@keyframes orcaFilmGrainShift {
-  0%   { transform: translate(-7%, -8%) rotate(0.01deg); }
-  25%  { transform: translate(5%, -3%) rotate(-0.02deg); }
-  50%  { transform: translate(-3%, 7%) rotate(0.02deg); }
-  75%  { transform: translate(8%, 3%) rotate(-0.01deg); }
-  100% { transform: translate(-7%, -8%) rotate(0.01deg); }
-}
-
 /* The semantic handles are siblings of the conversation scrollport inside the
    host body wrapper. Anchor the rule to that relationship without depending
    on generated class names. */
@@ -3621,6 +3731,8 @@ body[data-dsh-orca-link]
   > :has(> [data-conversation-scroll])
   > [data-width-handle][data-side]::after {
   width: 3px;
+  /* The host bar keeps a 2px radius; the signal rail is a hard line. */
+  border-radius: 0;
   background: linear-gradient(
     to bottom,
     transparent calc(var(--dsh-width-handle-pointer-y, 50%) - 50px),

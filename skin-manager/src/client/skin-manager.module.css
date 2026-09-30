@@ -490,12 +490,10 @@
   cursor: not-allowed;
 }
 
-/* Pixel-drawn NGO/retro volume slider. The chrome follows the game's
- * ControlPanel: a chunky 1px border box, saturated brand track and a
- * neon-pink thumb with a crisp hard shadow. */
+/* Generic range controls use host tokens; skins own any decorative overrides. */
 .sliderRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(120px, 220px);
+  grid-template-columns: minmax(0, 1fr) auto minmax(80px, 220px);
   align-items: center;
   gap: 10px;
   min-height: 40px;
@@ -510,50 +508,117 @@
 
 .sliderRow input[type='range'] {
   appearance: none;
-  -webkit-appearance: none;
   width: 100%;
   height: 20px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 0;
-  background: var(--dsw-specific-input-major);
+  border: 0;
+  background: transparent;
   cursor: pointer;
-  image-rendering: pixelated;
 }
 
 .sliderRow input[type='range']::-webkit-slider-runnable-track {
-  height: 8px;
-  border: 1px solid var(--dsw-alias-brand-primary);
-  border-radius: 0;
-  background: linear-gradient(180deg, #bdf6ff, #52bce2 55%, #3716b1);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l2);
 }
 
 .sliderRow input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 22px;
-  margin-top: -8px;
-  border: 2px solid var(--dsw-alias-brand-primary);
-  border-radius: 0;
-  background: #ff70c8;
-  box-shadow: 2px 2px 0 rgb(81 39 255 / 35%);
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--dsw-alias-brand-primary);
 }
 
 .sliderRow input[type='range']::-moz-range-track {
-  height: 8px;
-  border: 1px solid var(--dsw-alias-brand-primary);
-  border-radius: 0;
-  background: linear-gradient(180deg, #bdf6ff, #52bce2 55%, #3716b1);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l2);
 }
 
 .sliderRow input[type='range']::-moz-range-thumb {
-  width: 10px;
-  height: 18px;
-  border: 2px solid var(--dsw-alias-brand-primary);
-  border-radius: 0;
-  background: #ff70c8;
-  box-shadow: 2px 2px 0 rgb(81 39 255 / 35%);
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--dsw-alias-brand-primary);
+}
+
+/* Match the host's font-size stepper without coupling to its preference store. */
+.numberControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  height: 36px;
+  border-radius: 18px;
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.numberValue {
+  min-width: 18px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-primary);
+}
+
+.numberUnit {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.stepperArrows {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+}
+
+.stepper:hover .stepperArrows,
+.stepper:focus-within .stepperArrows {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .stepperArrows { opacity: 1; }
+}
+
+.stepperArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 12px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--dsw-alias-bg-layer-1) 75%, transparent);
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.stepperArrow:hover:not(:disabled) {
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.stepperArrow:disabled {
+  color: var(--dsw-alias-label-caption);
+  cursor: default;
 }
 
 /* The time editor splits "HH:MM" into an hour and a minute select so the

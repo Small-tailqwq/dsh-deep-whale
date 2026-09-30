@@ -20,7 +20,7 @@ describe('workspace state styling', () => {
       "body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='true']",
     )
     const currentBlock = declarationBlock(
-      "body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']\n  > div:has([role='treeitem'][aria-selected='true'])\n  [role='treeitem'][aria-expanded]",
+      "body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']\n  > div[data-orca-workspace-current]\n  [role='treeitem'][aria-expanded]",
     )
 
     expect(openBlock).toContain('var(--orca-graphite)')
@@ -30,7 +30,7 @@ describe('workspace state styling', () => {
 
   it('adds an independent square marker to the current workspace', () => {
     const markerBlock = declarationBlock(
-      "body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']\n  > div:has([role='treeitem'][aria-selected='true'])\n  [role='treeitem'][aria-expanded]::after",
+      "body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']\n  > div[data-orca-workspace-current]\n  [role='treeitem'][aria-expanded]::after",
     )
 
     expect(markerBlock).toContain('width: 5px')

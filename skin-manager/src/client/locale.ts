@@ -80,6 +80,8 @@ export function useUiLang(): UiLang {
 
 const zhCopy = {
   headerTitle: '皮肤管理',
+  increaseValue: (label: string) => `增大${label}`,
+  decreaseValue: (label: string) => `减小${label}`,
   // The settings nav gives every section a narrow two-column cell and ellipsises
   // the overflow, so the nav label is its own, shorter string rather than the
   // page heading: "Skin Management" would render as "Skin Manage…".
@@ -171,6 +173,8 @@ const zhCopy = {
 
 const enCopy: typeof zhCopy = {
   headerTitle: 'Skin Management',
+  increaseValue: (label: string) => `Increase ${label}`,
+  decreaseValue: (label: string) => `Decrease ${label}`,
   navLabel: 'Skins',
   headerIntro: 'Skins installed in this profile. Press Switch to apply one; only one is active at a time, and each skin\'s own options live here too. Every card shows its local commit or build fingerprint; "Check updates" only compares against the official builds and never changes your local files.',
   installedTitle: 'Installed Skins',

@@ -49,7 +49,8 @@ export function installOrcaRailSearch(body: HTMLElement): () => void {
       if (document.activeElement !== input) return
       const button = row.querySelector<HTMLElement>(SEARCH_BUTTON_SELECTOR)
       if (!button || button.getAttribute('aria-expanded') !== 'false') return
-      if (!body.hasAttribute('data-orca-sidebar-wide')) return
+      // The wide state lives on the sidebar column, an ancestor of every search row.
+      if (row.closest('[data-orca-sidebar-wide]') === null) return
       button.click()
     }, RECHECK_DELAY_MS)
     pending.set(input, timer)

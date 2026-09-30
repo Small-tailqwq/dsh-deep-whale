@@ -220,6 +220,36 @@ function RangeEditor({ setting, label, description, value, disabled = false, onC
   disabled?: boolean
   onChange(value: number): void
 }) {
+  const copy = skinManagerCopy(useUiLang())
+  if (setting.control === 'stepper') {
+    const step = setting.step ?? 1
+    const change = (direction: number): void => onChange(
+      Math.min(setting.max, Math.max(setting.min, Number((value + direction * step).toPrecision(12)))),
+    )
+    return (
+      <div className={css.selectRow}>
+        <RowText label={label} description={description} />
+        <div className={css.numberControl} role="group" aria-label={label}>
+          <div className={css.stepper}>
+            <span className={css.numberValue}>{value}</span>
+            <span className={css.stepperArrows}>
+              <button type="button" className={css.stepperArrow} aria-label={copy.increaseValue(label)} disabled={disabled || value >= setting.max} onClick={() => change(1)}>
+                <svg width="9" height="9" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="m3 9 4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button type="button" className={css.stepperArrow} aria-label={copy.decreaseValue(label)} disabled={disabled || value <= setting.min} onClick={() => change(-1)}>
+                <svg width="9" height="9" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="m3 5 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </span>
+          </div>
+          {setting.unit && <span className={css.numberUnit}>{setting.unit}</span>}
+        </div>
+      </div>
+    )
+  }
   return (
     <label className={css.sliderRow}>
       <RowText label={label} description={description} />

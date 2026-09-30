@@ -166,7 +166,7 @@ body[data-dsh-orca-link][data-ds-dark-theme]
   68% { opacity: .4; }
 }
 
-body[data-dsh-orca-link]:not([data-orca-sidebar-wide]) [data-orca-work-light='sidebar'],
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) [data-orca-work-light='sidebar'],
 body[data-dsh-orca-link][data-orca-settings-open] [data-orca-work-light='sidebar'],
 html[data-dsh-whale-orca-character='hidden'] body[data-dsh-orca-link] [data-orca-work-light='sidebar'] {
   display: none;
