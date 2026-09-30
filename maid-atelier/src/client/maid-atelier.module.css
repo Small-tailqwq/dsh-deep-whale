@@ -6466,6 +6466,84 @@ body[data-dsh-maid-atelier]
   animation: maidAtelierWidthHandlePulse 1.15s ease-in-out infinite;
 }
 
+/* Back-to-bottom control. With the bottom-only composer switch it is the one
+   way back to the hidden composer, so it gets a gold rim, a gentle face
+   gradient and a soft drop shadow instead of the host's flat floating fill —
+   enough relief to read over the artwork without competing with it. Only the
+   button element is styled; the slot shares the `toBottom` class fragment. */
+body[data-dsh-maid-atelier] button[class*='toBottom'] {
+  box-sizing: border-box;
+  border: 1px solid rgba(197, 164, 104, 0.62);
+  color: var(--maid-ink);
+  background: linear-gradient(180deg, #fbfaf6 0%, #e6ecf8 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 3px 10px rgba(19, 38, 87, 0.16);
+  transition:
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+/* The host chevron is a 14px hairline; a slightly larger, firmer stroke keeps
+   it legible on the tinted face. The path keeps `currentColor`. */
+body[data-dsh-maid-atelier] button[class*='toBottom'] svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+
+body[data-dsh-maid-atelier] button[class*='toBottom']:is(:hover, :focus-visible) {
+  border-color: var(--maid-gold);
+  background: linear-gradient(180deg, #fffdf8 0%, #edf1fa 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 14px rgba(19, 38, 87, 0.2);
+}
+
+body[data-dsh-maid-atelier] button[class*='toBottom']:focus-visible {
+  outline: 2px solid var(--maid-indigo);
+  outline-offset: 2px;
+}
+
+body[data-dsh-maid-atelier] button[class*='toBottom']:active {
+  box-shadow:
+    inset 0 1px 3px rgba(19, 38, 87, 0.18),
+    0 1px 4px rgba(19, 38, 87, 0.14);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='toBottom'] {
+  border-color: rgba(211, 180, 119, 0.55);
+  color: var(--maid-gold-soft);
+  background: linear-gradient(180deg, #22397a 0%, #12245a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(190, 206, 242, 0.22),
+    0 3px 12px rgba(0, 0, 0, 0.38);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='toBottom']:is(:hover, :focus-visible) {
+  border-color: rgba(226, 207, 170, 0.85);
+  background: linear-gradient(180deg, #2a4386 0%, #172d68 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(190, 206, 242, 0.28),
+    0 4px 16px rgba(0, 0, 0, 0.44);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='toBottom']:focus-visible {
+  outline-color: var(--maid-gold-soft);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='toBottom']:active {
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 1px 5px rgba(0, 0, 0, 0.32);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-maid-atelier] button[class*='toBottom'] {
+    transition: none;
+  }
+}
+
 /* The rail precedes the transcript root; root > scroll > flow stays present
    even when data-chat-following-tail is removed while reading history. */
 body[data-dsh-maid-atelier] [data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]::before {
