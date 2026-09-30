@@ -97,19 +97,22 @@ describe('ORCA right panel', () => {
 
   it('hangs the frosted sheet on the sliding docked items so it travels with them', () => {
     const sheet = block(`${RIGHT}${NOT_FULLSCREEN}\n  ${DOCK}`)
-    expect(sheet).toContain('background: var(--orca-reading-surface)')
+    expect(sheet).toContain('background-color: var(--orca-reading-surface)')
     expect(sheet).toMatch(/backdrop-filter: blur\(\d+px\)/)
     expect(sheet).toContain('border-radius: 0 !important')
   })
 
-  it('slides the panel without a per-frame backdrop blur and eases the blur in once settled', () => {
+  it('slides the panel on a near-opaque stand-in floor instead of a per-frame blur', () => {
     const settled = block(`${RIGHT}${NOT_FULLSCREEN}
   ${DOCK}`)
-    expect(settled).toContain('transition: backdrop-filter 120ms ease-out')
+    // The floor fades back to translucent over the blur, which switches on at once.
+    expect(settled).toContain('transition: background-color 220ms ease-out')
+    expect(settled).not.toContain('transition: backdrop-filter')
     const sliding = block(`body[data-dsh-orca-link] [data-animating] [data-sidebar-right-panel]${NOT_FULLSCREEN}
   ${DOCK}`)
     expect(sliding).toContain('backdrop-filter: none')
     expect(sliding).toContain('transition: none')
+    expect(sliding).toContain('background-color: color-mix(in srgb, var(--dsw-input-solid) 90%, transparent)')
   })
 
   it('keeps an opaque floor for fullscreen and floating panels', () => {

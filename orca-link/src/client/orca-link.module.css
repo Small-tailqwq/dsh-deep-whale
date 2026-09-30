@@ -402,9 +402,9 @@ body[data-dsh-orca-link] [data-sidebar-right-panel] {
 
 body[data-dsh-orca-link] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
   :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
-  background: var(--orca-reading-surface);
+  background-color: var(--orca-reading-surface);
   backdrop-filter: blur(6px) saturate(0.95);
-  transition: backdrop-filter 120ms ease-out;
+  transition: background-color 220ms ease-out;
   border-color: var(--orca-line);
   border-radius: 0 !important;
 }
@@ -412,12 +412,26 @@ body[data-dsh-orca-link] [data-sidebar-right-panel]:not([data-sidebar-right-pane
 /* The blur is recomputed every frame on a 344px x full-height layer that is
    sliding, and in software raster that dropped about 40% of the frames of a
    panel toggle (29 of 55 frames drawn). The host holds `data-animating` on the
-   frame for exactly the slide, so the panel slides on its plain translucent
-   surface and the blur eases in once it has settled. */
+   frame for exactly the track toggle, so the blur stays off while it runs.
+   Dropping the blur alone let the panel slide over the sharp scene and then
+   snap to frosted once settled. Instead the sliding sheet wears a near-opaque
+   floor of the same paper tone — what the blur averages the scene into — so it
+   reads as the same sheet at no per-frame cost. Once settled the blur switches
+   on underneath that floor, where the switch is invisible, and the floor fades
+   back to translucent. The floor jumps in without a transition, because the
+   blur it stands in for is already gone. */
 body[data-dsh-orca-link] [data-animating] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
   :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
+  background-color: color-mix(in srgb, var(--dsw-input-solid) 90%, transparent);
   backdrop-filter: none;
   transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-dsh-orca-link] [data-sidebar-right-panel]:not([data-sidebar-right-panel='fullscreen'])
+    :is([data-dockkit-host='dock'], [data-dockkit-empty]) {
+    transition: none;
+  }
 }
 
 body[data-dsh-orca-link] [data-sidebar-right-panel='fullscreen']
