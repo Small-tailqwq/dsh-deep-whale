@@ -98,7 +98,7 @@ Lệnh này dùng được cho cả hai nguồn: nguồn npm sẽ lên bản ph�
 Bản npm mới chỉ được `update` cài sau 24 giờ kể từ khi phát hành; trước đó `update` sẽ lặng lẽ giữ phiên bản cũ mà không báo lỗi (đây là độ trễ mặc định của pnpm đi kèm DSH, nhằm phòng package độc hại). Muốn dùng ngay một bản mới, hãy cài lại với `@^<phiên bản>` sau tên package; số phiên bản có tại [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.6'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.7'
 ```
 
 Đừng bỏ dấu `^`: thiếu nó, package sẽ bị cố định ở đúng phiên bản đó và các lần `update` sau sẽ không nâng cấp nữa.
