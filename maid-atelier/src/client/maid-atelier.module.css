@@ -4200,6 +4200,22 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-question-reply] > [class*=
   background: rgba(30, 47, 90, 0.97);
 }
 
+/* Plugins may take over the `user` / `steering` chat-node renderer (e.g.
+   @morlay/ui-conversation-message-actions registers both keys) with hashed
+   atomic classes, so the class hooks above miss the durable rows while the
+   host-rendered pending steering bubble still matches. The flow seat's kind
+   hook is renderer-independent: rebind the host bubble token there so any
+   renderer painting `--dsw-specific-bubble` gets the maid plate. */
+body[data-dsh-maid-atelier]
+  :is([data-chat-flow-kind='user'], [data-chat-flow-kind='steering']) {
+  --dsw-specific-bubble: rgba(232, 237, 249, 0.95);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  :is([data-chat-flow-kind='user'], [data-chat-flow-kind='steering']) {
+  --dsw-specific-bubble: rgba(30, 47, 90, 0.97);
+}
+
 /* Assistant steps expose a stable flow-kind hook. The three intermediate
    wrappers are the renderer seat, AssistantMarkdown root, and block column.
    Select the MarkdownText root positively: reasoning, images, and other
