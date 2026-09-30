@@ -53,6 +53,7 @@ import { installMaidTableCards } from './table-card.ts'
 import { installMaidPageIcons } from './page-icons.ts'
 import { releaseClaimedStyles } from './release-claimed-styles.ts'
 import { installMaidRelationalMarkers } from './relational-markers.ts'
+import { installMaidCharacterFit } from './character-fit.ts'
 
 const SKIN_TITLE = '深海女仆工坊 · DeepSeek Harness'
 const SKIN_OWNER = 'maid-atelier'
@@ -524,6 +525,7 @@ export function apply(ctx: Context): void {
   const decoratedElements = new Set<HTMLElement>()
   const characterStage = createCharacterStage()
   ownedNodes.add(characterStage)
+  ctx.effect(() => installMaidCharacterFit(characterStage), 'ui-skin-maid-atelier: column-fit character exit')
   const composerLaceRail = createComposerLaceRail()
   ownedNodes.add(composerLaceRail)
   let themeColorMeta: HTMLMetaElement | null = null

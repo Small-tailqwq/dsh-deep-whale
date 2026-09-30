@@ -138,9 +138,13 @@ body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
      the art edge-to-edge horizontally and crops the vertical overflow, while
      a chat area narrower than the art's ratio keeps the art full-height and
      crops the horizontal overflow (no shrink-to-width in narrow windows).
-     Position `center` centers the overhanging axis on both sides (top+bottom
-     or left+right), instead of anchoring to the top edge. */
-  background: var(--maid-palace-art) center / cover no-repeat;
+     Position `center bottom` anchors the overhanging axis to the BOTTOM edge,
+     which is the line the maids stand on. `cover` outgrows the stage
+     vertically as soon as the chat area is wider than the palace's 1.5988:1,
+     and a centered anchor then cuts the same amount off the top and the bottom:
+     the palace's own ground edge lands below the visible bottom, the floor is
+     cut in half, and the maids read as standing inside it. */
+  background: var(--maid-palace-art) center bottom / cover no-repeat;
 }
 
 /* The conversation column is the stage's containing block. It stays
@@ -295,6 +299,28 @@ html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='pro']
 
 html[data-dsh-whale-maid-model-exit='enabled'][data-dsh-whale-model='flash']
   body[data-dsh-maid-atelier]
+  [data-maid-character='left'] {
+  translate: -100vw 0;
+  opacity: 0;
+}
+
+/* Two maids standing side by side need 1.08 x the chat area's height of width
+   (their intrinsic ratios, see the corner rules above). A right sidebar narrows
+   the chat area without shortening it — the viewport rules further down cannot
+   see that — so the client entry measures the room between the two boxes and
+   marks the body while they no longer fit. One maid then leaves the way the
+   model-exit rules above already do it, and the model still decides which one:
+   `pro` keeps the left maid, anything else keeps the right/vision one, so no
+   state leaves the stage empty and the two features never contradict. */
+html[data-dsh-whale-model='pro']
+  body[data-dsh-maid-atelier][data-maid-figures-crowded]
+  :is([data-maid-character='right'], [data-maid-character='vision']) {
+  translate: 100vw 0;
+  opacity: 0;
+}
+
+html:not([data-dsh-whale-model='pro'])
+  body[data-dsh-maid-atelier][data-maid-figures-crowded]
   [data-maid-character='left'] {
   translate: -100vw 0;
   opacity: 0;

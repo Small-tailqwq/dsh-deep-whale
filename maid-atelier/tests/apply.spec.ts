@@ -1549,10 +1549,10 @@ describe('Maid Atelier skin apply', () => {
     expect(stageRule).toContain('inset: 0')
     expect(stageRule).toContain('z-index: 0')
     expect(stageRule).toContain('contain: strict')
-    // cover + center: wide chat crops the vertical overflow centered (top and
-    // bottom together); a chat narrower than the art keeps it full-height and
-    // crops horizontally centered — never shrink-to-width.
-    expect(stageRule).toContain('background: var(--maid-palace-art) center / cover no-repeat')
+    // cover + bottom: wide chat crops the vertical overflow — the palace's own
+    // ground edge has to stay on the stage's bottom edge, the line both maids
+    // stand on, so a narrower chat only crops horizontally.
+    expect(stageRule).toContain('background: var(--maid-palace-art) center bottom / cover no-repeat')
     expect(sharedRule).toContain('translate 620ms')
     expect(sharedRule).not.toContain('left 620ms')
     expect(sharedRule).not.toContain('right 620ms')
@@ -1588,6 +1588,17 @@ describe('Maid Atelier skin apply', () => {
     // the chat area, so no panel-state projection survives in the character rules.
     expect(CSS).not.toMatch(/\[data-maid-character='right'\][^{]*\{[^}]*clamp\(-460px/s)
     expect(CSS).not.toContain('data-maid-better-sidebar-open')
+    // A column that can no longer hold both maids: the client entry marks the
+    // body off the real boxes, and the selected model still decides which maid
+    // leaves — `pro` keeps the left one, everything else the right/vision one.
+    const crowdedProRule = CSS.match(
+      /html\[data-dsh-whale-model='pro'\]\s*body\[data-dsh-maid-atelier\]\[data-maid-figures-crowded\]\s*:is\(\[data-maid-character='right'\], \[data-maid-character='vision'\]\)\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    const crowdedOtherRule = CSS.match(
+      /html:not\(\[data-dsh-whale-model='pro'\]\)\s*body\[data-dsh-maid-atelier\]\[data-maid-figures-crowded\]\s*\[data-maid-character='left'\]\s*\{([^}]*)\}/s,
+    )?.[1] ?? ''
+    expect(crowdedProRule).toContain('translate: 100vw 0')
+    expect(crowdedOtherRule).toContain('translate: -100vw 0')
   })
 
   it('recovers the rc.6 rail search after its stale click collapses the wide field', async () => {
