@@ -446,6 +446,14 @@ body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
   box-shadow: var(--orca-shadow);
 }
 
+/* The host floors each tab pane with `--dsw-alias-bg-base`, which this skin
+   turns into the scene veil. Inside the dock that veil lands on top of the
+   sheet above, a second wash the sheet's alpha never priced in, so the panel
+   read far flatter than designed. The sheet owns the pane's floor. */
+body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-pane] {
+  background-color: transparent;
+}
+
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-strip],
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float-grip] {
   background: color-mix(in srgb, var(--orca-blue) 5%, transparent);
