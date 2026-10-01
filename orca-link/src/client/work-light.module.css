@@ -96,8 +96,11 @@ body[data-dsh-orca-link] [data-orca-work-light='repair'] [data-orca-light-suspen
   height: 10%;
 }
 
-body[data-dsh-orca-link] [data-orca-light-suspension]::before,
-body[data-dsh-orca-link] [data-orca-light-suspension]::after {
+/* Only the repair lamp hangs from cables. The sidebar variant leaves its
+   suspension unsized and static, so unscoped cables would resolve against
+   the whole stage and draw two full-height lines at its edges. */
+body[data-dsh-orca-link] [data-orca-work-light='repair'] [data-orca-light-suspension]::before,
+body[data-dsh-orca-link] [data-orca-work-light='repair'] [data-orca-light-suspension]::after {
   content: '';
   position: absolute;
   top: 0;
@@ -107,7 +110,7 @@ body[data-dsh-orca-link] [data-orca-light-suspension]::after {
   background: #78838c;
 }
 
-body[data-dsh-orca-link] [data-orca-light-suspension]::after {
+body[data-dsh-orca-link] [data-orca-work-light='repair'] [data-orca-light-suspension]::after {
   left: auto;
   right: 0;
   transform-origin: top;

@@ -446,6 +446,14 @@ body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float] {
   box-shadow: var(--orca-shadow);
 }
 
+/* The host floors each tab pane with `--dsw-alias-bg-base`, which this skin
+   turns into the scene veil. Inside the dock that veil lands on top of the
+   sheet above, a second wash the sheet's alpha never priced in, so the panel
+   read far flatter than designed. The sheet owns the pane's floor. */
+body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-pane] {
+  background-color: transparent;
+}
+
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-strip],
 body[data-dsh-orca-link] [data-sidebar-right-panel] [data-dockkit-float-grip] {
   background: color-mix(in srgb, var(--orca-blue) 5%, transparent);
@@ -2214,6 +2222,20 @@ html[data-windows-titlebar] body[data-dsh-orca-link]
    is square throughout. */
 html[data-windows-titlebar] body[data-dsh-orca-link] [class*='centerCol'] {
   border-radius: 0;
+}
+
+/* The Windows frame also repaints the window: the frame itself takes the
+   sidebar fill and the conversation column takes `--dsw-alias-bg-base`, where
+   the web shell paints only the base wash on the frame. Both are this skin's
+   translucent veils, so they stacked over the body-level scene (80% + 22% in
+   dark) and the artwork read as a dim smear next to the preview. Restore the
+   web layering; the caption strip (`frame::before`) keeps the sidebar fill. */
+html[data-windows-titlebar] body[data-dsh-orca-link] [class*='frame']:has(> [class*='centerCol']) {
+  background: var(--dsw-alias-bg-base);
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [class*='centerCol'] {
+  background: transparent;
 }
 
 /* The stage pieces above are placed in the web sidebar's flow geometry: 6px
