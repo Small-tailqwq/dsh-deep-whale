@@ -2216,6 +2216,20 @@ html[data-windows-titlebar] body[data-dsh-orca-link] [class*='centerCol'] {
   border-radius: 0;
 }
 
+/* The Windows frame also repaints the window: the frame itself takes the
+   sidebar fill and the conversation column takes `--dsw-alias-bg-base`, where
+   the web shell paints only the base wash on the frame. Both are this skin's
+   translucent veils, so they stacked over the body-level scene (80% + 22% in
+   dark) and the artwork read as a dim smear next to the preview. Restore the
+   web layering; the caption strip (`frame::before`) keeps the sidebar fill. */
+html[data-windows-titlebar] body[data-dsh-orca-link] [class*='frame']:has(> [class*='centerCol']) {
+  background: var(--dsw-alias-bg-base);
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [class*='centerCol'] {
+  background: transparent;
+}
+
 /* The stage pieces above are placed in the web sidebar's flow geometry: 6px
    root padding, a 60px logo row and a 4px gap put New Session at 70px, so the
    portrait, its hit plane and the first row under the stage share one seam.
