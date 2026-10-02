@@ -2113,7 +2113,7 @@ describe('Maid Atelier skin apply', () => {
     expect(darkTerminalRule).toContain('--dsw-alias-label-primary: #edf1fa')
   })
 
-  it('scales the lower sidebar swag at its source aspect ratio', () => {
+  it('fits the lower sidebar swag inside the frame with its clasp centered', () => {
     const sidebarInnerRule = CSS.match(
       /\[class\*='sidebarCol'\] > div\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -2126,7 +2126,10 @@ describe('Maid Atelier skin apply', () => {
     expect(footRule).toContain('min-height: calc(var(--maid-sidebar-swag-height) + 82px)')
     expect(footRule).toContain('padding: calc(var(--maid-sidebar-swag-height) + 2px) 18px 22px')
     expect(swagRule).toContain('height: var(--maid-sidebar-swag-height)')
-    expect(swagRule).toContain('background: var(--maid-sidebar-swag-art) center top / 100% 100% no-repeat')
+    expect(swagRule).toContain('left: calc((100% - var(--maid-sidebar-width)) / 2 + 9.4px)')
+    expect(swagRule).toContain('width: calc((var(--maid-sidebar-width) - 18.8px) * 1200 / 1144)')
+    expect(swagRule).toContain('background: var(--maid-sidebar-swag-art) left top / 100% 100% no-repeat')
+    expect(swagRule).toContain('clip-path: inset(0 calc(100% * 56 / 1200) 0 0)')
     expect(swagRule).toContain('brightness(1.1)')
   })
 
