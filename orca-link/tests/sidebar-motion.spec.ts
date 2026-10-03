@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { JSDOM } from 'jsdom'
 
 const css = readFileSync(
   new URL('../src/client/orca-link.module.css', import.meta.url),
@@ -51,41 +52,27 @@ describe('ORCA LINK sidebar motion', () => {
     expect(css).toContain('display: none;')
   })
 
-  // Issue #116: a plugin may inject a portalled host plus its own button instead
-  // of a direct-child button. The host must be lifted out of the stage and out
-  // of the native-button takeover, the region margin reset must fire for it, and
-  // the takeover's own selectors must stay intact.
-  it('treats a portalled plugin entry host as a sidebar entry', () => {
-    const lifted = css.match(
-      /body\[data-dsh-orca-link\] \[data-slot='sidebar'\]\[data-orca-sidebar-wide\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
-    )?.groups?.selector ?? ''
-    expect(lifted).toContain("button[data-dsh-part='sidebar-entry']")
-    expect(lifted).toContain('[data-plugin-entry]')
-    expect(css).toContain('> :first-child[data-orca-sidebar-entries]')
-    expect(css).toContain('> :not([role=\'tooltip\'], [data-orca-link-wordmark], [data-plugin-entry])')
-    expect(css).toContain(
-      "button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > *",
-    )
-    // The narrow-viewport block retires the stage, so the entry offset must
-    // retire with it for both marker shapes.
-    const narrow = css.match(
-      /@media \(max-width: 900px\) \{[\s\S]*?\n\}/,
-    )?.[0] ?? ''
-    expect(narrow).not.toBe('')
-    expect(narrow).toMatch(/:is\(button\[data-dsh-part='sidebar-entry'\], \[data-plugin-entry\], nav\[class\*='panelList'\]\)/)
+  it('takes over only the native New Session seat, independent of plugin markers', () => {
+    const selector = css.match(/@media \(min-width: 901px\) \{\s*([^{]+)\{/)?.[1]?.trim() ?? ''
+    const dom = new JSDOM(`<body data-dsh-orca-link><aside data-slot="sidebar" data-orca-sidebar-wide>
+      <div class="host_root"><div class="host_logoRow"></div>
+        <button id="native" class="host_newSession"></button>
+        <button id="plain"></button><button class="host_newSession" data-plugin-entry="example"></button>
+        <div data-plugin-entry="wrapper"><button class="host_newSession"></button></div>
+        <nav class="host_panelList"><button></button></nav>
+      </div></aside></body>`)
+    const doc = dom.window.document
+    expect([...doc.querySelectorAll(selector)].map(node => node.id)).toEqual(['native'])
+    doc.querySelector('.host_root')!.classList.add('host_collapsed')
+    expect(doc.querySelector(selector)).toBeNull()
+    doc.querySelector('.host_root')!.classList.remove('host_collapsed')
+    doc.documentElement.setAttribute('data-dsh-whale-orca-character', 'hidden')
+    expect(doc.querySelector(selector)).toBeNull()
+    dom.window.close()
   })
 
-  // 0.1.6 registers the first `sidebar.panellist` entry, so the official
-  // `nav.panelList` row renders between New Session and the browsing region for
-  // the first time. Left alone it landed on the portrait stage inside the
-  // transparent New Session hit plane (z-index 2), which both misplaced the row
-  // and swallowed its clicks; the injected-entry offsets also inherit a flow
-  // anchor one row lower.
-  // The New Session hit plane used to ride the button's flow slot (-14px
-  // around it), which the Windows caption frame moves 16px up: the hover
-  // frame drifted off the portrait and covered the Plugins row.
   it('gives the New Session hit plane exactly the portrait box', () => {
-    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)"
+    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']"
     const esc = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const block = (selector: string): string => css.match(new RegExp(`${esc(selector)}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
     const character = block("body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter")
@@ -117,22 +104,13 @@ describe('ORCA LINK sidebar motion', () => {
     expect(css).toContain("[class*='logoRow'] > [class*='brand'] {\n  visibility: hidden;\n}")
   })
 
-  it('lifts the official panel row out of the stage and above the hit plane', () => {
-    const lifted = css.match(
-      /body\[data-dsh-orca-link\] \[data-slot='sidebar'\]\[data-orca-sidebar-wide\]\s*>\s*:first-child\s*>\s*:is\((?<selector>[^{]*)\)\s*\{/,
-    )?.groups?.selector ?? ''
-    expect(lifted).toContain("nav[class*='panelList']")
-    // The declaration block that follows the first `nav[class*=…]` selector.
-    const fromSelector = css.slice(css.indexOf("nav[class*='panelList']"))
-    const declarations = fromSelector.slice(fromSelector.indexOf('{') + 1, fromSelector.indexOf('}'))
-    expect(declarations).toContain('z-index: 3;')
-    expect(declarations).toContain('margin-top: calc(var(--orca-stage, 300px) - 116px);')
-    // A row following the official one must not pay the stage offset twice.
-    expect(css).toContain(
-      "> nav[class*='panelList']\n  ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {",
-    )
-    // The New Session hit plane stays on the rung below the lifted rows.
-    expect(css).toContain('> button:not([data-dsh-part=\'sidebar-entry\'], [data-plugin-entry] *) {')
+  it('reserves the stage once in the native seat only while the portrait is shown', () => {
+    const wide = css.match(/@media \(min-width: 901px\) \{([\s\S]*?)\n\}/)?.[1] ?? ''
+    expect(wide).toContain("html:not([data-dsh-whale-orca-character='hidden'])")
+    expect(wide).toContain(":first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']")
+    expect(wide).toContain('height: calc(var(--orca-stage, 300px) - 78px);')
+    const region = css.match(/\[data-orca-sidebar-wide\] \[class\*='regionArea'\] \{([^}]*)\}/)?.[1] ?? ''
+    expect(region).toContain('border-top: 1px solid var(--orca-line);')
+    expect(region).not.toContain('margin-top')
   })
-
 })
