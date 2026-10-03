@@ -6,8 +6,8 @@ body[data-dsh-orca-link] {
      together with the pane edge rather than ahead of or behind it. */
   --orca-track-duration: var(--ds-transition-duration-slow, 300ms);
   --orca-track-ease: var(--ds-ease-in-out, cubic-bezier(0.4, 0, 0.2, 1));
-  /* Sidebar art stage height, measured from the pane top; the browsing
-     region's frosted panel starts exactly at this seam (120px of controls). */
+  /* Sidebar art stage height; the native New Session seat reserves its space
+     so subsequent panel entries and the browsing region stay in normal flow. */
   --orca-stage: clamp(240px, 34vh, 320px);
   /* Extra host rows above the logo row push every absolutely placed stage
      piece down by this much (see the macOS desktop block). */
@@ -292,6 +292,13 @@ body[data-dsh-orca-link] :where([role='switch'][aria-checked='true']):not(
   transform: translateX(16px);
   border-color: var(--orca-blue);
   background: var(--orca-blue);
+}
+
+/* Dialogs own a reading surface independent of the scene behind them. Reset
+   the inherited base token here so inline backgrounds and descendant controls
+   share that surface, including native dialogs without an explicit ARIA role. */
+body[data-dsh-orca-link] :is(dialog, [role='dialog'], [role='alertdialog']) {
+  --dsw-alias-bg-base: var(--orca-surface-strong);
 }
 
 /* Portaled announcements and previews sit outside every seat the role list
@@ -1766,78 +1773,6 @@ body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child) > :not([role=
   z-index: 1;
 }
 
-/* Plugin-injected sidebar entries (skill-explorer / ssh / task-board rows;
-   L2 semantic attribute, issue #506) are direct children of the sidebar root,
-   one slot below the official New Session button. In the wide stage the
-   official button's transparent hit plane (z-index: 2, ::before over the
-   portrait area) would swallow clicks meant for these rows — keep the entries
-   on the rung above it so the row itself stays clickable while the rest of
-   the stage still opens a new session.
-
-   The wide stage also owns the top of the pane (portrait art down to
-   --orca-stage), so instead of floating one text row on the art, push the
-   entries below the stage: they read as a control row above the workspace.
-   Flow anchor = the production shell's measured 120px from pane top to the
-   browsing region's normal position (see the region rule below); entries sit
-   at that same slot, so the margin drops them to stage + 4.
-
-   Two marker shapes exist for the same intent (issue #116): the entry may be
-   the button itself, or the plugin's own portalled host is the direct child
-   and the button lives inside it. The `[data-plugin-entry]` host shape also
-   reports the plugin identity, so it doubles as the general opt-in for a
-   plugin-injected block. Both must stay out of the native-button takeover
-   below: that takeover hides every child of a matching button, and a plugin
-   row that copies the host's own button class is exactly the case it reaches.
-
-   The shell has a third row of the same shape: the official global panel list
-   (`nav.panelList`, the Plugins entry) sits between New Session and the
-   browsing region, so every injected row now inherits a flow anchor 44px
-   lower. It is an official row rather than an injected one, but it lands in
-   the same place for the same reason, and it must clear the stage for one
-   more: the wide stage's transparent New Session hit plane is painted at
-   z-index 2 over the whole portrait area, which both hid the row behind the
-   artwork and swallowed its clicks. */
-body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
-  > :first-child
-  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
-  position: relative;
-  z-index: 3;
-  margin-top: calc(var(--orca-stage, 300px) - 116px);
-}
-
-/* The browsing-region rule below assumes the 120px production flow (no
-   plugin rows). With an entry above it that flow starts one row lower, so the
-   stage-margin must retire or the region drops by a full stage and leaves a
-   dead band between the entry and the workspace. Without the entry the
-   original margin still does the stage push. */
-body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
-  > :first-child[data-orca-sidebar-entries]
-  [class*='regionArea'] {
-  margin-top: 0;
-}
-
-/* The stage offset applies to the FIRST injected entry only: sibling plugins
-   (ssh / task-board / skill-explorer) stack their rows one after the other,
-   so a full stage-sized margin on every entry would separate each native row
-   by 124–204px. The z-index promotion above still covers all entries. */
-body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
-  > :first-child
-  > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry])
-  ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
-  margin-top: 0;
-}
-
-/* With the official panel row above them the injected entries are no longer
-   the first row under New Session: that row already paid the stage offset, so
-   the entry that follows it must not pay a second one. Same intent as the
-   sibling rule above, different predecessor. */
-body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
-  > :first-child
-  > nav[class*='panelList']
-  ~ :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry]) {
-  margin-top: 0;
-}
-
 /* Tooltip bubbles mount beside their anchors inside that anchor's carrier,
    which the lift above just turned into a stacking context: the fixed bubble
    cannot paint out of it and loses to the conversation header — the same
@@ -2043,96 +1978,99 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='review'] [data-
     linear-gradient(currentColor, currentColor) 3px 9px / 7px 1px no-repeat;
 }
 
-/* The stock wide New Session control keeps its layout slot and official
-   click handler, but its hit plane expands over the portrait stage. The rail
-   restores the visible control when collapsed. The plane is the portrait's
-   own box: the button stays static so its pseudo-elements resolve against
-   the sidebar root exactly like .statusCharacter, instead of riding the
-   button's flow slot, which the desktop hosts move (issue: hover frame and
-   portrait drifted apart and the frame covered the Plugins row). The
-   pseudo-elements carry the stacking rung the button used to hold. */
+/* The native New Session control keeps its handler and reserves the portrait
+   stage in normal flow. Its pseudo-elements share the portrait's sidebar-root
+   coordinates, including the desktop top-strip offset. */
 html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [data-orca-link-brand] {
   pointer-events: none;
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) {
-  position: static;
-  overflow: visible;
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-  color: transparent;
+/* Only the native New Session seat owns the portrait's space and hit plane.
+   The host's collapsed class also gates zero-width Windows caption mode. */
+@media (min-width: 901px) {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession'] {
+    /* Native flow: 6px root padding + 60px logo + 4px gap = 70px top.
+       With the native 12px bottom margin, this seat ends at stage + 4px.
+       All following entries then keep their host spacing, regardless of type. */
+    height: calc(var(--orca-stage, 300px) - 78px);
+    position: static;
+    overflow: visible;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    color: transparent;
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession'] > * {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']::before {
+    position: absolute;
+    z-index: 2;
+    top: calc(58px + var(--orca-stage-top, 0px));
+    left: 22px;
+    width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
+    height: calc(var(--orca-stage, 300px) - 66px);
+    content: '';
+    cursor: pointer;
+    opacity: 0;
+    background:
+      linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 18px 1px no-repeat,
+      linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 1px 18px no-repeat,
+      linear-gradient(var(--orca-blue), var(--orca-blue)) right top / 18px 1px no-repeat,
+      linear-gradient(var(--orca-blue), var(--orca-blue)) right top / 1px 18px no-repeat,
+      linear-gradient(var(--orca-blue), var(--orca-blue)) left bottom / 18px 1px no-repeat,
+      linear-gradient(var(--orca-blue), var(--orca-blue)) left bottom / 1px 18px no-repeat,
+      linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 18px 1px no-repeat,
+      linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 1px 18px no-repeat;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--orca-blue) 12%, transparent);
+    transition: opacity 160ms ease;
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']::after {
+    position: absolute;
+    z-index: 2;
+    /* Bottom-right corner of the plane above, 3px / 4px inside it. */
+    top: calc(58px + var(--orca-stage-top, 0px) + var(--orca-stage, 300px) - 66px - 12px);
+    left: calc(22px + var(--orca-sidebar-art-width, 280px) - 30px - 13px);
+    width: 9px;
+    height: 9px;
+    content: '';
+    background: var(--orca-blue);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    opacity: 0.36;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:hover::before,
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:focus-visible::before {
+    opacity: 0.62;
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:hover::after,
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:focus-visible::after {
+    opacity: 0.92;
+    transform: translate(-2px, -2px);
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:focus-visible {
+    outline: none;
+  }
 }
 
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *) > * {
-  opacity: 0;
-  pointer-events: none;
-}
-
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::before {
-  position: absolute;
-  z-index: 2;
-  top: calc(58px + var(--orca-stage-top, 0px));
-  left: 22px;
-  width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
-  height: calc(var(--orca-stage, 300px) - 66px);
-  content: '';
-  cursor: pointer;
-  opacity: 0;
-  background:
-    linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 18px 1px no-repeat,
-    linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 1px 18px no-repeat,
-    linear-gradient(var(--orca-blue), var(--orca-blue)) right top / 18px 1px no-repeat,
-    linear-gradient(var(--orca-blue), var(--orca-blue)) right top / 1px 18px no-repeat,
-    linear-gradient(var(--orca-blue), var(--orca-blue)) left bottom / 18px 1px no-repeat,
-    linear-gradient(var(--orca-blue), var(--orca-blue)) left bottom / 1px 18px no-repeat,
-    linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 18px 1px no-repeat,
-    linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 1px 18px no-repeat;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--orca-blue) 12%, transparent);
-  transition: opacity 160ms ease;
-}
-
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *)::after {
-  position: absolute;
-  z-index: 2;
-  /* Bottom-right corner of the plane above, 3px / 4px inside it. */
-  top: calc(58px + var(--orca-stage-top, 0px) + var(--orca-stage, 300px) - 66px - 12px);
-  left: calc(22px + var(--orca-sidebar-art-width, 280px) - 30px - 13px);
-  width: 9px;
-  height: 9px;
-  content: '';
-  background: var(--orca-blue);
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
-  opacity: 0.36;
-  transition: opacity 160ms ease, transform 160ms ease;
-}
-
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::before,
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::before {
-  opacity: 0.62;
-}
-
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):hover::after,
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible::after {
-  opacity: 0.92;
-  transform: translate(-2px, -2px);
-}
-
-html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child > button:not([data-dsh-part='sidebar-entry'], [data-plugin-entry] *):focus-visible {
-  outline: none;
-}
-
-body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > button:not([data-dsh-part='sidebar-entry']) {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + button[class*='newSession'] {
   position: relative;
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > button:not([data-dsh-part='sidebar-entry']) > svg {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + button[class*='newSession'] > svg {
   opacity: 0;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > button:not([data-dsh-part='sidebar-entry'])::before {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + button[class*='newSession']::before {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -2317,12 +2255,10 @@ body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] :is([data
   pointer-events: none;
 }
 
-/* The browsing region becomes a frosted glass panel pushed below the stage:
-   the art never fights the session list for readability. The production
-   shell measures 120px from the pane top to the region's normal position. */
+/* The browsing region keeps its native flow below the New Session seat and
+   any panel entries; its own surface provides the frosted reading floor. */
 body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea'] {
   isolation: isolate;
-  margin-top: calc(var(--orca-stage, 300px) - 120px);
   border-top: 1px solid var(--orca-line);
   background: transparent;
   backdrop-filter: none;
@@ -3670,18 +3606,9 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before,
   body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::after { display: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea'] {
-    margin-top: 0;
     border-top: none;
     background: transparent;
     backdrop-filter: none;
-  }
-  /* The portrait stage is retired in this layout, so the entries' stage-sized
-     offset would leave a blank band above the plugin rows; reset it with the
-     rest of the stage chrome. The official panel row rides the same offset. */
-  body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide]
-    > :first-child
-    > :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']) {
-    margin-top: 0;
   }
   body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea']::before { display: none; }
   body[data-dsh-orca-link] .spine,
@@ -3724,7 +3651,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [data-orca-composer-restore],
   body[data-dsh-orca-link] .lightSceneLayer,
   body[data-dsh-orca-link] .darkSceneLayer,
-  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > button:not([data-dsh-part='sidebar-entry'])::before,
+  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > [class*='logoRow'] + button[class*='newSession']::before,
   body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
