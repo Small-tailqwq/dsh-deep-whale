@@ -1089,10 +1089,18 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer] {
 body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
   content: '';
   position: absolute;
-  inset: 0 0 auto;
+  /* The footer is inset by the host; anchor to the sidebar's gold rails
+     (8.05px + 1.35px), not the footer's content width. Source x=572 is
+     the clasp. Paint all 1200px before clipping the last 56px: clipping
+     via background-size instead selects visibly jagged downsampling in
+     the desktop renderer. */
+  top: 0;
+  left: calc((100% - var(--maid-sidebar-width)) / 2 + 9.4px);
+  width: calc((var(--maid-sidebar-width) - 18.8px) * 1200 / 1144);
   z-index: 0;
   height: var(--maid-sidebar-swag-height);
-  background: var(--maid-sidebar-swag-art) center top / 100% 100% no-repeat;
+  background: var(--maid-sidebar-swag-art) left top / 100% 100% no-repeat;
+  clip-path: inset(0 calc(100% * 56 / 1200) 0 0);
   pointer-events: none;
   filter:
     brightness(1.1)
