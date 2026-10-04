@@ -17,12 +17,5 @@ export function installOrcaRelationalMarkers(ctx: Context): void {
         { selector: ":scope:has([class$='_cell'], [class$='_groupTitle'], [data-menu-group-heading], [role='menuitemradio'] [class$='_modelName'])", attribute: 'data-orca-model-menu' },
       ],
     },
-    {
-      scope: "[data-slot='sidebar']",
-      rules: [{
-        selector: ":scope > :first-child:has(> :is(button[data-dsh-part='sidebar-entry'], [data-plugin-entry], nav[class*='panelList']))",
-        attribute: 'data-orca-sidebar-entries',
-      }],
-    },
   ])
 }
