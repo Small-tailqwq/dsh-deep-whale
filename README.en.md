@@ -35,12 +35,41 @@ Click an image for the full size.
 > [!NOTE]
 > If you use dsh-web (you installed `@linxin666/dsh-web-all`), install `maid-atelier` and `orca-link` from dsh-web's own skin center instead of running the commands below. The two distributions are adapted separately, and mixing them in one profile breaks the layout.
 
+### Official desktop app
+
+1. Choose one or more skins. Open **Plugins** in the sidebar, click **Add plugin**, and install the corresponding npm packages below one at a time.
+
+   | Plugin | npm package name |
+   |---|---|
+   | [maid-atelier](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-maid-atelier) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` |
+   | [orca-link](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-orca-link) | `@smalltailqwq/dsh-client-ui-skin-orca-link` |
+   | [Skin Manager](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-deep-whale-manager) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` |
+
+2. With **one skin**, the manager is optional; without it, the skin's customization controls are unavailable. With **multiple skins, the manager is required** to prevent them from running together and breaking the layout. Enable the plugins when prompted after installation, then **restart DSH once**.
+3. If you installed Skin Manager, open **Settings → Skins** after restarting. If the first start still shows the official UI, select the skin you want to enable there.
+
+To use the latest code on `main`, enter the GitHub specs for your chosen skins and manager in the same install field, one at a time (just the spec, without `dsh plugin add`):
+
+```text
+github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager
+github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier
+github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link
+```
+
+The pnpm bundled with DSH defaults to a 24-hour minimum package age, so a newly published npm version may not be available yet. GitHub sources are not subject to this npm package-age check.
+
+The desktop app manages its own `desktop` profile; you do not need to set up a `dsh` command. The `web` commands below do not install skins into the desktop app.
+
+### Web version installed through the CLI
+
+Commands on this page use the `web` profile. If you launch a different CLI profile, replace `web` with that profile's name.
+
 You can install from npm or from GitHub. Both give you the same skins; they differ in how quickly updates arrive:
 
 | | npm (recommended) | GitHub |
 |---|---|---|
 | What you get | Published releases with fixed version numbers | The latest code on the `main` branch |
-| When fixes reach you | About 24 hours after a release (the pnpm bundled with DSH only installs versions that are at least a day old) | As soon as a fix is merged |
+| When fixes reach you | Usually about 24 hours after a release (the default package-age policy in DSH's bundled pnpm) | As soon as a fix is merged |
 | Network | Works with npm registry mirrors | Needs access to GitHub |
 
 If you're not sure, pick npm. Copy the command for your shell and run it — no need to clone the repository.
@@ -61,19 +90,19 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manage
 
 ```sh
 # Linux / macOS / WSL
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link'
 ```
 
 ```powershell
 # PowerShell
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link'
 ```
 
 Both sources use the same package names, so whichever you install last replaces the other. To switch sources, just run the other set of commands.
 
-Then **restart DSH once**, open **Settings → Skins** and click **Switch** on the skin you want. From then on, switching skins takes effect immediately without restarting.
+Then **restart DSH once**. If you installed the manager, open **Settings → Skins** and click **Switch** on the skin you want. From then on, switching skins takes effect immediately without restarting.
 
-- Only want one skin? Drop the other skin's `add` from the command. Keep the skin manager — switching depends on it.
+- For one skin, you can omit the other skin's and the manager's `add` commands; without the manager, customization controls are unavailable. For multiple skins, keep the manager to prevent them from running together.
 - If you installed both skins, DSH still looks like the official default after the first restart. That's expected: two skins running together clash, so the manager turns both off and lets you pick one.
 - Rather not type commands? Send this line to any AI assistant (or DSH itself) and it will install everything by following [INSTALL.md](INSTALL.md):
 
@@ -82,6 +111,10 @@ Then **restart DSH once**, open **Settings → Skins** and click **Switch** on t
   ```
 
 ## Updating
+
+**Desktop:** as of DSH 0.2.0-rc.2, the plugin page has no upgrade control and third-party plugins do not update automatically. Uninstall the plugin you want to update from **Plugins**, then follow the steps above to reinstall and enable it. Restart DSH afterwards.
+
+**CLI Web version:** keep only the package names you actually installed.
 
 ```sh
 # Linux / macOS / WSL
@@ -95,7 +128,7 @@ dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-man
 
 This works for both sources: npm installs move to the newest release, GitHub installs pull the latest `main`. Refresh the page afterwards; no DSH restart is needed. If this profile contains only these skins, `dsh plugin --profile web update` updates everything at once.
 
-A new npm release only becomes available to `update` 24 hours after it is published; until then `update` quietly stays on the previous version (a default delay in the pnpm bundled with DSH, meant to guard against malicious packages). To get a specific new release right away, reinstall it with `@^<version>` after the package name; version numbers are listed under [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
+The pnpm bundled with DSH prefers npm versions published at least 24 hours ago by default, so `update` may stay on an older release. To request a specific release, reinstall it with `@^<version>` after the package name; it is still subject to the current pnpm package-age policy. Version numbers are listed under [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
 
 ```sh
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.7'
@@ -174,7 +207,7 @@ dsh plugin --profile web add <absolute clone path>/orca-link
 
 Only one skin can be active at a time. The skin manager isn't a skin and should stay enabled.
 
-Each skin's on/off switch lives in two config files: `~/.dsh/profiles/web/cordis.patch.yml` (profile layer) and `~/.dsh/cordis.patch.yml` (home layer, which takes priority). A skin with no entry in these files is **on** by default, so installing both skins without ever switching leaves them running together and breaks the layout.
+Each skin's on/off switch lives in two config files: `~/.dsh/profiles/<profile>/cordis.patch.yml` (profile layer; replace `<profile>` with the actual name, such as `web` or Desktop's `desktop`) and `~/.dsh/cordis.patch.yml` (home layer, which takes priority). A skin with no entry in these files is **on** by default, so installing both skins without ever switching leaves them running together and breaks the layout.
 
 The skin manager takes care of this:
 
@@ -201,9 +234,13 @@ Per-skin preferences (such as the active hours of "less-anime mode") are stored 
 <details>
 <summary><b>Checking that the install worked</b></summary>
 
+**Desktop:** check that the packages you installed appear in **Plugins**, then restart and check the skin. If you installed the manager, choose a skin under **Settings → Skins**. The desktop app's `desktop` profile does not support CLI `--dump-config`; skip the commands below.
+
+**CLI Web version:**
+
 ```sh
-dsh plugin --profile web list          # should list three @smalltailqwq/dsh-client-ui-skin-* packages
-dsh --profile web --dump-config        # manager is disabled: false; exactly one of the two skins is false
+dsh plugin --profile web list          # should list the packages you chose to install
+dsh --profile web --dump-config        # chosen skin is disabled: false; the manager is too, if installed
 ```
 
 Right after installing and before restarting, both skins may show as enabled. That's normal; the manager sorts it out on restart.
@@ -214,7 +251,7 @@ After restarting, you can also run this in the browser console to confirm the pa
 document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
-The result should include the manager and the active skin; a disabled skin not appearing is expected.
+The result should include the active skin and the manager if you installed and enabled it; a disabled skin not appearing is expected.
 
 </details>
 

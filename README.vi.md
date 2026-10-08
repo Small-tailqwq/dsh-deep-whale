@@ -35,12 +35,41 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 > [!NOTE]
 > Nếu bạn dùng dsh-web (đã cài `@linxin666/dsh-web-all`), hãy cài `maid-atelier` và `orca-link` từ trung tâm giao diện của chính dsh-web, đừng chạy các lệnh bên dưới. Hai bản được điều chỉnh riêng, cài lẫn vào cùng một profile sẽ làm giao diện hiển thị sai.
 
+### Ứng dụng desktop chính thức
+
+1. Chọn một hoặc nhiều giao diện theo nhu cầu. Mở **Plugins** ở thanh bên, nhấn **Add plugin**, rồi nhập và cài từng package npm tương ứng dưới đây.
+
+   | Plugin | Tên package npm |
+   |---|---|
+   | [maid-atelier](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-maid-atelier) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` |
+   | [orca-link](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-orca-link) | `@smalltailqwq/dsh-client-ui-skin-orca-link` |
+   | [Trình quản lý giao diện](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-deep-whale-manager) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` |
+
+2. Nếu chỉ cài **một giao diện**, trình quản lý là tùy chọn; không có nó thì bạn không dùng được các tùy chỉnh của giao diện. Nếu cài **nhiều giao diện, bắt buộc phải cài trình quản lý** để tránh các giao diện chạy cùng lúc và làm rối bố cục. Bật plugin khi được nhắc sau khi cài, rồi **khởi động lại DSH một lần**.
+3. Nếu đã cài trình quản lý giao diện, hãy mở «Cài đặt → Quản lý giao diện» sau khi khởi động lại. Nếu lần khởi động đầu vẫn hiển thị giao diện chính thức, chọn giao diện bạn muốn bật tại đây.
+
+Để dùng code mới nhất trên `main`, nhập lần lượt địa chỉ GitHub tương ứng với các giao diện và trình quản lý bạn đã chọn vào cùng ô cài đặt (chỉ nhập địa chỉ, không thêm `dsh plugin add`):
+
+```text
+github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager
+github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier
+github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link
+```
+
+Theo mặc định, pnpm đi kèm DSH yêu cầu package npm đã phát hành ít nhất 24 giờ, nên có thể chưa cài được bản vừa phát hành. Nguồn GitHub không chịu kiểm tra tuổi package npm này.
+
+Ứng dụng desktop tự quản lý profile `desktop`; bạn không cần thiết lập lệnh `dsh`. Các lệnh dùng `web` bên dưới không cài giao diện vào ứng dụng desktop.
+
+### Bản Web cài qua CLI
+
+Các lệnh trên trang này dùng profile `web`. Nếu bạn khởi chạy một profile CLI khác, hãy thay `web` bằng tên profile đó.
+
 Bạn có thể cài từ npm hoặc từ GitHub. Cả hai đều là cùng một bộ giao diện, chỉ khác ở tốc độ nhận bản cập nhật:
 
 | | npm (khuyến nghị) | GitHub |
 |---|---|---|
 | Nhận được gì | Các bản phát hành chính thức với số phiên bản cố định | Code mới nhất trên nhánh `main` |
-| Khi nào nhận được bản sửa lỗi | Khoảng 24 giờ sau khi phát hành (pnpm đi kèm DSH chỉ cài các phiên bản đã phát hành ít nhất một ngày) | Ngay khi bản sửa được gộp |
+| Khi nào nhận được bản sửa lỗi | Thường khoảng 24 giờ sau khi phát hành (chính sách tuổi package mặc định của pnpm đi kèm DSH) | Ngay khi bản sửa được gộp |
 | Mạng | Dùng được với mirror của npm registry | Cần truy cập được GitHub |
 
 Nếu không chắc, hãy chọn npm. Chỉ cần sao chép lệnh phù hợp với shell của bạn và chạy, không cần clone kho.
@@ -61,19 +90,19 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manage
 
 ```sh
 # Linux / macOS / WSL
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link'
 ```
 
 ```powershell
 # PowerShell
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link'
 ```
 
 Hai nguồn dùng cùng tên package, nên nguồn cài sau sẽ thay thế nguồn cài trước. Muốn đổi nguồn, chỉ cần chạy bộ lệnh còn lại.
 
-Sau đó **khởi động lại DSH một lần**, mở «Cài đặt → Quản lý giao diện» và nhấn «Chuyển» trên giao diện bạn muốn. Từ đó trở đi, đổi giao diện có hiệu lực ngay, không cần khởi động lại.
+Sau đó **khởi động lại DSH một lần**. Nếu đã cài trình quản lý, mở «Cài đặt → Quản lý giao diện» và nhấn «Chuyển» trên giao diện bạn muốn. Từ đó trở đi, đổi giao diện có hiệu lực ngay, không cần khởi động lại.
 
-- Chỉ muốn một giao diện? Bỏ phần `add` của giao diện còn lại khỏi lệnh. Nên giữ trình quản lý vì việc chuyển đổi cần đến nó.
+- Nếu chỉ cài một giao diện, bạn có thể bỏ lệnh `add` của giao diện còn lại và trình quản lý; không có trình quản lý thì không dùng được các tùy chỉnh. Nếu cài nhiều giao diện, phải giữ trình quản lý để tránh chúng chạy cùng lúc.
 - Nếu cài cả hai giao diện, sau lần khởi động lại đầu tiên DSH vẫn trông như mặc định chính thức. Đó là bình thường: hai giao diện chạy cùng lúc sẽ xung đột, nên trình quản lý tắt cả hai để bạn tự chọn.
 - Không muốn gõ lệnh? Gửi câu sau cho bất kỳ trợ lý AI nào (hoặc chính DSH), nó sẽ cài theo [INSTALL.md](INSTALL.md):
 
@@ -82,6 +111,10 @@ Sau đó **khởi động lại DSH một lần**, mở «Cài đặt → Quản
   ```
 
 ## Cập nhật
+
+**Desktop:** tính đến DSH 0.2.0-rc.2, trang plugin chưa có nút nâng cấp và plugin bên thứ ba không tự cập nhật. Gỡ plugin cần cập nhật trong **Plugins**, rồi làm theo các bước trên để cài lại và bật nó. Sau đó khởi động lại DSH.
+
+**Bản Web qua CLI:** chỉ giữ tên các package bạn đã cài.
 
 ```sh
 # Linux / macOS / WSL
@@ -95,7 +128,7 @@ dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-man
 
 Lệnh này dùng được cho cả hai nguồn: nguồn npm sẽ lên bản phát hành mới nhất, nguồn GitHub sẽ kéo code mới nhất trên `main`. Cập nhật xong chỉ cần tải lại trang, không cần khởi động lại DSH. Nếu profile này chỉ có các giao diện của kho, có thể chạy `dsh plugin --profile web update` để cập nhật tất cả.
 
-Bản npm mới chỉ được `update` cài sau 24 giờ kể từ khi phát hành; trước đó `update` sẽ lặng lẽ giữ phiên bản cũ mà không báo lỗi (đây là độ trễ mặc định của pnpm đi kèm DSH, nhằm phòng package độc hại). Muốn dùng ngay một bản mới, hãy cài lại với `@^<phiên bản>` sau tên package; số phiên bản có tại [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
+Theo mặc định, pnpm đi kèm DSH ưu tiên các phiên bản npm đã phát hành ít nhất 24 giờ, nên `update` có thể vẫn giữ bản cũ. Để yêu cầu một phiên bản cụ thể, hãy cài lại với `@^<phiên bản>` sau tên package; phiên bản đó vẫn phải qua kiểm tra tuổi package theo chính sách pnpm hiện tại. Số phiên bản có tại [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
 
 ```sh
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.7'
@@ -174,7 +207,7 @@ dsh plugin --profile web add <đường dẫn tuyệt đối tới bản clone>/
 
 Mỗi lúc chỉ bật được một giao diện. Trình quản lý không phải là giao diện và cần luôn được bật.
 
-Công tắc bật/tắt của mỗi giao diện nằm trong hai tệp cấu hình: `~/.dsh/profiles/web/cordis.patch.yml` (lớp profile) và `~/.dsh/cordis.patch.yml` (lớp home, được ưu tiên hơn). Giao diện chưa có mục trong các tệp này mặc định là **bật**, nên cài cả hai mà chưa từng chuyển đổi thì chúng sẽ chạy cùng lúc và làm rối giao diện.
+Công tắc bật/tắt của mỗi giao diện nằm trong hai tệp cấu hình: `~/.dsh/profiles/<profile>/cordis.patch.yml` (lớp profile; thay `<profile>` bằng tên thực tế, chẳng hạn `web` hoặc `desktop` của ứng dụng desktop) và `~/.dsh/cordis.patch.yml` (lớp home, được ưu tiên hơn). Giao diện chưa có mục trong các tệp này mặc định là **bật**, nên cài cả hai mà chưa từng chuyển đổi thì chúng sẽ chạy cùng lúc và làm rối giao diện.
 
 Trình quản lý sẽ xử lý việc này:
 
@@ -201,9 +234,13 @@ Thiết lập riêng của từng giao diện (ví dụ khung giờ của «ch�
 <details>
 <summary><b>Kiểm tra cài đặt</b></summary>
 
+**Desktop:** kiểm tra các package đã cài có xuất hiện trong **Plugins**, rồi khởi động lại và xem giao diện. Nếu đã cài trình quản lý, chọn giao diện trong «Cài đặt → Quản lý giao diện». Profile `desktop` của ứng dụng không hỗ trợ `--dump-config` qua CLI; hãy bỏ qua các lệnh bên dưới.
+
+**Bản Web qua CLI:**
+
 ```sh
-dsh plugin --profile web list          # phải thấy ba package @smalltailqwq/dsh-client-ui-skin-*
-dsh --profile web --dump-config        # trình quản lý là disabled: false; đúng một trong hai giao diện là false
+dsh plugin --profile web list          # phải thấy các package bạn đã chọn cài
+dsh --profile web --dump-config        # giao diện đã chọn là disabled: false; trình quản lý cũng vậy, nếu đã cài
 ```
 
 Ngay sau khi cài và trước khi khởi động lại, cả hai giao diện có thể hiển thị là đang bật. Điều đó bình thường; trình quản lý sẽ xử lý khi khởi động lại.
@@ -214,7 +251,7 @@ Sau khi khởi động lại, bạn có thể chạy dòng sau trong console tr�
 document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
-Kết quả phải có trình quản lý và giao diện đang bật; giao diện bị tắt không xuất hiện là bình thường.
+Kết quả phải có giao diện đang bật và trình quản lý nếu bạn đã cài và bật nó; giao diện bị tắt không xuất hiện là bình thường.
 
 </details>
 

@@ -35,12 +35,41 @@
 > [!NOTE]
 > 如果你用的是 dsh-web（装过 `@linxin666/dsh-web-all`），请直接在 dsh-web 自带的皮肤中心里安装 `maid-atelier` 和 `orca-link`，不要再运行下面的命令。两边的皮肤是分别适配的，装在同一个 profile 里会让界面显示错乱。
 
+### 官方桌面版
+
+1. 按需选择一套或多套皮肤。打开侧栏「插件」，点击「添加插件」，逐个填入下面对应的 npm 包名并安装。
+
+   | 插件 | npm 包名 |
+   |---|---|
+   | [maid-atelier](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-maid-atelier) | `@smalltailqwq/dsh-client-ui-skin-maid-atelier` |
+   | [orca-link](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-orca-link) | `@smalltailqwq/dsh-client-ui-skin-orca-link` |
+   | [皮肤管理器](https://www.npmjs.com/package/@smalltailqwq/dsh-client-ui-skin-deep-whale-manager) | `@smalltailqwq/dsh-client-ui-skin-deep-whale-manager` |
+
+2. **只装一套皮肤**时，管理器可选；不装就没有皮肤的可配置项。**同时装多套皮肤必须装管理器**，否则皮肤同时启用会让界面错乱。安装完成后按提示启用插件，然后**重启一次 DSH**。
+3. 如果安装了皮肤管理器，重启后打开「设置 → 皮肤管理」。首次启动若仍显示官方界面，到这里选择要启用的皮肤即可。
+
+想用 `main` 上的最新代码，也可以按所选皮肤和管理器，在同一个安装框里逐个填入对应的 GitHub 地址（只填地址，不加 `dsh plugin add`）：
+
+```text
+github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager
+github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier
+github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link
+```
+
+DSH 捆绑的 pnpm 默认有 24 小时包龄检查，刚发布的 npm 版本可能暂时装不到；GitHub 来源不受这项 npm 包龄检查影响。
+
+桌面版通过应用管理自己的 `desktop` profile，不需要先配置 `dsh` 命令。下面的 `web` 命令不会给桌面版安装皮肤。
+
+### CLI 安装的 Web 版
+
+本页命令以 `web` profile 为例；如果你启动的是其他 CLI profile，请把命令中的 `web` 换成对应名称。
+
 皮肤可以从 npm 或 GitHub 安装，两种来源装的是同一套皮肤，区别在于更新节奏：
 
 | | npm（推荐） | GitHub |
 |---|---|---|
 | 拿到的版本 | 正式发布的版本，有固定版本号 | `main` 分支上的最新代码 |
-| 什么时候能用上修复 | 发版后约 24 小时（DSH 内置的 pnpm 默认只安装发布满一天的版本） | 修复合并后马上就能装 |
+| 什么时候能用上修复 | 通常在发版约 24 小时后（DSH 内置 pnpm 的默认包龄策略） | 修复合并后马上就能装 |
 | 网络 | 可以配置 npm 镜像源，国内一般更稳 | 需要能访问 GitHub |
 
 拿不准就选 npm。复制对应系统的命令运行即可，不需要 clone 仓库。
@@ -61,19 +90,19 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-deep-whale-manage
 
 ```sh
 # Linux / macOS / WSL
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier' && dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link'
 ```
 
 ```powershell
 # PowerShell
-dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/orca-link'
+dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/skin-manager'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier'; dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link'
 ```
 
 两种来源用的是同一个包名，后装的会替换先装的。想从一种换到另一种，直接用另一组命令重新装一遍即可。
 
-装好后**重启一次 DSH**，然后打开「设置 → 皮肤管理」，在想用的皮肤上点「切换」就好。之后换皮肤都是即时生效，不用再重启。
+装好后**重启一次 DSH**。如果装了管理器，打开「设置 → 皮肤管理」，在想用的皮肤上点「切换」。之后换皮肤都是即时生效，不用再重启。
 
-- 只想要其中一套皮肤？把命令里另一套皮肤的那段 `add` 删掉即可。皮肤管理器建议保留，切换皮肤要靠它。
+- 只装一套皮肤时，可以删掉另一套皮肤和管理器的 `add`；不装管理器就没有皮肤的可配置项。同时装多套皮肤必须保留管理器，避免皮肤同时启用。
 - 两套都装了的话，首次重启后界面还是官方默认的样子，这是正常的：两套皮肤同时启用会互相打架，管理器会先把它们都关掉，等你来选。
 - 不想自己敲命令，可以把这句话发给任意 AI（或 DSH 本身），它会按 [INSTALL.md](INSTALL.md) 帮你装好：
 
@@ -82,6 +111,10 @@ dsh plugin --profile web add 'github:Small-tailqwq/dsh-deep-whale#path:/skin-man
   ```
 
 ## 更新
+
+**桌面版：**截至 DSH 0.2.0-rc.2，插件页没有升级入口，也不会自动更新第三方插件。在「插件」列表卸载要更新的插件，再按上面的步骤重新安装并启用，完成后重启 DSH。
+
+**CLI Web 版：**只保留你实际安装的包名。
 
 ```sh
 # Linux / macOS / WSL
@@ -95,7 +128,7 @@ dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-man
 
 这条命令对 npm 和 GitHub 两种来源都适用：npm 来源会更新到最新发布的版本，GitHub 来源会拉取 `main` 上的最新代码。更新后刷新页面即可，不需要重启 DSH。如果这个 profile 里只装了本仓库的皮肤，也可以直接运行 `dsh plugin --profile web update` 更新全部插件。
 
-刚发布的 npm 新版要满 24 小时后才能通过 `update` 装上，在此之前 `update` 会停在上一个版本，也不会报错（这是 DSH 内置的 pnpm 为防范恶意包设的默认延迟）。想马上用上某个新版，可以在包名后面加上 `@^版本号` 重新安装，版本号可以在 [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases) 查到：
+DSH 内置的 pnpm 默认优先选择发布满 24 小时的 npm 版本，所以 `update` 可能仍停在旧版。要指定某个新版，可以在包名后加上 `@^版本号` 重新安装；仍需通过当前 pnpm 的包龄检查。版本号见 [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases)：
 
 ```sh
 dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.7'
@@ -109,7 +142,7 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.7'
 
 每套皮肤只声明支持自己适配过的 DSH 版本（目前是 0.1.7 与 0.2 系列）。DSH 升级到更新的版本而皮肤还没跟上时，DSH 会自动停用皮肤、恢复官方界面，免得皮肤把输入框之类的控件挡住。
 
-先按上面的命令更新皮肤。如果还没有新版，又想先用着旧皮肤，可以打开「设置 → 皮肤管理」：被停用的皮肤会显示「未声明支持当前的 DSH x.y.z，已被自动停用」，点「切换」并确认即可。这个放行只针对当前的皮肤版本和 DSH 版本，任意一方升级后会重新检查；用得不顺手随时切回「官方默认」。
+先按上面的更新说明更新皮肤。如果还没有新版，又想先用着旧皮肤，可以打开「设置 → 皮肤管理」：被停用的皮肤会显示「未声明支持当前的 DSH x.y.z，已被自动停用」，点「切换」并确认即可。这个放行只针对当前的皮肤版本和 DSH 版本，任意一方升级后会重新检查；用得不顺手随时切回「官方默认」。
 
 <details>
 <summary>用命令行放行</summary>
@@ -174,7 +207,7 @@ dsh plugin --profile web add <clone 的绝对路径>/orca-link
 
 同一时间只能启用一套皮肤；皮肤管理器本身不算皮肤，需要一直开着。
 
-每套皮肤的开关记录在两个配置文件里：`~/.dsh/profiles/web/cordis.patch.yml`（profile 层）和 `~/.dsh/cordis.patch.yml`（home 层，优先级更高）。文件里没有写某套皮肤时，它默认是**开启**的，所以一次装两套又从没切换过，它们就会同时运行，导致界面错乱。
+每套皮肤的开关记录在两个配置文件里：`~/.dsh/profiles/<profile>/cordis.patch.yml`（profile 层，`<profile>` 为 `web` 或桌面版的 `desktop` 等实际名称）和 `~/.dsh/cordis.patch.yml`（home 层，优先级更高）。文件里没有写某套皮肤时，它默认是**开启**的，所以一次装两套又从没切换过，它们就会同时运行，导致界面错乱。
 
 皮肤管理器会处理这件事：
 
@@ -201,9 +234,13 @@ dsh plugin --profile web add <clone 的绝对路径>/orca-link
 <details>
 <summary><b>确认安装是否成功</b></summary>
 
+**桌面版：**在「插件」列表确认所装的包已出现，重启后查看皮肤效果；装了管理器的，再到「设置 → 皮肤管理」选择皮肤。桌面版的 `desktop` profile 不支持 CLI 的 `--dump-config`，无需运行下面的命令。
+
+**CLI Web 版：**
+
 ```sh
-dsh plugin --profile web list          # 应该能看到三个 @smalltailqwq/dsh-client-ui-skin-* 包
-dsh --profile web --dump-config        # 管理器应为 disabled: false；两套皮肤中恰好一套为 false
+dsh plugin --profile web list          # 应该能看到你选择安装的包
+dsh --profile web --dump-config        # 所选皮肤应为 disabled: false；如装了管理器，也应为 false
 ```
 
 刚装完、还没重启时，两套皮肤可能都显示为启用，这是正常的，重启后管理器会处理。
@@ -214,7 +251,7 @@ dsh --profile web --dump-config        # 管理器应为 disabled: false；两�
 document.documentElement.outerHTML.match(/\/plugins\/@smalltailqwq\/[^"'\s]+/g) ?? []
 ```
 
-结果里应包含管理器和当前启用的那套皮肤；停用的皮肤不出现是正常的。
+结果里应包含当前启用的皮肤，以及你安装并启用的管理器；停用的皮肤不出现是正常的。
 
 </details>
 
