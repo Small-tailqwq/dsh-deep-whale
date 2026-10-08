@@ -91,6 +91,31 @@ describe('ORCA LINK sidebar motion', () => {
     expect(plane).toContain('z-index: 2;')
   })
 
+  it('makes the seat itself the portrait, and the frame decoration only', () => {
+    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']"
+    const esc = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const block = (selector: string): string => css.match(new RegExp(`${esc(selector)}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+    const seat = block(button)
+    const character = block("body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter")
+    const plane = block(`${button}::before`)
+    // Same box as the portrait: the seat's flow slot is 70px / content-box left,
+    // and the negative margins move it onto the artwork.
+    for (const declaration of [
+      'width: calc(var(--orca-sidebar-art-width, 280px) - 30px);',
+      'height: calc(var(--orca-stage, 300px) - 66px);',
+    ]) {
+      expect(seat).toContain(declaration)
+      expect(character).toContain(declaration)
+    }
+    expect(seat).toContain('margin-top: -12px;')
+    expect(seat).toContain('margin-left: 10px;')
+    // In flow, so it cannot hit-test over a sibling the host renders next to it.
+    expect(seat).toContain('position: static;')
+    // The stage-sized frame is painted, never hit-tested: a plane that took
+    // pointer input outranked the host's rows (see the seat block above).
+    expect(plane).toContain('pointer-events: none;')
+  })
+
   it('restores the web logo-row flow under the Windows caption frame', () => {
     const root = "html[data-windows-titlebar] body[data-dsh-orca-link]\n    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed'])"
     expect(css).toContain(`${root} > [class*='logoRow'] {\n  height: 60px;\n  margin-bottom: 4px;\n}`)
@@ -108,7 +133,10 @@ describe('ORCA LINK sidebar motion', () => {
     const wide = css.match(/@media \(min-width: 901px\) \{([\s\S]*?)\n\}/)?.[1] ?? ''
     expect(wide).toContain("html:not([data-dsh-whale-orca-character='hidden'])")
     expect(wide).toContain(":first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']")
-    expect(wide).toContain('height: calc(var(--orca-stage, 300px) - 78px);')
+    // The seat reserves the stage through its own box: one portrait tall,
+    // pulled 12px above the flow slot, so the rows below it keep their spacing.
+    expect(wide).toContain('height: calc(var(--orca-stage, 300px) - 66px);')
+    expect(wide).toContain('margin-top: -12px;')
     const region = css.match(/\[data-orca-sidebar-wide\] \[class\*='regionArea'\] \{([^}]*)\}/)?.[1] ?? ''
     expect(region).toContain('border-top: 1px solid var(--orca-line);')
     expect(region).not.toContain('margin-top')

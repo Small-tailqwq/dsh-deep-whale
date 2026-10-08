@@ -1989,10 +1989,18 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
    The host's collapsed class also gates zero-width Windows caption mode. */
 @media (min-width: 901px) {
   html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession'] {
-    /* Native flow: 6px root padding + 60px logo + 4px gap = 70px top.
-       With the native 12px bottom margin, this seat ends at stage + 4px.
-       All following entries then keep their host spacing, regardless of type. */
-    height: calc(var(--orca-stage, 300px) - 78px);
+    /* The seat's own box is the portrait: native flow puts it at 70px, so it
+       starts 12px above that slot and 10px right of the content box, where the
+       artwork bleeds over the logo row, and it is one portrait tall. An
+       in-flow box cannot hit-test over a following sibling, which is what
+       makes this seat safe for whatever the host or a plugin renders next to
+       it; the previous stage-sized ::before hit plane could (see below). The
+       native 12px bottom margin still ends the reserved stage at stage + 4px,
+       so every following entry keeps its host spacing. */
+    margin-top: -12px;
+    margin-left: 10px;
+    width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
+    height: calc(var(--orca-stage, 300px) - 66px);
     position: static;
     overflow: visible;
     border-color: transparent;
@@ -2014,7 +2022,16 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
     width: calc(var(--orca-sidebar-art-width, 280px) - 30px);
     height: calc(var(--orca-stage, 300px) - 66px);
     content: '';
-    cursor: pointer;
+    /* Decoration only: this frame marks the seat the way the portrait does, so
+       it is painted over the stage but never hit-tested. While it took pointer
+       input it was one stage tall and resolved against the sidebar root, so it
+       silently outranked the host's own rows: the Windows caption frame lifted
+       those rows 16px and the plane swallowed the top of the Plugins row, and a
+       component that injects its own control into that band lost the covered
+       half of it (the reported "upper half works, lower half does not"). The
+       seat's own box above answers the pointer now, and it moves with the
+       host's flow instead of being pinned to stage coordinates. */
+    pointer-events: none;
     opacity: 0;
     background:
       linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 18px 1px no-repeat,
