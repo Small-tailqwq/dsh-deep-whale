@@ -194,7 +194,13 @@ body[data-dsh-maid-atelier] [id='root'] {
    层叠上下文抬升,保证挂载在 shell.overlay 槽的浮动面板(如文件浏览器)
    在视觉与点击层级上始终位于皮肤之上。 */
 body[data-dsh-maid-atelier] [data-shell-overlay] {
+  /* Overlay surfaces need an opaque base even when the conversation is transparent. */
+  --dsw-alias-bg-base: #e7edf8;
   z-index: 1000;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-shell-overlay] {
+  --dsw-alias-bg-base: #0a132f;
 }
 
 /* The native leading seat must clear the decorated header (21), while staying
