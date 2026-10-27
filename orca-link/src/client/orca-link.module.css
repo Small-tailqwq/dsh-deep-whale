@@ -2471,35 +2471,26 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]
-  > span:nth-child(3) {
+  > span[class*='_projectText'] {
   flex-direction: row;
   align-items: center;
   gap: 8px;
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]
-  > span:nth-child(3) > span:first-child {
+  > span[class*='_projectText'] > span[class*='_title'] {
   font-weight: 600;
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='true']
-  > span:nth-child(3) > span:first-child {
+  > span[class*='_projectText'] > span[class*='_title'] {
   font-weight: 700;
   letter-spacing: 0.015em;
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded='false']
-  > span:nth-child(3) > span:first-child {
+  > span[class*='_projectText'] > span[class*='_title'] {
   font-weight: 500;
-}
-
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]
-  > span:nth-child(3) > span:nth-child(2) {
-  flex: none;
-  margin-left: auto;
-  letter-spacing: 0.04em;
-  font: 500 10px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
-  color: var(--orca-muted);
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:hover {
@@ -2564,7 +2555,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selecte
   pointer-events: none;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected] > span:nth-child(2) {
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected] > span[class*='_title'] {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2573,7 +2564,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selecte
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected]
-  > span:nth-child(3):not(:has(button)) {
+  > span[class*='_time'] {
   flex: 0 0 44px;
   margin-left: auto;
   text-align: right;
@@ -2651,7 +2642,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][aria-expanded]
-  > span:nth-child(3) > span:first-child {
+  > span[class*='_projectText'] > span[class*='_title'] {
   font-weight: 500;
   letter-spacing: 0;
 }
