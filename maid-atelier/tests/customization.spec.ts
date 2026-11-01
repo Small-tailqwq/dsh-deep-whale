@@ -12,7 +12,6 @@ afterEach(() => {
   document.body.innerHTML = ''
   document.documentElement.style.removeProperty('--maid-workspace-row-height')
   document.documentElement.style.removeProperty('--maid-scene-brightness-light')
-  document.documentElement.style.removeProperty('--maid-scene-brightness-dark')
   document.documentElement.removeAttribute('data-maid-plain-process')
   for (const attribute of [...document.documentElement.attributes]) {
     if (attribute.name.startsWith('data-dsh-whale-') || attribute.name.startsWith('data-maid-composer-') || attribute.name.startsWith('data-maid-nav-')) {
@@ -22,27 +21,28 @@ afterEach(() => {
 })
 
 describe('maid customization declaration', () => {
-  it('keeps scene dimming and plain process rows opt-in with independent theme brightness', () => {
+  it('clamps light scene brightness to its supported band and keeps plain process rows opt-in', () => {
     let registration: SkinCustomizationRegistration | undefined
     const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
+    const brightness = definition.settings.find(setting => setting.key === 'sceneBrightnessLight')
+    expect(brightness?.type).toBe('range')
+    expect(brightness && brightness.type === 'range' ? [brightness.min, brightness.defaultValue, brightness.max] : []).toEqual([60, 80, 100])
     const applyValues = (input: Record<string, unknown>) => definition.apply({ values: normalizeSkinValues(definition, input), visibility: {} })
     applyValues({})
-    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('1')
-    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-dark')).toBe('1')
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.8')
     expect(document.documentElement.getAttribute('data-maid-plain-process')).toBe('off')
-    applyValues({ sceneBrightnessLight: 72, sceneBrightnessDark: 48, plainProcess: true })
+    applyValues({ sceneBrightnessLight: 72, plainProcess: true })
     expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.72')
-    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-dark')).toBe('0.48')
     expect(document.documentElement.getAttribute('data-maid-plain-process')).toBe('on')
-    applyValues({ sceneBrightnessLight: -10, sceneBrightnessDark: 110 })
-    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0')
-    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-dark')).toBe('1')
+    applyValues({ sceneBrightnessLight: -10 })
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.6')
+    applyValues({ sceneBrightnessLight: 110 })
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('1')
     dispose()
     expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('')
-    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-dark')).toBe('')
     expect(document.documentElement.hasAttribute('data-maid-plain-process')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
@@ -55,14 +55,17 @@ describe('maid customization declaration', () => {
     const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
-    registration!.definition.apply({ values: normalizeSkinValues(registration!.definition, { sceneBrightnessLight: 60, sceneBrightnessDark: 40, plainProcess: true }), visibility: {} })
-    root.style.setProperty('--maid-scene-brightness-dark', '0.8', 'important')
+    registration!.definition.apply({ values: normalizeSkinValues(registration!.definition, { sceneBrightnessLight: 60, plainProcess: true }), visibility: {} })
     dispose()
     expect(root.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.9')
     expect(root.style.getPropertyPriority('--maid-scene-brightness-light')).toBe('important')
-    expect(root.style.getPropertyValue('--maid-scene-brightness-dark')).toBe('0.8')
-    expect(root.style.getPropertyPriority('--maid-scene-brightness-dark')).toBe('important')
     expect(root.getAttribute('data-maid-plain-process')).toBe('external')
+    const disposeAgain = installMaidCustomization()
+    registration!.definition.apply({ values: normalizeSkinValues(registration!.definition, {}), visibility: {} })
+    root.style.setProperty('--maid-scene-brightness-light', '0.7', 'important')
+    disposeAgain()
+    expect(root.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.7')
+    expect(root.style.getPropertyPriority('--maid-scene-brightness-light')).toBe('important')
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
 
@@ -72,7 +75,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['sceneBrightnessLight', 'sceneBrightnessDark', 'plainProcess', 'artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'workspaceRowHeight'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['sceneBrightnessLight', 'plainProcess', 'artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'workspaceRowHeight'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },

@@ -722,21 +722,16 @@ export function apply(ctx: PanelContext): void {
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }')
 
   // Only the decorative stage is filtered; native content stays outside it.
-  appendRule('body[data-dsh-maid-atelier] [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-light, 1)); }')
-  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-dark, 1)); }')
+  appendRule('body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-light, 0.8)); }')
 
-  appendRule('body[data-dsh-maid-atelier] { --maid-process-ink: #33456f; }')
-  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-process-ink: #dde6f7; }')
-  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }')
-  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }')
-  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }')
-  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }')
+  appendRule('body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) { --maid-process-ink: #33456f; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }')
 
-  // ── 聊天阅读面透明度 ────────────────────────────────────────────────
-  // 皮肤原本把 assistant 卡片写成 #f8fafff0（94% 白），整片盖住女仆立绘；
-  // 改为半透明并加背景模糊，让轮廓透出来（沉浸），文字靠模糊与深色保持可读。
-  appendRule('body[data-dsh-maid-atelier] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }')
-  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(10, 20, 44, 0.6) !important; }')
+  // Blur separates the text from the artwork visible through the message.
+  appendRule('body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }')
 
   const widthRule = widthSheet.sheet!.cssRules[0] as CSSStyleRule
   const titlebarRule = widthSheet.sheet!.cssRules[1] as CSSStyleRule

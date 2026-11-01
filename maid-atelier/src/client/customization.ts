@@ -64,8 +64,8 @@ function workspaceRowHeight(value: SkinSettingValue | undefined): number {
 }
 
 function sceneBrightness(value: SkinSettingValue | undefined): string {
-  const percent = typeof value === 'number' && Number.isFinite(value) ? value : 100
-  return String(Math.min(100, Math.max(0, percent)) / 100)
+  const percent = typeof value === 'number' && Number.isFinite(value) ? value : 80
+  return String(Math.min(100, Math.max(60, percent)) / 100)
 }
 
 /**
@@ -184,7 +184,6 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
     properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
     properties.set('--maid-scene-brightness-light', sceneBrightness(state.values.sceneBrightnessLight))
-    properties.set('--maid-scene-brightness-dark', sceneBrightness(state.values.sceneBrightnessDark))
     projector.set(ATTR_PLAIN_PROCESS, state.values.plainProcess === true ? 'on' : 'off')
   }
 
@@ -199,19 +198,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'range',
         label: '亮色背景亮度',
         labelEn: 'Light theme background brightness',
-        defaultValue: 100,
-        min: 0,
-        max: 100,
-        step: 1,
-        unit: '%',
-      },
-      {
-        key: 'sceneBrightnessDark',
-        type: 'range',
-        label: '暗色背景亮度',
-        labelEn: 'Dark theme background brightness',
-        defaultValue: 100,
-        min: 0,
+        defaultValue: 80,
+        min: 60,
         max: 100,
         step: 1,
         unit: '%',
@@ -221,8 +209,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'boolean',
         label: '简洁过程行',
         labelEn: 'Plain process rows',
-        description: '去掉过程行底色并调整文字颜色。',
-        descriptionEn: 'Remove process row backgrounds and adjust text colors.',
+        description: '亮色主题下去掉过程行底色并调整文字颜色。',
+        descriptionEn: 'Remove process row backgrounds and adjust text colors in the light theme.',
         defaultValue: false,
       },
       {

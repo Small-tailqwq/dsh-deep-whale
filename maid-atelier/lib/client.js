@@ -1410,7 +1410,7 @@ window.__ModuleLoader__.load({
 			return Math.min(WORKSPACE_ROW_HEIGHT_MAX, Math.max(WORKSPACE_ROW_HEIGHT_MIN, Math.round(value)));
 		}
 		function sceneBrightness(value) {
-			return String(Math.min(100, Math.max(0, typeof value === "number" && Number.isFinite(value) ? value : 100)) / 100);
+			return String(Math.min(100, Math.max(60, typeof value === "number" && Number.isFinite(value) ? value : 80)) / 100);
 		}
 		/**
 		* The lineup is DeepSeek Flash and DeepSeek Pro, so the display name only
@@ -1514,7 +1514,6 @@ window.__ModuleLoader__.load({
 				projector.set(ATTR_NAV_MODE, typeof navMode === "string" && NAV_MODES.has(navMode) ? navMode : "corner");
 				properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`);
 				properties.set("--maid-scene-brightness-light", sceneBrightness(state.values.sceneBrightnessLight));
-				properties.set("--maid-scene-brightness-dark", sceneBrightness(state.values.sceneBrightnessDark));
 				projector.set(ATTR_PLAIN_PROCESS, state.values.plainProcess === true ? "on" : "off");
 			};
 			return exposeSkinCustomization({
@@ -1528,19 +1527,8 @@ window.__ModuleLoader__.load({
 						type: "range",
 						label: "亮色背景亮度",
 						labelEn: "Light theme background brightness",
-						defaultValue: 100,
-						min: 0,
-						max: 100,
-						step: 1,
-						unit: "%"
-					},
-					{
-						key: "sceneBrightnessDark",
-						type: "range",
-						label: "暗色背景亮度",
-						labelEn: "Dark theme background brightness",
-						defaultValue: 100,
-						min: 0,
+						defaultValue: 80,
+						min: 60,
 						max: 100,
 						step: 1,
 						unit: "%"
@@ -1550,8 +1538,8 @@ window.__ModuleLoader__.load({
 						type: "boolean",
 						label: "简洁过程行",
 						labelEn: "Plain process rows",
-						description: "去掉过程行底色并调整文字颜色。",
-						descriptionEn: "Remove process row backgrounds and adjust text colors.",
+						description: "亮色主题下去掉过程行底色并调整文字颜色。",
+						descriptionEn: "Remove process row backgrounds and adjust text colors in the light theme.",
 						defaultValue: false
 					},
 					{
@@ -3138,16 +3126,13 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-wco] { grid-template-rows: env(titlebar-area-height, 40px) 1fr; }");
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }");
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }");
-			appendRule("body[data-dsh-maid-atelier] [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-light, 1)); }");
-			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-dark, 1)); }");
-			appendRule("body[data-dsh-maid-atelier] { --maid-process-ink: #33456f; }");
-			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-process-ink: #dde6f7; }");
-			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }");
-			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }");
-			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }");
-			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }");
-			appendRule("body[data-dsh-maid-atelier] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }");
-			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(10, 20, 44, 0.6) !important; }");
+			appendRule("body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-light, 0.8)); }");
+			appendRule("body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) { --maid-process-ink: #33456f; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }");
+			appendRule("body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }");
 			const widthRule = widthSheet.sheet.cssRules[0];
 			const titlebarRule = widthSheet.sheet.cssRules[1];
 			const setRuleProperty = (rule, name, value) => {
