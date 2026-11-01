@@ -1364,6 +1364,7 @@ window.__ModuleLoader__.load({
 		const ATTR_COMPOSER_MODE = "data-maid-composer-mode";
 		const ATTR_COMPOSER_BOTTOM_ONLY = "data-maid-composer-bottom-only";
 		const ATTR_NAV_MODE = "data-maid-nav-mode";
+		const ATTR_PLAIN_PROCESS = "data-maid-plain-process";
 		/** Navigation layouts the stylesheet implements; anything else falls back to the default. */
 		const NAV_MODES = /* @__PURE__ */ new Set([
 			"corner",
@@ -1407,6 +1408,9 @@ window.__ModuleLoader__.load({
 		function workspaceRowHeight(value) {
 			if (typeof value !== "number" || !Number.isFinite(value)) return WORKSPACE_ROW_HEIGHT_DEFAULT;
 			return Math.min(WORKSPACE_ROW_HEIGHT_MAX, Math.max(WORKSPACE_ROW_HEIGHT_MIN, Math.round(value)));
+		}
+		function sceneBrightness(value) {
+			return String(Math.min(100, Math.max(0, typeof value === "number" && Number.isFinite(value) ? value : 100)) / 100);
 		}
 		/**
 		* The lineup is DeepSeek Flash and DeepSeek Pro, so the display name only
@@ -1509,6 +1513,9 @@ window.__ModuleLoader__.load({
 				const navMode = state.values.mobileNav;
 				projector.set(ATTR_NAV_MODE, typeof navMode === "string" && NAV_MODES.has(navMode) ? navMode : "corner");
 				properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`);
+				properties.set("--maid-scene-brightness-light", sceneBrightness(state.values.sceneBrightnessLight));
+				properties.set("--maid-scene-brightness-dark", sceneBrightness(state.values.sceneBrightnessDark));
+				projector.set(ATTR_PLAIN_PROCESS, state.values.plainProcess === true ? "on" : "off");
 			};
 			return exposeSkinCustomization({
 				protocol: 2,
@@ -1516,6 +1523,37 @@ window.__ModuleLoader__.load({
 				title: "深海女仆工坊",
 				titleEn: "Abyssal Maid Atelier",
 				settings: [
+					{
+						key: "sceneBrightnessLight",
+						type: "range",
+						label: "亮色背景亮度",
+						labelEn: "Light theme background brightness",
+						defaultValue: 100,
+						min: 0,
+						max: 100,
+						step: 1,
+						unit: "%"
+					},
+					{
+						key: "sceneBrightnessDark",
+						type: "range",
+						label: "暗色背景亮度",
+						labelEn: "Dark theme background brightness",
+						defaultValue: 100,
+						min: 0,
+						max: 100,
+						step: 1,
+						unit: "%"
+					},
+					{
+						key: "plainProcess",
+						type: "boolean",
+						label: "简洁过程行",
+						labelEn: "Plain process rows",
+						description: "去掉过程行底色并调整文字颜色。",
+						descriptionEn: "Remove process row backgrounds and adjust text colors.",
+						defaultValue: false
+					},
 					{
 						key: "artwork",
 						type: "boolean",
@@ -3100,17 +3138,14 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-wco] { grid-template-rows: env(titlebar-area-height, 40px) 1fr; }");
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }");
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }");
-			appendRule("body[data-dsh-maid-atelier] { --maid-scene-dim: rgba(9, 19, 51, 0.18); --maid-scene-dim-accent: rgba(9, 19, 51, 0.28); }");
-			appendRule("body[data-dsh-maid-atelier][data-maid-chat-active] { --maid-scene-dim: rgba(9, 19, 51, 0.32); --maid-scene-dim-accent: rgba(9, 19, 51, 0.42); }");
-			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-scene-dim: rgba(2, 6, 20, 0.32); --maid-scene-dim-accent: rgba(2, 6, 20, 0.44); }");
-			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-chat-active] { --maid-scene-dim: rgba(2, 6, 20, 0.42); --maid-scene-dim-accent: rgba(2, 6, 20, 0.54); }");
-			appendRule("body[data-dsh-maid-atelier] [data-skin-chrome=character-stage]::after { content: \"\"; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, var(--maid-scene-dim) 0%, var(--maid-scene-dim-accent) 100%); }");
+			appendRule("body[data-dsh-maid-atelier] [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-light, 1)); }");
+			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-dark, 1)); }");
 			appendRule("body[data-dsh-maid-atelier] { --maid-process-ink: #33456f; }");
 			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-process-ink: #dde6f7; }");
-			appendRule("body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }");
-			appendRule("body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }");
-			appendRule("body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }");
-			appendRule("body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }");
+			appendRule("html[data-maid-plain-process=on] body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }");
 			appendRule("body[data-dsh-maid-atelier] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }");
 			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(10, 20, 44, 0.6) !important; }");
 			const widthRule = widthSheet.sheet.cssRules[0];
