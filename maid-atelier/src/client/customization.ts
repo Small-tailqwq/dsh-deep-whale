@@ -225,8 +225,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'visibility-schedule',
         label: '不那么二次元模式',
         labelEn: 'Not-so-anime mode',
-        description: '按本机时间控制大幅立绘；可设置工作时段隐藏、其他时间显示，也可反向设置。',
-        descriptionEn: 'Control the large artwork by local time; hide it during work hours and show it otherwise, or the reverse.',
+        description: '按本机时间显示或隐藏立绘。',
+        descriptionEn: 'Show or hide the artwork by local time.',
         defaultValue: { enabled: false, outside: 'visible', ranges: [] },
       },
       {
@@ -237,7 +237,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         defaultValue: 'system',
         options: [
           { value: 'system', label: '系统默认无衬线', labelEn: 'System default sans' },
-          { value: 'serif', label: 'Georgia 衬线（#22）', labelEn: 'Georgia serif (#22)' },
+          { value: 'serif', label: 'Georgia 衬线', labelEn: 'Georgia serif' },
         ],
       },
       {
@@ -245,7 +245,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'select',
         label: '侧栏字体',
         labelEn: 'Sidebar font',
-        description: '调整侧栏中工作区和会话标签的字体。',
+        description: '用于侧栏中的工作区和会话标签。',
         descriptionEn: 'Font for workspace and conversation labels in the sidebar.',
         defaultValue: 'serif',
         options: [
@@ -271,9 +271,9 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
       {
         key: 'flashGlasses',
         type: 'boolean',
-        label: 'flash🧐 带眼镜立绘',
-        labelEn: 'flash 🧐 glasses artwork',
-        description: 'flash 模型改用带眼镜的立绘。',
+        label: 'Flash 眼镜立绘',
+        labelEn: 'Flash glasses artwork',
+        description: '为 Flash 模型使用带眼镜的立绘。',
         descriptionEn: 'Use the glasses artwork for the flash model.',
         defaultValue: false,
         visibleWhen: {
@@ -294,8 +294,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'select',
         label: '移动端导航方式',
         labelEn: 'Phone navigation layout',
-        description: '仅影响竖屏手机（宽度 ≤700px）：左上角品牌图标（默认）、横向顶栏，或宿主原本的纵向侧栏。桌面与横屏不受影响。',
-        descriptionEn: 'Portrait phones only (≤700px wide): a brand mark in the top-left corner (default), a horizontal top bar, or the host\u2019s own vertical column. Desktop and landscape are untouched.',
+        description: '适用于宽度不超过 700px 的竖屏手机。',
+        descriptionEn: 'For portrait phones up to 700px wide.',
         defaultValue: 'corner',
         options: [
           { value: 'corner', label: '左上角品牌图标', labelEn: 'Brand mark · top-left corner' },
@@ -308,8 +308,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'select',
         label: '输入框显示方式',
         labelEn: 'Composer visibility mode',
-        description: '始终显示；空态胶囊在输入框为空且未聚焦时收起为简约胶囊；滚动显隐在正文末尾滚出视口后上滚隐去，下滚或末尾回到视口时渐现。',
-        descriptionEn: 'Always visible; the idle capsule collapses while empty and unfocused; scroll mode hides on upward scroll after the transcript tail leaves the viewport, and reveals on downward scroll or when the tail returns.',
+        description: '空态胶囊在输入框为空且未聚焦时收起；滚动显隐在正文末尾离开视口后生效。',
+        descriptionEn: 'The idle capsule collapses when empty and unfocused. Scroll visibility applies after the transcript tail leaves the viewport.',
         defaultValue: 'persistent',
         options: [
           { value: 'persistent', label: '始终显示', labelEn: 'Always visible' },
@@ -322,8 +322,8 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         type: 'boolean',
         label: '输入框只在底部显示',
         labelEn: 'Show the composer only at the conversation bottom',
-        description: '最新正文末尾仍在视口内时保留输入框，末尾滚出视口后隐去，回到视口内再显现。开启后接管上面的「上滚隐去 · 下滚渐现」。',
-        descriptionEn: 'Keep the composer while the transcript tail is within the viewport; hide after it leaves and reveal when it returns. Takes over the scroll mode above.',
+        description: '正文末尾离开视口时隐藏输入框。开启后优先于滚动显隐。',
+        descriptionEn: 'Hide the composer when the transcript tail leaves the viewport. Overrides scroll visibility.',
         defaultValue: false,
       },
       {
