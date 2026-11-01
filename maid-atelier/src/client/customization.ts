@@ -15,6 +15,7 @@ const ATTR_FLASH_GLASSES = 'data-dsh-whale-maid-flash-glasses'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
 const ATTR_COMPOSER_BOTTOM_ONLY = 'data-maid-composer-bottom-only'
 const ATTR_NAV_MODE = 'data-maid-nav-mode'
+const ATTR_PLAIN_PROCESS = 'data-maid-plain-process'
 /** Navigation layouts the stylesheet implements; anything else falls back to the default. */
 const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
 
@@ -60,6 +61,11 @@ class SkinPropertyProjector {
 function workspaceRowHeight(value: SkinSettingValue | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return WORKSPACE_ROW_HEIGHT_DEFAULT
   return Math.min(WORKSPACE_ROW_HEIGHT_MAX, Math.max(WORKSPACE_ROW_HEIGHT_MIN, Math.round(value)))
+}
+
+function sceneBrightness(value: SkinSettingValue | undefined): string {
+  const percent = typeof value === 'number' && Number.isFinite(value) ? value : 100
+  return String(Math.min(100, Math.max(0, percent)) / 100)
 }
 
 /**
@@ -177,6 +183,9 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     const navMode = state.values.mobileNav
     projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
     properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
+    properties.set('--maid-scene-brightness-light', sceneBrightness(state.values.sceneBrightnessLight))
+    properties.set('--maid-scene-brightness-dark', sceneBrightness(state.values.sceneBrightnessDark))
+    projector.set(ATTR_PLAIN_PROCESS, state.values.plainProcess === true ? 'on' : 'off')
   }
 
   return exposeSkinCustomization({
@@ -185,6 +194,37 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     title: '深海女仆工坊',
     titleEn: 'Abyssal Maid Atelier',
     settings: [
+      {
+        key: 'sceneBrightnessLight',
+        type: 'range',
+        label: '亮色背景亮度',
+        labelEn: 'Light theme background brightness',
+        defaultValue: 100,
+        min: 0,
+        max: 100,
+        step: 1,
+        unit: '%',
+      },
+      {
+        key: 'sceneBrightnessDark',
+        type: 'range',
+        label: '暗色背景亮度',
+        labelEn: 'Dark theme background brightness',
+        defaultValue: 100,
+        min: 0,
+        max: 100,
+        step: 1,
+        unit: '%',
+      },
+      {
+        key: 'plainProcess',
+        type: 'boolean',
+        label: '简洁过程行',
+        labelEn: 'Plain process rows',
+        description: '去掉过程行底色并调整文字颜色。',
+        descriptionEn: 'Remove process row backgrounds and adjust text colors.',
+        defaultValue: false,
+      },
       {
         key: 'artwork',
         type: 'boolean',
