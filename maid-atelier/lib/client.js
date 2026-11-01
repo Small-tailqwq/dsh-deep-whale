@@ -3100,6 +3100,19 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-wco] { grid-template-rows: env(titlebar-area-height, 40px) 1fr; }");
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }");
 			appendRule("body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }");
+			appendRule("body[data-dsh-maid-atelier] { --maid-scene-dim: rgba(9, 19, 51, 0.18); --maid-scene-dim-accent: rgba(9, 19, 51, 0.28); }");
+			appendRule("body[data-dsh-maid-atelier][data-maid-chat-active] { --maid-scene-dim: rgba(9, 19, 51, 0.32); --maid-scene-dim-accent: rgba(9, 19, 51, 0.42); }");
+			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-scene-dim: rgba(2, 6, 20, 0.32); --maid-scene-dim-accent: rgba(2, 6, 20, 0.44); }");
+			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-chat-active] { --maid-scene-dim: rgba(2, 6, 20, 0.42); --maid-scene-dim-accent: rgba(2, 6, 20, 0.54); }");
+			appendRule("body[data-dsh-maid-atelier] [data-skin-chrome=character-stage]::after { content: \"\"; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, var(--maid-scene-dim) 0%, var(--maid-scene-dim-accent) 100%); }");
+			appendRule("body[data-dsh-maid-atelier] { --maid-process-ink: #33456f; }");
+			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-process-ink: #dde6f7; }");
+			appendRule("body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }");
+			appendRule("body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }");
+			appendRule("body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }");
+			appendRule("body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }");
+			appendRule("body[data-dsh-maid-atelier] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }");
+			appendRule("body[data-dsh-maid-atelier][data-ds-dark-theme] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(10, 20, 44, 0.6) !important; }");
 			const widthRule = widthSheet.sheet.cssRules[0];
 			const titlebarRule = widthSheet.sheet.cssRules[1];
 			const setRuleProperty = (rule, name, value) => {

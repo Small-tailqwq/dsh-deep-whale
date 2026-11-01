@@ -721,6 +721,34 @@ export function apply(ctx: PanelContext): void {
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }')
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }')
 
+  // ── 对话区场景压暗层 ────────────────────────────────────────────────
+  // 宫殿背景与两位女仆同属 centerCol 内的 character-stage（z-index: 0），
+  // 聊天内容按 DOM 顺序绘制在其上。这里用同层 ::after 压暗整个场景，不新增
+  // DOM、不遮挡聊天内容、不吃鼠标事件；聊天态与暗色主题各加深一档，强度由
+  // --maid-scene-dim / --maid-scene-dim-accent 控制。
+  appendRule('body[data-dsh-maid-atelier] { --maid-scene-dim: rgba(9, 19, 51, 0.18); --maid-scene-dim-accent: rgba(9, 19, 51, 0.28); }')
+  appendRule('body[data-dsh-maid-atelier][data-maid-chat-active] { --maid-scene-dim: rgba(9, 19, 51, 0.32); --maid-scene-dim-accent: rgba(9, 19, 51, 0.42); }')
+  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-scene-dim: rgba(2, 6, 20, 0.32); --maid-scene-dim-accent: rgba(2, 6, 20, 0.44); }')
+  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-chat-active] { --maid-scene-dim: rgba(2, 6, 20, 0.42); --maid-scene-dim-accent: rgba(2, 6, 20, 0.54); }')
+  appendRule('body[data-dsh-maid-atelier] [data-skin-chrome=character-stage]::after { content: \"\"; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, var(--maid-scene-dim) 0%, var(--maid-scene-dim-accent) 100%); }')
+
+  // ── 过程行与走时行的文字对比度 ──────────────────────────────────────
+  // 过程行原有的白胶囊底会盖住聊天卡片的模糊层，这里去掉底色只提字色：
+  // 深蓝字直接浮在磨砂背景上，既不抢画面也保证可读。走时行（“已完成，
+  // 用时 …”）同理，并取消它的整体淡化。
+  appendRule('body[data-dsh-maid-atelier] { --maid-process-ink: #33456f; }')
+  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-process-ink: #dde6f7; }')
+  appendRule('body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }')
+  appendRule('body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }')
+  appendRule('body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }')
+  appendRule('body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }')
+
+  // ── 聊天阅读面透明度 ────────────────────────────────────────────────
+  // 皮肤原本把 assistant 卡片写成 #f8fafff0（94% 白），整片盖住女仆立绘；
+  // 改为半透明并加背景模糊，让轮廓透出来（沉浸），文字靠模糊与深色保持可读。
+  appendRule('body[data-dsh-maid-atelier] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }')
+  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(10, 20, 44, 0.6) !important; }')
+
   const widthRule = widthSheet.sheet!.cssRules[0] as CSSStyleRule
   const titlebarRule = widthSheet.sheet!.cssRules[1] as CSSStyleRule
   const setRuleProperty = (rule: CSSStyleRule, name: string, value: string): void => {
