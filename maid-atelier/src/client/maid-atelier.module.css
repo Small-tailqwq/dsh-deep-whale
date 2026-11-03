@@ -3542,9 +3542,11 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   [data-composer-card] [class*='trailing'] button[class*='trigger'] {
   width: auto;
   min-width: 0;
-  /* Same host cap as the active composer; see the model trigger rule. */
-  max-width: 220px;
-  max-width: min(360px, 45cqw);
+  /* Same host cap as the active composer; see the model trigger rule. The
+     240px floor keeps the reasoning-effort label whole once the row is
+     narrower than 45cqw of its container. */
+  max-width: 240px;
+  max-width: min(360px, max(240px, 45cqw));
   height: 38px;
   padding: 0 4px 0 8px;
   border: 0;
@@ -4084,13 +4086,14 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] button[cl
 
 /* Model identity remains one control, but name and reasoning effort have
    separate visual jobs: navy identifies the route, gold identifies compute.
-   Keep the host's row-relative cap: host decorations such as the 0.2.1 Flash
-   release tag widen the label, and a tighter cap ellipsizes the effort. */
+   Keep the host's row-relative cap and add a 240px floor: host decorations
+   such as the 0.2.1 Flash release tag widen the label, and a bare 45cqw cap
+   ellipsizes the effort once the composer row gets narrow. */
 body[data-dsh-maid-atelier] [data-composer-card] [class*='trailing']
   button[aria-haspopup='menu'] {
   height: 32px;
   max-width: 240px;
-  max-width: min(360px, 45cqw);
+  max-width: min(360px, max(240px, 45cqw));
   padding: 0 5px 0 8px;
   border-radius: 10px;
   color: #314979;
@@ -4246,10 +4249,11 @@ body[data-dsh-maid-atelier] [data-composer-card]
     height: 34px;
   }
 
-  body[data-dsh-maid-atelier] [data-composer-card] [class*='trailing']
-    button[aria-haspopup='menu'] [class*='triggerEffort'] {
-    display: none;
-  }
+  /* The host row is a size container and measures itself: it drops the model
+     text through [data-model-compact] only when the controls genuinely do not
+     fit. Hiding the effort label here made 思考强度 disappear whenever the
+     composer row was narrower than this breakpoint, e.g. with the right
+     sidebar open, so the label now follows the host cap above instead. */
 }
 
 @media (max-width: 700px) {
