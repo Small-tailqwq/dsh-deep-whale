@@ -1798,6 +1798,15 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
   z-index: 2;
 }
 
+/* The plugin page keeps its title pinned while the list scrolls under it, and
+   paints that strip with `--dsw-alias-bg-base` — the token this skin turns
+   transparent, so the scrolled cards showed through the title. The strip gets
+   the sheet's frosted floor instead. */
+body[data-dsh-maid-atelier] [class*='_pageBar'][data-natural]::before {
+  background: var(--maid-reading-surface);
+  backdrop-filter: blur(16px) saturate(0.95);
+}
+
 /* Host primitives spend `disabled` as a 40% opacity budget, priced against the
    opaque floor the skin gave up. On the sheet a 12px label lands near 2.6:1;
    a third more opacity keeps the state readable while still reading as
@@ -2299,6 +2308,19 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
        The dialog still measures 393x844 and reports visible, but the centre
        hit-tests as the host composer seat: the column's stacking context is what
        keeps the 1000-layer overlay above the conversation chrome. */
+
+  /* -- host drawer -------------------------------------------------------- */
+  /* Below 768px the host runs the column as its own drawer behind a
+     `z-index: 70` scrim that closes it on tap. The floating column above keeps
+     its own `z-index: 60`, which put the scrim over every tap meant for the
+     drawer; it takes the host drawer's layer instead. The collapsed drawer
+     column is `inert` and parked off-canvas, so the corner and topbar
+     affordances cannot live in it; the host's own opener replaces them there. */
+  body[data-dsh-maid-atelier]
+    [id='root'] > div[data-slot='root'] > div[class*='frame'][data-sidebar-drawer]:not([data-sidebar-collapsed])
+    [class*='sidebarCol'] {
+    z-index: 71;
+  }
 
   /* -- corner ------------------------------------------------------------- */
   /* A fixed 48px brand button in the top-left. The box itself stays inert so it
@@ -4075,7 +4097,10 @@ body[data-dsh-maid-atelier] [data-composer-card] button:not(
   transition: transform 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] button:hover:not(:disabled):not(
+/* Popup triggers stay put: the host anchors its floating menu to them, so a
+   lifted trigger dragged the open menu along and its tooltip anchors caught up
+   a frame late. */
+body[data-dsh-maid-atelier] [data-composer-card] button:hover:not(:disabled):not([aria-haspopup]):not(
     [data-slot='conversation.input.left'] *,
     [data-slot='conversation.input.right'] *
   ) {
@@ -6698,6 +6723,15 @@ body[data-dsh-maid-atelier]
     0 6px 18px rgba(15, 30, 72, 0.2),
     inset 0 1px rgba(255, 255, 255, 0.7);
   transform: translateY(-1px);
+}
+
+/* An open popup is anchored to a trigger inside the card; lifting the card
+   would drag the menu with it each time the pointer crosses the card edge. */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]:hover:has([aria-haspopup][aria-expanded='true']) {
+  transform: none;
 }
 
 /* 展开衔接动画：布局宽度/高度瞬时恢复，仅 transform/opacity 走合成器，
