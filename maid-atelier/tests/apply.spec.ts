@@ -1728,10 +1728,22 @@ describe('Maid Atelier skin apply', () => {
     expect(permissionRule).toContain('justify-content: center')
     expect(permissionRule).toContain('gap: 0')
     expect(modelRule).toContain('width: auto')
-    expect(modelRule).toContain('max-width: 220px')
+    expect(modelRule).toContain('max-width: 240px')
     expect(modelRule).toContain('padding: 0 4px 0 8px')
     expect(CSS).not.toMatch(
       /\[class\*='trailing'\][\s\S]*?:is\(\[class\*='triggerLabel'\], \[class\*='triggerEffort'\]\)\s*\{[^}]*display: none/s,
+    )
+  })
+
+  it('keeps the reasoning-effort label visible in the narrow composer row', () => {
+    // DSH 0.2.1 caps the model trigger at min(360px, 45cqw) and lets the effort
+    // text shrink first. With the right sidebar open the composer row is about
+    // 480 CSS px wide, so 45cqw alone (about 216px) no longer fits the model
+    // name, the 1017 release tag, and the effort label; the 240px floor keeps
+    // the label whole until the host's data-model-compact fallback takes over.
+    expect(CSS.match(/max-width: min\(360px, max\(240px, 45cqw\)\)/g) ?? []).toHaveLength(2)
+    expect(CSS).not.toMatch(
+      /button\[aria-haspopup='menu'\] \[class\*='triggerEffort'\]\s*\{\s*display: none/s,
     )
   })
 
