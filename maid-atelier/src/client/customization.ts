@@ -16,6 +16,7 @@ const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
 const ATTR_COMPOSER_BOTTOM_ONLY = 'data-maid-composer-bottom-only'
 const ATTR_NAV_MODE = 'data-maid-nav-mode'
 const ATTR_PLAIN_PROCESS = 'data-maid-plain-process'
+const ATTR_SIDEBAR_LACE = 'data-maid-sidebar-lace'
 /** Navigation layouts the stylesheet implements; anything else falls back to the default. */
 const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
 
@@ -185,6 +186,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
     properties.set('--maid-scene-brightness-light', sceneBrightness(state.values.sceneBrightnessLight))
     projector.set(ATTR_PLAIN_PROCESS, state.values.plainProcess === true ? 'on' : 'off')
+    projector.set(ATTR_SIDEBAR_LACE, state.values.sidebarLace === false ? 'off' : 'on')
   }
 
   return exposeSkinCustomization({
@@ -325,6 +327,15 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         description: '正文末尾离开视口时隐藏输入框。开启后优先于滚动显隐。',
         descriptionEn: 'Hide the composer when the transcript tail leaves the viewport. Overrides scroll visibility.',
         defaultValue: false,
+      },
+      {
+        key: 'sidebarLace',
+        type: 'boolean',
+        label: '显示侧栏 U 形花边',
+        labelEn: 'Show the sidebar U-shaped lace',
+        description: '关闭后移除侧栏底部花边、会话列表渐隐及对应留白，保留输入框装饰。',
+        descriptionEn: 'Hide the lower sidebar lace, conversation-list fade and reserved space. Keep the composer decoration.',
+        defaultValue: true,
       },
       {
         key: 'workspaceRowHeight',

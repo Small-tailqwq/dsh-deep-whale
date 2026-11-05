@@ -832,6 +832,18 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.workspaces']
   mask-repeat: no-repeat;
 }
 
+/* Reclaim both the ornament's footer seat and the list's curved fade. The
+   width rule is injected later, so scope this override to the preference. */
+html[data-maid-sidebar-lace='off'] body[data-dsh-maid-atelier] [class*='sidebarCol'] {
+  --maid-sidebar-swag-height: 0px;
+}
+
+html[data-maid-sidebar-lace='off'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar.workspaces'] [class*='treeBody'] > [class*='list'] {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
   position: absolute;
   left: 52%;
@@ -1207,6 +1219,11 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
     saturate(1.04)
     contrast(1.04)
     drop-shadow(0 4px 9px rgba(2, 8, 28, 0.26));
+}
+
+html[data-maid-sidebar-lace='off'] body[data-dsh-maid-atelier]
+  [data-maid-sidebar-footer]::before {
+  content: none;
 }
 
 body[data-dsh-maid-atelier]

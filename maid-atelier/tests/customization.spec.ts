@@ -13,6 +13,7 @@ afterEach(() => {
   document.documentElement.style.removeProperty('--maid-workspace-row-height')
   document.documentElement.style.removeProperty('--maid-scene-brightness-light')
   document.documentElement.removeAttribute('data-maid-plain-process')
+  document.documentElement.removeAttribute('data-maid-sidebar-lace')
   for (const attribute of [...document.documentElement.attributes]) {
     if (attribute.name.startsWith('data-dsh-whale-') || attribute.name.startsWith('data-maid-composer-') || attribute.name.startsWith('data-maid-nav-')) {
       document.documentElement.removeAttribute(attribute.name)
@@ -21,6 +22,50 @@ afterEach(() => {
 })
 
 describe('maid customization declaration', () => {
+  it('keeps sidebar lace enabled by default and supports switching it off and back on', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    const lace = definition.settings.find(setting => setting.key === 'sidebarLace')
+    expect(lace?.type).toBe('boolean')
+    expect(lace?.defaultValue).toBe(true)
+    const applyValues = (input: Record<string, unknown>) => definition.apply({ values: normalizeSkinValues(definition, input), visibility: {} })
+    applyValues({})
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('on')
+    applyValues({ sidebarLace: false })
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('off')
+    applyValues({ sidebarLace: true })
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('on')
+    applyValues({ sidebarLace: 'invalid' })
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('on')
+    definition.apply(null)
+    expect(document.documentElement.hasAttribute('data-maid-sidebar-lace')).toBe(false)
+    applyValues({ sidebarLace: false })
+    dispose()
+    expect(document.documentElement.hasAttribute('data-maid-sidebar-lace')).toBe(false)
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('restores the original sidebar lace attribute and respects later external changes', () => {
+    const root = document.documentElement
+    root.setAttribute('data-maid-sidebar-lace', 'external')
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    registration!.definition.apply({ values: { sidebarLace: false }, visibility: {} })
+    dispose()
+    expect(root.getAttribute('data-maid-sidebar-lace')).toBe('external')
+    const disposeAgain = installMaidCustomization()
+    registration!.definition.apply({ values: { sidebarLace: false }, visibility: {} })
+    root.setAttribute('data-maid-sidebar-lace', 'another-writer')
+    disposeAgain()
+    expect(root.getAttribute('data-maid-sidebar-lace')).toBe('another-writer')
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
   it('clamps light scene brightness to its supported band and keeps plain process rows opt-in', () => {
     let registration: SkinCustomizationRegistration | undefined
     const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
@@ -75,7 +120,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['sceneBrightnessLight', 'plainProcess', 'artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'workspaceRowHeight'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['sceneBrightnessLight', 'plainProcess', 'artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'sidebarLace', 'workspaceRowHeight'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },
