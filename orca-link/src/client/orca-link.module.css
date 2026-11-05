@@ -1850,8 +1850,6 @@ body[data-dsh-orca-link] .statusCharacterFrame {
   margin-inline: auto;
   overflow: hidden;
   transform: scaleX(var(--orca-character-mirror));
-  animation: orcaGateWeave 1.06s steps(8, end) infinite;
-  will-change: transform;
 }
 
 html[data-dsh-whale-orca-character-mirror='mirrored']
@@ -1929,7 +1927,7 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='approval'] {
   --orca-character-signal: var(--orca-permission-write);
 }
 
-body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] {
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] .statusCharacterBubble {
   --orca-character-signal: #d14343;
 }
 
@@ -1949,7 +1947,7 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='input'] [data-o
 }
 
 body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] [data-orca-link-character-bubble-glyph]::before {
-  content: '?';
+  content: '!';
 }
 
 body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='approval'] [data-orca-link-character-bubble-glyph] {
@@ -3811,19 +3809,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::before,
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::after { display: none; }
-  body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
-}
-
-@keyframes orcaGateWeave {
-  0%   { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
-  14%  { transform: translate(0.090px, -0.062px) scaleX(var(--orca-character-mirror)); }
-  29%  { transform: translate(0.032px, 0.062px) scaleX(var(--orca-character-mirror)); }
-  43%  { transform: translate(-0.041px, -0.016px) scaleX(var(--orca-character-mirror)); }
-  58%  { transform: translate(0.059px, 0.011px) scaleX(var(--orca-character-mirror)); }
-  72%  { transform: translate(-0.018px, -0.062px) scaleX(var(--orca-character-mirror)); }
-  86%  { transform: translate(0.090px, 0.034px) scaleX(var(--orca-character-mirror)); }
-  100% { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
 }
 
 /* The semantic handles are siblings of the conversation scrollport inside the

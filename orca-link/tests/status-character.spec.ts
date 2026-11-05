@@ -49,15 +49,15 @@ describe('ORCA LINK status character', () => {
     expect(statusFrame('approval', 100).frame).toBe(7)
     expect(statusFrame('input', 100).frame).toBe(7)
     expect(statusFrame('complete', 100).frame).toBe(7)
-    expect(statusFrame('fault', 100).frame).toBe(7)
-    expect(statusFrame('ready', 100).frame).toBe(7)
+    expect(statusFrame('fault', 100).frame).toBe(5)
+    expect(statusFrame('ready', 100).frame).toBe(0)
 
-    expect(statusFrame('working', 7).frame).toBe(7)
-    expect(statusFrame('working', 8).frame).toBe(0)
+    expect(statusFrame('working', 7).frame).toBe(3)
+    expect(statusFrame('working', 22).frame).toBe(0)
     expect(statusFrame('syncing', 8).frame).toBe(0)
   })
 
-  it('plays transition poses once, keeps a 12fps working cadence, and relaxes standby', () => {
+  it('plays event poses once and gives loop actions their own pacing', () => {
     expect(Array.from({ length: 12 }, (_, index) => statusFrame('input', index).frame))
       .toEqual([0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7])
     expect(Array.from({ length: 12 }, (_, index) => statusFrame('approval', index).frame))
@@ -68,14 +68,14 @@ describe('ORCA LINK status character', () => {
     expect(statusFrameInterval('standby')).toBeGreaterThan(statusFrameInterval('working'))
 
     // Standby uses per-frame pacing: long open-eye holds, quick blink cells.
-    expect(statusFrameDuration('working', 0)).toBe(83)
+    expect(statusFrameDuration('working', 0)).toBe(120)
     expect(statusFrameDuration('standby', 0)).toBe(700)
     expect(statusFrameDuration('standby', 4)).toBe(130)
     expect(statusFrameDuration('standby', 6)).toBe(110)
     expect(statusFrameDuration('standby', 0)).toBeGreaterThan(statusFrameDuration('standby', 6))
   })
 
-  it('applies standby frame alignment so the loop does not visually jump', () => {
+  it('keeps the packed desk anchor fixed without translating the sprite between frames', () => {
     vi.useFakeTimers()
     document.body.innerHTML = '<div data-slot="sidebar"><div><div></div></div></div>'
     document.body.dataset.orcaLinkStatus = 'standby'
@@ -83,12 +83,11 @@ describe('ORCA LINK status character', () => {
 
     const character = document.querySelector<HTMLElement>('[data-orca-link-character]')!
     const sprite = document.querySelector<HTMLElement>('[data-orca-link-character-sprite]')!
-    expect(sprite.style.transform).toBe('translate(0%, 0%)')
+    expect(sprite.style.transform).toBe('')
 
     vi.advanceTimersByTime(4 * 700)
     expect(character.dataset.orcaLinkFrame).toBe('1')
-    expect(sprite.style.transform).toContain('translate(2.11864406779661')
-    expect(sprite.style.transform).toContain('-0.0847457627118644')
+    expect(sprite.style.transform).toBe('')
 
     dispose()
   })

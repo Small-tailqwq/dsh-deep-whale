@@ -17,6 +17,13 @@ author in the chain is credited:
    The skin scenes, status-character atlas and UI assets derived from 上善's
    original character design.
 
+   The right-facing, right-handed status-character cels were redrawn with
+   OpenAI ImageGen from the original character reference supplied by the
+   maintainer. Their source sheets and prompts are retained in
+   assets/source/status-character/; scripts/build-orca-status-atlas.mjs packs
+   them into the runtime atlas. These derivatives retain the attribution and
+   CC BY-NC-SA 4.0 terms above.
+
    The boot-repair chibi illustration was generated with OpenAI ImageGen from
    the same character reference. The maintenance references informed only the
    pose and simple presentation; no MIUI or Blue Archive artwork is bundled.

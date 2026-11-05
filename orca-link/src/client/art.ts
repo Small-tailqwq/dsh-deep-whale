@@ -13,7 +13,7 @@ import { skinAssetUrl } from './asset-url.ts'
  *   node scripts/embed-skin-art orca-link ORCA_LINK_STATUS_ATLAS <imagePath> 2048
  */
 
-export const ORCA_LINK_STATUS_ATLAS = skinAssetUrl('a0779005d2d849767e22ba4eef0c76e6b16dbf9a49a55b0114d4f7af35f48c7d.webp')
+export const ORCA_LINK_STATUS_ATLAS = skinAssetUrl('dc68deddbdc6f1ac67721f2c52ddfe231683ddc693796da57f6510964972608b.webp')
 
 export const ORCA_LINK_LIGHT_HERO_ART = skinAssetUrl('d5fdfd91306d2f3aaa766674d5994be4a014c4dd083d6afd7f90b4947bba6802.webp')
 export const ORCA_LINK_LIGHT_ACTIVE_ART = skinAssetUrl('3605bdd7ccfcc75ca78558f2c958bb3bb35e544cc705f5c15c3653ca21a274d5.webp')
