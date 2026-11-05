@@ -18,7 +18,7 @@ export { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget } from './co
 export * from './protocol.ts'
 
 export const name = 'ui-skin-deep-whale-manager'
-export const inject = ['webServer']
+export const inject = ['webServer', 'connection']
 
 export const MANAGED_START = '# --- dsh-skin managed (auto-generated; do not edit) ---'
 export const MANAGED_END = '# --- end dsh-skin managed ---'
@@ -31,6 +31,7 @@ interface WebRoute {
 
 type HostContext = Context & {
   webServer: { register(route: WebRoute): () => void }
+  connection: { requestRejection(req: IncomingMessage): number | undefined }
 }
 
 /** The slice of DSH 0.1.7's `pluginManager` service that owns exact-version grants. */
@@ -950,6 +951,7 @@ export function makeSkinManagerRoute(
   dirProvider: () => Map<string, string> = () => new Map(),
   grantExemption: (compatibility: SkinCompatibility) => Promise<void> = async () => { throw new Error('exemption-unavailable') },
   desktopIcon?: DesktopIconControl,
+  admission: (req: IncomingMessage) => number | undefined = () => 503,
 ): WebRoute {
   const versionCache = new Map<string, { at: number, value: SkinVersionInfo }>()
   const branchCache = new Map<string, { at: number, value: string }>()
@@ -990,6 +992,12 @@ export function makeSkinManagerRoute(
     kind: 'exact',
     path: SKIN_MANAGER_ROUTE,
     async handler(req, res): Promise<void> {
+      let rejection: number | undefined
+      try { rejection = admission(req) } catch { rejection = 503 }
+      if (rejection !== undefined) {
+        json(res, rejection, { ok: false, error: 'access-denied' })
+        return
+      }
       if (!sameOrigin(req)) {
         json(res, 403, { ok: false, error: 'cross-site-request-rejected' })
         return
@@ -1082,6 +1090,7 @@ export function apply(ctx: HostContext): void {
       () => discoverSkinDirectories(profilePatch),
       compatibility => grantThroughHost(ctx, compatibility),
       desktopIcon?.control,
+      request => ctx.connection.requestRejection(request),
     ))
     return () => {
       unregister()
