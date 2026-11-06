@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installOrcaComposerCollapse } from '../src/client/composer-collapse.ts'
+import { installOrcaComposerDismiss } from '../src/client/composer-dismiss.ts'
 import { installOrcaComposerMotion } from '../src/client/composer-motion.ts'
 
 const SCROLL_HIDE = 'data-dsh-whale-orca-composer-scroll-hide'
@@ -43,7 +44,7 @@ function mountConversation(): { scrollport: HTMLElement, seat: HTMLElement } {
     <div data-phase="active">
       <div data-conversation-scroll>
         <div data-chat-flow></div>
-        <div data-composer-seat><div data-composer-card><textarea data-composer-input></textarea></div></div>
+        <div data-composer-seat><div data-composer-card><div data-composer-input contenteditable="true"></div></div></div>
       </div>
     </div>
   `
@@ -78,6 +79,44 @@ function mountToBottomButton(scrollport: HTMLElement): HTMLButtonElement {
 const flush = (): Promise<void> => new Promise(resolve => { setTimeout(resolve, 0) })
 
 describe('ORCA LINK composer switches', () => {
+  it.each(['scroll', 'manual'])('closes dock dialogs when the composer hides via %s', async (mode) => {
+    const { scrollport, seat } = mountConversation()
+    const dock = document.createElement('div')
+    dock.dataset.composerDock = ''
+    dock.innerHTML = `<span data-slot="conversation.composer.dock"><span data-composer-stat="usage"><button aria-expanded="true" aria-haspopup="dialog"></button></span></span><span><button aria-expanded="true" aria-haspopup="dialog"></button></span>`
+    seat.append(dock)
+    const toggles = [...dock.querySelectorAll('button')].map(button => {
+      const toggle = vi.fn(() => button.setAttribute('aria-expanded', 'false'))
+      button.addEventListener('click', toggle)
+      return toggle
+    })
+    const disposeDismiss = installOrcaComposerDismiss(document.body)
+    const disposeMotion = installOrcaComposerMotion(document.body)
+    const disposeCollapse = installOrcaComposerCollapse(document.body)
+    const disposeSecond = installOrcaComposerDismiss(document.body)
+    disposeDismiss()
+    if (mode === 'scroll') {
+      scrollport.dispatchEvent(new WheelEvent('wheel', { deltaY: -40 }))
+      scrollTo(scrollport, 460)
+      scrollTo(scrollport, 300)
+    } else {
+      document.querySelector('[data-orca-composer-handle]')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    }
+    await flush()
+    toggles.forEach(toggle => { expect(toggle).toHaveBeenCalledTimes(1) })
+    expect([...dock.querySelectorAll('button')].every(button => button.getAttribute('aria-expanded') === 'false')).toBe(true)
+    disposeSecond()
+    disposeSecond()
+    disposeCollapse()
+    disposeMotion()
+    await flush()
+    dock.querySelectorAll('button').forEach(button => button.setAttribute('aria-expanded', 'true'))
+    seat.setAttribute('data-orca-composer-hidden', '')
+    await flush()
+    toggles.forEach(toggle => { expect(toggle).toHaveBeenCalledTimes(1) })
+  })
+
   it('only tucks the composer away on scroll-up while scroll-hide is on', async () => {
     const { scrollport, seat } = mountConversation()
     const dispose = installOrcaComposerMotion(document.body)
@@ -122,6 +161,58 @@ describe('ORCA LINK composer switches', () => {
     expect(document.querySelectorAll('[data-orca-composer-handle]')).toHaveLength(2)
     dispose()
     expect(document.querySelectorAll('[data-orca-composer-handle]')).toHaveLength(0)
+  })
+
+  it.each([false, true])('keeps a quoted draft visible until a transcript click (bottom-only: %s)', async (bottomOnly) => {
+    if (bottomOnly) document.documentElement.setAttribute(BOTTOM_ONLY, 'on')
+    const { scrollport, seat } = mountConversation()
+    const input = seat.querySelector<HTMLElement>('[data-composer-input]')!
+    const dispose = installOrcaComposerMotion(document.body)
+    try {
+      scrollTo(scrollport, 400)
+      scrollTo(scrollport, 200)
+      expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(true)
+      input.innerHTML = '<p><span data-composer-quote contenteditable="false">Quoted reply</span> </p>'
+      input.focus()
+      await flush()
+      scrollTo(scrollport, 199)
+      input.append(document.createTextNode('A longer draft\nwith another line'))
+      resize(seat)
+      scrollTo(scrollport, 100)
+      expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+      expect(document.activeElement).toBe(input)
+
+      scrollport.querySelector('[data-chat-flow]')!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+      scrollTo(scrollport, 90)
+      expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(true)
+      expect(document.activeElement).not.toBe(input)
+    } finally {
+      dispose()
+    }
+  })
+
+  it.each(['pointerdown', 'beforeinput', 'input', 'compositionstart'])('protects deliberate %s until focus leaves the seat', async (type) => {
+    const { scrollport, seat } = mountConversation()
+    const input = seat.querySelector<HTMLElement>('[data-composer-input]')!
+    const dispose = installOrcaComposerMotion(document.body)
+    try {
+      scrollTo(scrollport, 400)
+      input.focus()
+      scrollTo(scrollport, 200)
+      expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(true)
+
+      input.focus()
+      input.dispatchEvent(type === 'pointerdown' ? new MouseEvent(type, { bubbles: true }) : new Event(type, { bubbles: true }))
+      scrollTo(scrollport, 100)
+      expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(false)
+      expect(document.activeElement).toBe(input)
+      input.blur()
+      await flush()
+      scrollTo(scrollport, 90)
+      expect(seat.hasAttribute('data-orca-composer-hidden')).toBe(true)
+    } finally {
+      dispose()
+    }
   })
 
   it('releases a manually collapsed composer when the handles switch turns off', async () => {

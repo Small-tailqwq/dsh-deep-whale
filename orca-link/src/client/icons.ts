@@ -12,9 +12,8 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  * original children while the skin is active, so teardown is just removing
  * the art groups.
  *
- * Keys are distinctive fragments of the host path data as rendered by
- * @deepseek-ai/dsh-client-ui-primitives (verified against that package's
- * icons/index.tsx at 687f282e8625, including its Regular/Medium variants).
+ * Product icons use the host's semantic symbol IDs. Library-external SVGs
+ * use distinctive drawing fragments from DSH 0.2.2-alpha.2 (f3803c96974a).
  * Unmatched drawings, such as the brand wordmark and hero artwork, keep
  * their host geometry.
  */
@@ -222,6 +221,18 @@ const ICON_ART: Record<string, string> = {
     '<path data-orca-hourglass-stream d="M8 7v5.5" stroke-width="1" stroke-dasharray="1 1" stroke-linecap="butt"/>',
     '</g>',
   ].join(''),
+  // Execution feedback shares Todo's nine-cell field, rather than the
+  // hourglass reserved for waiting on a response or transfer.
+  'task-loading': [
+    '<path d="M2.25 2.25h11.5v11.5H2.25z"/>',
+    '<path d="M4 10h2v2H4zM7 10h2v2H7zM10 10h2v2h-2zM4 7h2v2H4zM7 7h2v2H7zM10 7h2v2h-2zM4 4h2v2H4zM7 4h2v2H7zM10 4h2v2h-2z" fill="currentColor" fill-opacity="0.12" stroke="none"/>',
+    '<svg data-orca-task-fill viewBox="0 0 16 16" width="16" height="16">',
+    // Give CSS basic-shape clipping a full-grid reference box, including the
+    // empty margins around the cells, just like Todo's 16px pseudo-element.
+    '<rect width="16" height="16" fill="none" stroke="none"/>',
+    '<path d="M4 10h2v2H4zM7 10h2v2H7zM10 10h2v2h-2zM4 7h2v2H4zM7 7h2v2H7zM10 7h2v2h-2zM4 4h2v2H4zM7 4h2v2H7zM10 4h2v2h-2z" fill="currentColor" stroke="none"/>',
+    '</svg>',
+  ].join(''),
   code: [
     '<path d="M6.5 2.5 5 13.5M11.5 2.5 10 13.5M2.5 6.25h11M2 10h11"/>',
   ].join(''),
@@ -353,6 +364,15 @@ const ICON_ART: Record<string, string> = {
     '<path d="M8 11v3.5"/>',
   ].join(''),
   'plugin-pinwheel': ['<path d="M6.5 6.5h3v3h-3zM6.5 6.5V2h6v4.5h-3M9.5 9.5V14h-6V9.5h3M6.5 9.5H2v-6h4.5M9.5 6.5H14v6H9.5"/>'].join(''),
+  'drag-handle': '<path d="M3 4.5h10M3 8h10M3 11.5h10"/>',
+  'apps-add': '<path d="M2 2h4v4H2zM2 10h4v4H2zM10 10h4v4h-4zM9 4h6M12 1v6"/>',
+  quote: '<path d="M2 5h5v5H4v2H2zM9 5h5v5h-3v2H9z" fill="currentColor" stroke="none"/>',
+  'change-open': '<path d="M2.5 2h3v3h-3zM2.5 11h3v3h-3zM10.5 11h3v3h-3zM4 5v6M12 11V4.5H8M10 2.5l-2 2 2 2"/>',
+  'change-blocked': '<path d="m2.5 2 3 3m0-3-3 3M2.5 11h3v3h-3zM10.5 11h3v3h-3zM4 6v5M12 11V4.5H8M10 2.5l-2 2 2 2"/>',
+  'change-draft': '<path d="M2.5 2h3v3h-3zM2.5 11h3v3h-3zM10.5 11h3v3h-3zM4 5v6M12 4v1M12 7v1M12 10v1"/>',
+  'change-merged': '<path d="M3 2h3v3H3zM3 11h3v3H3zM10 6.5h3v3h-3zM4.5 5v6M4.5 5l3 3H10"/>',
+  'change-closed': '<path d="M2.5 2h3v3h-3zM2.5 11h3v3h-3zM10.5 11h3v3h-3zM4 5v6M12 8v3m-1.5-8 3 3m0-3-3 3"/>',
+  'check-neutral': '<path d="M2.25 2.25h11.5v11.5H2.25zM5.5 8h5"/>',
   'sliders-two': ['<path d="M2 5h5M10 5h4M2 11h3M8 11h6M7 3.5h3v3H7zM5 9.5h3v3H5z"/>'].join(''),
   // The connector uses its native 9x11 grid so adjoining tree stems meet.
   'tree-corner': ['<path d="M.5 0V10h8"/>'].join(''),
@@ -405,10 +425,121 @@ function buildUsageCells(): SVGGElement {
   return cells
 }
 
-/** Target glyph fragments verified against DSH 0.2.1-rc.2 (687f282e8625).
+/** Official product glyph identities, independent of the theme's artwork. */
+const SYMBOL_ICONS = new Map<string, string>([
+  ['new-chat-outline', 'new-session'],
+  ['search-outline', 'search'],
+  ['globe-outline', 'globe'],
+  ['settings-outline', 'gear'],
+  ['panel-left-outline', 'panel-collapse'],
+  ['ellipsis-outline', 'ellipsis'],
+  ['plus-outline', 'plus'],
+  ['check-outline', 'check'],
+  ['branch-outline', 'branch'],
+  ['chevron-down-outline', 'chevron-down'],
+  ['chevron-left-outline', 'chevron-left'],
+  ['chevron-right-outline', 'chevron-right'],
+  ['triangle-right-fill', 'caret-right'],
+  ['chevron-up-outline', 'chevron-up'],
+  ['close-outline', 'close'],
+  ['close-fill', 'close'],
+  ['close-circle-fill', 'close-circle'],
+  ['copy-outline', 'copy'],
+  ['refresh-outline', 'refresh'],
+  ['like-outline', 'thumb-up'],
+  ['like-fill', 'thumb-up'],
+  ['dislike-outline', 'thumb-down'],
+  ['dislike-fill', 'thumb-down'],
+  ['share-outline', 'share'],
+  ['deliver-doc', 'deliver-doc'],
+  ['edit-outline', 'edit'],
+  ['think-outline', 'think'],
+  ['agent-preset-outline', 'agent-preset'],
+  ['browse-outline', 'browse'],
+  ['context-injection-outline', 'context-injection'],
+  ['link-outline', 'link'],
+  ['right-up-outline', 'right-up'],
+  ['enhance-outline', 'enhance'],
+  ['trash-outline', 'trash'],
+  ['warning-outline', 'warning'],
+  ['check-circle-fill', 'check-circle'],
+  ['warning-triangle-outline', 'warning-triangle'],
+  ['user-outline', 'user'],
+  ['users-outline', 'users'],
+  ['paper-plane-outline', 'paper-plane'],
+  ['stop-fill', 'stop'],
+  ['paperclip-outline', 'paperclip'],
+  ['loading-outline', 'loading'],
+  ['download-outline', 'download'],
+  ['play-outline', 'play'],
+  ['pause-outline', 'pause'],
+  ['fullscreen-outline', 'fullscreen'],
+  ['code-outline', 'code'],
+  ['cordis-plugin-outline', 'plugin'],
+  ['api-outline', 'terminal'],
+  ['personalization-outline', 'sliders'],
+  ['project-add-outline', 'add-workspace'],
+  ['folder-open-outline', 'folder-open'],
+  ['folder-open', 'folder-open'],
+  ['folder-close', 'folder-closed'],
+  ['tree-corner', 'tree-corner'],
+  ['light-outline', 'sun'],
+  ['dark-outline', 'moon'],
+  ['followsystem-outline', 'monitor'],
+  ['data-outline', 'data'],
+  ['database-outline', 'database'],
+  ['clock-outline', 'clock'],
+  ['gauge-outline', 'gauge'],
+  ['send-outline', 'send'],
+  ['queue-outline', 'queue'],
+  ['checklist-outline', 'checklist'],
+  ['list-pen-outline', 'list-pen'],
+  ['goal-outline', 'goal'],
+  ['sparkle', 'sparkle'],
+  ['inspect-outline', 'inspect'],
+  ['skill-outline', 'skill'],
+  ['question-outline', 'question'],
+  ['info-outline', 'info'],
+  ['plugin-pinwheel-outline', 'plugin-pinwheel'],
+  ['alarm-clock-outline', 'alarm-clock'],
+  ['archive-outline', 'archive'],
+  ['wrap-lines-outline', 'wrap-lines'],
+  ['nowrap-fill', 'nowrap'],
+  ['wrap-fill', 'wrap'],
+  ['compare-split-outline', 'compare-split'],
+  ['plan-outline', 'list-pen'],
+  ['compact-outline', 'compact'],
+  ['shield-outline', 'shield'],
+  ['check-circle-outline', 'check-circle'],
+  ['unarchive-outline', 'unarchive'],
+  ['pin-outline', 'pin'],
+  ['pin-fill', 'pin-filled'],
+  ['flat-list-outline', 'flat-list'],
+  ['workspace-tree-outline', 'workspace-tree'],
+  ['chevrons-up-down-outline', 'chevrons-up-down'],
+  ['drag-handle-outline', 'drag-handle'],
+  ['archive-off-outline', 'archive-off'],
+  ['archive-check-outline', 'archive-check'],
+  ['sliders-two-outline', 'sliders-two'],
+  ['microphone-outline', 'microphone'],
+  ['apps-add-outline', 'apps-add'],
+  ['apps-add-compact-outline', 'apps-add'],
+])
+
+/** Inline glyph fragments verified against DSH 0.2.2-alpha.2 (f3803c96974a).
  * Shared contours are keyed by their distinguishing drawing, not the frame.
  * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
+  ['d="M8 2a6 6 0 0 1 6 6"', 'loading'], // Composer sending
+  ['d="M2.8125 0.583008L3.2002', 'quote'], // QuotePreview
+  ['d="M5.45873 5.04102H7.90157', 'apps-add'], // GuideMoreIcon
+  ['d="M2.6 2.1L5.4 4.9', 'change-blocked'],
+  ['d="M4 5.1V10.9M12 10.4V9.6', 'change-draft'],
+  ['d="M4.5 5.1V10.9M4.5 5.1C', 'change-merged'],
+  ['d="M4 5.1V10.9M12 10.9V8.6', 'change-closed'],
+  ['d="M12 10.9V6.6C12 5.5', 'change-open'],
+  ['d="M8 3.5A4.5 4.5 0 0 1 8 12.5Z"', 'loading'],
+  ['d="M5.5 8H10.5"', 'check-neutral'],
   ['d="M9.5 1.5V6.5H14.5M1.5 9.5H6.5V14.5"', 'fullscreen-exit'], // JsonString collapse
   ['d="M12.4326 2.38086H3.56763', 'image'], // LinkIcon photo
   ['d="M3.51919 14.5069H12.4807', 'document'], // LinkIcon document
@@ -572,6 +703,12 @@ function matchIcon(html: string): string | null {
  * the host itself draws for tools.
  */
 function contextualName(svg: SVGElement, name: string): string {
+  // StateDot is also used by model fetches, approvals and management pages.
+  // Only explicit Todo/tool/terminal owners mean task execution; generic
+  // loading icons and plugin install/update steps remain hourglasses.
+  if (name === 'loading' && svg.getAttribute('data-state') === 'ongoing') {
+    return svg.closest("[data-testid='todo-panel'], [data-tool]:not([data-tool='ask_user_question']), [data-terminal]") !== null ? 'task-loading' : name
+  }
   if (name === 'pin') {
     return svg.querySelector(':scope > path')?.getAttribute('fill') === 'currentColor' ? 'pin-filled' : name
   }
@@ -597,10 +734,17 @@ function isUsageRing(svg: SVGElement): boolean {
 
 /** Resolve the ORCA art name for one host SVG, or null when nothing matches. */
 function resolveIconName(svg: SVGElement): string | null {
+  const id = svg.getAttribute('data-icon')
+  if (id !== null) {
+    const glyph = /^dsw-icon-(.+)-(?:regular|medium)$/.exec(id)?.[1]
+    const name = glyph === undefined ? undefined : SYMBOL_ICONS.get(glyph)
+    return name === undefined || svg.querySelector(':scope > use')?.getAttribute('href') !== `#${id}`
+      ? null : contextualName(svg, name)
+  }
   // StateDot loaders are separate from the primitive icon export table.
   if (svg.getAttribute('data-state') === 'ongoing'
     && svg.getAttribute('viewBox') === '0 0 24 24'
-    && svg.querySelectorAll('circle[cx="12"][cy="12"][r="9.5"]').length === 2) return 'loading'
+    && svg.querySelectorAll('circle[cx="12"][cy="12"][r="9.5"]').length === 2) return contextualName(svg, 'loading')
   if (isUsageRing(svg)) return 'usage'
   const matched = matchIcon(hostHtml(svg))
   return matched === null ? null : contextualName(svg, matched)
@@ -626,7 +770,8 @@ function artTransform(svg: SVGElement): string {
 
 function buildArt(name: string, svg: SVGElement): SVGGElement {
   const art = document.createElementNS(SVG_NS, 'g')
-  const transform = name === 'tree-corner' ? '' : artTransform(svg)
+  const symbol = svg.hasAttribute('data-icon')
+  const transform = symbol || name === 'tree-corner' ? '' : artTransform(svg)
   art.setAttribute(ICON_ART_ATTRIBUTE, '')
   art.setAttribute('fill', 'none')
   art.setAttribute('stroke', 'currentColor')
@@ -635,6 +780,16 @@ function buildArt(name: string, svg: SVGElement): SVGGElement {
   art.setAttribute('stroke-linecap', 'square')
   if (transform) art.setAttribute('transform', transform)
   art.innerHTML = ICON_ART[name] ?? ''
+  // Symbol callers have no viewBox. Our own viewport scales with the host's
+  // rendered size without writing attributes that React owns.
+  if (symbol) {
+    const viewport = document.createElementNS(SVG_NS, 'svg')
+    viewport.setAttribute('viewBox', name === 'tree-corner' ? '0 0 9 11' : '0 0 16 16')
+    viewport.setAttribute('width', '100%')
+    viewport.setAttribute('height', '100%')
+    viewport.append(...Array.from(art.childNodes))
+    art.append(viewport)
+  }
   if (name === 'usage') art.append(buildUsageCells())
   return art
 }
@@ -754,7 +909,7 @@ export function installOrcaIcons(body: HTMLElement): () => void {
   }
 
   const reconcileSvg = (svg: SVGElement): void => {
-    if (!svg.isConnected || svg.hasAttribute('data-orca-link-loader-art')) return
+    if (!svg.isConnected || svg.closest(`[data-dsh-icon-sprite], [${ICON_ART_ATTRIBUTE}], [data-orca-link-loader-art]`)) return
     if (svg.hasAttribute(ICON_ATTRIBUTE) && !iconArts.has(svg)) return
     const art = svg.querySelector(`[${ICON_ART_ATTRIBUTE}]`)
     if (!(art instanceof SVGGElement)) {
@@ -773,7 +928,7 @@ export function installOrcaIcons(body: HTMLElement): () => void {
       return
     }
 
-    const transform = currentName === 'tree-corner' ? '' : artTransform(svg)
+    const transform = svg.hasAttribute('data-icon') || currentName === 'tree-corner' ? '' : artTransform(svg)
     if (transform) {
       if (art.getAttribute('transform') !== transform) art.setAttribute('transform', transform)
     } else art.removeAttribute('transform')
@@ -844,7 +999,7 @@ export function installOrcaIcons(body: HTMLElement): () => void {
     collectLoaders(body)
     mountObserver.observe(body, {
       childList: true, subtree: true, attributes: true,
-      attributeFilter: ['d', 'fill', 'stroke', 'viewBox', 'data-state'],
+      attributeFilter: ['d', 'fill', 'stroke', 'viewBox', 'data-state', 'data-icon', 'href'],
     })
   } catch (error) {
     dispose()

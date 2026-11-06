@@ -54,10 +54,13 @@ export function renderHostIcons(source, ref) {
     return statement.getText(file)
   }).join('\n')
   const icons = []
-  const render = (component, fn, props = {}, site) => {
-    const svg = renderToStaticMarkup(React.createElement(fn, props))
+  const errors = []
+  const render = (component, fn, props = {}, site, nested = false) => {
+    const markup = renderToStaticMarkup(React.createElement(fn, props))
+    const svg = nested ? markup.match(/<svg\b[^]*?<\/svg>/)?.[0] ?? '' : markup
     if (!svg.startsWith('<svg ') || !svg.endsWith('</svg>')) throw new Error(`Not an SVG: ${component}`)
-    icons.push({ component, svg, ...(site ? { site } : {}) })
+    const symbolId = svg.match(/data-icon="([^"]+)"/)?.[1]
+    icons.push({ component, svg, ...(site ? { site } : {}), ...(symbolId ? { symbolId } : {}) })
   }
 
   const inlineSvg = (file, owner, index = 0) => {
@@ -98,7 +101,11 @@ export function renderHostIcons(source, ref) {
       : ts.isVariableStatement(node) ? node.declarationList.declarations.map(item => item.name.getText()) : []))
     for (const [component, fn] of Object.entries(loadModule(path))) {
       const owner = component.replace(/(?:Regular|Medium)$/, 'Artwork')
-      if (typeof fn === 'function') render(component, fn, {}, owners.has(owner) ? `${path}#${owner}:svg1` : undefined)
+      if (typeof fn === 'function') {
+        const site = owners.has('productIcon') ? `${path}#productIcon:svg1` : owners.has(owner) ? `${path}#${owner}:svg1` : undefined
+        render(component, fn, {}, site)
+        if (component.startsWith('IconAppsAddOutline')) render(component.replace('Outline', 'Compact'), fn, { compact: true }, site)
+      }
     }
   }
 
@@ -122,11 +129,13 @@ export function renderHostIcons(source, ref) {
   }
   visit(composer)
   // Both stop locations are independent host branches and must stay covered.
-  const composerNames = ['ComposerStop', 'ComposerPrimaryStop', 'ComposerSend']
-  if (inline.length !== composerNames.length) throw new Error(`Review composer SVG inventory: expected 3, got ${inline.length}`)
-  inline.forEach((node, index) => {
+  const composerNames = inline.length === 3
+    ? ['ComposerStop', 'ComposerPrimaryStop', 'ComposerSend']
+    : ['ComposerStop', 'ComposerPrimaryStop', 'ComposerSending', 'ComposerSend']
+  if (inline.length !== composerNames.length) errors.push({ source: composerPath, error: `Review composer SVG inventory: expected ${composerNames.length}, got ${inline.length}` })
+  else inline.forEach((node, index) => {
     const component = composerNames[index]
-    render(component, evaluate(composerPath, `export const Glyph = () => (${node.getText(composer)})`).Glyph)
+    render(component, evaluate(composerPath, `export const Glyph = () => (${inlineSvg(composer, 'InputBar', index)})`).Glyph, {}, `${composerPath}#InputBar:svg${index + 1}`)
   })
 
   const dock = parse(dockPath)
@@ -149,6 +158,9 @@ export function renderHostIcons(source, ref) {
     ['Logout', 'ui-settings-account/src/client/LogoutIcon.tsx', 'LogoutIcon'],
     ['ShortcutSearch', 'ui-shortcuts/src/client/Reference.tsx', 'ShortcutReference'],
     ['ZoomOut', 'ui-sidebar-documentpreview/src/client/zoom/ZoomControls.tsx', 'ZoomControls'],
+    ['ZoomOut', 'ui-primitives/src/ZoomControls.tsx', 'ZoomControls'],
+    ['QuoteMark', 'ui-primitives/src/QuotePreview.tsx', 'QuoteMarkIcon'],
+    ['GuideMore', 'ui-sidebar-right/src/client/tabs/guide/GuideMoreIcon.tsx', 'GuideMoreIcon'],
     ['Fullscreen', 'ui-sidebar-right/src/client/shell/SidebarRight.tsx', 'FullscreenGlyph'],
     ['FullscreenExit', 'ui-sidebar-right/src/client/shell/SidebarRight.tsx', 'ExitFullscreenGlyph'],
     ['GuideCompass', 'ui-sidebar-right/src/client/tabs/guide/GuideTitle.tsx', 'CompassGlyph'],
@@ -179,6 +191,23 @@ export function renderHostIcons(source, ref) {
   const shortcuts = evaluate(shortcutPath, `${declarations(parse(shortcutPath), ['artwork', 'ShortcutIcon'])}\nexport { ShortcutIcon }`)
   for (const kind of ['edit', 'error', 'success']) render(`Shortcut${kind}`, shortcuts.ShortcutIcon, { kind }, `${shortcutPath}#ShortcutIcon:svg1`)
 
+  const forgePath = 'packages/experimental/client-ui-forge/src/client/glyphs.tsx'
+  if (files.has(forgePath)) {
+    const forge = evaluate(forgePath, `
+      import { IconCheckCircleFillRegular, IconCloseCircleFillRegular } from '${posix.relative(posix.dirname(forgePath), primitivePath)}';
+      const clsx = (...names) => names.filter(Boolean).join(' ')
+      const css = {}
+      ${declarations(parse(forgePath), ['BRANCH_ENDS', 'TOWARD_BASE', 'OPEN', 'SHAPES', 'ChangeRequestGlyph', 'CHECK_TONE', 'CheckGlyph'])}
+      export { ChangeRequestGlyph, CheckGlyph }
+    `)
+    for (const tone of ['open', 'unknown', 'blocked', 'draft', 'merged', 'closed']) {
+      render(`ChangeRequest${tone}`, forge.ChangeRequestGlyph, { tone }, `${forgePath}#ChangeRequestGlyph:svg1`)
+    }
+    for (const state of ['success', 'failure', 'pending', 'neutral', 'skipped', 'cancelled']) {
+      render(`ForgeCheck${state}`, forge.CheckGlyph, { state }, `${forgePath}#CheckGlyph:svg1`, true)
+    }
+  }
+
   for (const [prefix, path, owner] of [
     ['Secret', 'packages/client/ui-secret-mask/src/client/SecretText.tsx', 'EyeGlyph'],
     ['ApiKey', 'packages/client/ui-settings-models/src/client/ApiKeyInput.tsx', 'ApiKeyInput'],
@@ -206,7 +235,9 @@ export function renderHostIcons(source, ref) {
   return {
     hostVersion: JSON.parse(read('package.json')).version,
     hostCommit,
+    errors,
     sources: Object.fromEntries([...sources].sort(([a], [b]) => a.localeCompare(b))),
+    symbols: loadModule(primitivePath).ICON_SYMBOLS ?? {},
     icons: icons.sort((a, b) => a.component.localeCompare(b.component)),
   }
 }

@@ -534,17 +534,18 @@ describe('Orca Link skin apply', () => {
   it('updates a retained pin after an attribute change and releases an unrecognized replacement', async () => {
     document.body.innerHTML = hostIcon('IconPinOutlineRegular')
     const svg = document.querySelector<SVGElement>('svg')!
-    const hostPaths = Array.from(svg.querySelectorAll('path'))
+    const use = svg.querySelector('use')!
     fiber = await mount()
     expect(svg.getAttribute('data-orca-link-icon')).toBe('pin')
-    hostPaths[0]!.setAttribute('fill', 'currentColor')
+    svg.setAttribute('data-icon', 'dsw-icon-pin-fill-regular')
+    use.setAttribute('href', '#dsw-icon-pin-fill-regular')
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(svg.getAttribute('data-orca-link-icon')).toBe('pin-filled')
-    hostPaths.forEach(path => { path.setAttribute('d', 'M0 0h1') })
+    use.setAttribute('href', '#unknown-glyph')
     await new Promise(resolve => { setTimeout(resolve, 0) })
     expect(svg.hasAttribute('data-orca-link-icon')).toBe(false)
     expect(svg.querySelector('[data-orca-link-icon-art]')).toBeNull()
-    expect(Array.from(svg.querySelectorAll('path'))).toEqual(hostPaths)
+    expect(svg.querySelector('use')).toBe(use)
   })
 
   it('redraws matched host icons in place and retracts them on dispose', async () => {
@@ -610,7 +611,7 @@ describe('Orca Link skin apply', () => {
       </div>
     `
     fiber = await mount()
-    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg[data-icon]'))
     expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon'))).toEqual(['wrench', 'sparkle'])
 
     const art = svgs[0]!.querySelector('g[data-orca-link-icon-art]')!
@@ -681,7 +682,7 @@ describe('Orca Link skin apply', () => {
       ${hostIcon('IconThinkOutlineMedium')}
     `
     fiber = await mount()
-    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg[data-icon]'))
     expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon')))
       .toEqual(['think', 'context-injection', 'think'])
 
@@ -715,7 +716,7 @@ describe('Orca Link skin apply', () => {
       ${hostIcon('IconGaugeOutlineRegular')}
     `
     fiber = await mount()
-    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg[data-icon]'))
     expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon'))).toEqual(['database', 'gauge'])
 
     const databaseArt = svgs[0]!.querySelector('g[data-orca-link-icon-art]')!
@@ -746,7 +747,7 @@ describe('Orca Link skin apply', () => {
       ${hostIcon('IconFollowsystemOutlineRegular')}
     `
     fiber = await mount()
-    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg'))
+    const svgs = Array.from(document.querySelectorAll<SVGElement>('svg[data-icon]'))
     expect(svgs.map(svg => svg.getAttribute('data-orca-link-icon')))
       .toEqual(['clock', 'sun', 'moon', 'monitor'])
     for (const svg of svgs) {
@@ -820,13 +821,17 @@ describe('Orca Link skin apply', () => {
     expect(added.querySelector('svg')?.getAttribute('data-orca-link-icon')).toBe('edit')
   })
 
-  it('fits the target large check glyph with a uniform scale', async () => {
+  it('fits the target large check glyph in its host viewport', async () => {
     document.body.innerHTML = `
       ${hostIcon('IconCheckCircleFillRegular')}
     `
     fiber = await mount()
     const art = document.querySelector('g[data-orca-link-icon-art]')!
-    expect(art.getAttribute('transform')).toBe('translate(0 0) scale(2.25)')
+    const viewport = art.querySelector(':scope > svg')!
+    expect(viewport.getAttribute('viewBox')).toBe('0 0 16 16')
+    expect(viewport.getAttribute('width')).toBe('100%')
+    expect(viewport.getAttribute('height')).toBe('100%')
+    expect(art.parentElement?.getAttribute('viewBox')).toBeNull()
     await fiber.dispose()
   })
 

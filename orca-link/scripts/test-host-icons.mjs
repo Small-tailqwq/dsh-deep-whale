@@ -13,8 +13,7 @@ if (!values.source) throw new Error('Usage: npm run test:host-icons -- --source 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const fixturePath = join(root, 'tests/fixtures/dsh-icons.json')
 const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'))
-const manifest = JSON.parse(readFileSync(join(root, 'skin.json'), 'utf8'))
-const ref = values.ref ?? `dsh-v${manifest.dshCompatibility.replace('rc', '-rc.')}`
+const ref = values.ref ?? fixture.hostCommit
 const rendered = renderHostIcons(resolve(values.source), ref)
 // Expected meanings are reviewed fixture data, never inferred from the matcher.
 const names = new Map(fixture.icons.map(icon => [icon.component, icon.name]))
@@ -27,6 +26,7 @@ const added = target.icons.filter(icon => !names.has(icon.component)).map(icon =
 const present = new Set(target.icons.map(icon => icon.component))
 const removed = fixture.icons.filter(icon => !present.has(icon.component)).map(icon => icon.component)
 console.log(`DSH ${ref} @ ${target.hostCommit}: ${target.icons.length} SVG variants`)
+for (const error of rendered.errors) console.error(`${error.source}: ${error.error}`)
 if (added.length) console.log(`Added (review name): ${added.join(', ')}`)
 if (removed.length) console.log(`Removed (review callers): ${removed.join(', ')}`)
 const directory = mkdtempSync(join(tmpdir(), 'orca-host-icons-'))
@@ -38,7 +38,7 @@ try {
     cwd: root, stdio: 'inherit', env: { ...process.env, DSH_ICON_FIXTURE: path },
   })
   if (result.error) throw result.error
-  process.exitCode = (result.status ?? 1) || (added.length || removed.length ? 1 : 0)
+  process.exitCode = (result.status ?? 1) || (added.length || removed.length || rendered.errors.length ? 1 : 0)
 } finally {
   unlinkSync(path)
   rmdirSync(directory)

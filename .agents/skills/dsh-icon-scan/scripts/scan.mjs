@@ -20,11 +20,10 @@ const { JSDOM } = require('jsdom')
 const { transform } = require('lightningcss')
 const git = (...args) => execFileSync('git', ['-C', source, ...args], { encoding: 'utf8', maxBuffer: 128 * 1024 * 1024 }).trimEnd()
 const fixture = JSON.parse(readFileSync(resolve(skin, 'tests/fixtures/dsh-icons.json'), 'utf8'))
-const manifest = JSON.parse(readFileSync(resolve(skin, 'skin.json'), 'utf8'))
-const targetCommit = git('rev-parse', '--verify', `${values.ref ?? `dsh-v${manifest.dshCompatibility.replace('rc', '-rc.')}`}^{commit}`)
+const targetCommit = git('rev-parse', '--verify', `${values.ref ?? fixture.hostCommit}^{commit}`)
 const baseCommit = git('rev-parse', '--verify', `${values.base ?? fixture.hostCommit}^{commit}`)
 const hash = text => createHash('sha256').update(text).digest('hex')
-const roots = /^packages\/(client|extensions|experimental)\/[^/]+\/src\/.*\.(tsx|css)$/
+const roots = /^packages\/(client|extensions|experimental)\/[^/]+\/src\/.*\.(tsx?|css)$/
 
 function snapshot(commit) {
   const paths = git('ls-tree', '-r', '--name-only', commit).split('\n').filter(path => roots.test(path))
@@ -44,7 +43,7 @@ function snapshot(commit) {
 }
 
 function inventory(files) {
-  const modules = new Map([...files].filter(([path]) => path.endsWith('.tsx')).map(([path, item]) => [path, {
+  const modules = new Map([...files].filter(([path]) => /\.tsx?$/.test(path)).map(([path, item]) => [path, {
     ...item, ast: ts.createSourceFile(path, item.text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX), constants: new Map(), imports: new Map(), css: new Map(),
   }]))
   for (const mod of modules.values()) {
@@ -164,15 +163,30 @@ let baseExported, baseExportError
 try { baseExported = baseCommit === targetCommit ? exported : renderHostIcons(source, baseCommit) } catch (error) { baseExportError = error.message }
 const beforeExports = new Map((baseExported?.icons ?? []).map(icon => [icon.component, icon]))
 const expected = new Map(fixture.icons.map(icon => [icon.component, icon]))
+const expectedSymbols = new Map(fixture.icons.filter(icon => icon.symbolId).map(icon => [icon.symbolId, icon.name]))
 const dom = new JSDOM('<!doctype html><body></body>')
 for (const key of ['document', 'Element', 'HTMLElement', 'SVGElement', 'SVGGElement', 'MutationObserver']) globalThis[key] = dom.window[key]
 const { installOrcaIcons } = await import(pathToFileURL(resolve(skin, 'src/client/icons.ts')))
+const sprite = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+sprite.setAttribute('data-dsh-icon-sprite', '')
+for (const [id, markup] of Object.entries(exported?.symbols ?? {})) {
+  const root = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml').documentElement
+  const symbol = document.createElementNS('http://www.w3.org/2000/svg', 'symbol')
+  for (const { name, value } of root.attributes) if (!['width', 'height', 'xmlns', 'class', 'aria-hidden'].includes(name)) symbol.setAttribute(name, value)
+  symbol.id = id
+  symbol.innerHTML = root.innerHTML
+  sprite.append(symbol)
+}
+const originalSprite = sprite.outerHTML
 const drawn = [
   ...(exported?.icons ?? []).map(icon => ({ ...icon, id: `export:${icon.component}`, kind: 'export', expected: expected.get(icon.component)?.name ?? null })),
+  ...Object.entries(exported?.symbols ?? {}).map(([symbolId, artwork]) => ({ id: `symbol:${symbolId}`, kind: 'symbol', symbolId, artwork, expected: expectedSymbols.get(symbolId) ?? null, svg: `<svg data-icon="${symbolId}"><use href="#${symbolId}"></use></svg>` })),
   ...(fixture.loaders ?? []).map(loader => ({ ...loader, id: `html-loader:${loader.component}`, kind: 'html-loader', expected: loader.name })),
   ...target.svgs.map(item => ({ ...item, kind: 'inline' })),
 ]
 document.body.innerHTML = drawn.map((item, index) => `<div data-scan-index="${index}">${item.svg ?? item.html}</div>`).join('')
+document.body.prepend(sprite)
+const originalBody = document.body.innerHTML
 const dispose = installOrcaIcons(document.body)
 for (const [index, item] of drawn.entries()) {
   const svg = document.querySelector(`[data-scan-index="${index}"] ${item.kind === 'html-loader' ? 'svg[data-orca-link-loader-art]' : '> svg'}`)
@@ -180,16 +194,21 @@ for (const [index, item] of drawn.entries()) {
   const art = svg?.querySelector('[data-orca-link-icon-art]')
   item.status = item.matched === null ? 'unmatched' : !art?.querySelector('path,rect,line,circle,polygon,polyline') ? 'empty-art' : item.expected && item.expected !== item.matched ? 'wrong-match' : 'matched'
   if (item.unknown?.length) item.status = 'needs-review'
-  if (item.kind === 'export' && item.expected === null && item.status === 'matched') item.status = 'needs-review'
+  if (['export', 'symbol'].includes(item.kind) && item.expected === null && item.status === 'matched') item.status = 'needs-review'
   if (item.kind === 'html-loader') {
     if (Object.entries(item.sources).some(([path, blob]) => targetFiles.get(path)?.blob !== blob)) item.status = 'needs-review'
     item.change = Object.keys(item.sources).some(path => baseFiles.get(path)?.blob !== targetFiles.get(path)?.blob) ? 'changed' : 'unchanged'
+  } else if (item.kind === 'symbol') {
+    const before = baseExported?.symbols?.[item.symbolId]
+    item.change = !before ? 'added' : before === item.artwork ? 'unchanged' : 'changed'
   } else {
     const before = item.kind === 'export' ? beforeExports.get(item.component) : base.svgs.find(old => old.id === item.id)
     item.change = item.kind === 'export' && !baseExported ? 'unknown-baseline' : !before ? 'added' : item.kind === 'export' ? before.svg === item.svg ? 'unchanged' : 'changed' : before.signature === item.signature ? 'unchanged' : 'changed'
   }
 }
+const sharedSpriteUnchanged = sprite.outerHTML === originalSprite
 dispose()
+const cleanupRestoresOriginal = document.body.innerHTML === originalBody
 for (const item of drawn.filter(item => item.kind === 'inline' && item.unknown.length)) {
   const variants = drawn.filter(icon => icon.kind === 'export' && icon.site === item.id)
   if (fixture.sources[item.path] === item.blob && variants.length && variants.every(icon => icon.status === 'matched')) {
@@ -211,10 +230,10 @@ for (const item of target.animations) {
   const before = base.animations.find(old => old.id === item.id)
   item.change = !before ? 'added' : before.signature === item.signature ? 'unchanged' : 'changed'
 }
-const removed = [...base.svgs.filter(old => !target.svgs.some(item => item.id === old.id)).map(item => ({ id: item.id, path: item.path, line: item.line, kind: 'inline', change: 'removed' })), ...(baseExported?.icons ?? []).filter(old => exported && !exported.icons.some(item => item.component === old.component)).map(item => ({ id: `export:${item.component}`, kind: 'export', change: 'removed' })), ...base.animations.filter(old => !target.animations.some(item => item.id === old.id)).map(item => ({ id: item.id, path: item.path, kind: 'css-animation', change: 'removed' }))]
+const removed = [...base.svgs.filter(old => !target.svgs.some(item => item.id === old.id)).map(item => ({ id: item.id, path: item.path, line: item.line, kind: 'inline', change: 'removed' })), ...(baseExported?.icons ?? []).filter(old => exported && !exported.icons.some(item => item.component === old.component)).map(item => ({ id: `export:${item.component}`, kind: 'export', change: 'removed' })), ...Object.keys(baseExported?.symbols ?? {}).filter(id => exported && !Object.hasOwn(exported.symbols, id)).map(id => ({ id: `symbol:${id}`, kind: 'symbol', change: 'removed' })), ...base.animations.filter(old => !target.animations.some(item => item.id === old.id)).map(item => ({ id: item.id, path: item.path, kind: 'css-animation', change: 'removed' }))]
 const items = [...drawn.map(({ svg, html, css, ...item }) => item), ...target.animations.map(item => ({ ...item, kind: 'css-animation' })), ...removed]
 const tally = key => Object.fromEntries([...new Set(items.map(item => item[key]).filter(Boolean))].sort().map(value => [value, items.filter(item => item[key] === value).length]))
-const report = { schema: 1, host: { targetCommit, baseCommit, targetVersion: JSON.parse(git('show', `${targetCommit}:package.json`)).version }, skin: { commit: execFileSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), workingTree: true }, scope: 'packages/{client,extensions,experimental}/**/src/**/*.{tsx,css}', summary: { files: targetFiles.size, kinds: tally('kind'), status: tally('status'), changes: tally('change') }, errors: [...target.parseErrors, ...(exportError ? [{ source: 'render-host-icons', error: exportError }] : []), ...(baseExportError ? [{ source: 'baseline render-host-icons', error: baseExportError }] : [])], items }
+const report = { schema: 2, host: { targetCommit, baseCommit, targetVersion: JSON.parse(git('show', `${targetCommit}:package.json`)).version }, skin: { commit: execFileSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), workingTree: true }, scope: 'packages/{client,extensions,experimental}/**/src/**/*.{ts,tsx,css}', checks: { sharedSpriteUnchanged, cleanupRestoresOriginal }, summary: { files: targetFiles.size, kinds: tally('kind'), status: tally('status'), changes: tally('change') }, errors: [...target.parseErrors, ...(exported?.errors ?? []), ...(exportError ? [{ source: 'render-host-icons', error: exportError }] : []), ...(baseCommit !== targetCommit ? (baseExported?.errors ?? []).map(error => ({ ...error, source: `baseline ${error.source}` })) : []), ...(baseExportError ? [{ source: 'baseline render-host-icons', error: baseExportError }] : []), ...(!sharedSpriteUnchanged || !cleanupRestoresOriginal ? [{ source: 'icon-ownership', error: 'Shared sprite changed or decoration cleanup did not restore the original DOM' }] : [])], items }
 if (values.output) {
   const output = resolve(values.output)
   mkdirSync(dirname(output), { recursive: true })

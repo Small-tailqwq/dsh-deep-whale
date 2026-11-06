@@ -11,11 +11,12 @@ description: 扫描 ORCA LINK 对官方 DSH 图标与加载动画的覆盖，定
 node .agents/skills/dsh-icon-scan/scripts/scan.mjs --repo . --source ../dsh --output .test-env/icon-scan/report.json
 ```
 
-目标默认取 `orca-link/skin.json.dshCompatibility`，可用 `--ref <tag-or-sha>` 指定；
+目标默认取 `orca-link/tests/fixtures/dsh-icons.json` 的 `hostCommit`，可用 `--ref <tag-or-sha>` 指定；
 比较基线默认取现有图标 fixture 的 `hostCommit`，可用 `--base <tag-or-sha>` 指定。
 报告记录双方完整 SHA 和源码 blob，读取已提交对象，不切换宿主 checkout。
 
 - 导出图标通过现有 `render-host-icons.mjs` 渲染，再调用真实 `installOrcaIcons`。期望含义来自 fixture，不能从匹配器生成答案。
+- 公共符号表 `ICON_SYMBOLS` 独立枚举，覆盖默认与 compact 变体；通过 `data-icon` / `<use href>` 调用实际绘制器，并检查共享 sprite 原样保留和卸载还原。单组内联控件提取失败记入 `errors`，保留其他清单。
 - 已登记的 HTML 加载器也调用真实装饰函数，并核对 TSX/CSS 源码绑定。动态内联 SVG 只有在源码 blob 与已审阅 fixture 一致、登记变体全部通过时才标记 `matched-via-fixture`；源码变化后恢复待核对。
 - 同时枚举客户端源码里的所有内联 SVG 和 CSS 加载动画。`StateDot` 等库外控件、圆环由 CSS 绘制或动态拼出的图形都要进入清单，不能只检查图标导出表。
 - 按 `change` 区分新增、变化、未变化和删除；按 `status` 区分匹配、失配、错误映射、空 art 和待核对。新增或源码变化本身不等于缺陷。
@@ -24,5 +25,5 @@ node .agents/skills/dsh-icon-scan/scripts/scan.mjs --repo . --source ../dsh --ou
 
 脚本依赖 `orca-link` 已安装的 TypeScript、React、jsdom、lightningcss 与现有图标渲染入口。
 输出文件为按需报告，不增加 CI gate。扫描范围是官方 `packages/{client,extensions,experimental}` 中的
-`src/**/*.tsx` 与 CSS；远程页面、运行时字符串生成的界面和第三方插件需要另查实际页面。
+`src/**/*.{ts,tsx,css}`；远程页面、运行时字符串生成的界面和第三方插件需要另查实际页面。
 报告 `errors` 为空时，退出码 1 表示存在未匹配或待核对项；它不表示扫描执行失败。

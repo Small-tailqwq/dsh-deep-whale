@@ -4,18 +4,21 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { installOrcaIcons } from '../src/client/icons.ts'
 
-interface IconFixture { component: string; name: string | null; svg: string }
+interface IconFixture { component: string; name: string | null; svg: string; symbolId?: string }
 interface LoaderFixture { component: string; name: string; html: string; sources: Record<string, string> }
 const pinned = JSON.parse(readFileSync(resolve('tests/fixtures/dsh-icons.json'), 'utf8'))
-const target: { icons: IconFixture[]; sources: Record<string, string>; loaders: LoaderFixture[] } = process.env.DSH_ICON_FIXTURE
+const target: { icons: IconFixture[]; symbols: Record<string, string>; sources: Record<string, string>; loaders: LoaderFixture[] } = process.env.DSH_ICON_FIXTURE
   ? JSON.parse(readFileSync(process.env.DSH_ICON_FIXTURE, 'utf8'))
   : pinned
 let dispose: (() => void) | undefined
 afterEach(() => { vi.restoreAllMocks(); dispose?.(); dispose = undefined; document.body.innerHTML = '' })
 
-it('pins icon fixtures to the manifest verification version', () => {
+it('pins icon fixtures to the admitted host baseline', () => {
   const manifest = JSON.parse(readFileSync(resolve('skin.json'), 'utf8'))
-  expect(pinned.hostVersion.replace('-rc.', 'rc')).toBe(manifest.dshCompatibility)
+  const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
+  expect(pkg.peerDependencies['@deepseek-ai/dsh']).toBe(`>=${pinned.hostVersion} <0.3.0-0`)
+  // The manifest schema records RC builds; alpha verification lives in this fixture.
+  if (!pinned.hostVersion.includes('-alpha.')) expect(pinned.hostVersion.replace('-rc.', 'rc')).toBe(manifest.dshCompatibility)
   expect(pinned.hostCommit).toMatch(/^[a-f0-9]{40}$/)
 })
 
@@ -38,6 +41,7 @@ describe('official host icon inventory', () => {
     const host = document.querySelector('svg')!
     const children = Array.from(host.childNodes)
     const original = host.innerHTML
+    const originalElement = host.outerHTML
     dispose = installOrcaIcons(document.body)
     expect(host.getAttribute('data-orca-link-icon')).toBe(name)
     const art = host.querySelectorAll(':scope > g[data-orca-link-icon-art]')
@@ -49,7 +53,74 @@ describe('official host icon inventory', () => {
     expect(host.innerHTML).toBe(original)
     expect(Array.from(host.childNodes)).toEqual(children)
     expect(host.hasAttribute('data-orca-link-icon')).toBe(false)
+    expect(host.outerHTML).toBe(originalElement)
   })
+})
+
+it('covers every official symbol, including compact artwork', () => {
+  expect(new Set(target.icons.flatMap(icon => icon.symbolId ? [icon.symbolId] : [])))
+    .toEqual(new Set(Object.keys(target.symbols)))
+})
+
+it('keeps the shared sprite untouched during mounting, replacement and disposal', async () => {
+  const sprite = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  sprite.setAttribute('data-dsh-icon-sprite', '')
+  for (const [id, markup] of Object.entries(target.symbols)) {
+    const root = new DOMParser().parseFromString(markup, 'image/svg+xml').documentElement
+    const symbol = document.createElementNS('http://www.w3.org/2000/svg', 'symbol')
+    symbol.id = id
+    symbol.innerHTML = root.innerHTML
+    sprite.append(symbol)
+  }
+  document.body.append(sprite)
+  const original = sprite.outerHTML
+  dispose = installOrcaIcons(document.body)
+  expect(sprite.outerHTML).toBe(original)
+  const replacement = sprite.firstElementChild!.cloneNode(true)
+  sprite.firstElementChild!.replaceWith(replacement)
+  await nextMutation()
+  expect(sprite.outerHTML).toBe(original)
+  dispose()
+  dispose = undefined
+  expect(sprite.outerHTML).toBe(original)
+})
+
+it('retains native symbol geometry, handles href changes and yields unknown symbols', async () => {
+  document.body.innerHTML = target.icons.find(icon => icon.component === 'IconClockOutlineRegular')!.svg
+  const host = document.querySelector('svg')!
+  host.setAttribute('width', '28')
+  host.setAttribute('height', '28')
+  const use = host.querySelector('use')!
+  dispose = installOrcaIcons(document.body)
+  expect(host.getAttribute('viewBox')).toBeNull()
+  expect(host.getAttribute('width')).toBe('28')
+  expect(host.getAttribute('height')).toBe('28')
+  expect(host.querySelector('[data-orca-link-icon-art] > svg')?.getAttribute('viewBox')).toBe('0 0 16 16')
+  use.setAttribute('href', '#dsw-icon-plus-outline-regular')
+  await nextMutation()
+  expect(host.hasAttribute('data-orca-link-icon')).toBe(false)
+  host.setAttribute('data-icon', 'dsw-icon-plus-outline-regular')
+  await nextMutation()
+  expect(host.getAttribute('data-orca-link-icon')).toBe('plus')
+  host.setAttribute('data-icon', 'dsw-icon-unknown-regular')
+  use.setAttribute('href', '#dsw-icon-unknown-regular')
+  await nextMutation()
+  expect(host.hasAttribute('data-orca-link-icon')).toBe(false)
+  expect(host.children).toHaveLength(1)
+  expect(host.firstElementChild).toBe(use)
+})
+
+it('restores symbol callers when drawing fails after a previous icon was decorated', () => {
+  document.body.innerHTML = target.icons.filter(icon => icon.symbolId).slice(0, 2).map(icon => icon.svg).join('')
+  const original = document.body.innerHTML
+  const append = SVGElement.prototype.append
+  let appended = 0
+  vi.spyOn(SVGElement.prototype, 'append').mockImplementation(function (this: SVGElement, ...nodes) {
+    if (this.hasAttribute('data-icon') && ++appended === 2) throw new Error('Symbol drawing failed')
+    append.apply(this, nodes)
+  })
+  expect(() => installOrcaIcons(document.body)).toThrow('Symbol drawing failed')
+  expect(document.body.innerHTML).toBe(original)
 })
 
 it.each(target.loaders)('$component loader fixtures pin their native DOM and CSS contracts', ({ sources }) => {
@@ -153,4 +224,45 @@ it('updates a retained StateDot when its host state changes', async () => {
   host.setAttribute('data-state', 'ongoing')
   await new Promise(resolve => setTimeout(resolve, 0))
   expect(host.getAttribute('data-orca-link-icon')).toBe('loading')
+})
+
+it('distinguishes explicit task execution from response, approval and plugin waits', () => {
+  const glyph = (pinned.icons as IconFixture[]).find(icon => icon.component === 'StateDotOngoing')!.svg
+  document.body.innerHTML = `
+    <div data-testid="todo-panel"><li data-status="in_progress"><span class="todo_glyph">${glyph}</span></li></div>
+    <div data-tool="bash">${glyph}</div><div data-terminal>${glyph}</div>
+    <div role="status">${glyph}</div><div data-approval-card>${glyph}</div>
+    <div data-tool="ask_user_question">${glyph}</div>
+    <li data-state="running"><span class="plugins_updateStepDot">${glyph}</span></li>`
+  const original = document.body.innerHTML
+  dispose = installOrcaIcons(document.body)
+  const states = Array.from(document.querySelectorAll('svg[data-state]'))
+  expect(states.map(svg => svg.getAttribute('data-orca-link-icon'))).toEqual([
+    'task-loading', 'task-loading', 'task-loading', 'loading', 'loading', 'loading', 'loading',
+  ])
+  expect(document.querySelectorAll('[data-orca-task-fill]')).toHaveLength(3)
+  expect(document.querySelectorAll('[data-orca-hourglass]')).toHaveLength(4)
+  dispose()
+  dispose = undefined
+  expect(document.body.innerHTML).toBe(original)
+})
+
+it('reclassifies a retained loader moved between task and waiting owners and restores it', async () => {
+  const glyph = (pinned.icons as IconFixture[]).find(icon => icon.component === 'StateDotOngoingLarge')!.svg
+  document.body.innerHTML = `<div data-tool="read">${glyph}</div><div role="status"></div>`
+  const svg = document.querySelector('svg')!
+  const original = svg.outerHTML
+  dispose = installOrcaIcons(document.body)
+  expect(svg.getAttribute('data-orca-link-icon')).toBe('task-loading')
+  document.querySelector('[role="status"]')!.append(svg)
+  await nextMutation()
+  expect(svg.getAttribute('data-orca-link-icon')).toBe('loading')
+  expect(svg.querySelector('[data-orca-task-fill]')).toBeNull()
+  document.querySelector('[data-tool]')!.append(svg)
+  await nextMutation()
+  expect(svg.getAttribute('data-orca-link-icon')).toBe('task-loading')
+  expect(svg.querySelectorAll(':scope > [data-orca-link-icon-art]')).toHaveLength(1)
+  dispose()
+  dispose = undefined
+  expect(svg.outerHTML).toBe(original)
 })
