@@ -5425,6 +5425,26 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   line-height: 1.65;
 }
 
+/* The host slot uses display: contents. Preserve its column and gap when
+   adding a reading surface: size containment in delivered-file cards makes
+   a max-content slot collapse. Avoid filter/transform on this ancestor so
+   non-portaled fixed overlays retain their original containing block. */
+body[data-dsh-maid-atelier] [data-slot='conversation.chat.turnTail']:not(:empty) {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.25em 0.5em;
+  border-radius: 10px;
+  background: rgba(248, 250, 255, 0.94);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-slot='conversation.chat.turnTail']:not(:empty) {
+  background: rgba(18, 31, 67, 0.94);
+}
+
 /* Process groups cap their member list at a fixed height and fade the
    scroll edges with `mask-image` once members overflow, which is what
    expanding a reasoning block usually triggers. A mask makes the scroll body
