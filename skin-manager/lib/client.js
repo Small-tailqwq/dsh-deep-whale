@@ -763,6 +763,7 @@ window.__ModuleLoader__.load({
 			officialDescription: "不启用任何皮肤",
 			stateCurrent: "当前",
 			stateSwitching: "切换中",
+			switchRestartRequired: "设置已保存，但当前窗口未完成皮肤切换。请重启桌面应用使其生效。",
 			stateSwitch: "切换",
 			compatibility: (version) => `已适配 DSH ${version}`,
 			incompatibleBlocked: (runtime) => `未声明支持当前的 DSH ${runtime}，已被自动停用`,
@@ -852,6 +853,7 @@ window.__ModuleLoader__.load({
 			officialDescription: "No skin applied",
 			stateCurrent: "Current",
 			stateSwitching: "Switching",
+			switchRestartRequired: "Settings saved, but this window did not finish switching skins. Restart the desktop app to apply them.",
 			stateSwitch: "Switch",
 			compatibility: (version) => `Verified on DSH ${version}`,
 			incompatibleBlocked: (runtime) => `Not declared for DSH ${runtime}; disabled automatically`,
@@ -2196,7 +2198,11 @@ window.__ModuleLoader__.load({
 				cancel.abort();
 				throw error;
 			}
-			if (await settled && desktop) return;
+			const completed = await settled;
+			if (desktop) {
+				if (!completed) throw new Error(skinManagerCopy(currentUiLang()).switchRestartRequired);
+				return;
+			}
 			window.location.reload();
 		}
 		//#endregion

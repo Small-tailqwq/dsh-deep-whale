@@ -9,7 +9,8 @@
  * Host begins applying the switch (the first body-attribute change), so the new
  * skin makes its entrance once, on a page booted from the recomposed graph.
  * The desktop shell replays the boot graph captured at Host startup on every
- * reload, so there the in-place switch is kept and no reload follows.
+ * reload, so there the in-place switch is kept. A timeout asks for an app
+ * restart instead of replaying the old graph with a renderer reload.
  */
 import type { SkinCatalogEntry } from '../contract.ts'
 
