@@ -1,0 +1,11 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="8.75" y="8.75" width="12.5" height="12.5" rx="3" fill="#8ea5da" fill-opacity="0.85"/>
+  <rect x="14.75" y="14.75" width="12.75" height="12.75" rx="3" fill="url(#maid-subagent)" stroke="#c5a468" stroke-width="1.1"/>
+  <path d="M21.1 18.1L21.94 20.26L24.1 21.1L21.94 21.94L21.1 24.1L20.26 21.94L18.1 21.1L20.26 20.26Z" fill="#fffaf0"/>
+  <defs>
+    <linearGradient id="maid-subagent" x1="21" y1="14.75" x2="21" y2="27.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>

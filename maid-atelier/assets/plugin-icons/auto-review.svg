@@ -1,0 +1,10 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18 6.5l9.25 3.1a1 1 0 0 1 .7.95v6.65c0 5.4-4 10.2-9.95 11.8C12.05 27.4 8 22.6 8 17.2v-6.65a1 1 0 0 1 .7-.95z" fill="url(#maid-auto-review)" stroke="#c5a468" stroke-width="1.1"/>
+  <path d="M13.75 17.75l2.75 2.75 5.5-5.5" stroke="#fffaf0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="maid-auto-review" x1="18" y1="6.5" x2="18" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>

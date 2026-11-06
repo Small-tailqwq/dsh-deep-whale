@@ -1,0 +1,13 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18.05 28.49C12.09 28.49 7.25 23.66 7.25 17.69C13.21 17.69 18.05 22.53 18.05 28.49Z" fill="#8ea5da"/>
+  <path d="M18.05 6.9C12.09 6.9 7.25 11.73 7.25 17.69C13.21 17.69 18.05 12.86 18.05 6.9Z" fill="url(#maid-loop)"/>
+  <path d="M18.05 28.49C24.01 28.49 28.85 23.66 28.85 17.69C22.88 17.69 18.05 22.53 18.05 28.49Z" fill="#31498f"/>
+  <path d="M18.05 6.9C24.01 6.9 28.85 11.73 28.85 17.69C22.88 17.69 18.05 12.86 18.05 6.9Z" fill="#c5a468"/>
+  <circle cx="18.05" cy="17.69" r="1.6" fill="#fffaf0" stroke="#c5a468" stroke-width="0.9"/>
+  <defs>
+    <linearGradient id="maid-loop" x1="16.8" y1="16.2" x2="9" y2="8.7" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#31498f"/>
+      <stop offset="1" stop-color="#8ea5da"/>
+    </linearGradient>
+  </defs>
+</svg>

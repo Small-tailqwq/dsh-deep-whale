@@ -1,0 +1,11 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="7" y="9" width="22" height="18" rx="4" fill="url(#maid-terminal)" stroke="#c5a468" stroke-width="1.1"/>
+  <path d="M12.25 14.5l3.5 3.5-3.5 3.5" stroke="#fffaf0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18.5 21.5h5" stroke="#c5a468" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="maid-terminal" x1="18" y1="9" x2="18" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>

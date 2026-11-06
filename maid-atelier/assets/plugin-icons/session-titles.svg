@@ -1,0 +1,12 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="11.5" y="8" width="17" height="14" rx="3" fill="#8ea5da" fill-opacity="0.6"/>
+  <path d="M10 12H23C24.38 12 25.5 13.12 25.5 14.5V23.5C25.5 24.88 24.38 26 23 26H14.5L10.9 29.6C10.5 30 10 29.8 10 29.25V26C8.62 26 7.5 24.88 7.5 23.5V14.5C7.5 13.12 8.62 12 10 12Z" fill="url(#maid-session-titles)" stroke="#c5a468" stroke-width="1.1"/>
+  <path d="M12.75 16H20.25M16.5 16V22" stroke="#fffaf0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M27 7L27.7 8.8L29.5 9.5L27.7 10.2L27 12L26.3 10.2L24.5 9.5L26.3 8.8Z" fill="#c5a468"/>
+  <defs>
+    <linearGradient id="maid-session-titles" x1="16.5" y1="12" x2="16.5" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>
