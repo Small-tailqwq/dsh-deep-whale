@@ -56,7 +56,7 @@ github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier
 github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link
 ```
 
-With its default configuration, DSH's bundled pnpm 11.7.0 prefers npm versions published at least 24 hours ago. To install a specific new release immediately, enter `package-name@^version` in the same **Add plugin** field, for example `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.9` (without a command prefix). This explicit `add` installs the new release and records its exact version in `pnpm-workspace.yaml` under `minimumReleaseAgeExclude`, while keeping the dependency as a caret range. This behavior describes the bundled version and default configuration; other pnpm versions or custom policies may differ. GitHub sources are not subject to this npm package-age check.
+With its default configuration, DSH's bundled pnpm 11.7.0 prefers npm versions published at least 24 hours ago. To install a specific new release immediately, enter `package-name@^version` in the same **Add plugin** field, for example `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.10` (without a command prefix). This explicit `add` installs the new release and records its exact version in `pnpm-workspace.yaml` under `minimumReleaseAgeExclude`, while keeping the dependency as a caret range. This behavior describes the bundled version and default configuration; other pnpm versions or custom policies may differ. GitHub sources are not subject to this npm package-age check.
 
 The desktop app manages its own `desktop` profile; you do not need to set up a `dsh` command. The `web` commands below do not install skins into the desktop app.
 
@@ -131,7 +131,7 @@ This works for both sources: npm installs move to the newest release, GitHub ins
 With its default configuration, DSH's bundled pnpm 11.7.0 prefers npm versions published at least 24 hours ago, so `update` may stay on an older release. To install a specific new release immediately, explicitly `add` it with `@^<version>` after the package name: pnpm installs it and records its exact version in `pnpm-workspace.yaml` under `minimumReleaseAgeExclude`, while keeping the dependency as a caret range. Other pnpm versions or custom policies may differ. Version numbers are listed under [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.9'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.10'
 ```
 
 Keep the `^`: without it the package is pinned to that exact version and later `update` runs won't upgrade it.
@@ -140,7 +140,7 @@ Keep the `^`: without it the package is pinned to that exact version and later `
 
 **The skin disappeared after upgrading DSH**
 
-Each skin declares the DSH versions it has been adapted to (currently the 0.2 series, starting at 0.2.0-rc.2). When DSH moves ahead of a skin, DSH disables the skin and falls back to the official UI, so an outdated skin can't hide controls such as the input box.
+Each skin declares its supported DSH version range (currently the 0.2.2 series, including alpha, RC and stable releases). When DSH moves ahead of a skin, DSH disables the skin and falls back to the official UI, so an outdated skin can't hide controls such as the input box.
 
 Update the skins first. If no update is out yet and you'd like to keep using the old skin, open **Settings → Skins**: the disabled skin shows “Not declared for DSH x.y.z; disabled automatically”. Click **Switch** and confirm. This approval covers only the current skin version and DSH version and is checked again when either changes; you can switch back to **Official Default** at any time.
 
