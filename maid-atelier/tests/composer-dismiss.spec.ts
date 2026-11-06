@@ -33,7 +33,9 @@ function mount(layout: 'row' | 'entry' = 'row'): Fixture {
   input.dataset.composerInput = ''
   card.append(input)
   const dock = document.createElement('div')
-  dock.dataset.slot = 'conversation.composer.dock'
+  dock.className = 'fixture_dock'
+  const slot = document.createElement('span')
+  slot.dataset.slot = 'conversation.composer.dock'
   const stats = document.createElement(layout === 'row' ? 'div' : 'span')
   if (layout === 'row') stats.dataset.composerStats = ''
   else stats.dataset.composerStat = 'activity'
@@ -46,7 +48,8 @@ function mount(layout: 'row' | 'entry' = 'row'): Fixture {
     pill.setAttribute('aria-expanded', String(pill.getAttribute('aria-expanded') !== 'true'))
   })
   stats.append(pill)
-  dock.append(stats)
+  slot.append(stats)
+  dock.append(slot)
   seat.append(card, dock)
   scrollport.append(flow, seat)
   phaseBody.append(scrollport)
@@ -138,6 +141,30 @@ describe('maid composer hide/collapse dialog hand-off', () => {
     dispose()
   })
 
+  it.each([HIDDEN, CAPSULE])('dismisses the context panel outside the stats slot on %s', async (attribute) => {
+    const { seat, dock, dispose } = mount('entry')
+    const context = document.createElement('button')
+    context.setAttribute('aria-haspopup', 'dialog')
+    context.setAttribute('aria-expanded', 'true')
+    const panel = document.createElement('div')
+    panel.setAttribute('role', 'dialog')
+    document.body.append(panel)
+    const toggle = vi.fn(() => {
+      context.setAttribute('aria-expanded', 'false')
+      panel.remove()
+    })
+    context.addEventListener('click', toggle)
+    dock.append(context)
+    seat.setAttribute(attribute, '')
+    await nextMicrotask()
+    expect(toggle).toHaveBeenCalledTimes(1)
+    expect(panel.isConnected).toBe(false)
+    seat.removeAttribute(attribute)
+    await nextMicrotask()
+    expect(toggle).toHaveBeenCalledTimes(1)
+    dispose()
+  })
+
   it('touches nothing while the composer stays visible', async () => {
     const { seat, dock, dispose } = mount()
     const spy = pillClicks()
@@ -153,7 +180,7 @@ describe('maid composer hide/collapse dialog hand-off', () => {
     const picker = document.createElement('button')
     picker.setAttribute('aria-haspopup', 'dialog')
     picker.setAttribute('aria-expanded', 'true')
-    seat.querySelector('[data-slot]')!.append(picker)
+    seat.querySelector('[data-composer-card]')!.append(picker)
     const spy = pillClicks()
     const pickerClick = vi.fn()
     picker.addEventListener('click', pickerClick)

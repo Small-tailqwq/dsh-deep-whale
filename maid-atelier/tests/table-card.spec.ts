@@ -54,6 +54,7 @@ describe('installMaidTableCards', () => {
     document.body.append(bubble)
 
     document.documentElement.lang = 'zh-CN'
+    card.scrollLeft = 75
     const runtime = installMaidTableCards({} as never)
     resize?.([{ target: card } as ResizeObserverEntry], {} as ResizeObserver)
 
@@ -66,10 +67,10 @@ describe('installMaidTableCards', () => {
     expect(button?.title).toBe('展开表格预览')
     expect(button?.hidden).toBe(false)
 
+    expect(button?.style.translate).toBe('75px 0px')
+    card.scrollLeft = 200
     card.dispatchEvent(new Event('scroll'))
-    expect(card.hasAttribute('data-maid-table-scroll-suppressed')).toBe(true)
-    card.dispatchEvent(new Event('pointerleave'))
-    expect(card.hasAttribute('data-maid-table-scroll-suppressed')).toBe(false)
+    expect(button?.style.translate).toBe('200px 0px')
 
     card.innerHTML = '<table><tbody><tr><td>complete</td></tr></tbody></table>'
     const completedTable = card.querySelector('table')!
@@ -85,6 +86,7 @@ describe('installMaidTableCards', () => {
     expect(panel?.style.getPropertyValue('--maid-table-expanded-width')).toBe('968px')
     expect(card.hasAttribute('data-maid-table-open')).toBe(true)
     expect(lightbox?.querySelector('[data-maid-table-expanded] table')).not.toBeNull()
+    expect(lightbox?.querySelector('.md-table-wide')).toBeNull()
     expect(lightbox?.querySelector('[data-maid-table-expand]')).toBeNull()
     await Promise.resolve()
     expect(lightbox?.querySelector('[data-maid-table-frame]')).toBeNull()

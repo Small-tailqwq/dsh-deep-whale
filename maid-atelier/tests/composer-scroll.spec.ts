@@ -6,6 +6,9 @@ const SCROLLPORT_HEIGHT = 300
 const SCROLLPORT_CONTENT_HEIGHT = 800
 const SWITCH = 'data-maid-composer-mode'
 const BOTTOM_SWITCH = 'data-maid-composer-bottom-only'
+// Mirrors the module's settle window and max wait for geometry reads.
+const GEOMETRY_SETTLE_MS = 120
+const GEOMETRY_MAX_WAIT_MS = 500
 
 const resizeObservers: FixtureResizeObserver[] = []
 class FixtureResizeObserver {
@@ -199,6 +202,60 @@ describe('maid composer scroll-intent', () => {
     dispose()
   })
 
+  it.each([false, true])('keeps a quoted draft visible until a transcript click (bottom-only: %s)', async (bottomOnly) => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1000)
+    const { scrollport, seat, input, dispose } = mount('scroll', bottomOnly)
+    try {
+      scrollTo(scrollport, 400)
+      scrollTo(scrollport, 200)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+      input.focus()
+      input.innerHTML = '<p><span data-composer-quote contenteditable="false">Quoted reply</span> </p>'
+      await nextMicrotask()
+      clock.mockReturnValue(10_000)
+      scrollTo(scrollport, 199)
+      input.append(document.createTextNode('A longer draft\nwith another line'))
+      resize(seat)
+      scrollTo(scrollport, 100)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+      expect(document.activeElement).toBe(input)
+
+      scrollport.querySelector('[data-chat-flow]')!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+      scrollTo(scrollport, 90)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+      expect(document.activeElement).not.toBe(input)
+    } finally {
+      dispose()
+      clock.mockRestore()
+    }
+  })
+
+  it.each(['pointerdown', 'beforeinput', 'input', 'compositionstart'])('protects deliberate %s until focus leaves the seat', async (type) => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1000)
+    const { scrollport, seat, input, dispose } = mount()
+    try {
+      scrollTo(scrollport, 400)
+      input.focus()
+      clock.mockReturnValue(3000)
+      scrollTo(scrollport, 200)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+      input.focus()
+      input.dispatchEvent(type === 'pointerdown' ? new MouseEvent(type, { bubbles: true }) : new Event(type, { bubbles: true }))
+      clock.mockReturnValue(10_000)
+      scrollTo(scrollport, 100)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+      expect(document.activeElement).toBe(input)
+      input.blur()
+      await nextMicrotask()
+      scrollTo(scrollport, 90)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+    } finally {
+      dispose()
+      clock.mockRestore()
+    }
+  })
+
   // #201: the soft keyboard a focus raises scrolls the transcript; reading that
   // as an upward scroll hid and blurred the composer, dropping the keyboard.
   it('a scroll the keyboard causes after focusing the composer neither hides nor blurs it', () => {
@@ -381,27 +438,93 @@ describe('maid composer bottom-only', () => {
     dispose()
   })
 
-  it('reconciles an ask height change without another scroll event', async () => {
-    const { scrollport, seat, dispose } = mount('persistent', true)
-    scrollTo(scrollport, 200)
-    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+  it('reconciles an ask height change without another scroll event', () => {
+    vi.useFakeTimers()
+    try {
+      const { scrollport, seat, dispose } = mount('persistent', true)
+      scrollTo(scrollport, 200)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
 
-    const flow = scrollport.querySelector<HTMLElement>('[data-chat-flow]')!
-    flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 290 })
-    resize(seat)
-    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+      const flow = scrollport.querySelector<HTMLElement>('[data-chat-flow]')!
+      flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 290 })
+      resize(seat)
+      vi.advanceTimersByTime(GEOMETRY_SETTLE_MS)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
 
-    flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 325 })
-    resize(seat)
-    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
-    flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 310 })
-    resize(seat)
-    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
-    dispose()
-    flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 325 })
-    resize(seat)
-    await nextMicrotask()
-    expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+      flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 325 })
+      resize(seat)
+      vi.advanceTimersByTime(GEOMETRY_SETTLE_MS)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+      flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 310 })
+      resize(seat)
+      vi.advanceTimersByTime(GEOMETRY_SETTLE_MS)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+      dispose()
+      flow.getBoundingClientRect = () => DOMRect.fromRect({ height: 325 })
+      resize(seat)
+      vi.advanceTimersByTime(GEOMETRY_SETTLE_MS)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reads geometry once a resize burst settles, never inside the delivery', () => {
+    vi.useFakeTimers()
+    try {
+      const { scrollport, seat, dispose } = mount('persistent', true)
+      scrollTo(scrollport, 200)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(true)
+
+      const flow = scrollport.querySelector<HTMLElement>('[data-chat-flow]')!
+      const reads = vi.fn(() => DOMRect.fromRect({ height: 290 }))
+      flow.getBoundingClientRect = reads
+      // A width drag: one delivery per frame, each touching all three owners.
+      for (let frame = 0; frame < 6; frame++) {
+        resize(seat)
+        resize(scrollport)
+        resize(flow)
+        // Host observers in the same delivery may have dirtied style: no read.
+        expect(reads).not.toHaveBeenCalled()
+        vi.advanceTimersByTime(16)
+      }
+      expect(reads).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(GEOMETRY_SETTLE_MS)
+      expect(reads).toHaveBeenCalledTimes(1)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+
+      const late = vi.fn(() => DOMRect.fromRect({ height: 325 }))
+      flow.getBoundingClientRect = late
+      resize(seat)
+      dispose()
+      vi.advanceTimersByTime(GEOMETRY_MAX_WAIT_MS)
+      // Disposal cancels the queued read along with the observers.
+      expect(late).not.toHaveBeenCalled()
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('still reads within the max wait while the layout keeps moving', () => {
+    vi.useFakeTimers()
+    try {
+      const { scrollport, seat, dispose } = mount('persistent', true)
+      scrollTo(scrollport, 200)
+      const flow = scrollport.querySelector<HTMLElement>('[data-chat-flow]')!
+      const reads = vi.fn(() => DOMRect.fromRect({ height: 290 }))
+      flow.getBoundingClientRect = reads
+      // A streamed reply grows the flow faster than the settle window.
+      for (let elapsed = 0; elapsed < GEOMETRY_MAX_WAIT_MS; elapsed += 50) {
+        resize(flow)
+        vi.advanceTimersByTime(50)
+      }
+      expect(reads).toHaveBeenCalledTimes(1)
+      expect(seat.hasAttribute('data-maid-composer-hidden')).toBe(false)
+      dispose()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('releases the observer of a replaced conversation once the next one binds', () => {

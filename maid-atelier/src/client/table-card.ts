@@ -23,7 +23,6 @@ const EXPANDABLE_ATTRIBUTE = 'data-maid-table-expandable'
 const OPEN_ATTRIBUTE = 'data-maid-table-open'
 const CONTROL_ATTRIBUTE = 'data-maid-table-expand'
 const FRAME_ATTRIBUTE = 'data-maid-table-frame'
-const SCROLL_SUPPRESSED_ATTRIBUTE = 'data-maid-table-scroll-suppressed'
 const OVERLAY_ATTRIBUTE = 'data-maid-table-lightbox'
 const MODAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true']"
 const ASSISTANT_STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']"
@@ -128,7 +127,6 @@ interface TableCardRuntime {
 
 interface TableBinding {
   button: HTMLButtonElement
-  onPointerLeave: () => void
   onScroll: () => void
 }
 
@@ -212,7 +210,6 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     if (overlay?.source === wrapper) closeOverlay(true)
     const binding = bindings.get(wrapper)
     if (binding !== undefined) {
-      wrapper.removeEventListener('pointerleave', binding.onPointerLeave)
       wrapper.removeEventListener('scroll', binding.onScroll)
       releaseControl(wrapper, owner)
       bindings.delete(wrapper)
@@ -220,7 +217,6 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, false)
     setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, false)
     setLeasedAttribute(wrapper, OPEN_ATTRIBUTE, owner, false)
-    setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false)
   }
 
   const watch = (wrapper: HTMLElement, target: Element | null): void => {
@@ -288,12 +284,15 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
 
     const scroller = document.createElement('div')
     scroller.dataset.maidTableExpandedScroller = ''
+    // Keep the host Markdown typography and link states around the portaled clone.
+    scroller.className = wrapper.closest(MARKDOWN_CONTAINER_SELECTOR)?.className ?? ''
 
     const clone = wrapper.cloneNode(true) as HTMLElement
+    // The panel scroller owns overflow; the host wide-table hook forces a bar on hover.
+    clone.classList.remove('md-table-wide')
     clone.removeAttribute(FRAME_ATTRIBUTE)
     clone.removeAttribute(EXPANDABLE_ATTRIBUTE)
     clone.removeAttribute(OPEN_ATTRIBUTE)
-    clone.removeAttribute(SCROLL_SUPPRESSED_ATTRIBUTE)
     clone.removeAttribute('tabindex')
     clone.removeAttribute('aria-label')
     clone.querySelector(`[${CONTROL_ATTRIBUTE}]`)?.remove()
@@ -329,17 +328,15 @@ export function installMaidTableCards(_ctx: Context): TableCardRuntime {
     }
     const button = acquireControl(wrapper, owner, () => openOverlay(wrapper))
     const onScroll = (): void => {
-      setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, true)
+      // Keep the control at the scrollport edge without moving the renderer's table.
+      button.style.translate = `${wrapper.scrollLeft}px 0px`
     }
-    const onPointerLeave = (): void => {
-      setLeasedAttribute(wrapper, SCROLL_SUPPRESSED_ATTRIBUTE, owner, false)
-    }
-    bindings.set(wrapper, { button, onPointerLeave, onScroll })
+    bindings.set(wrapper, { button, onScroll })
     try {
       setLeasedAttribute(wrapper, FRAME_ATTRIBUTE, owner, true)
       setLeasedAttribute(wrapper, EXPANDABLE_ATTRIBUTE, owner, true)
-      wrapper.addEventListener('pointerleave', onPointerLeave)
       wrapper.addEventListener('scroll', onScroll, { passive: true })
+      onScroll()
     } catch (error) {
       deactivate(wrapper)
       throw error

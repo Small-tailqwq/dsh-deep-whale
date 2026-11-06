@@ -4,6 +4,13 @@ import { installRelationalMarkers } from '../../../shared/relational-markers.ts'
 export function installMaidRelationalMarkers(ctx: Context): void {
   installRelationalMarkers(ctx, [
     {
+      scope: "[class*='sidebarCol']",
+      rules: [
+        { selector: "[role='treeitem']:has(> [class*='folderActive'])", attribute: 'data-maid-workspace-active' },
+        { selector: "div:has(> [class*='logoRow'])", attribute: 'data-maid-sidebar-root' },
+      ],
+    },
+    {
       scope: "[data-phase='hero']",
       rules: [{ selector: "[class*='headline']:has(> [class*='fish'])", attribute: 'data-maid-hero-headline' }],
     },

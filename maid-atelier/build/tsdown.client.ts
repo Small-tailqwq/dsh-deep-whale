@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import type { UserConfig } from 'tsdown'
 import { transform } from 'lightningcss'
 import { PLATFORM_MODULES } from './web-platform.ts'
+import { createSelectorExpansion } from './selector-lists.ts'
 
 /**
  * Virtual-id wrapper keeping module CSS away from tsdown's own css pipeline
@@ -215,11 +216,16 @@ function clientConfig(id: string, entry: string, portableCssModuleIds: boolean):
         // The virtual id otherwise hides the physical stylesheet from Rolldown's watch graph.
         this.addWatchFile(fileId)
         const source = await readFile(fileId)
+        const filename = portableCssModuleIds ? sourceId : fileId
+        // The first pass records rule-level selectors for the selector-list expansion.
+        const expansion = createSelectorExpansion()
+        transform({ filename, code: source, visitor: expansion.collect })
         const { code, exports: cssExports } = transform({
-          filename: portableCssModuleIds ? sourceId : fileId,
+          filename,
           code: source,
           cssModules: { pattern: '[hash]_[local]' },
           minify: true,
+          visitor: expansion.expand,
         })
         const classMap: Record<string, string> = {}
         // Sort deterministically: lightningcss's cssExports iteration order is

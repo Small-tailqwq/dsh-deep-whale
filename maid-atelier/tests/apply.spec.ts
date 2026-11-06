@@ -616,9 +616,15 @@ describe('Maid Atelier skin apply', () => {
     // Folder state can change without adding rows or changing aria-expanded.
     // The root keeps its ribbon while the child switches to an active plaque.
     child!.querySelector('span')!.classList.add('fixture_folderActive')
+    await flushMutations()
+    expect(workspace!.hasAttribute('data-maid-workspace-active')).toBe(true)
+    expect(child!.hasAttribute('data-maid-workspace-active')).toBe(true)
     expect(declarations(workspace!, false)).toContain('border-image-source: var(--maid-workspace-ribbon-art)')
     expect(declarations(child!, false)).not.toContain('border-image-source: var(--maid-workspace-ribbon-art)')
     expect(declarations(child!, false)).toContain('rgba(226, 190, 112, 0.72)')
+    child!.querySelector('span')!.classList.remove('fixture_folderActive')
+    await flushMutations()
+    expect(child!.hasAttribute('data-maid-workspace-active')).toBe(false)
 
     current!.remove()
     other!.parentElement!.remove()
@@ -630,6 +636,7 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector('[data-maid-workspace-group]')).toBeNull()
     expect(document.querySelector('[data-maid-workspace-row]')).toBeNull()
     expect(document.querySelector('[data-maid-workspace-nested]')).toBeNull()
+    expect(document.querySelector('[data-maid-workspace-active]')).toBeNull()
     expect(document.querySelector('[data-maid-workspace-sessions]')).toBeNull()
     expect(document.querySelector('[data-maid-session-row]')).toBeNull()
     expect(document.querySelector('[data-maid-session-first]')).toBeNull()
@@ -1728,23 +1735,15 @@ describe('Maid Atelier skin apply', () => {
     expect(permissionRule).toContain('justify-content: center')
     expect(permissionRule).toContain('gap: 0')
     expect(modelRule).toContain('width: auto')
-    expect(modelRule).toContain('max-width: 240px')
+    expect(modelRule).toContain('max-width: 360px')
     expect(modelRule).toContain('padding: 0 4px 0 8px')
     expect(CSS).not.toMatch(
       /\[class\*='trailing'\][\s\S]*?:is\(\[class\*='triggerLabel'\], \[class\*='triggerEffort'\]\)\s*\{[^}]*display: none/s,
     )
   })
 
-  it('keeps the reasoning-effort label visible in the narrow composer row', () => {
-    // DSH 0.2.1 caps the model trigger at min(360px, 45cqw) and lets the effort
-    // text shrink first. With the right sidebar open the composer row is about
-    // 480 CSS px wide, so 45cqw alone (about 216px) no longer fits the model
-    // name, the 1017 release tag, and the effort label; the 240px floor keeps
-    // the label whole until the host's data-model-compact fallback takes over.
-    expect(CSS.match(/max-width: min\(360px, max\(240px, 45cqw\)\)/g) ?? []).toHaveLength(2)
-    expect(CSS).not.toMatch(
-      /button\[aria-haspopup='menu'\] \[class\*='triggerEffort'\]\s*\{\s*display: none/s,
-    )
+  it('keeps the model width independent of the composer row', () => {
+    expect(CSS.match(/max-width: 360px/g) ?? []).toHaveLength(2)
   })
 
   it('rebuilds the hero logo surround, caption rule, and embedded circular controls', () => {
@@ -1980,10 +1979,10 @@ describe('Maid Atelier skin apply', () => {
       /\[data-chat-flow-kind='assistant-step'\] :global\(\.md-table-wide\):not\(\[data-maid-table-frame\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const frameRule = CSS.match(
-      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\]\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\]\s+\[data-maid-table-frame\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const expandRule = CSS.match(
-      /\[data-chat-flow-kind='assistant-step'\] \[data-maid-table-frame\] > \[data-maid-table-expand\]\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\]\s+\[data-maid-table-frame\] > \[data-maid-table-expand\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const lightboxRule = CSS.match(/\[data-maid-table-lightbox\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const panelRule = CSS.match(/\[data-maid-table-panel\]\s*\{([^}]*)\}/s)?.[1] ?? ''
@@ -2008,16 +2007,16 @@ describe('Maid Atelier skin apply', () => {
     expect(frameRule).not.toContain('left: 50%')
     expect(CSS).not.toContain('[data-maid-table-frame] > :global(.md-table-wide)')
     expect(CSS).not.toContain('@keyframes maidAtelierTableLiquidBorder')
-    expect(CSS).toContain('[data-maid-table-scroll-suppressed]')
     expect(CSS).toContain('[data-maid-table-expand]:focus-visible')
     expect(CSS).not.toContain('[data-maid-table-frame]:focus-within')
     expect(expandRule).toContain('position: absolute')
     expect(expandRule).toContain('right: 8px')
     expect(expandRule).toContain('width: 32px')
-    expect(expandRule).toContain('border-radius: 7px')
+    expect(expandRule).toContain('border-radius: 8px')
     expect(expandRule).toContain('cursor: zoom-in')
     expect(CSS).toContain("[data-maid-table-expand]::before")
-    expect(CSS).toContain("content: '⤢'")
+    const expandIconRule = CSS.match(/\[data-maid-table-expand\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    expect(expandIconRule).toContain('mask: url("data:image/svg+xml,')
     expect(CSS).toMatch(/\[data-maid-table-frame\]\[data-maid-table-expandable\][^,{]*:hover > \[data-maid-table-expand\]/)
     expect(lightboxRule).toContain('position: fixed')
     expect(lightboxRule).toContain('z-index: 940')
@@ -2428,7 +2427,7 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('styles the workspace heading, search field, and settings surround in antique gold', () => {
-    const headingRule = CSS.match(/\[class\*='sectionHeader'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const headingRule = CSS.match(/\[class\*='sectionHeader'\]:not\(:where\([^{}]*?\)\)\s*\{([^}]*)\}/s)?.[1] ?? ''
     const searchRule = CSS.match(
       /\[class\*='search'\]\[class\*='searchExpanded'\]:has\(> input\[class\*='searchInput'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -2455,8 +2454,8 @@ describe('Maid Atelier skin apply', () => {
     // arm per mode; serif is the variable's own default and needs no rule.
     expect(CSS).toContain("--maid-workspace-font: Georgia, 'Times New Roman', serif")
     for (const surface of [
-      /\[class\*='sectionHeader'\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
-      /\[class\*='searchInput'\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[class\*='sectionHeader'\]:not\(:where\([^{}]*?\)\)\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
+      /\[class\*='searchInput'\]:not\(:where\([^{}]*?\)\)\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
       /\[data-maid-workspace-row\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
       /\[data-maid-session-row\]\s*\{[^}]*font-family: var\(--maid-workspace-font\)/s,
     ]) {
@@ -2865,7 +2864,7 @@ describe('Maid Atelier skin apply', () => {
   })
 
   it('renders the active workspace as a crested ribbon with a connected session tree', () => {
-    const ribbonShapeRule = CSS.match(/\[data-maid-workspace-row\]:not\(\[data-maid-workspace-nested\]\):has\(> \[class\*='folderActive'\]\)::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const ribbonShapeRule = CSS.match(/\[data-maid-workspace-row\]:not\(\[data-maid-workspace-nested\]\)\[data-maid-workspace-active\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
     const shieldRule = CSS.match(
       /\[data-maid-workspace-row\] > \[class\*='folder'\]\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -2895,7 +2894,7 @@ describe('Maid Atelier skin apply', () => {
     expect(workspaceRowRule).toContain('min-height: var(--maid-workspace-row-height, 54px)')
     expect(workspaceRowRule).toContain('padding: clamp(1px,')
     expect(shieldRule).toContain('height: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 34px)')
-    expect(CSS).toMatch(/\[data-maid-workspace-row\]:has\(> \[class\*='folderActive'\]\) > \[class\*='folder'\]\s*\{/)
+    expect(CSS).toMatch(/\[data-maid-workspace-row\]\[data-maid-workspace-active\] > \[class\*='folder'\]\s*\{/)
     expect(ribbonShapeRule).toContain('border-image-source: var(--maid-workspace-ribbon-art)')
     expect(ribbonShapeRule).toContain('border-image-slice: 0 145 0 140 fill')
     // The band, its overhang, the side slices and the shadow all derive from the
@@ -2951,7 +2950,7 @@ describe('Maid Atelier skin apply', () => {
     const plaqueRule = CSS.match(
       /\[data-maid-session-row\]:not\(\[data-maid-session-flat\]\)\[aria-selected='true'\]::after\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const ribbonRule = CSS.match(/\[data-maid-workspace-row\]:not\(\[data-maid-workspace-nested\]\):has\(> \[class\*='folderActive'\]\)::before\s*\{([^}]*)\}/s)?.[1] ?? ''
+    const ribbonRule = CSS.match(/\[data-maid-workspace-row\]:not\(\[data-maid-workspace-nested\]\)\[data-maid-workspace-active\]::before\s*\{([^}]*)\}/s)?.[1] ?? ''
     const indent = 'var(--dsh-workspace-indent, 0px)'
     expect(workspaceRowRule).toContain(`padding-inline-start: calc(10px + ${indent})`)
     expect(sessionRowRule).toContain(`padding-inline-start: calc(24px + ${indent})`)
@@ -3153,7 +3152,7 @@ describe('Maid Atelier skin apply', () => {
     expect(workspaceHeaderKeyframes).not.toContain('padding-bottom:')
     expect(reducedMotionRule).toContain('transition: none')
     expect(reducedMotionRule).toContain('animation: none')
-    expect(reducedMotionRule).toContain("[data-maid-workspace-row]:has(> [class*='folderActive'])::before")
+    expect(reducedMotionRule).toContain("[data-maid-workspace-row][data-maid-workspace-active]::before")
     expect(reducedMotionRule).toContain('[data-maid-table-frame]')
     expect(reducedMotionRule).toContain('[data-maid-table-expand]')
   })

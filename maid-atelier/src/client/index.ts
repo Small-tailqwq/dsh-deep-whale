@@ -724,7 +724,11 @@ export function apply(ctx: PanelContext): void {
   // every frame, and each additional CSSOM write is another style invalidation
   // through the same rule. The two consumers that used to be mirrored from it
   // are derived here instead, where they cost nothing per frame.
-  widthSheet.sheet!.insertRule(`body[data-dsh-maid-atelier] :is(${SIDEBAR_COLUMN_SELECTOR}, [data-cordis-panel], [data-maid-settings-backdrop-frame], [data-maid-table-lightbox]) { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: clamp(54px, calc(var(--maid-sidebar-width) * 0.2575), 94px); --maid-sidebar-mascot-width: min(320px, calc(var(--maid-sidebar-width) * 0.82)); }`)
+  // A selector list rather than one :is(): each branch keeps its own style
+  // bucket, so transcript elements never evaluate this rule on a style pass.
+  const widthTargets = [SIDEBAR_COLUMN_SELECTOR, '[data-cordis-panel]', '[data-maid-settings-backdrop-frame]', '[data-maid-table-lightbox]']
+    .map(target => `body[data-dsh-maid-atelier] ${target}`).join(', ')
+  widthSheet.sheet!.insertRule(`${widthTargets} { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: clamp(54px, calc(var(--maid-sidebar-width) * 0.2575), 94px); --maid-sidebar-mascot-width: min(320px, calc(var(--maid-sidebar-width) * 0.82)); }`)
   // The official frame rules reference env(titlebar-area-height), but the
   // CSS-modules pipeline rewrites the env() identifier there too, so the
   // title-bar row silently falls back to an auto row: expanding the sidebar

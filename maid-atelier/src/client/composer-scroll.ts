@@ -1,3 +1,5 @@
+import { installComposerEditing } from '../../../shared/composer-editing.ts'
+
 /**
  * Composer visibility presentation, driven by two skin-manager settings
  * (attributes on <html>, owned by installMaidCustomization):
@@ -42,6 +44,13 @@ const SEAT_GESTURE_WINDOW_MS = 200
 // scroll is not reading intent either; hiding on it would blur the composer and
 // drop the keyboard the reader just asked for.
 const KEYBOARD_SETTLE_MS = 800
+// Geometry notifications arrive every frame while the host drags the column
+// width, toggles fullscreen or streams a reply. Host tasks that run after the
+// frame (scheduler work, deferred reads) may have dirtied style again, so any
+// read in that window can force a full transcript pass. Read once the layout
+// has been quiet for a moment, and at most this often while it keeps moving.
+const GEOMETRY_SETTLE_MS = 120
+const GEOMETRY_MAX_WAIT_MS = 500
 
 interface SeatSnapshot {
   hidden: string | null
@@ -146,6 +155,7 @@ function wheelTargetsSeatDraft(event: WheelEvent): boolean {
  */
 export function installMaidComposerScroll(body: HTMLElement): () => void {
   const doc = body.ownerDocument
+  let editing: ReturnType<typeof installComposerEditing> | undefined
   const token = Symbol('maid-composer-scroll')
   const ownership = ownershipByDocument.get(doc) ?? { token, originals: new Map() }
   ownership.token = token
@@ -191,6 +201,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
 
   const hideSeat = (seat: HTMLElement): void => {
     if (!current() || activeMode(doc) === null) return
+    if (editing?.isEditing(seat)) return
     // The verdict runs again on every scroll frame, on control mounts and on
     // switch flips; a same-value write is still a mutation record that every
     // other observer and style pass pays for, so a settled state returns early.
@@ -219,9 +230,24 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   }
 
   const geometryBindings = new Map<HTMLElement, { seat: HTMLElement, flow: HTMLElement, observer: ResizeObserver }>()
+  // ResizeObserver delivers inside the rendering update, after host observers
+  // earlier in the same delivery have written inherited custom properties on
+  // the conversation root (width axis, composer height). Reading geometry
+  // there forces one more full transcript style pass in that frame. The read
+  // waits for the burst to settle (GEOMETRY_SETTLE_MS) and coalesces every
+  // notification of the burst into one read per scrollport.
+  const pendingGeometry = new Map<HTMLElement, HTMLElement>()
+  let geometryTask: ReturnType<typeof setTimeout> | undefined
+  let geometryDeadline = 0
+  const cancelGeometry = (): void => {
+    if (geometryTask !== undefined) clearTimeout(geometryTask)
+    geometryTask = undefined
+    pendingGeometry.clear()
+  }
   const releaseGeometryObservers = (): void => {
     geometryBindings.forEach(binding => { binding.observer.disconnect() })
     geometryBindings.clear()
+    cancelGeometry()
   }
   const reconcileGeometry = (scrollport: HTMLElement, seat: HTMLElement): void => {
     if (!current() || activeSeatOf(scrollport) !== seat) return
@@ -232,6 +258,20 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
       const distance = tailDistance(scrollport)
       if (distance === null || distance <= 0) showSeat(seat)
     }
+  }
+  const flushGeometry = (): void => {
+    geometryTask = undefined
+    const queued = [...pendingGeometry]
+    pendingGeometry.clear()
+    queued.forEach(([scrollport, seat]) => { reconcileGeometry(scrollport, seat) })
+  }
+  const scheduleGeometry = (scrollport: HTMLElement, seat: HTMLElement): void => {
+    pendingGeometry.set(scrollport, seat)
+    const now = Date.now()
+    if (geometryTask === undefined) geometryDeadline = now + GEOMETRY_MAX_WAIT_MS
+    else clearTimeout(geometryTask)
+    const delay = Math.max(0, Math.min(GEOMETRY_SETTLE_MS, geometryDeadline - now))
+    geometryTask = setTimeout(flushGeometry, delay)
   }
   const observeGeometry = (scrollport: HTMLElement, seat: HTMLElement): void => {
     const flow = scrollport.querySelector<HTMLElement>(CHAT_FLOW_SELECTOR)
@@ -245,7 +285,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     previous?.observer.disconnect()
     geometryBindings.delete(scrollport)
     if (flow === null || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(() => { reconcileGeometry(scrollport, seat) })
+    const observer = new ResizeObserver(() => { scheduleGeometry(scrollport, seat) })
     geometryBindings.set(scrollport, { seat, flow, observer })
     observer.observe(scrollport)
     observer.observe(flow)
@@ -376,6 +416,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
 
   const structureObserver = new MutationObserver((records) => {
     if (!current()) return
+    editing?.handleMutations(records)
     const hooks = `${SCROLLPORT_SELECTOR}, ${COMPOSER_SEAT_SELECTOR}, ${CHAT_FLOW_SELECTOR}`
     if (!records.some(record => {
       const target = record.target instanceof Element ? record.target : record.target.parentElement
@@ -406,8 +447,14 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   view?.visualViewport?.addEventListener('resize', onViewportResize)
   syncStructureObserver()
   synchronizeGeometry()
+  editing = installComposerEditing(doc, (seat) => {
+    if (!current() || activeMode(doc) === null || phaseRootOf(seat)?.dataset.phase !== 'active') return false
+    activateSeat(seat)
+    return true
+  })
 
   return () => {
+    editing?.dispose()
     stateObserver.disconnect()
     structureObserver.disconnect()
     releaseGeometryObservers()
