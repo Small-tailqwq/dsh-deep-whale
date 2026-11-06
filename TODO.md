@@ -26,6 +26,6 @@
 - **[#23](https://github.com/Small-tailqwq/dsh-deep-whale/issues/23)：裙摆动画**：保留愿望，待评估动画素材与维护成本。
 - **按会话状态切换立绘**：保留 [PR #138](https://github.com/Small-tailqwq/dsh-deep-whale/pull/138)（@wjingshan）的思路，暂不排期。缺少思考、完成、失败三套配套立绘；实现时需覆盖按模型选择立绘与 `vision` 替身，不能只绑定右女仆。美术可与 ZipZipPipe（见 `maid-atelier/NOTICE`）协商，实现后保留 @wjingshan 的构思署名。
 - **输入框美术草稿**：`../dsh-deep-whale-issue93/maid-atelier/ps-assets/` 下有 5 张未入库 PNG（`maid-composer-frame-shell-v1`、`maid-composer-frame-v4`、`maid-composer-lace-tile-v1`、`maid-composer-lace-right-tile-v1/v2`），只存在本地 worktree，分支 `codex/issue-93-ultrawide-composer` 已合并。决定去留后挪到正式位置或删除，再移除该 worktree 和分支；入库前补 `NOTICE` 署名。
-- **内置插件图标替换**：两套皮肤的 `assets/plugin-icons/` 已备好 17 枚风格化 SVG，清单与约束见 `docs/plugin-artwork.md`，目前未接线、未提交。等官方开放皮肤替换内置插件图标的接口后，按其契约决定分发方式，覆盖宿主各图标位置的兼容（设置项、引导、官方包图标及回退），同步 `NOTICE`，并提高宿主版本下限。
+- **内置插件图标替换**：两套皮肤的 `assets/plugin-icons/` 已备好 17 枚风格化 SVG，清单与约束见 `docs/plugin-artwork.md`，目前未接线。等官方开放皮肤替换内置插件图标的接口后，按其契约决定分发方式，覆盖宿主各图标位置的兼容（设置项、引导、官方包图标及回退），同步 `NOTICE`，并提高宿主版本下限。
 
 常驻公告保留在 [#14](https://github.com/Small-tailqwq/dsh-deep-whale/issues/14)。
