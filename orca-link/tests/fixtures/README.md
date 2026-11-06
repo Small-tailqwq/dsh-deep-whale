@@ -4,10 +4,10 @@
 `renderToStaticMarkup` from the official DSH commit recorded in `hostCommit`.
 `sources` records Git blob IDs; `component` identifies the export or inline
 variant, and `name` is the reviewed expected ORCA redraw. Expected names are
-independent of the production matcher. `symbols` records all 194 official
+independent of the production matcher. `symbols` records all 196 official
 symbol drawings, and `symbolId` links each primitive variant to its artwork.
 
-The 264 variants cover every exported primitive/permission icon, both compact
+The 266 variants cover every exported primitive/permission icon, both compact
 AppsAdd weights, all four
 composer SVG branches, dock split/five drop zones, browser sandbox states,
 the shared ongoing StateDot at its default and installation-dialog sizes,
@@ -28,7 +28,7 @@ Run from `orca-link` against a local official Git object database:
 
 ```sh
 npm run test:host-icons -- --source /path/to/deepseek-harness
-npm run test:host-icons -- --source /path/to/deepseek-harness --ref dsh-v0.2.2-alpha.2
+npm run test:host-icons -- --source /path/to/deepseek-harness --ref dsh-v0.2.2-rc.1
 ```
 
 The default ref comes from the fixture's `hostCommit`. The command reads

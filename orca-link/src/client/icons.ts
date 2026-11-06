@@ -13,7 +13,7 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  * the art groups.
  *
  * Product icons use the host's semantic symbol IDs. Library-external SVGs
- * use distinctive drawing fragments from DSH 0.2.2-alpha.2 (f3803c96974a).
+ * use distinctive drawing fragments from DSH 0.2.2-rc.1 (66491b05e3f0).
  * Unmatched drawings, such as the brand wordmark and hero artwork, keep
  * their host geometry.
  */
@@ -345,6 +345,7 @@ const ICON_ART: Record<string, string> = {
   compass: ['<path d="M2 2h12v12H2zM5 11l6-6M7 5h4v4"/>'].join(''),
   cube: ['<path d="M2 6l4-4h8v8l-4 4H2zM2 6h8v8M10 6l4-4"/>'].join(''),
   document: ['<path d="M3 1.75h7L13 4.75v9.5H3zM9.5 1.75V5H13M5 8h6M5 11h4"/>'].join(''),
+  save: ['<path d="M2.25 1.75h8.5l3 3v9.5H2.25zM4.5 1.75v4h6v-4M4.5 14.25V9h7v5.25"/>'].join(''),
   eye: ['<path d="M1.5 8l4-4h5l4 4-4 4h-5zM6.5 6.5h3v3h-3z"/>'].join(''),
   'eye-off': ['<path d="M1.5 8l4-4h5l4 4-4 4h-5zM2 2l12 12"/>'].join(''),
   file: ['<path d="M3 1.75h7L13 4.75v9.5H3zM9.5 1.75V5H13"/>'].join(''),
@@ -427,6 +428,7 @@ function buildUsageCells(): SVGGElement {
 
 /** Official product glyph identities, independent of the theme's artwork. */
 const SYMBOL_ICONS = new Map<string, string>([
+  ['save-outline', 'save'],
   ['new-chat-outline', 'new-session'],
   ['search-outline', 'search'],
   ['globe-outline', 'globe'],
@@ -526,7 +528,7 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['apps-add-compact-outline', 'apps-add'],
 ])
 
-/** Inline glyph fragments verified against DSH 0.2.2-alpha.2 (f3803c96974a).
+/** Inline glyph fragments verified against DSH 0.2.2-rc.1 (66491b05e3f0).
  * Shared contours are keyed by their distinguishing drawing, not the frame.
  * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [

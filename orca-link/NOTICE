@@ -40,6 +40,6 @@ respective authors above, including embedded and transformed copies.
 
 The host SVG test fixtures in tests/fixtures/dsh-icons.json are
 rendered from deepseek-ai/deepseek-harness at commit
-f3803c96974ad4a94195fb97e5c637e9c2a3afe3, copyright (c) 2026 DeepSeek,
+66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db, copyright (c) 2026 DeepSeek,
 under the MIT License reproduced in tests/fixtures/DSH-LICENSE. These test
 fixtures are separate from the character artwork licensed above.
