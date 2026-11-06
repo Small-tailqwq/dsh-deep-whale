@@ -73,6 +73,7 @@
     "LICENSE-ARTWORK",
     "NOTICE",
     "README.md",
+    "docs",
     "assets/runtime",
     "locale/*.json",
     "assets/plugin-icon.svg"
