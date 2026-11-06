@@ -2745,16 +2745,6 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-overflow] > 
   pointer-events: none;
 }
 
-body[data-dsh-orca-link]
-  :where(button, input, textarea, select, [role='dialog'], [role='menu']):not(
-    [data-slot='conversation.input.left'] *,
-    [data-slot='conversation.input.right'] *,
-    [data-slot='sidebar.footer.action'] *,
-    [data-slot='settings.section'] *
-  ) {
-  border-color: var(--orca-line);
-}
-
 body[data-dsh-orca-link] :where(input, textarea, select):not(
     [data-slot='conversation.input.left'] *,
     [data-slot='conversation.input.right'] *,
@@ -2804,15 +2794,6 @@ body[data-dsh-orca-link] :where(button, [role='button']):not(
     [data-slot='settings.section'] *
   ) {
   transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
-}
-
-body[data-dsh-orca-link] :where(button:hover:not(:disabled), [role='button']:hover):not(
-    [data-slot='conversation.input.left'] *,
-    [data-slot='conversation.input.right'] *,
-    [data-slot='sidebar.footer.action'] *,
-    [data-slot='settings.section'] *
-  ) {
-  border-color: color-mix(in srgb, var(--orca-blue) 34%, transparent);
 }
 
 body[data-dsh-orca-link] :focus-visible:not(
