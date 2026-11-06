@@ -1,3 +1,4 @@
+import { makeAdmittedSkinManagerRoute } from './admitted-route.ts'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -15,7 +16,7 @@ import {
   type ShortcutInfo,
   type ShortcutIo,
 } from '../src/desktop-icon.ts'
-import { activeSkinTarget, makeSkinManagerRoute, MANAGED_END, MANAGED_START } from '../src/index.ts'
+import { activeSkinTarget, MANAGED_END, MANAGED_START } from '../src/index.ts'
 
 const EXE = 'C:\\Apps\\DeepSeek Harness\\DeepSeek Harness.exe'
 const EXE_ICON = `${EXE},0`
@@ -338,7 +339,7 @@ describe('desktop icon route', () => {
     expect(activeSkinTarget([patch(true, false)], blocked)).toBe('official')
   })
 
-  async function call(route: ReturnType<typeof makeSkinManagerRoute>, method: string, body?: unknown): Promise<{ status: number, body: Record<string, unknown> }> {
+  async function call(route: ReturnType<typeof makeAdmittedSkinManagerRoute>, method: string, body?: unknown): Promise<{ status: number, body: Record<string, unknown> }> {
     const { EventEmitter } = await import('node:events')
     const req = Object.assign(new EventEmitter(), { method, headers: {} as Record<string, string>, destroy() {} })
     return new Promise((resolve) => {
@@ -356,13 +357,13 @@ describe('desktop icon route', () => {
   }
 
   it('reports status only when the control exists and forwards toggles and switches', async () => {
-    const plain = makeSkinManagerRoute(() => catalog, () => {})
+    const plain = makeAdmittedSkinManagerRoute(() => catalog, () => {})
     expect((await call(plain, 'GET')).body.desktopIcon).toBeUndefined()
     expect((await call(plain, 'POST', { action: 'desktop-icon', enabled: true })).status).toBe(400)
 
     const followed: string[] = []
     let enabled = false
-    const route = makeSkinManagerRoute(() => catalog, () => {}, () => new Map(), undefined, {
+    const route = makeAdmittedSkinManagerRoute(() => catalog, () => {}, () => new Map(), undefined, {
       enabled: () => enabled,
       setEnabled: async (next) => {
         enabled = next
