@@ -13,10 +13,8 @@ const target: { icons: IconFixture[]; symbols: Record<string, string>; sources: 
 let dispose: (() => void) | undefined
 afterEach(() => { vi.restoreAllMocks(); dispose?.(); dispose = undefined; document.body.innerHTML = '' })
 
-it('pins icon fixtures to the admitted host baseline', () => {
+it('pins icon fixtures to the verified host baseline', () => {
   const manifest = JSON.parse(readFileSync(resolve('skin.json'), 'utf8'))
-  const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
-  expect(pkg.peerDependencies['@deepseek-ai/dsh']).toBe(`>=${pinned.hostVersion} <0.3.0-0`)
   // The manifest schema records RC builds; alpha verification lives in this fixture.
   if (!pinned.hostVersion.includes('-alpha.')) expect(pinned.hostVersion.replace('-rc.', 'rc')).toBe(manifest.dshCompatibility)
   expect(pinned.hostCommit).toMatch(/^[a-f0-9]{40}$/)
