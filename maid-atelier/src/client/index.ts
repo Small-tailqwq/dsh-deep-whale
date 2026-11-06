@@ -200,7 +200,8 @@ const PROJECTED_STATE_SELECTOR = [
 const WORKSPACE_FLAGS = [
   'data-maid-workspace-group',
   'data-maid-workspace-row',
-  'data-maid-workspace-active',
+  'data-maid-workspace-nested',
+  'data-maid-workspace-sessions',
   'data-maid-session-row',
   'data-maid-session-flat',
   'data-maid-session-first',
@@ -417,6 +418,14 @@ function decorateSidebar(ownedNodes: Set<Element>, decoratedElements: Set<HTMLEl
 }
 
 function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
+  // The host removes exit clones after their fade. Retract and release detached
+  // nodes before the sidebar lookup, including when the whole sidebar unmounts.
+  for (const element of decoratedElements) {
+    if (element.isConnected) continue
+    element.removeAttribute(SIDEBAR_FOOTER_FLAG)
+    for (const flag of WORKSPACE_FLAGS) element.removeAttribute(flag)
+    decoratedElements.delete(element)
+  }
   const sidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (!sidebar) return
 
@@ -449,45 +458,52 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
       return
     }
 
-    let workspaceRow: HTMLElement | undefined
-    let sessionRows: HTMLElement[] = []
-    const decorateGroup = (): void => {
-      if (!workspaceRow) return
-
-      claim(workspaceRow, 'data-maid-workspace-row')
-      if (workspaceRow.parentElement) {
-        claim(workspaceRow.parentElement, 'data-maid-workspace-group')
-      }
-      sessionRows.forEach((sessionRow) => {
-        claim(sessionRow, 'data-maid-session-row')
-      })
-      if (sessionRows[0]) claim(sessionRows[0], 'data-maid-session-first')
-      if (sessionRows.at(-1)) claim(sessionRows.at(-1)!, 'data-maid-session-last')
-
-      const containsCurrent = workspaceRow.getAttribute('aria-expanded') === 'true'
-        && sessionRows.some(sessionRow => sessionRow.getAttribute('aria-selected') === 'true')
-      if (containsCurrent) claim(workspaceRow, 'data-maid-workspace-active')
-    }
-
+    // Native groups render child workspaces before their own sessions, and
+    // Tooltip may wrap either kind of row. Resolve each row's nearest section
+    // instead of assigning sessions to the last workspace in flattened order.
+    const sessionsByGroup = new Map<HTMLElement, HTMLElement[]>()
     rows.forEach((row) => {
+      const group = row.closest<HTMLElement>("[class*='groupSection']")
       if (row.hasAttribute('aria-expanded')) {
-        decorateGroup()
-        workspaceRow = row
-        sessionRows = []
-      } else if (workspaceRow && row.hasAttribute('aria-selected')) {
-        sessionRows.push(row)
+        claim(row, 'data-maid-workspace-row')
+        if (group) {
+          claim(group, 'data-maid-workspace-group')
+          if (group.parentElement?.closest("[class*='groupSection']")) {
+            claim(row, 'data-maid-workspace-nested')
+          }
+        }
+      } else if (row.hasAttribute('aria-selected')) {
+        claim(row, 'data-maid-session-row')
+        if (group) {
+          const sessions = sessionsByGroup.get(group) ?? []
+          sessions.push(row)
+          sessionsByGroup.set(group, sessions)
+        }
       }
     })
-    decorateGroup()
+    for (const [group, sessionRows] of sessionsByGroup) {
+      claim(group, 'data-maid-workspace-sessions')
+      if (sessionRows[0]) claim(sessionRows[0], 'data-maid-session-first')
+      if (sessionRows.at(-1)) claim(sessionRows.at(-1)!, 'data-maid-session-last')
+    }
   })
 
   const touched = new Set<HTMLElement>([...current.keys(), ...desired.keys()])
   for (const element of touched) {
     const before = current.get(element)
     const after = desired.get(element)
+    /* A row the host is fading out lives in a clone it parks in the exit
+       overlay: AnimatedRows clones the row, clears `data-row-key`, marks the
+       clone inert and appends it to an aria-hidden layer before dropping the
+       element about 100ms later. That clone sits outside every [role='tree'],
+       so it never reaches `desired` above; stripping its hooks there handed
+       the row back to the host's native folder glyph for the whole fade. Hold
+       the hooks still inside the overlay and let the host remove the element
+       itself; the next structural scan retracts and releases detached rows. */
+    const exiting = element.closest("[inert], [aria-hidden='true']") !== null
     if (before !== undefined) {
       for (const flag of before) {
-        if (!after?.has(flag)) element.removeAttribute(flag)
+        if (!after?.has(flag) && !exiting) element.removeAttribute(flag)
       }
     }
     if (after !== undefined) {
@@ -495,6 +511,11 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
         if (!before?.has(flag)) element.setAttribute(flag, '')
       }
       if (after.size > 0) decoratedElements.add(element)
+    } else if (exiting) {
+      // Keep the fading clone on the retraction ledger even though this pass no
+      // longer claims it: the host drops the element within ROW_FADE_MS, but an
+      // explicit dispose must not leave skin hooks behind if it outlives that.
+      decoratedElements.add(element)
     }
   }
 }
@@ -594,7 +615,8 @@ export function apply(ctx: PanelContext): void {
       delete element.dataset.maidSidebarFooter
       delete element.dataset.maidWorkspaceGroup
       delete element.dataset.maidWorkspaceRow
-      delete element.dataset.maidWorkspaceActive
+      delete element.dataset.maidWorkspaceNested
+      delete element.dataset.maidWorkspaceSessions
       delete element.dataset.maidSessionRow
       delete element.dataset.maidSessionFlat
       delete element.dataset.maidSessionFirst
@@ -702,7 +724,11 @@ export function apply(ctx: PanelContext): void {
   // every frame, and each additional CSSOM write is another style invalidation
   // through the same rule. The two consumers that used to be mirrored from it
   // are derived here instead, where they cost nothing per frame.
-  widthSheet.sheet!.insertRule(`body[data-dsh-maid-atelier] :is(${SIDEBAR_COLUMN_SELECTOR}, [data-cordis-panel], [data-maid-settings-backdrop-frame], [data-maid-table-lightbox]) { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: clamp(54px, calc(var(--maid-sidebar-width) * 0.2575), 94px); --maid-sidebar-mascot-width: min(320px, calc(var(--maid-sidebar-width) * 0.82)); }`)
+  // A selector list rather than one :is(): each branch keeps its own style
+  // bucket, so transcript elements never evaluate this rule on a style pass.
+  const widthTargets = [SIDEBAR_COLUMN_SELECTOR, '[data-cordis-panel]', '[data-maid-settings-backdrop-frame]', '[data-maid-table-lightbox]']
+    .map(target => `body[data-dsh-maid-atelier] ${target}`).join(', ')
+  widthSheet.sheet!.insertRule(`${widthTargets} { --maid-sidebar-width: 280px; --maid-sidebar-swag-height: clamp(54px, calc(var(--maid-sidebar-width) * 0.2575), 94px); --maid-sidebar-mascot-width: min(320px, calc(var(--maid-sidebar-width) * 0.82)); }`)
   // The official frame rules reference env(titlebar-area-height), but the
   // CSS-modules pipeline rewrites the env() identifier there too, so the
   // title-bar row silently falls back to an auto row: expanding the sidebar
@@ -721,33 +747,17 @@ export function apply(ctx: PanelContext): void {
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"][data-desktop] { grid-template-rows: 32px 1fr; }')
   appendRule('body[data-dsh-maid-atelier] [class*=\"frame\"] [class*=\"handle\"] { top: var(--maid-titlebar-height, 0px); }')
 
-  // ── 对话区场景压暗层 ────────────────────────────────────────────────
-  // 宫殿背景与两位女仆同属 centerCol 内的 character-stage（z-index: 0），
-  // 聊天内容按 DOM 顺序绘制在其上。这里用同层 ::after 压暗整个场景，不新增
-  // DOM、不遮挡聊天内容、不吃鼠标事件；聊天态与暗色主题各加深一档，强度由
-  // --maid-scene-dim / --maid-scene-dim-accent 控制。
-  appendRule('body[data-dsh-maid-atelier] { --maid-scene-dim: rgba(9, 19, 51, 0.18); --maid-scene-dim-accent: rgba(9, 19, 51, 0.28); }')
-  appendRule('body[data-dsh-maid-atelier][data-maid-chat-active] { --maid-scene-dim: rgba(9, 19, 51, 0.32); --maid-scene-dim-accent: rgba(9, 19, 51, 0.42); }')
-  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-scene-dim: rgba(2, 6, 20, 0.32); --maid-scene-dim-accent: rgba(2, 6, 20, 0.44); }')
-  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-chat-active] { --maid-scene-dim: rgba(2, 6, 20, 0.42); --maid-scene-dim-accent: rgba(2, 6, 20, 0.54); }')
-  appendRule('body[data-dsh-maid-atelier] [data-skin-chrome=character-stage]::after { content: \"\"; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(180deg, var(--maid-scene-dim) 0%, var(--maid-scene-dim-accent) 100%); }')
+  // Only the decorative stage is filtered; native content stays outside it.
+  appendRule('body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-skin-chrome=character-stage] { filter: brightness(var(--maid-scene-brightness-light, 0.8)); }')
 
-  // ── 过程行与走时行的文字对比度 ──────────────────────────────────────
-  // 过程行原有的白胶囊底会盖住聊天卡片的模糊层，这里去掉底色只提字色：
-  // 深蓝字直接浮在磨砂背景上，既不抢画面也保证可读。走时行（“已完成，
-  // 用时 …”）同理，并取消它的整体淡化。
-  appendRule('body[data-dsh-maid-atelier] { --maid-process-ink: #33456f; }')
-  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] { --maid-process-ink: #dde6f7; }')
-  appendRule('body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }')
-  appendRule('body[data-dsh-maid-atelier] [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }')
-  appendRule('body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }')
-  appendRule('body[data-dsh-maid-atelier] [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }')
+  appendRule('body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) { --maid-process-ink: #33456f; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-step-process-content] > [data-chat-anchor-key] { background: transparent !important; border-radius: 0; box-shadow: none; color: var(--maid-process-ink) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-step-process-content] > [data-chat-anchor-key] :is(span, p, div, a, code, strong, em) { color: inherit !important; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=turn-process] { opacity: 1 !important; color: var(--maid-process-ink) !important; }')
+  appendRule('html[data-maid-plain-process=on] body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=turn-process] [data-turn-process] { color: inherit !important; font-weight: 500; background: transparent !important; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }')
 
-  // ── 聊天阅读面透明度 ────────────────────────────────────────────────
-  // 皮肤原本把 assistant 卡片写成 #f8fafff0（94% 白），整片盖住女仆立绘；
-  // 改为半透明并加背景模糊，让轮廓透出来（沉浸），文字靠模糊与深色保持可读。
-  appendRule('body[data-dsh-maid-atelier] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }')
-  appendRule('body[data-dsh-maid-atelier][data-ds-dark-theme] [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(10, 20, 44, 0.6) !important; }')
+  // Blur separates the text from the artwork visible through the message.
+  appendRule('body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) [data-chat-flow-kind=assistant-step] > * > * > * > div[class*=markdown] { background: rgba(248, 250, 255, 0.55) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }')
 
   const widthRule = widthSheet.sheet!.cssRules[0] as CSSStyleRule
   const titlebarRule = widthSheet.sheet!.cssRules[1] as CSSStyleRule

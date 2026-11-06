@@ -194,7 +194,13 @@ body[data-dsh-maid-atelier] [id='root'] {
    层叠上下文抬升,保证挂载在 shell.overlay 槽的浮动面板(如文件浏览器)
    在视觉与点击层级上始终位于皮肤之上。 */
 body[data-dsh-maid-atelier] [data-shell-overlay] {
+  /* Overlay surfaces need an opaque base even when the conversation is transparent. */
+  --dsw-alias-bg-base: #e7edf8;
   z-index: 1000;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-shell-overlay] {
+  --dsw-alias-bg-base: #0a132f;
 }
 
 /* The native leading seat must clear the decorated header (21), while staying
@@ -556,7 +562,7 @@ body[data-dsh-maid-atelier][data-maid-composer-motion]
    (the plugin page after an install, for one) scrolled the whole column up by
    the band's height and exposed the frame below. `clip` keeps the clipping
    but makes the column no longer a scroll container. */
-body[data-dsh-maid-atelier] :has(> [data-skin-chrome='bottom-trim']) {
+body[data-dsh-maid-atelier] :where([class*='centerCol']):has(> [data-skin-chrome='bottom-trim']) {
   overflow: clip;
 }
 
@@ -637,9 +643,9 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
     animation: none;
   }
 
-  body[data-dsh-maid-atelier] [data-maid-workspace-active]::before,
-  body[data-dsh-maid-atelier] [data-maid-workspace-active] > [class*='folder'],
-  body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] {
+  body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active]::before,
+  body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active] > [class*='folder'],
+  body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active] [class*='projectText'] {
     animation: none;
   }
 }
@@ -824,6 +830,18 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.workspaces']
     100% min(100%, var(--maid-sidebar-swag-height));
   mask-position: top, bottom;
   mask-repeat: no-repeat;
+}
+
+/* Reclaim both the ornament's footer seat and the list's curved fade. The
+   width rule is injected later, so scope this override to the preference. */
+html[data-maid-sidebar-lace='off'] body[data-dsh-maid-atelier] [class*='sidebarCol'] {
+  --maid-sidebar-swag-height: 0px;
+}
+
+html[data-maid-sidebar-lace='off'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar.workspaces'] [class*='treeBody'] > [class*='list'] {
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-mascot'] {
@@ -1201,6 +1219,11 @@ body[data-dsh-maid-atelier] [data-maid-sidebar-footer]::before {
     saturate(1.04)
     contrast(1.04)
     drop-shadow(0 4px 9px rgba(2, 8, 28, 0.26));
+}
+
+html[data-maid-sidebar-lace='off'] body[data-dsh-maid-atelier]
+  [data-maid-sidebar-footer]::before {
+  content: none;
 }
 
 body[data-dsh-maid-atelier]
@@ -1792,6 +1815,21 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
   z-index: 2;
 }
 
+/* Convert the host's header collapse into unitless progress: the page sheet
+   stays continuous at rest, then the pinned bar covers the scrolling cards. */
+body[data-dsh-maid-atelier] [data-plugin-bar][data-natural]::before {
+  background: #f9fbff;
+  opacity: clamp(0, tan(atan2(
+    var(--plugin-header-rest-height) - var(--plugin-header-paint-height),
+    var(--plugin-header-rest-height) - var(--plugin-header-compact-height)
+  )), 1);
+  transition: opacity 240ms ease;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-plugin-bar][data-natural]::before {
+  background: #0a122a;
+}
+
 /* Host primitives spend `disabled` as a 40% opacity budget, priced against the
    opaque floor the skin gave up. On the sheet a 12px label lands near 2.6:1;
    a third more opacity keeps the state readable while still reading as
@@ -1889,20 +1927,20 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-sidebar] {
   color: #e7ecf7;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))[class*='sectionHeader'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
   color: #d9bd83;
   font-family: var(--maid-workspace-font);
   letter-spacing: 0.025em;
   text-shadow: 0 1px 2px rgba(2, 7, 24, 0.62);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))[class*='sectionHeader'] [class*='sectionLabel'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='sectionLabel'] {
   color: #d9bd83;
   font-size: 15px;
   font-weight: 500;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))[class*='sectionHeader'] [class*='iconButton'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] {
   position: relative;
   color: #d9bd83;
   border: 1px solid transparent;
@@ -1910,7 +1948,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='d
   transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))[class*='sectionHeader'] [class*='iconButton']:is(:hover, :focus-visible) {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton']:is(:hover, :focus-visible) {
   color: #fff1cf;
   border-color: rgba(225, 191, 124, 0.56);
   background: rgba(91, 119, 188, 0.2);
@@ -1918,7 +1956,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='d
   outline: none;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))[class*='sectionHeader'] [class*='iconButton'] svg {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] svg {
   color: inherit;
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.68));
 }
@@ -1954,12 +1992,12 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='search'][class*='sear
     0 4px 12px rgba(2, 7, 24, 0.2);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))[class*='searchInput'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
   color: #f8f3e8;
   font-family: var(--maid-workspace-font);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] :not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))[class*='searchInput']::placeholder {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))::placeholder {
   color: #aeb9d3;
   opacity: 1;
 }
@@ -2294,6 +2332,19 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
        hit-tests as the host composer seat: the column's stacking context is what
        keeps the 1000-layer overlay above the conversation chrome. */
 
+  /* -- host drawer -------------------------------------------------------- */
+  /* Below 768px the host runs the column as its own drawer behind a
+     `z-index: 70` scrim that closes it on tap. The floating column above keeps
+     its own `z-index: 60`, which put the scrim over every tap meant for the
+     drawer; it takes the host drawer's layer instead. The collapsed drawer
+     column is `inert` and parked off-canvas, so the corner and topbar
+     affordances cannot live in it; the host's own opener replaces them there. */
+  body[data-dsh-maid-atelier]
+    [id='root'] > div[data-slot='root'] > div[class*='frame'][data-sidebar-drawer]:not([data-sidebar-collapsed])
+    [class*='sidebarCol'] {
+    z-index: 71;
+  }
+
   /* -- corner ------------------------------------------------------------- */
   /* A fixed 48px brand button in the top-left. The box itself stays inert so it
      never eats a tap meant for the header behind it; only the toggle inside it
@@ -2331,7 +2382,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
     [class*='sidebarCol']
-    :is(div:has(> [class*='logoRow']), [class*='logoRow']) {
+    :is(div[data-maid-sidebar-root], [class*='logoRow']) {
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: row !important;
@@ -2357,7 +2408,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
     [class*='sidebarCol']
-    div:has(> [class*='logoRow']) > :not([class*='logoRow']) {
+    div[data-maid-sidebar-root] > :not([class*='logoRow']) {
     display: none !important;
   }
 
@@ -2447,7 +2498,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   html[data-maid-nav-mode='topbar'] body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
     [class*='sidebarCol']
-    div:has(> [class*='logoRow']) {
+    div[data-maid-sidebar-root] {
     flex-direction: row !important;
     align-items: center !important;
     gap: 4px !important;
@@ -2650,7 +2701,7 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     width: min(300px, 84vw) !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
-    z-index: 60 !important;
+    z-index: 60;
     border-right: 0.5px solid var(--dsw-alias-border-l3) !important;
     box-shadow: 24px 0 64px rgba(8, 17, 48, 0.35) !important;
     overflow-y: auto !important;
@@ -2768,11 +2819,18 @@ body[data-dsh-maid-atelier] [data-slot='sidebar.workspaces'] ::-webkit-scrollbar
 
 /* Let older hosts keep their subtitle without clipping at compact heights. */
 body[data-dsh-maid-atelier] [data-maid-workspace-row] {
+  /* The host writes one indent step per nesting level onto the group section
+     (`--dsh-workspace-indent: depth * 12px`) and its own rows read it back in
+     `padding-inline-start`. The skin's padding shorthand below resets that
+     longhand, so "group by workspace tree" rendered every level flush left.
+     Restate the host's step against the skin's own inline padding; the 0px
+     fallback keeps hosts that predate the variable on today's flat geometry. */
   isolation: isolate;
   position: relative;
   height: auto;
   min-height: var(--maid-workspace-row-height, 54px);
   padding: clamp(1px, calc((var(--maid-workspace-row-height, 54px) - 22px) * 0.1875 + 1px), 7px) 10px clamp(1px, calc((var(--maid-workspace-row-height, 54px) - 22px) * 0.1875 + 1px), 7px);
+  padding-inline-start: calc(10px + var(--dsh-workspace-indent, 0px));
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -2823,7 +2881,7 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row] [class*='meta'] {
   font-size: 12px;
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-row][aria-expanded='true']:not([data-maid-workspace-active]) {
+body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-nested])[aria-expanded='true']:not([data-maid-workspace-active]) {
   border-radius: 6px;
   background: linear-gradient(100deg, rgba(72, 98, 161, 0.32), rgba(25, 46, 95, 0.16));
   box-shadow:
@@ -2833,33 +2891,36 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row][aria-expanded='true']:not(
   color: #f6e5c1;
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-row][aria-expanded='true']:not([data-maid-workspace-active]):hover {
+body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-nested])[aria-expanded='true']:not([data-maid-workspace-active]):hover {
   background: linear-gradient(100deg, rgba(83, 111, 178, 0.42), rgba(32, 55, 108, 0.24));
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-active] {
+/* The host also highlights ancestors of the current workspace, including
+   collapsed branches. Read its folder state directly rather than inferring it
+   from whichever session rows are currently mounted. */
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active] {
   isolation: isolate;
   color: #fff8e8;
   background: transparent;
   text-shadow: 0 1px 2px rgba(2, 8, 28, 0.54);
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-active] > [class*='folder'] {
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active] > [class*='folder'] {
   width: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 30px);
   height: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 38px);
   margin-block-start: 0;
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] {
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active] [class*='projectText'] {
   margin-inline-start: -4px;
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-active]:hover {
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active]:hover {
   background: transparent;
 }
 
 /* Scale the rolled edges with the banner; preserve the original 54px geometry. */
-body[data-dsh-maid-atelier] [data-maid-workspace-active]::before {
+body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-nested])[data-maid-workspace-active]::before {
   --maid-workspace-ribbon-box: calc(var(--maid-workspace-row-height, 54px) * 10 / 9);
   --maid-workspace-ribbon-overhang: calc((var(--maid-workspace-ribbon-box) - var(--maid-workspace-row-height, 54px)) / 2);
   content: '';
@@ -2889,9 +2950,97 @@ body[data-dsh-maid-atelier] [data-maid-workspace-active]::before {
    overlays, so their entrance fills `backwards` for the same reason as the
    session header above; the `::before` ribbon below owns no descendants and can
    keep `both`. */
-body[data-dsh-maid-atelier] [data-maid-workspace-active] > [class*='folder'],
-body[data-dsh-maid-atelier] [data-maid-workspace-active] [class*='projectText'] {
+body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-nested])[data-maid-workspace-active] > [class*='folder'],
+body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-nested])[data-maid-workspace-active] [class*='projectText'] {
   animation: maidAtelierWorkspaceRibbonContentEnter 260ms 90ms cubic-bezier(0.2, 0.74, 0.22, 1) backwards;
+}
+
+/* Nested workspaces keep the same inset plaque in every state, so their
+   background, crest and label all describe the same level of the native tree. */
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-nested] {
+  min-height: 40px;
+  padding-block: 3px;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-nested],
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-nested]:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-nested] > [class*='folder'] {
+  width: 24px;
+  height: 28px;
+  margin-block-start: 0;
+  margin-inline-start: 0;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested] [class*='title'] {
+  font-size: 14px;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested]::before {
+  content: '';
+  position: absolute;
+  inset: 4px 2px 4px calc(2px + var(--dsh-workspace-indent, 0px));
+  z-index: 0;
+  border: 1px solid rgba(157, 176, 214, 0.34);
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgba(62, 88, 148, 0.22), rgba(31, 52, 106, 0.12));
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested]:hover::before {
+  border-color: rgba(190, 203, 233, 0.55);
+  background: linear-gradient(90deg, rgba(82, 111, 174, 0.28), rgba(45, 71, 132, 0.18));
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-active]::before {
+  border-color: rgba(226, 190, 112, 0.72);
+  background: linear-gradient(90deg, rgba(82, 111, 184, 0.74), rgba(43, 70, 139, 0.62) 72%, rgba(20, 42, 94, 0.5));
+  box-shadow:
+    inset 0 1px rgba(255, 244, 215, 0.2),
+    inset 0 -1px rgba(7, 19, 55, 0.28),
+    0 3px 9px rgba(2, 8, 28, 0.3);
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-active]::after {
+  content: '';
+  position: absolute;
+  inset: 12px auto 12px calc(7px + var(--dsh-workspace-indent, 0px));
+  width: 3px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: linear-gradient(#fff0c5, #d4a951);
+  box-shadow: 0 0 5px rgba(231, 199, 128, 0.72);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-active] [class*='projectText'] {
+  margin-inline-start: 0;
+}
+
+/* Bridge the child-workspace block to this group's own sessions below it.
+   Container height follows native expansion; no row reordering or measurement. */
+body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > [role='group'] {
+  position: relative;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > [role='group']::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  bottom: -2px;
+  left: calc(8px + var(--dsh-workspace-indent, 0px));
+  z-index: 0;
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, rgba(224, 190, 120, 0.62) 0 3px, transparent 3px 7px);
+  pointer-events: none;
+}
+
+/* Top-level cards reach the row edge; nested plaques end 4px above it. */
+body[data-dsh-maid-atelier] [role='tree'] > [data-maid-workspace-sessions] > [role='group']::before {
+  top: -2px;
 }
 
 @keyframes maidAtelierWorkspaceRibbonEnter {
@@ -2935,6 +3084,10 @@ body[data-dsh-maid-atelier] [data-maid-session-row] {
   min-width: 0;
   height: 32px;
   padding: 0 8px 0 24px;
+  /* Session rows sit in the same group section as their Workspace, so the
+     host's per-depth step must move the whole branch — padding, status dot,
+     rail and trailing rule — not just the label. */
+  padding-inline-start: calc(24px + var(--dsh-workspace-indent, 0px));
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -2965,7 +3118,7 @@ body[data-dsh-maid-atelier] [data-maid-session-row]:hover:not([aria-selected='tr
 
 body[data-dsh-maid-atelier] [data-maid-session-row] > [class*='slot'] {
   position: absolute;
-  left: 6px;
+  left: calc(6px + var(--dsh-workspace-indent, 0px));
   z-index: 2;
 }
 
@@ -3013,7 +3166,7 @@ body[data-dsh-maid-atelier] [data-maid-session-row]::before {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 8px;
+  left: calc(8px + var(--dsh-workspace-indent, 0px));
   z-index: 1;
   width: 10px;
   background:
@@ -3049,7 +3202,7 @@ body[data-dsh-maid-atelier] [data-maid-session-row]:not(:last-child)::after {
   position: absolute;
   right: 8px;
   bottom: 0;
-  left: 28px;
+  left: calc(28px + var(--dsh-workspace-indent, 0px));
   height: 1px;
   background: rgba(183, 196, 226, 0.32);
   pointer-events: none;
@@ -3059,7 +3212,9 @@ body[data-dsh-maid-atelier]
   [data-maid-session-row]:not([data-maid-session-flat])[aria-selected='true']::after {
   content: '';
   position: absolute;
-  inset: 0 0 0 18px;
+  /* Absolute insets resolve against the row box, not its padding, so the
+     plaque carries the indent step explicitly. */
+  inset: 0 0 0 calc(18px + var(--dsh-workspace-indent, 0px));
   z-index: 0;
   width: auto;
   height: auto;
@@ -3542,11 +3697,7 @@ body[data-dsh-maid-atelier] [data-phase='hero']
   [data-composer-card] [class*='trailing'] button[class*='trigger'] {
   width: auto;
   min-width: 0;
-  /* Same host cap as the active composer; see the model trigger rule. The
-     240px floor keeps the reasoning-effort label whole once the row is
-     narrower than 45cqw of its container. */
-  max-width: 240px;
-  max-width: min(360px, max(240px, 45cqw));
+  max-width: 360px;
   height: 38px;
   padding: 0 4px 0 8px;
   border: 0;
@@ -3914,6 +4065,8 @@ body[data-dsh-maid-atelier] [data-composer-card] + div[class*='dock']::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  border-radius: 999px;
+  corner-shape: round;
   background: linear-gradient(
     90deg,
     transparent,
@@ -3965,7 +4118,10 @@ body[data-dsh-maid-atelier] [data-composer-card] button:not(
   transition: transform 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
-body[data-dsh-maid-atelier] [data-composer-card] button:hover:not(:disabled):not(
+/* Popup triggers stay put: the host anchors its floating menu to them, so a
+   lifted trigger dragged the open menu along and its tooltip anchors caught up
+   a frame late. */
+body[data-dsh-maid-atelier] [data-composer-card] button:hover:not(:disabled):not([aria-haspopup]):not(
     [data-slot='conversation.input.left'] *,
     [data-slot='conversation.input.right'] *
   ) {
@@ -4085,15 +4241,11 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card] button[cl
 }
 
 /* Model identity remains one control, but name and reasoning effort have
-   separate visual jobs: navy identifies the route, gold identifies compute.
-   Keep the host's row-relative cap and add a 240px floor: host decorations
-   such as the 0.2.1 Flash release tag widen the label, and a bare 45cqw cap
-   ellipsizes the effort once the composer row gets narrow. */
+   separate visual jobs: navy identifies the route, gold identifies compute. */
 body[data-dsh-maid-atelier] [data-composer-card] [class*='trailing']
   button[aria-haspopup='menu'] {
   height: 32px;
-  max-width: 240px;
-  max-width: min(360px, max(240px, 45cqw));
+  max-width: 360px;
   padding: 0 5px 0 8px;
   border-radius: 10px;
   color: #314979;
@@ -4248,12 +4400,6 @@ body[data-dsh-maid-atelier] [data-composer-card]
     min-width: 34px;
     height: 34px;
   }
-
-  /* The host row is a size container and measures itself: it drops the model
-     text through [data-model-compact] only when the controls genuinely do not
-     fit. Hiding the effort label here made 思考强度 disappear whenever the
-     composer row was narrower than this breakpoint, e.g. with the right
-     sidebar open, so the label now follows the host cap above instead. */
 }
 
 @media (max-width: 700px) {
@@ -4452,11 +4598,13 @@ body[data-dsh-maid-atelier] [data-turn-trigger]:hover {
    row (the host does not portal it), so it must stay out of the porcelain
    surface below: the tooltip keeps the host's own dark plate under a static
    white label, which a light bubble background would render unreadable. */
-/* 0.2.0-rc.2 adds a right-aligned `question-reply` chat node for answers that
-   arrive after the question timed out; it is the user's own words, so it
-   wears the user bubble's plate. The semantic row owns one bubble child. */
+/* Question replies wrap their shared bubble in a width-only bubbleWidth
+   container. Match the bubble class token so only the content gets a plate. */
+/* Command input echoes such as `/goal` use their own row instead of userRow. */
 body[data-dsh-maid-atelier] [class*='userRow'] [class*='bubble']:not([role='tooltip']),
-body[data-dsh-maid-atelier] [data-question-reply] > [class*='bubble'] {
+body[data-dsh-maid-atelier] [data-command-input] [class*='bubble']:not([role='tooltip']),
+body[data-dsh-maid-atelier] [data-question-reply]
+  :is([class$='_bubble'], [class*='_bubble ']):not([role='tooltip']) {
   border: 1px solid rgba(197, 164, 104, 0.48);
   background: rgba(232, 237, 249, 0.95);
   box-shadow: 0 6px 20px rgba(19, 38, 87, 0.1);
@@ -4464,7 +4612,10 @@ body[data-dsh-maid-atelier] [data-question-reply] > [class*='bubble'] {
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [class*='userRow'] [class*='bubble']:not([role='tooltip']),
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-question-reply] > [class*='bubble'] {
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-command-input] [class*='bubble']:not([role='tooltip']),
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-question-reply]
+  :is([class$='_bubble'], [class*='_bubble ']):not([role='tooltip']) {
   background: rgba(30, 47, 90, 0.97);
 }
 
@@ -4475,13 +4626,36 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-question-reply] > [class*=
    hook is renderer-independent: rebind the host bubble token there so any
    renderer painting `--dsw-specific-bubble` gets the maid plate. */
 body[data-dsh-maid-atelier]
-  :is([data-chat-flow-kind='user'], [data-chat-flow-kind='steering']) {
+  :is([data-chat-flow-kind='user'], [data-chat-flow-kind='steering'], [data-chat-flow-kind='command-input'], [data-chat-flow-kind='question-reply']) {
   --dsw-specific-bubble: rgba(232, 237, 249, 0.95);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  :is([data-chat-flow-kind='user'], [data-chat-flow-kind='steering']) {
+  :is([data-chat-flow-kind='user'], [data-chat-flow-kind='steering'], [data-chat-flow-kind='command-input'], [data-chat-flow-kind='question-reply']) {
   --dsw-specific-bubble: rgba(30, 47, 90, 0.97);
+}
+
+/* The completion row owns both the action icons and the usage/clock text. */
+body[data-dsh-maid-atelier] [data-turn-tail] > [data-clock='end'] {
+  box-sizing: border-box;
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  height: auto;
+  min-height: calc(36px + var(--dsh-content-font-delta, 0px));
+  flex-wrap: wrap;
+  padding: 3px 8px;
+  margin-left: 0;
+  border: 1px solid rgba(197, 164, 104, 0.42);
+  border-radius: 10px;
+  background: rgba(248, 250, 255, 0.94);
+  box-shadow: 0 4px 14px rgba(19, 38, 87, 0.08);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme] [data-turn-tail] > [data-clock='end'] {
+  border-color: rgba(211, 180, 119, 0.4);
+  background: rgba(18, 31, 67, 0.94);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
 /* Assistant steps expose a stable flow-kind hook. The three intermediate
@@ -4578,7 +4752,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
+  [data-maid-table-frame] {
   position: relative;
   box-sizing: border-box;
   width: max-content;
@@ -4597,9 +4771,9 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
+  [data-maid-table-frame]:hover,
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
+  [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
   border-color: rgba(197, 164, 104, 0.48);
   box-shadow:
     0 0 0 1px rgba(91, 214, 219, 0.22),
@@ -4608,16 +4782,16 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
+  [data-maid-table-frame] {
   border-color: rgba(211, 180, 119, 0.28);
   background: rgba(18, 31, 67, 0.64);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
+  [data-maid-table-frame]:hover,
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
+  [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
   border-color: rgba(211, 180, 119, 0.54);
   box-shadow:
     0 0 0 1px rgba(91, 214, 219, 0.18),
@@ -4626,12 +4800,12 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > table {
+  [data-maid-table-frame] > table {
   margin-inline: auto;
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand] {
+  [data-maid-table-frame] > [data-maid-table-expand] {
   position: absolute;
   z-index: 3;
   top: 8px;
@@ -4641,15 +4815,14 @@ body[data-dsh-maid-atelier]
   place-items: center;
   width: 32px;
   height: 32px;
+  padding: 0;
   border: 1px solid rgba(197, 164, 104, 0.62);
-  border-radius: 7px;
+  border-radius: 8px;
   color: #172347;
   background: rgba(252, 250, 245, 0.96);
   box-shadow:
-    0 0 0 1px rgba(91, 214, 219, 0.18),
-    0 8px 22px rgba(19, 38, 87, 0.16),
+    0 3px 10px rgba(19, 38, 87, 0.14),
     inset 0 1px rgba(255, 255, 255, 0.82);
-  font-size: 19px;
   line-height: 1;
   cursor: zoom-in;
   opacity: 0;
@@ -4662,19 +4835,24 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand]::before {
-  content: '⤢';
+  [data-maid-table-frame] > [data-maid-table-expand]::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M10 3h3v3M13 3 9 7M3 10v3h3M3 13l4-4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand][hidden] {
+  [data-maid-table-frame] > [data-maid-table-expand][hidden] {
   display: none;
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:not([data-maid-table-scroll-suppressed]):hover,
+  [data-maid-table-frame]:hover,
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
+  [data-maid-table-frame]:has(> [data-maid-table-expand]:focus-visible) {
   border-color: rgba(197, 164, 104, 0.48);
   box-shadow:
     0 0 0 1px rgba(91, 214, 219, 0.22),
@@ -4683,9 +4861,9 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable]:not([data-maid-table-scroll-suppressed]):hover > [data-maid-table-expand],
+  [data-maid-table-frame][data-maid-table-expandable]:hover > [data-maid-table-expand],
 body[data-dsh-maid-atelier]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame][data-maid-table-expandable]:has(> [data-maid-table-expand]:focus-visible) > [data-maid-table-expand] {
+  [data-maid-table-frame][data-maid-table-expandable]:has(> [data-maid-table-expand]:focus-visible) > [data-maid-table-expand] {
   opacity: 1;
   transform: none;
 }
@@ -4697,12 +4875,12 @@ body[data-dsh-maid-atelier]
    table from chaining into the page. */
 @media (hover: none), (pointer: coarse) {
   body[data-dsh-maid-atelier]
-    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand] {
+    [data-maid-table-frame] > [data-maid-table-expand] {
     display: none;
   }
 
   body[data-dsh-maid-atelier]
-    [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] {
+    [data-maid-table-frame] {
     overscroll-behavior-x: contain;
   }
 }
@@ -4713,7 +4891,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand] {
+  [data-maid-table-frame] > [data-maid-table-expand] {
   color: #f3e8cf;
   border-color: rgba(211, 180, 119, 0.54);
   background: rgba(19, 38, 82, 0.92);
@@ -4807,8 +4985,10 @@ body[data-dsh-maid-atelier] [data-maid-table-close] {
   z-index: 3;
   top: 10px;
   right: 10px;
+  box-sizing: border-box;
   width: 30px;
   height: 30px;
+  padding: 0;
   border: 1px solid rgba(197, 164, 104, 0.48);
   border-radius: 999px;
   corner-shape: round;
@@ -4821,18 +5001,18 @@ body[data-dsh-maid-atelier] [data-maid-table-close]::before,
 body[data-dsh-maid-atelier] [data-maid-table-close]::after {
   content: '';
   position: absolute;
-  top: 14px;
-  left: 8px;
+  top: 50%;
+  left: 50%;
   width: 14px;
   border-top: 2px solid #172347;
 }
 
 body[data-dsh-maid-atelier] [data-maid-table-close]::before {
-  transform: rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 body[data-dsh-maid-atelier] [data-maid-table-close]::after {
-  transform: rotate(-45deg);
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close] {
@@ -6064,7 +6244,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings
 
   body[data-dsh-maid-atelier]
     :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_row']:has(> [class$='_rowText']) > :last-child,
+    [class$='_row'] > :is([class$='_rowText'], [class$='_rowText'] ~ *):last-child,
   body[data-dsh-maid-atelier]
     :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
     [class$='_selector'] {
@@ -6440,11 +6620,8 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
     height: 44px;
   }
 
-  /* The 30px glyph offsets no longer centre the cross in the grown target. */
   body[data-dsh-maid-atelier] [data-maid-table-close]::before,
   body[data-dsh-maid-atelier] [data-maid-table-close]::after {
-    top: 21px;
-    left: 12px;
     width: 20px;
   }
   body[data-dsh-maid-atelier] [data-composer-seat] {
@@ -6473,10 +6650,11 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
     transition: none;
   }
 
-  body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame],
-  body[data-dsh-maid-atelier] [data-chat-flow-kind='assistant-step'] [data-maid-table-frame] > [data-maid-table-expand],
+  body[data-dsh-maid-atelier] [data-maid-table-frame],
+  body[data-dsh-maid-atelier] [data-maid-table-frame] > [data-maid-table-expand],
   body[data-dsh-maid-atelier] [data-maid-table-lightbox],
-  body[data-dsh-maid-atelier] [data-maid-table-panel] {
+  body[data-dsh-maid-atelier] [data-maid-table-panel],
+  body[data-dsh-maid-atelier] [data-plugin-bar][data-natural]::before {
     animation: none;
     transition: none;
   }
@@ -6588,6 +6766,15 @@ body[data-dsh-maid-atelier]
     0 6px 18px rgba(15, 30, 72, 0.2),
     inset 0 1px rgba(255, 255, 255, 0.7);
   transform: translateY(-1px);
+}
+
+/* An open popup is anchored to a trigger inside the card; lifting the card
+   would drag the menu with it each time the pointer crosses the card edge. */
+body[data-dsh-maid-atelier]
+  [data-phase='active']
+  [data-composer-seat][data-maid-composer-capsule]
+  [data-composer-card]:hover:has([aria-haspopup][aria-expanded='true']) {
+  transform: none;
 }
 
 /* 展开衔接动画：布局宽度/高度瞬时恢复，仅 transform/opacity 走合成器，

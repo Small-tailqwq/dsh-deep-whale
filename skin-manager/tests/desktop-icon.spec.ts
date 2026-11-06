@@ -212,6 +212,69 @@ describe('desktop icon sync', () => {
     expect(Object.keys(state.shortcuts)).toEqual(['C:\\Desktop\\DeepSeek Harness.lnk'])
   })
 
+  it('serializes activations sharing a home before installing or pruning icons', async () => {
+    const home = tempDir()
+    const io = fakeIo(shortcuts())
+    const entered = Promise.withResolvers<void>()
+    const release = Promise.withResolvers<void>()
+    const scan = io.scan.bind(io)
+    let scans = 0
+    io.scan = async (execPath) => {
+      const snapshot = await scan(execPath)
+      if (++scans === 1) {
+        entered.resolve()
+        await release.promise
+      }
+      return snapshot
+    }
+    const first = new DesktopIconSync(home, { execPath: EXE }, io)
+    const next = new DesktopIconSync(home, { execPath: EXE }, io)
+    const a = first.setEnabled(true, { skinId: 'maid-atelier', file: skinIcon('MAID') })
+    await entered.promise
+    const b = next.setEnabled(true, { skinId: 'orca-link', file: skinIcon('ORCA') })
+    try {
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(scans).toBe(1)
+    } finally {
+      release.resolve()
+      await Promise.all([a, b])
+    }
+    const applied = io.table.get('C:\\Desktop\\DeepSeek Harness.lnk')!.icon
+    expect(readFileSync(applied.replace(/,0$/, ''), 'utf8')).toBe('ORCA')
+    expect(readdirSync(next.managedDir)).toHaveLength(1)
+    await next.setEnabled(false, null)
+    expect(io.table.get('C:\\Desktop\\DeepSeek Harness.lnk')!.icon).toBe(EXE_ICON)
+  })
+
+  it('drains pending writes and queued restores before unloading', async () => {
+    const io = fakeIo(shortcuts())
+    const entered = Promise.withResolvers<void>()
+    const release = Promise.withResolvers<void>()
+    const write = io.write.bind(io)
+    io.write = async changes => {
+      entered.resolve()
+      await release.promise
+      return write(changes)
+    }
+    const sync = new DesktopIconSync(tempDir(), { execPath: EXE }, io)
+    const applying = sync.setEnabled(true, { skinId: 'maid-atelier', file: skinIcon() })
+    await entered.promise
+    const restoring = sync.reconcile(null)
+    let drained = false
+    const unloading = sync.drain().then(() => { drained = true })
+    try {
+      await Promise.resolve()
+      expect(drained).toBe(false)
+    } finally {
+      release.resolve()
+      await Promise.all([applying, restoring, unloading])
+    }
+    expect(io.table.get('C:\\Desktop\\DeepSeek Harness.lnk')!.icon).toBe(EXE_ICON)
+    expect(readdirSync(sync.managedDir)).toEqual([])
+    expect(drained).toBe(true)
+  })
+
   // #200: a security suite's shortcut protection blocks powershell.exe, and
   // WScript.Shell names each shortcut in the same error.
   it('reports one save-blocked reason for every blocked shortcut', async () => {

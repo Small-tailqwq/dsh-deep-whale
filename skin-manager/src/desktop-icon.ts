@@ -30,6 +30,9 @@ const MAX_ICON_BYTES = 2 * 1024 * 1024
 // a cold or busy machine that alone has been measured at 11-17 s.
 const POWERSHELL_TIMEOUT_MS = 60_000
 
+// Configuration reloads can overlap activations that share the same DSH home.
+const desktopIconQueues = new Map<string, Promise<void>>()
+
 interface DesktopShell {
   /** The desktop executable, which is also the Node binary of the host child. */
   execPath: string
@@ -209,7 +212,6 @@ export class DesktopIconSync {
   private readonly shell: DesktopShell
   private readonly io: ShortcutIo
   private readonly onIcon: (file: string | null) => void
-  private queue: Promise<unknown> = Promise.resolve()
 
   /** @param onIcon - receives the managed ICO after every pass, or null when the official icon applies. */
   constructor(home: string, shell: DesktopShell, io: ShortcutIo = powershellShortcutIo, onIcon: (file: string | null) => void = () => {}) {
@@ -242,9 +244,19 @@ export class DesktopIconSync {
     return this.serial(() => this.pass(this.read().enabled ? source : null))
   }
 
+  /** Finish queued writes before unloading the module that owns their queue. */
+  drain(): Promise<void> {
+    return desktopIconQueues.get(pathKey(this.statePath)) ?? Promise.resolve()
+  }
+
   private serial<T>(task: () => Promise<T>): Promise<T> {
-    const run = this.queue.then(task, task)
-    this.queue = run.catch(() => undefined)
+    const key = pathKey(this.statePath)
+    const run = (desktopIconQueues.get(key) ?? Promise.resolve()).then(task, task)
+    const settled = run.then(() => {}, () => {})
+    desktopIconQueues.set(key, settled)
+    void settled.then(() => {
+      if (desktopIconQueues.get(key) === settled) desktopIconQueues.delete(key)
+    })
     return run
   }
 
@@ -549,8 +561,10 @@ try {
 
 /** Owns at most one window-icon helper; `set` is idempotent per file. */
 export class WindowIconHolder {
+  private static readonly owners = new Map<number, WindowIconHolder>()
   private child: ChildProcess | undefined
   private file: string | null = null
+  private stopping: Promise<void> = Promise.resolve()
   private readonly targetPid: number
 
   /** @param targetPid - the desktop main process, the parent of the host child. */
@@ -559,10 +573,19 @@ export class WindowIconHolder {
   }
 
   set(file: string | null): void {
-    if (file === this.file && (file === null || this.child !== undefined)) return
-    this.stop()
+    const previous = WindowIconHolder.owners.get(this.targetPid)
+    if (file === this.file && (file === null || this.child !== undefined) && (previous === undefined || previous === this)) return
+    this.stopping = previous?.stop() ?? this.stopping
     this.file = file
     if (file === null) return
+    WindowIconHolder.owners.set(this.targetPid, this)
+    void this.stopping.then(() => {
+      if (WindowIconHolder.owners.get(this.targetPid) !== this || this.file !== file || this.child !== undefined) return
+      this.start(file)
+    })
+  }
+
+  private start(file: string): void {
     const child = spawn('powershell.exe', [
       '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
       '-EncodedCommand', Buffer.from(WINDOW_ICON_SCRIPT, 'utf16le').toString('base64'),
@@ -592,18 +615,38 @@ export class WindowIconHolder {
   }
 
   /** Ask the helper to restore the previous icons and exit; kill it if it lingers. */
-  stop(): void {
+  stop(): Promise<void> {
     const child = this.child
     this.child = undefined
     this.file = null
-    if (child === undefined) return
+    if (child === undefined) {
+      void this.stopping.then(() => {
+        if (WindowIconHolder.owners.get(this.targetPid) === this && this.file === null) {
+          WindowIconHolder.owners.delete(this.targetPid)
+        }
+      })
+      return this.stopping
+    }
+    // The next helper must capture the restored application icons, rather
+    // than handles owned by a helper that is about to exit.
+    this.stopping = new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        if (child.exitCode === null && child.signalCode === null) child.kill()
+      }, 5_000)
+      timer.unref()
+      child.once('close', () => {
+        clearTimeout(timer)
+        if (WindowIconHolder.owners.get(this.targetPid) === this && this.file === null) {
+          WindowIconHolder.owners.delete(this.targetPid)
+        }
+        resolve()
+      })
+    })
     try {
       child.stdin?.end('stop\n')
     } catch {
       // A helper that already exited has nothing left to restore.
     }
-    setTimeout(() => {
-      if (child.exitCode === null && child.signalCode === null) child.kill()
-    }, 5_000).unref()
+    return this.stopping
   }
 }

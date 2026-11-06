@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { Context } from '@deepseek-ai/cordis'
 import { installPanelPageState, type PanelContext } from '../../shared/panel-page-state.ts'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { installOrcaSettingsOverlay } from '../src/client/settings-overlay.ts'
 import { installOrcaWorkspaceMarks } from '../src/client/workspace-marks.ts'
 
@@ -105,32 +105,93 @@ describe('ORCA relational state projected as attributes (no :has() probes)', () 
     expect(document.querySelector('[data-orca-tooltip-carrier], [data-orca-tooltip-root], [data-orca-dialog-carrier], [data-orca-cordis-carrier]')).toBeNull()
   })
 
-  it('tags workspace groups by what they hold instead of a :has() probe on every tree row', async () => {
+  it('assigns sessions to their own workspace section across nested folders and tooltips', async () => {
     document.body.innerHTML = `
       <div data-slot="sidebar">
         <div role="tree">
-          <div class="g1"><div role="treeitem" aria-expanded="true"></div><div role="treeitem" aria-selected="false"></div></div>
-          <div class="g2"><div role="treeitem" aria-expanded="false"></div><div role="treeitem" aria-selected="true"></div></div>
+          <div class="groupSection g1" style="--dsh-workspace-indent: 0px">
+            <span class="tooltip"><div role="treeitem" aria-expanded="true"></div></span>
+            <div role="group">
+              <div class="groupSection g2" style="--dsh-workspace-indent: 12px">
+                <span class="tooltip"><div role="treeitem" aria-expanded="false"></div></span>
+              </div>
+            </div>
+            <span class="tooltip"><div role="treeitem" aria-selected="true"></div></span>
+          </div>
           <div class="g3"><span></span></div>
         </div>
       </div>
     `
+    const originalRows = [...document.querySelectorAll('[role="treeitem"]')]
     const dispose = installOrcaWorkspaceMarks(document.body)
     const [g1, g2, g3] = ['.g1', '.g2', '.g3'].map(s => document.querySelector<HTMLElement>(s)!)
     expect(g1.hasAttribute('data-orca-workspace-group')).toBe(true)
     expect(g1.hasAttribute('data-orca-workspace-selectable')).toBe(true)
-    expect(g1.hasAttribute('data-orca-workspace-current')).toBe(false)
-    expect(g2.hasAttribute('data-orca-workspace-current')).toBe(true)
+    expect(g1.hasAttribute('data-orca-workspace-children')).toBe(true)
+    expect(g2.hasAttribute('data-orca-workspace-group')).toBe(true)
+    expect(g2.hasAttribute('data-orca-workspace-selectable')).toBe(false)
+    expect(g2.hasAttribute('data-orca-workspace-children')).toBe(false)
+    expect(g1.hasAttribute('data-orca-workspace-overflow')).toBe(false)
+    expect(g2.hasAttribute('data-orca-workspace-overflow')).toBe(false)
+    expect([...document.querySelectorAll('[role="treeitem"]')]).toEqual(originalRows)
     expect([...g3.attributes].some(a => a.name.startsWith('data-orca-workspace'))).toBe(false)
 
-    // Selecting a session in the first group moves the current mark.
-    g2.querySelector('[aria-selected]')!.setAttribute('aria-selected', 'false')
-    g1.querySelector('[aria-selected]')!.setAttribute('aria-selected', 'true')
+    const parentSession = g1.querySelector('[aria-selected]')!.parentElement!
+    g2.append(parentSession)
     await flush()
-    expect(g1.hasAttribute('data-orca-workspace-current')).toBe(true)
-    expect(g2.hasAttribute('data-orca-workspace-current')).toBe(false)
+    expect(g1.hasAttribute('data-orca-workspace-selectable')).toBe(false)
+    expect(g2.hasAttribute('data-orca-workspace-selectable')).toBe(true)
+
+    const overflow = document.createElement('button')
+    overflow.className = 'sessionOverflowButton'
+    g2.append(overflow)
+    await flush()
+    expect(g1.hasAttribute('data-orca-workspace-overflow')).toBe(false)
+    expect(g2.hasAttribute('data-orca-workspace-overflow')).toBe(true)
+    overflow.remove()
+    await flush()
+    expect(g2.hasAttribute('data-orca-workspace-overflow')).toBe(false)
+    g2.append(overflow)
+    await flush()
+
+    g1.querySelector('[role="group"]')!.remove()
+    await flush()
+    expect(g1.hasAttribute('data-orca-workspace-children')).toBe(false)
+    expect([...g2.attributes].some(a => a.name.startsWith('data-orca-workspace'))).toBe(false)
 
     dispose()
-    expect(document.querySelector('[data-orca-workspace-group], [data-orca-workspace-selectable], [data-orca-workspace-current]')).toBeNull()
+    expect(document.querySelector('[data-orca-workspace-group], [data-orca-workspace-selectable], [data-orca-workspace-children], [data-orca-workspace-overflow]')).toBeNull()
+  })
+
+  it('cancels queued tree updates when disposed and restores original attribute values', async () => {
+    document.body.innerHTML = '<div data-slot="sidebar"><div role="tree"><div class="groupSection" data-orca-workspace-selectable="original"><span><div role="treeitem" aria-expanded="true"></div></span></div></div></div>'
+    const original = document.body.innerHTML
+    const dispose = installOrcaWorkspaceMarks(document.body)
+    const section = document.querySelector('.groupSection')!
+    expect(section.hasAttribute('data-orca-workspace-selectable')).toBe(false)
+    section.append(document.createElement('span'))
+    // The observer has queued its reconciliation, but it has not run yet.
+    await Promise.resolve()
+    dispose()
+    section.lastElementChild!.remove()
+    await flush()
+    expect(document.body.innerHTML).toBe(original)
+    const disposeAgain = installOrcaWorkspaceMarks(document.body)
+    disposeAgain()
+    expect(document.body.innerHTML).toBe(original)
+  })
+
+  it('restores partial workspace marks if initialization fails', () => {
+    document.body.innerHTML = '<div data-slot="sidebar"><div role="tree"><div class="groupSection"><div role="treeitem" aria-expanded="true"></div><div role="treeitem" aria-selected="false"></div></div></div></div>'
+    const original = document.body.innerHTML
+    const section = document.querySelector('.groupSection')!
+    const setAttribute = section.setAttribute.bind(section)
+    const spy = vi.spyOn(section, 'setAttribute').mockImplementation((name, value) => {
+      if (name === 'data-orca-workspace-selectable') throw new Error('Cannot decorate section')
+      setAttribute(name, value)
+    })
+    expect(() => installOrcaWorkspaceMarks(document.body)).toThrow('Cannot decorate section')
+    spy.mockRestore()
+    expect(document.body.innerHTML).toBe(original)
   })
 })

@@ -1,4 +1,5 @@
 import { MANUAL_HIDDEN_ATTRIBUTE } from './composer-collapse.ts'
+import { installComposerEditing } from '../../../shared/composer-editing.ts'
 import {
   COMPOSER_BOTTOM_ONLY_ATTRIBUTE,
   COMPOSER_SCROLL_HIDE_ATTRIBUTE,
@@ -141,6 +142,7 @@ function wheelTargetsSeatDraft(event: WheelEvent): boolean {
  */
 export function installOrcaComposerMotion(body: HTMLElement): () => void {
   const doc = body.ownerDocument
+  let editing: ReturnType<typeof installComposerEditing> | undefined
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const phases = new WeakMap<HTMLElement, string>()
   const scrollBindings = new Map<HTMLElement, ScrollBinding>()
@@ -211,6 +213,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
 
   const hideSeat = (seat: HTMLElement): void => {
     if (isManualMotion(seat)) return
+    if (editing?.isEditing(seat)) return
     // The verdict runs again on every scroll frame, on control mounts and on
     // switch flips; a same-value write is still a mutation record that the rest
     // of the page pays for, so a settled state returns early.
@@ -550,6 +553,7 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
   }
 
   const observer = new MutationObserver((records) => {
+    editing?.handleMutations(records)
     if (hasMutationOutsideTranscript(records)) synchronize()
   })
   observer.observe(body, {
@@ -583,8 +587,15 @@ export function installOrcaComposerMotion(body: HTMLElement): () => void {
   doc.addEventListener('focusin', onFocusIn, true)
   doc.addEventListener('focusout', onFocusOut, true)
   synchronize()
+  editing = installComposerEditing(doc, (seat) => {
+    if ((!bottomOnlyEnabled() && !scrollHideEnabled()) || isManualMotion(seat)
+      || phaseRootOf(seat)?.dataset.phase !== 'active') return false
+    activateSeat(seat, true)
+    return true
+  })
 
   return () => {
+    editing?.dispose()
     observer.disconnect()
     disposeVisibilitySwitches()
     doc.removeEventListener('keydown', onKeyDown, true)

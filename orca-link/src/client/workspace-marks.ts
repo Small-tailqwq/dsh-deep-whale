@@ -1,47 +1,64 @@
 import { hasMutationOutsideTranscript } from './mutation-filter.ts'
 
-/**
- * The workspace tree styles a group by what it contains: an expandable row, a
- * selectable row, the current session. CSS can only ask that through `:has()`
- * on every direct child of the tree, and `:has()` cannot be fast-rejected, so
- * each style pass paid ~4µs per row for it (the single most expensive selector
- * while typing in a long session). The client tags the few group rows instead.
- */
-export const ORCA_WORKSPACE_MARKS = {
+const MARKS = {
   group: 'data-orca-workspace-group',
   selectable: 'data-orca-workspace-selectable',
-  current: 'data-orca-workspace-current',
+  children: 'data-orca-workspace-children',
+  overflow: 'data-orca-workspace-overflow',
 } as const
 
-const TREE_ROWS_SELECTOR = "[data-slot='sidebar'] [role='tree'] > div"
 const TREE_SELECTOR = "[data-slot='sidebar'] [role='tree']"
-
-function mark(element: Element, attribute: string, on: boolean): void {
-  if (element.hasAttribute(attribute) !== on) element.toggleAttribute(attribute, on)
-}
-
-export function syncOrcaWorkspaceMarks(root: ParentNode = document): void {
-  for (const row of root.querySelectorAll(TREE_ROWS_SELECTOR)) {
-    mark(row, ORCA_WORKSPACE_MARKS.group, row.querySelector("[role='treeitem'][aria-expanded]") !== null)
-    mark(row, ORCA_WORKSPACE_MARKS.selectable, row.querySelector("[role='treeitem'][aria-selected]") !== null)
-    mark(row, ORCA_WORKSPACE_MARKS.current, row.querySelector("[role='treeitem'][aria-selected='true']") !== null)
-  }
-}
-
-export function clearOrcaWorkspaceMarks(root: ParentNode = document): void {
-  const attributes = Object.values(ORCA_WORKSPACE_MARKS)
-  const selector = attributes.map(attribute => `[${attribute}]`).join(', ')
-  for (const element of root.querySelectorAll(selector)) {
-    for (const attribute of attributes) element.removeAttribute(attribute)
-  }
-}
+const SECTION_SELECTOR = "[class*='groupSection']"
 
 /** Keep the workspace group tags in step with the tree; only tree mutations trigger a pass. */
 export function installOrcaWorkspaceMarks(body: HTMLElement): () => void {
+  const changes = new Map<Element, Map<string, { original: string | null, written: string | null }>>()
+  let active = true
   let scheduled = false
+  const mark = (element: Element, attribute: string, on: boolean): void => {
+    if (element.hasAttribute(attribute) === on) return
+    let attributes = changes.get(element)
+    if (!attributes) changes.set(element, attributes = new Map())
+    const original = element.getAttribute(attribute)
+    const change = attributes.get(attribute) ?? { original, written: original }
+    attributes.set(attribute, change)
+    change.written = on ? '' : null
+    if (on) element.setAttribute(attribute, '')
+    else element.removeAttribute(attribute)
+  }
+  const restore = (element: Element): void => {
+    for (const [attribute, { original, written }] of changes.get(element) ?? []) {
+      if (element.getAttribute(attribute) !== written) continue
+      if (original === null) element.removeAttribute(attribute)
+      else element.setAttribute(attribute, original)
+    }
+    changes.delete(element)
+  }
   const run = (): void => {
     scheduled = false
-    syncOrcaWorkspaceMarks(body)
+    if (!active) return
+    const sections = new Map<Element, boolean>()
+    for (const tree of body.querySelectorAll(TREE_SELECTOR)) {
+      for (const row of tree.querySelectorAll("[role='treeitem'][aria-expanded]")) {
+        const section = row.closest(SECTION_SELECTOR)
+        if (section && tree.contains(section)) sections.set(section, false)
+      }
+      // Parent sessions follow the complete child subtree in the host layout.
+      // Their closest section, rather than the previous folder, owns the guide.
+      for (const row of tree.querySelectorAll("[role='treeitem'][aria-selected]")) {
+        const section = row.closest(SECTION_SELECTOR)
+        if (section && sections.has(section)) sections.set(section, true)
+      }
+    }
+    for (const element of changes.keys()) {
+      if (!sections.has(element)) restore(element)
+    }
+    for (const [section, hasSessions] of sections) {
+      mark(section, MARKS.group, true)
+      mark(section, MARKS.selectable, hasSessions)
+      mark(section, MARKS.children, section.querySelector(":scope > [role='group']") !== null)
+      mark(section, MARKS.overflow, section.querySelector(":scope > button[class*='sessionOverflowButton']") !== null)
+    }
   }
   const observer = new MutationObserver((records) => {
     if (scheduled || !hasMutationOutsideTranscript(records)) return
@@ -53,15 +70,17 @@ export function installOrcaWorkspaceMarks(body: HTMLElement): () => void {
     scheduled = true
     queueMicrotask(run)
   })
-  observer.observe(body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['aria-selected', 'aria-expanded'],
-  })
-  syncOrcaWorkspaceMarks(body)
-  return () => {
+  const dispose = (): void => {
+    active = false
     observer.disconnect()
-    clearOrcaWorkspaceMarks(body)
+    for (const element of changes.keys()) restore(element)
   }
+  try {
+    observer.observe(body, { childList: true, subtree: true })
+    run()
+  } catch (error) {
+    dispose()
+    throw error
+  }
+  return dispose
 }

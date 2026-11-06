@@ -992,6 +992,7 @@ function evaluateSkinCompatibility(manifest, runtimeVersion, exemptions) {
 /** Largest ICO accepted from a skin manifest; real multi-size icons stay well below it. */
 const MAX_ICON_BYTES = 2097152;
 const POWERSHELL_TIMEOUT_MS = 6e4;
+const desktopIconQueues = /* @__PURE__ */ new Map();
 /** The Windows desktop host runs plugins in `DeepSeek Harness.exe` with ELECTRON_RUN_AS_NODE. */
 function detectDesktopShell(platform = process.platform, env = process.env, execPath = process.execPath) {
 	if (platform !== "win32" || env.ELECTRON_RUN_AS_NODE !== "1") return null;
@@ -1098,7 +1099,6 @@ var DesktopIconSync = class {
 	shell;
 	io;
 	onIcon;
-	queue = Promise.resolve();
 	/** @param onIcon - receives the managed ICO after every pass, or null when the official icon applies. */
 	constructor(home, shell, io = powershellShortcutIo, onIcon = () => {}) {
 		this.shell = shell;
@@ -1129,9 +1129,18 @@ var DesktopIconSync = class {
 	reconcile(source) {
 		return this.serial(() => this.pass(this.read().enabled ? source : null));
 	}
+	/** Finish queued writes before unloading the module that owns their queue. */
+	drain() {
+		return desktopIconQueues.get(pathKey(this.statePath)) ?? Promise.resolve();
+	}
 	serial(task) {
-		const run = this.queue.then(task, task);
-		this.queue = run.catch(() => void 0);
+		const key = pathKey(this.statePath);
+		const run = (desktopIconQueues.get(key) ?? Promise.resolve()).then(task, task);
+		const settled = run.then(() => {}, () => {});
+		desktopIconQueues.set(key, settled);
+		settled.then(() => {
+			if (desktopIconQueues.get(key) === settled) desktopIconQueues.delete(key);
+		});
 		return run;
 	}
 	async pass(source, scan = false) {
@@ -1428,19 +1437,29 @@ try {
 }
 `;
 /** Owns at most one window-icon helper; `set` is idempotent per file. */
-var WindowIconHolder = class {
+var WindowIconHolder = class WindowIconHolder {
+	static owners = /* @__PURE__ */ new Map();
 	child;
 	file = null;
+	stopping = Promise.resolve();
 	targetPid;
 	/** @param targetPid - the desktop main process, the parent of the host child. */
 	constructor(targetPid = process.ppid) {
 		this.targetPid = targetPid;
 	}
 	set(file) {
-		if (file === this.file && (file === null || this.child !== void 0)) return;
-		this.stop();
+		const previous = WindowIconHolder.owners.get(this.targetPid);
+		if (file === this.file && (file === null || this.child !== void 0) && (previous === void 0 || previous === this)) return;
+		this.stopping = previous?.stop() ?? this.stopping;
 		this.file = file;
 		if (file === null) return;
+		WindowIconHolder.owners.set(this.targetPid, this);
+		this.stopping.then(() => {
+			if (WindowIconHolder.owners.get(this.targetPid) !== this || this.file !== file || this.child !== void 0) return;
+			this.start(file);
+		});
+	}
+	start(file) {
 		const child = spawn("powershell.exe", [
 			"-NoLogo",
 			"-NoProfile",
@@ -1482,13 +1501,27 @@ var WindowIconHolder = class {
 		const child = this.child;
 		this.child = void 0;
 		this.file = null;
-		if (child === void 0) return;
+		if (child === void 0) {
+			this.stopping.then(() => {
+				if (WindowIconHolder.owners.get(this.targetPid) === this && this.file === null) WindowIconHolder.owners.delete(this.targetPid);
+			});
+			return this.stopping;
+		}
+		this.stopping = new Promise((resolve) => {
+			const timer = setTimeout(() => {
+				if (child.exitCode === null && child.signalCode === null) child.kill();
+			}, 5e3);
+			timer.unref();
+			child.once("close", () => {
+				clearTimeout(timer);
+				if (WindowIconHolder.owners.get(this.targetPid) === this && this.file === null) WindowIconHolder.owners.delete(this.targetPid);
+				resolve();
+			});
+		});
 		try {
 			child.stdin?.end("stop\n");
 		} catch {}
-		setTimeout(() => {
-			if (child.exitCode === null && child.signalCode === null) child.kill();
-		}, 5e3).unref();
+		return this.stopping;
 	}
 };
 //#endregion
@@ -2381,7 +2414,7 @@ function apply(ctx) {
 		const unregister = ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch), (compatibility) => grantThroughHost(ctx, compatibility), desktopIcon?.control));
 		return () => {
 			unregister();
-			desktopIcon?.dispose();
+			return desktopIcon?.dispose();
 		};
 	}, "ui-skin-manager: startup guard, catalog/activation route and desktop icon");
 }
@@ -2422,9 +2455,9 @@ function desktopIconControl(profilePatch, patchPaths, catalog) {
 				Promise.resolve().then(() => sync.reconcile(source(target))).catch(report);
 			}
 		},
-		dispose: () => {
+		dispose: async () => {
 			disposed = true;
-			windowIcon.stop();
+			await Promise.all([windowIcon.stop(), sync.drain()]);
 		}
 	};
 }

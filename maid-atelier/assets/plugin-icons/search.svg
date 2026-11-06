@@ -1,0 +1,11 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22.2 22.2l5.3 5.3" stroke="#c5a468" stroke-width="3.25" stroke-linecap="butt" stroke-linejoin="round"/>
+  <circle cx="15.75" cy="15.75" r="6.5" stroke="url(#maid-search)" stroke-width="3.5"/>
+  <path d="M15.75 12.75L16.59 14.91L18.75 15.75L16.59 16.59L15.75 18.75L14.91 16.59L12.75 15.75L14.91 14.91Z" fill="#c5a468"/>
+  <defs>
+    <linearGradient id="maid-search" x1="9" y1="9" x2="22.5" y2="22.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>

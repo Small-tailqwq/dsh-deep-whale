@@ -8,7 +8,7 @@ import type {
   VisibilitySchedule,
 } from '../protocol.ts'
 import { SkinCustomizationRegistry, settingVisible } from './runtime.ts'
-import { definitionTitle, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
+import { currentUiLang, definitionTitle, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
 import { activeSkins, isDesktopShell, waitForSkins } from './switch-settle.ts'
 import {
   buildPreferencesExport,
@@ -1080,7 +1080,11 @@ export async function requestSkinSwitch(target: SkinTarget, acceptRisk = false):
     cancel.abort()
     throw error
   }
-  // A switch that never starts applying still falls back to a reload.
-  if (await settled && desktop) return
+  const completed = await settled
+  if (desktop) {
+    // A renderer reload replays the shell's startup graph, including disabled skins.
+    if (!completed) throw new Error(skinManagerCopy(currentUiLang()).switchRestartRequired)
+    return
+  }
   window.location.reload()
 }

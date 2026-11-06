@@ -1,9 +1,8 @@
-// Stats panels are portaled to body, so hiding their composer does not close
-// them. Toggle only its open stats trigger to let the host release the panel.
+// Dock panels are portaled to body, so hiding their composer does not close
+// them. Toggle only its open dock trigger to let the host release the panel.
 const SEAT_SELECTOR = '[data-composer-seat]'
-// DSH 0.2.1 wraps each pill in its own [data-composer-stat] dock entry; earlier
-// hosts render one [data-composer-stats] row.
-const OPEN_PILL_SELECTOR = ":is([data-composer-stats], [data-composer-stat]) button[aria-expanded='true'][aria-haspopup='dialog']"
+// ContextMeter is a sibling of the extension slot, not a stat entry within it.
+const OPEN_PILL_SELECTOR = "[data-composer-card] + div[class*='dock'] button[aria-expanded='true'][aria-haspopup='dialog']"
 const HIDING_ATTRIBUTES = [
   'data-maid-composer-hidden',
   'data-maid-composer-capsule',

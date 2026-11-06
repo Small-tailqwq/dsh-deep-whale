@@ -73,6 +73,7 @@
     "cordis.patch.yml",
     "src/protocol.ts",
     "README.md",
+    "docs",
     "LICENSE",
     "locale/*.json",
     "assets/plugin-icon.svg"

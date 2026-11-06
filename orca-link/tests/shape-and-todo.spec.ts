@@ -27,8 +27,8 @@ describe('ORCA LINK todo glyphs (DSH 0.1.7 StateDot markup)', () => {
   })
 
   it('fills the in-progress pixel field on a stepped cycle and stills it for reduced motion', () => {
-    expect(CSS).toMatch(/li\[data-status='in_progress'\] > \[class\*='_glyph'\]::after \{[^}]*animation: orcaTodoFill 2\.4s step-end infinite/)
-    expect(CSS).toMatch(/@keyframes orcaTodoFill \{[^@]*72% \{ clip-path: polygon\(3\.5px 12\.5px, 12\.5px 12\.5px, 12\.5px 3\.5px/)
+    expect(CSS).toMatch(/li\[data-status='in_progress'\] > \[class\*='_glyph'\]::after \{[^}]*animation: orcaTodoFill 1\.6s step-end infinite/)
+    expect(CSS).toMatch(/@keyframes orcaTodoFill \{[^@]*63% \{ clip-path: polygon\(3\.5px 12\.5px, 12\.5px 12\.5px, 12\.5px 3\.5px/)
     expect(CSS).toMatch(/prefers-reduced-motion: reduce\)[^@]*li\[data-status='in_progress'\] > \[class\*='_glyph'\]::after \{\s*animation: none;/)
   })
 })

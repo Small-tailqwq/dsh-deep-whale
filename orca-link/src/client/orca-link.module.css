@@ -333,7 +333,7 @@ body[data-dsh-orca-link] > [style*='--dsh-hover-preview-fade'] {
    6px core on `::after` with a hard-coded 50% radius, and the numbered step
    variant is a round badge; neither is a token surface. Both are an
    aria-hidden span carrying `data-state`, so square that pair locally; the
-   ongoing spinner is an SVG glyph and keeps its ring. */
+   ongoing SVG loader is redrawn separately by icons.ts. */
 body[data-dsh-orca-link] :where(span[data-state][aria-hidden='true']):not(
   [data-slot='conversation.input.left'] *,
   [data-slot='conversation.input.right'] *,
@@ -345,6 +345,26 @@ body[data-dsh-orca-link] :where(span[data-state][aria-hidden='true']):not(
   [data-slot='sidebar.footer.action'] *
 )::after {
   border-radius: 0 !important;
+}
+
+/* The account launcher clips the picture twice: the avatar seat and the img
+   both hard-code 50%. Keep the native 24px seat in expanded and rail modes. */
+body[data-dsh-orca-link] [data-slot='settings.launcher'] button[data-signed-out='false'] > span:first-child,
+body[data-dsh-orca-link] [data-slot='settings.launcher'] button[data-signed-out='false'] > span:first-child > img {
+  border-radius: 0 !important;
+}
+
+/* UpdateDialog's step badge owns a separate circular background. The check
+   is already redrawn; frame its native success colour in the same straight
+   strokes as the waiting hourglass, without changing the step's meaning. */
+body[data-dsh-orca-link] li[data-state] > [class$='_updateStepDot'] {
+  border-radius: 0 !important;
+}
+
+body[data-dsh-orca-link] li[data-state='done'] > [class$='_updateStepDot'] {
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  background: transparent !important;
 }
 
 /* Status tags (Tag's `data-tone`) are pills in the host. A panel page — the
@@ -485,6 +505,21 @@ body[data-dsh-orca-link] [data-plugin-panel] {
   color: var(--orca-ink);
 }
 
+/* Convert the host's header collapse into unitless progress: the page sheet
+   stays continuous at rest, then the pinned bar covers the scrolling cards. */
+body[data-dsh-orca-link] [data-plugin-bar][data-natural]::before {
+  background: #fbf7ef;
+  opacity: clamp(0, tan(atan2(
+    var(--plugin-header-rest-height) - var(--plugin-header-paint-height),
+    var(--plugin-header-rest-height) - var(--plugin-header-compact-height)
+  )), 1);
+  transition: opacity 240ms ease;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme] [data-plugin-bar][data-natural]::before {
+  background: #0e141e;
+}
+
 /* Panel pages read on one frosted sheet. Stock gives the `main` seat the
    column's `--dsw-alias-bg-base` as its floor; this skin makes that token
    nearly transparent so the scene shows through, which left every panel page
@@ -558,17 +593,15 @@ body[data-dsh-orca-link] [data-slot='settings.launcher'] button[data-collapsed][
   background: var(--dsw-input-solid);
 }
 
-/* Stats include noninteractive span pills as well as buttons (one row before
-   DSH 0.2.1, one [data-composer-stat] dock entry per pill after). Their own
-   reading surface keeps small figures distinct from the scene behind them. */
+/* Static and interactive statistics share the dock surface at rest. */
 body[data-dsh-orca-link] :is([data-composer-stats], [data-composer-stat]) [class$='_pill'] {
   border-radius: 0 !important;
-  background: var(--dsw-input-solid);
+  background: transparent;
   color: var(--orca-graphite);
 }
 
 body[data-dsh-orca-link] :is([data-composer-stats], [data-composer-stat]) button[class$='_pill']:is(:hover, [aria-expanded='true']) {
-  background: color-mix(in srgb, var(--orca-blue) 10%, var(--dsw-input-solid));
+  background: color-mix(in srgb, var(--orca-blue) 10%, transparent);
   color: var(--orca-ink);
 }
 
@@ -1850,8 +1883,6 @@ body[data-dsh-orca-link] .statusCharacterFrame {
   margin-inline: auto;
   overflow: hidden;
   transform: scaleX(var(--orca-character-mirror));
-  animation: orcaGateWeave 1.06s steps(8, end) infinite;
-  will-change: transform;
 }
 
 html[data-dsh-whale-orca-character-mirror='mirrored']
@@ -1929,7 +1960,7 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='approval'] {
   --orca-character-signal: var(--orca-permission-write);
 }
 
-body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] {
+body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] .statusCharacterBubble {
   --orca-character-signal: #d14343;
 }
 
@@ -1949,7 +1980,7 @@ body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='input'] [data-o
 }
 
 body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='fault'] [data-orca-link-character-bubble-glyph]::before {
-  content: '?';
+  content: '!';
 }
 
 body[data-dsh-orca-link] .statusCharacter[data-orca-link-status='approval'] [data-orca-link-character-bubble-glyph] {
@@ -2260,6 +2291,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] :is([data
 /* The browsing region keeps its native flow below the New Session seat and
    any panel entries; its own surface provides the frosted reading floor. */
 body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] [class*='regionArea'] {
+  position: relative;
   isolation: isolate;
   border-top: 1px solid var(--orca-line);
   background: transparent;
@@ -2361,6 +2393,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree']
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-group] {
+  --orca-workspace-end-gap: 5px;
   position: relative;
   padding: 3px 0 5px;
 }
@@ -2371,33 +2404,83 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-wor
   border-top: 1px solid color-mix(in srgb, var(--orca-tree-guide) 72%, transparent);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree'] > div[data-orca-workspace-selectable]::before {
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-group] {
+  --orca-workspace-indent: calc(var(--dsh-workspace-indent, 0px) * 4 / 3);
+  --orca-workspace-end-gap: 0px;
+  position: relative;
+}
+
+/* Each section owns its branch and its own sessions, even after nested groups. */
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-children]::before,
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-selectable]::before {
   position: absolute;
-  z-index: 0;
   top: 41px;
-  bottom: 7px;
-  left: 11px;
+  bottom: 19px;
+  left: calc(var(--orca-workspace-indent) + 9px);
   width: 1px;
   content: '';
   background: var(--orca-tree-guide);
   pointer-events: none;
 }
 
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-selectable]::before {
+  bottom: calc(16px + var(--orca-workspace-end-gap));
+}
+
+/* The solid guide ends at the last session; the overflow button continues it. */
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-overflow]::before {
+  bottom: calc(44px + var(--orca-workspace-end-gap));
+}
+
+/* Without own sessions, the parent guide ends at the last child header. */
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-children]:not([data-orca-workspace-selectable])::before {
+  content: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-children]:not([data-orca-workspace-selectable])
+  > [role='group'] > [data-orca-workspace-group]::after {
+  position: absolute;
+  top: -4px;
+  bottom: 0;
+  left: calc(var(--orca-workspace-indent) - 7px);
+  width: 1px;
+  content: '';
+  background: var(--orca-tree-guide);
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-children]:not([data-orca-workspace-selectable])
+  > [role='group'] > [data-orca-workspace-group]:first-child::after {
+  top: -2px;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-children]:not([data-orca-workspace-selectable])
+  > [role='group'] > [data-orca-workspace-group]:last-child::after {
+  bottom: calc(100% - 18px);
+}
+
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'] {
   text-shadow: none;
 }
 
-/* Workspace chapter row: collapse the stock two-line 54px cell into a quiet
-   single-line index row while retaining its folder, count, menus, and toggle. */
+/* Move the complete row so backgrounds and controls share the same indent. */
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded] {
   position: relative;
   box-sizing: border-box;
   height: 38px;
   min-height: 38px;
+  width: calc(100% - var(--orca-workspace-indent, 0px));
+  margin-left: var(--orca-workspace-indent, 0px);
   padding: 0 8px;
+  border-inline: 0;
+  column-gap: 4px;
   align-items: center;
   border-radius: 0;
   background: transparent;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded] > [class*='slot'] {
+  left: auto;
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]::before {
@@ -2475,9 +2558,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:
   background: color-mix(in srgb, var(--orca-blue) 5.5%, transparent);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div[data-orca-workspace-current]
-  [role='treeitem'][aria-expanded] {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:has(> [class*='folderActive']) {
   border-left-color: var(--orca-blue);
   background: linear-gradient(90deg, color-mix(in srgb, var(--orca-blue) 15%, transparent), color-mix(in srgb, var(--orca-blue) 3.5%, transparent) 72%, transparent);
   box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--orca-blue) 20%, transparent);
@@ -2486,16 +2567,12 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
 /* Folder geometry communicates open/closed; blue communicates the current
    workspace. The small square is deliberately independent from the open
    folder glyph, so an expanded inactive workspace cannot read as selected. */
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div[data-orca-workspace-current]
-  [role='treeitem'][aria-expanded]::before {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:has(> [class*='folderActive'])::before {
   background: var(--orca-blue);
   box-shadow: 3px 0 0 color-mix(in srgb, var(--orca-blue) 20%, transparent);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div[data-orca-workspace-current]
-  [role='treeitem'][aria-expanded]::after {
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:has(> [class*='folderActive'])::after {
   position: absolute;
   top: 16px;
   left: -1px;
@@ -2507,9 +2584,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
   pointer-events: none;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar'] [role='tree']
-  > div[data-orca-workspace-current]
-  [role='treeitem'][aria-expanded]
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:has(> [class*='folderActive'])
   svg[data-orca-link-icon^='folder-'] {
   color: var(--orca-blue);
 }
@@ -2520,10 +2595,13 @@ body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selecte
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  width: calc(100% - 18px);
+  width: calc(100% - 16px - var(--orca-workspace-indent, 0px));
   height: 34px;
-  margin-left: 18px;
-  padding: 0 7px 0 9px;
+  margin-left: calc(16px + var(--orca-workspace-indent, 0px));
+  padding: 0 8px;
+  /* The skin owns the row inset; host paint borders offset the branch joint. */
+  border-inline: 0;
+  column-gap: 4px;
   border-radius: 0;
   background: transparent;
   backdrop-filter: none;
@@ -2542,6 +2620,7 @@ body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selecte
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected] > span[class*='_title'] {
+  margin: 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2549,8 +2628,14 @@ body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selecte
   font-size: 13px;
 }
 
+/* Empty extension slots retain their host-owned data-slot wrapper. */
 body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected]
-  > span[class*='_time'] {
+  > span[class*='_slot']:is(:empty, :has(> [data-slot='sidebar.session.row.leading']:only-child:empty)) {
+  display: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] div[role='treeitem'][aria-selected]
+  > span[class*='_rowResting'] > span[class*='_time'] {
   flex: 0 0 44px;
   margin-left: auto;
   text-align: right;
@@ -2581,9 +2666,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='treeit
   background: rgba(77, 145, 255, 0.09);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='tree']
-  > div[data-orca-workspace-current]
-  [role='treeitem'][aria-expanded] {
+body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] [role='treeitem'][aria-expanded]:has(> [class*='folderActive']) {
   background: linear-gradient(90deg, rgba(77, 145, 255, 0.2), rgba(77, 145, 255, 0.06) 72%, transparent);
 }
 
@@ -2593,6 +2676,73 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] div[role='tre
 
 body[data-dsh-orca-link][data-ds-dark-theme] [data-slot='sidebar'] div[role='treeitem'][aria-selected='true'] {
   background: rgba(77, 145, 255, 0.16);
+}
+
+/* Child folders use a single connector and a quiet active surface. */
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [data-orca-workspace-group]::before {
+  top: 34px;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][aria-expanded] {
+  height: 34px;
+  min-height: 34px;
+  border-left: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][aria-expanded]::before {
+  top: 17px;
+  bottom: auto;
+  left: -7px;
+  width: 7px;
+  height: 1px;
+  border: 0;
+  transform: none;
+  background: var(--orca-tree-guide);
+  box-shadow: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][aria-expanded]::after {
+  content: none;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][aria-expanded]:has(> [class*='folderActive']) {
+  background: color-mix(in srgb, var(--orca-blue) 7%, transparent);
+  color: var(--orca-ink);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][aria-expanded]
+  > span[class*='_projectText'] > span[class*='_title'] {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [role='group'] [role='treeitem'][aria-expanded]:hover {
+  background: color-mix(in srgb, var(--orca-blue) 10%, transparent);
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [class*='sessionOverflowButton'] {
+  width: calc(100% - var(--orca-workspace-indent, 0px));
+  margin-left: var(--orca-workspace-indent, 0px);
+  padding-inline-start: 24px;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-overflow] > button[class*='sessionOverflowButton'] {
+  position: relative;
+}
+
+body[data-dsh-orca-link] [data-slot='sidebar'] [data-orca-workspace-overflow] > button[class*='sessionOverflowButton']::before {
+  position: absolute;
+  box-sizing: border-box;
+  top: -16px;
+  bottom: calc(50% - 1px);
+  left: 9px;
+  width: 7px;
+  content: '';
+  border-left: 1px dashed var(--orca-tree-guide);
+  border-bottom: 1px solid var(--orca-tree-guide);
+  pointer-events: none;
 }
 
 body[data-dsh-orca-link]
@@ -2753,7 +2903,8 @@ body[data-dsh-orca-link] [data-question-key] [class*='_checkbox']::before {
    paint ORCA's straight-line set on the glyph box itself, keyed on the host's
    status attribute: corner brackets while pending, a ticked frame when done,
    and in progress the context-usage pixel field, whose cells fill bottom-up
-   on a stepped 2.4s cycle (one 16px pseudo-element, clip-path steps only). */
+   on a stepped 1.6s cycle, then clear bottom-up one row at a time (one
+   16px pseudo-element, clip-path steps only). */
 body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status] > [class*='_glyph'] {
   position: relative;
   color: var(--dsw-alias-label-tertiary);
@@ -2798,22 +2949,23 @@ body[data-dsh-orca-link] [data-testid='todo-panel'] li[data-status='in_progress'
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Crect x='4' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square' stroke-linejoin='miter'%3E%3Crect x='4' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='10' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='7' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='4' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='7' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3Crect x='10' y='4' width='2' height='2' fill='black' stroke='none'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
   clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px);
-  animation: orcaTodoFill 2.4s step-end infinite;
+  animation: orcaTodoFill 1.6s step-end infinite;
 }
 
 @keyframes orcaTodoFill {
   0% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
-  8% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 6.5px 12.5px, 6.5px 9.5px, 3.5px 9.5px); }
-  16% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 9.5px 12.5px, 9.5px 9.5px, 3.5px 9.5px); }
-  24% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 3.5px 9.5px, 3.5px 6.5px, 3.5px 6.5px); }
-  32% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 6.5px 9.5px, 6.5px 6.5px, 3.5px 6.5px); }
-  40% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 9.5px 9.5px, 9.5px 6.5px, 3.5px 6.5px); }
-  48% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 3.5px 6.5px, 3.5px 3.5px, 3.5px 3.5px); }
-  56% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 6.5px 6.5px, 6.5px 3.5px, 3.5px 3.5px); }
-  64% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 9.5px 6.5px, 9.5px 3.5px, 3.5px 3.5px); }
-  72% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 3.5px, 3.5px 3.5px, 3.5px 0.5px, 3.5px 0.5px); }
-  90% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
-  100% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px); }
+  7% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 6.5px 12.5px, 6.5px 9.5px, 3.5px 9.5px); }
+  14% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 9.5px 12.5px, 9.5px 9.5px, 3.5px 9.5px); }
+  21% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 3.5px 9.5px, 3.5px 6.5px, 3.5px 6.5px); }
+  28% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 6.5px 9.5px, 6.5px 6.5px, 3.5px 6.5px); }
+  35% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 9.5px, 9.5px 9.5px, 9.5px 6.5px, 3.5px 6.5px); }
+  42% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 3.5px 6.5px, 3.5px 3.5px, 3.5px 3.5px); }
+  49% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 6.5px 6.5px, 6.5px 3.5px, 3.5px 3.5px); }
+  56% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 6.5px, 9.5px 6.5px, 9.5px 3.5px, 3.5px 3.5px); }
+  63% { clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 3.5px, 3.5px 3.5px, 3.5px 0.5px, 3.5px 0.5px); }
+  72% { clip-path: inset(3.5px 3.5px 6.5px); }
+  82% { clip-path: inset(3.5px 3.5px 9.5px); }
+  92%, 100% { clip-path: inset(3.5px 3.5px 12.5px); }
 }
 
 /* Recommendation badge: the host dark palette would fill and ink the tag with
@@ -3358,18 +3510,7 @@ body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-restoring] [dat
   }
 }
 
-/* The host permission control starts hiding its label at a fairly generous
-   width. Keep all wording intact until the controls genuinely run out of
-   room, then let the card's real inline size drive the compact states. */
-body[data-dsh-orca-link] [data-composer-card] :is([class*='triggerLabel'], [class*='triggerEffort']) {
-  display: block !important;
-}
-
 @container orca-composer (max-width: 260px) {
-  body[data-dsh-orca-link] [data-composer-card] :is([class*='triggerLabel'], [class*='triggerEffort']) {
-    display: none !important;
-  }
-
   body[data-dsh-orca-link]
     [data-composer-card]
     :is([class*='_row'], [class*='_tools'], [class*='_modes'], [class*='_trailing']) {
@@ -3578,6 +3719,92 @@ body[data-dsh-orca-link] [data-orca-link-icon] > :not([data-orca-link-icon-art])
   display: none;
 }
 
+/* The host rotates the SVG itself; the hourglass turns only after draining. */
+body[data-dsh-orca-link] :is(
+  [class$='_skeletonFill'], [class*='_skeletonFill '],
+  [class$='_skeletonBar'], [class*='_skeletonBar '],
+  [class$='_skeletonDot'], [class*='_skeletonDot ']
+) {
+  border-radius: 0 !important;
+}
+
+body[data-dsh-orca-link] [data-detail-document] [role='status'][aria-busy='true'] > span {
+  border-radius: 0 !important;
+}
+
+body[data-dsh-orca-link] [data-orca-link-loader] {
+  position: relative !important;
+  border-color: transparent !important;
+  animation: none !important;
+}
+
+body[data-dsh-orca-link] [data-orca-link-loader]::before {
+  display: none !important;
+}
+
+body[data-dsh-orca-link] [data-orca-link-loader-art] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+body[data-dsh-orca-link] svg:is([data-orca-link-icon='loading'], [data-orca-link-icon='task-loading']) {
+  animation: none;
+}
+
+/* Reuse Todo's stepped fill and row-by-row clearing on a 16-unit viewport.
+   This is indeterminate activity, never a fabricated completion percentage. */
+body[data-dsh-orca-link] [data-orca-task-fill] {
+  clip-path: polygon(3.5px 12.5px, 12.5px 12.5px, 12.5px 12.5px, 3.5px 12.5px, 3.5px 9.5px, 3.5px 9.5px);
+  animation: orcaTodoFill 1.6s step-end infinite;
+}
+
+body[data-dsh-orca-link] [data-orca-hourglass] {
+  transform-origin: 8px 8px;
+  animation: orcaHourglassTurn 2.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+body[data-dsh-orca-link] [data-orca-hourglass-sand] {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+body[data-dsh-orca-link] [data-orca-hourglass-sand='upper'] {
+  animation: orcaHourglassDrain 2.8s linear infinite;
+}
+
+body[data-dsh-orca-link] [data-orca-hourglass-sand='lower'] {
+  animation: orcaHourglassFill 2.8s linear infinite;
+}
+
+body[data-dsh-orca-link] [data-orca-hourglass-stream] {
+  animation: orcaHourglassStream 2.8s linear infinite;
+}
+
+@keyframes orcaHourglassTurn {
+  0%, 82% { transform: rotate(0deg); }
+  100% { transform: rotate(180deg); }
+}
+
+@keyframes orcaHourglassDrain {
+  0%, 6% { transform: scaleY(1); }
+  76%, 100% { transform: scaleY(0); }
+}
+
+@keyframes orcaHourglassFill {
+  0%, 6% { transform: scaleY(0); }
+  76%, 100% { transform: scaleY(1); }
+}
+
+@keyframes orcaHourglassStream {
+  0%, 6% { opacity: 0; stroke-dashoffset: 0; }
+  10% { opacity: 1; }
+  72% { opacity: 1; }
+  76%, 100% { opacity: 0; stroke-dashoffset: -10; }
+}
+
 body[data-dsh-orca-link] {
   --aion-bg-base: var(--orca-surface-strong);
   --aion-bg-1: var(--orca-surface);
@@ -3614,6 +3841,16 @@ body[data-dsh-orca-link] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-dsh-orca-link] [data-orca-task-fill] {
+    animation: none;
+    clip-path: none;
+    opacity: 0.45;
+  }
+  body[data-dsh-orca-link] [data-orca-hourglass],
+  body[data-dsh-orca-link] [data-orca-hourglass-sand],
+  body[data-dsh-orca-link] [data-orca-hourglass-stream] { animation: none; }
+  body[data-dsh-orca-link] [data-orca-hourglass-sand] { transform: scaleY(0.5); }
+  body[data-dsh-orca-link] [data-orca-hourglass-stream] { opacity: 0; }
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden] { opacity: 0; }
   body[data-dsh-orca-link] button,
   body[data-dsh-orca-link] [role='button'],
@@ -3624,7 +3861,8 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .pricingLight,
   body[data-dsh-orca-link] .pricingLamp,
   body[data-dsh-orca-link] .pricingTooltip,
-  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before { transition: none; }
+  body[data-dsh-orca-link] :is([data-slot='sidebar'] > :first-child)::before,
+  body[data-dsh-orca-link] [data-plugin-bar][data-natural]::before { transition: none; }
   body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > :first-child::after,
   body[data-dsh-orca-link] .signalDot,
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > :first-child,
@@ -3650,19 +3888,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::before,
   body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog']::after { display: none; }
-  body[data-dsh-orca-link] .statusCharacterFrame { animation: none; }
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
-}
-
-@keyframes orcaGateWeave {
-  0%   { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
-  14%  { transform: translate(0.090px, -0.062px) scaleX(var(--orca-character-mirror)); }
-  29%  { transform: translate(0.032px, 0.062px) scaleX(var(--orca-character-mirror)); }
-  43%  { transform: translate(-0.041px, -0.016px) scaleX(var(--orca-character-mirror)); }
-  58%  { transform: translate(0.059px, 0.011px) scaleX(var(--orca-character-mirror)); }
-  72%  { transform: translate(-0.018px, -0.062px) scaleX(var(--orca-character-mirror)); }
-  86%  { transform: translate(0.090px, 0.034px) scaleX(var(--orca-character-mirror)); }
-  100% { transform: translate(-0.090px, 0.062px) scaleX(var(--orca-character-mirror)); }
 }
 
 /* The semantic handles are siblings of the conversation scrollport inside the

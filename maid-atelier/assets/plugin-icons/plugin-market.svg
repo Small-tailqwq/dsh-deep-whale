@@ -1,0 +1,12 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="8" y="8" width="9" height="9" rx="2.75" fill="url(#maid-plugin-market)"/>
+  <rect x="19" y="8" width="9" height="9" rx="2.75" fill="#8ea5da"/>
+  <rect x="8" y="19" width="9" height="9" rx="2.75" fill="#31498f"/>
+  <path d="M23.5 19.5v8M19.5 23.5h8" stroke="#c5a468" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="maid-plugin-market" x1="12.5" y1="8" x2="12.5" y2="17" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>

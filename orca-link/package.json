@@ -23,7 +23,8 @@
   },
   "scripts": {
     "build": "node ../scripts/prepare-skin-assets.mjs . && tsdown && node ../scripts/write-skin-build.mjs . Small-tailqwq/dsh-deep-whale",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:host-icons": "node scripts/test-host-icons.mjs"
   },
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -41,7 +42,7 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh": ">=0.2.0-rc.2 <0.3.0-0"
+    "@deepseek-ai/dsh": ">=0.2.2-rc.1 <0.3.0-0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh": {
@@ -52,7 +53,11 @@
     "@deepseek-ai/cordis": "^4.0.1",
     "jsdom": "29.1.1",
     "lightningcss": "^1.32.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "sharp": "0.35.5",
     "tsdown": "^0.22.2",
+    "typescript": "5.9.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.8"
   },
@@ -68,6 +73,7 @@
     "LICENSE-ARTWORK",
     "NOTICE",
     "README.md",
+    "docs",
     "assets/runtime",
     "locale/*.json",
     "assets/plugin-icon.svg"

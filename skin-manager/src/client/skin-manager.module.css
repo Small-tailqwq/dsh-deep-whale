@@ -197,7 +197,7 @@
   justify-content: space-between;
   gap: 24px;
   min-height: 32px;
-  padding: 12px 2px;
+  padding: 16px 0;
   border-bottom: 0.5px solid var(--dsw-alias-border-l2);
 }
 
@@ -210,7 +210,7 @@
 }
 
 /* Settings row copy, as the host's General and Plugins rows set it: a
-   14/20 title and a 12/18 secondary description. The copy takes the free
+   14/22 title and a 12/18 secondary description. The copy takes the free
    width and wraps; the control beside it never shrinks. */
 .rowText {
   display: grid;
@@ -222,13 +222,13 @@
 .rowTitle {
   color: var(--dsw-alias-label-primary);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 22px;
   overflow-wrap: anywhere;
 }
 
 .rowDescription,
 .hint {
-  color: var(--dsw-alias-label-secondary);
+  color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
@@ -744,6 +744,22 @@
 }
 
 @media (max-width: 720px) {
+  .selectRow,
+  .colorRow {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .sliderRow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sliderRow .rowText {
+    grid-column: 1 / -1;
+  }
+
   .skinGrid {
     grid-template-columns: 1fr;
   }

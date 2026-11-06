@@ -1085,7 +1085,7 @@ export function apply(ctx: HostContext): void {
     ))
     return () => {
       unregister()
-      desktopIcon?.dispose()
+      return desktopIcon?.dispose()
     }
   }, 'ui-skin-manager: startup guard, catalog/activation route and desktop icon')
 }
@@ -1102,7 +1102,7 @@ function desktopIconControl(
   profilePatch: string,
   patchPaths: string[],
   catalog: () => SkinCatalogEntry[],
-): { control: DesktopIconControl, dispose(): void } | undefined {
+): { control: DesktopIconControl, dispose(): Promise<void> } | undefined {
   const shell = detectDesktopShell()
   if (shell === null) return undefined
   const windowIcon = new WindowIconHolder()
@@ -1131,9 +1131,9 @@ function desktopIconControl(
         void Promise.resolve().then(() => sync.reconcile(source(target))).catch(report)
       },
     },
-    dispose: () => {
+    dispose: async () => {
       disposed = true
-      windowIcon.stop()
+      await Promise.all([windowIcon.stop(), sync.drain()])
     },
   }
 }

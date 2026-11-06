@@ -11,6 +11,9 @@ afterEach(() => {
   vi.restoreAllMocks()
   document.body.innerHTML = ''
   document.documentElement.style.removeProperty('--maid-workspace-row-height')
+  document.documentElement.style.removeProperty('--maid-scene-brightness-light')
+  document.documentElement.removeAttribute('data-maid-plain-process')
+  document.documentElement.removeAttribute('data-maid-sidebar-lace')
   for (const attribute of [...document.documentElement.attributes]) {
     if (attribute.name.startsWith('data-dsh-whale-') || attribute.name.startsWith('data-maid-composer-') || attribute.name.startsWith('data-maid-nav-')) {
       document.documentElement.removeAttribute(attribute.name)
@@ -19,13 +22,105 @@ afterEach(() => {
 })
 
 describe('maid customization declaration', () => {
+  it('keeps sidebar lace enabled by default and supports switching it off and back on', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    const lace = definition.settings.find(setting => setting.key === 'sidebarLace')
+    expect(lace?.type).toBe('boolean')
+    expect(lace?.defaultValue).toBe(true)
+    const applyValues = (input: Record<string, unknown>) => definition.apply({ values: normalizeSkinValues(definition, input), visibility: {} })
+    applyValues({})
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('on')
+    applyValues({ sidebarLace: false })
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('off')
+    applyValues({ sidebarLace: true })
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('on')
+    applyValues({ sidebarLace: 'invalid' })
+    expect(document.documentElement.getAttribute('data-maid-sidebar-lace')).toBe('on')
+    definition.apply(null)
+    expect(document.documentElement.hasAttribute('data-maid-sidebar-lace')).toBe(false)
+    applyValues({ sidebarLace: false })
+    dispose()
+    expect(document.documentElement.hasAttribute('data-maid-sidebar-lace')).toBe(false)
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('restores the original sidebar lace attribute and respects later external changes', () => {
+    const root = document.documentElement
+    root.setAttribute('data-maid-sidebar-lace', 'external')
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    registration!.definition.apply({ values: { sidebarLace: false }, visibility: {} })
+    dispose()
+    expect(root.getAttribute('data-maid-sidebar-lace')).toBe('external')
+    const disposeAgain = installMaidCustomization()
+    registration!.definition.apply({ values: { sidebarLace: false }, visibility: {} })
+    root.setAttribute('data-maid-sidebar-lace', 'another-writer')
+    disposeAgain()
+    expect(root.getAttribute('data-maid-sidebar-lace')).toBe('another-writer')
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('clamps light scene brightness to its supported band and keeps plain process rows opt-in', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    const brightness = definition.settings.find(setting => setting.key === 'sceneBrightnessLight')
+    expect(brightness?.type).toBe('range')
+    expect(brightness && brightness.type === 'range' ? [brightness.min, brightness.defaultValue, brightness.max] : []).toEqual([60, 80, 100])
+    const applyValues = (input: Record<string, unknown>) => definition.apply({ values: normalizeSkinValues(definition, input), visibility: {} })
+    applyValues({})
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.8')
+    expect(document.documentElement.getAttribute('data-maid-plain-process')).toBe('off')
+    applyValues({ sceneBrightnessLight: 72, plainProcess: true })
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.72')
+    expect(document.documentElement.getAttribute('data-maid-plain-process')).toBe('on')
+    applyValues({ sceneBrightnessLight: -10 })
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.6')
+    applyValues({ sceneBrightnessLight: 110 })
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('1')
+    dispose()
+    expect(document.documentElement.style.getPropertyValue('--maid-scene-brightness-light')).toBe('')
+    expect(document.documentElement.hasAttribute('data-maid-plain-process')).toBe(false)
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('restores existing scene preferences and leaves another writer’s brightness intact', () => {
+    const root = document.documentElement
+    root.style.setProperty('--maid-scene-brightness-light', '0.9', 'important')
+    root.setAttribute('data-maid-plain-process', 'external')
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    registration!.definition.apply({ values: normalizeSkinValues(registration!.definition, { sceneBrightnessLight: 60, plainProcess: true }), visibility: {} })
+    dispose()
+    expect(root.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.9')
+    expect(root.style.getPropertyPriority('--maid-scene-brightness-light')).toBe('important')
+    expect(root.getAttribute('data-maid-plain-process')).toBe('external')
+    const disposeAgain = installMaidCustomization()
+    registration!.definition.apply({ values: normalizeSkinValues(registration!.definition, {}), visibility: {} })
+    root.style.setProperty('--maid-scene-brightness-light', '0.7', 'important')
+    disposeAgain()
+    expect(root.style.getPropertyValue('--maid-scene-brightness-light')).toBe('0.7')
+    expect(root.style.getPropertyPriority('--maid-scene-brightness-light')).toBe('important')
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
   it('exposes its own controls and applies the effective SFW visibility', () => {
     let registration: SkinCustomizationRegistration | undefined
     const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'workspaceRowHeight'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['sceneBrightnessLight', 'plainProcess', 'artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'sidebarLace', 'workspaceRowHeight'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },

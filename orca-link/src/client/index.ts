@@ -9,6 +9,7 @@ import {
   ORCA_LINK_LIGHT_HERO_ART,
 } from './art.ts'
 import { installOrcaComposerCollapse } from './composer-collapse.ts'
+import { installOrcaComposerDismiss } from './composer-dismiss.ts'
 import { installOrcaComposerMotion } from './composer-motion.ts'
 import { installOrcaCustomization } from './customization.ts'
 import { installOrcaHeadlineTypewriter } from './headline-typewriter.ts'
@@ -144,6 +145,7 @@ export function apply(ctx: PanelContext): void {
   ctx.effect(() => installOrcaPageIcons(), 'ui-skin-orca-link: page icons')
   ctx.effect(() => installOrcaWindowsMenu(body), 'ui-skin-orca-link: windows caption menubar')
   ctx.effect(() => installOrcaWorkspaceMarks(body), 'ui-skin-orca-link: workspace group tags')
+  ctx.effect(() => installOrcaComposerDismiss(body), 'ui-skin-orca-link: composer dock dismissal')
   const originalTitle = document.title
   const originalLightHeroArt = body.style.getPropertyValue(LIGHT_HERO_ART_PROPERTY)
   const originalLightActiveArt = body.style.getPropertyValue(LIGHT_ACTIVE_ART_PROPERTY)

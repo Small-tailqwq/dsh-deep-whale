@@ -1,0 +1,4 @@
+interface:
+  display_name: "DSH 图标与加载动画扫描"
+  short_description: "查找 ORCA LINK 的图标失配、新增图形及库外加载动画遗漏"
+  default_prompt: "使用 $dsh-icon-scan 扫描当前适配版本，核对图标和加载动画的遗漏。"

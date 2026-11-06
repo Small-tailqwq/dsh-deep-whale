@@ -46,14 +46,14 @@ const FRAME_SEQUENCES: Record<LinkStatus, readonly number[]> = {
      loop. */
   standby: [0, 0, 0, 0, 1, 2, 3, 2, 1],
   syncing: [0, 1, 2, 3, 4, 5, 6, 7],
-  working: [0, 1, 2, 3, 4, 5, 6, 7],
+  working: [0, 1, 2, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 2, 1, 0, 5, 6, 5, 0],
   approval: [0, 1, 2, 3, 4, 5, 6, 7],
   input: [0, 1, 2, 3, 4, 5, 6, 7],
   review: [0, 1, 2, 3, 4, 5, 6, 7],
   complete: [0, 1, 2, 3, 4, 5, 6, 7],
-  fault: [0, 1, 2, 3, 4, 5, 6, 7],
+  fault: [0, 1, 2, 3, 4, 5],
   offline: [0, 1, 2, 3, 4, 5, 6, 7],
-  ready: [0, 1, 2, 3, 4, 5, 6, 7],
+  ready: [0],
 }
 
 /**
@@ -65,6 +65,12 @@ const FRAME_SEQUENCES: Record<LinkStatus, readonly number[]> = {
  */
 const FRAME_DURATIONS_MS_BY_STATUS: Partial<Record<LinkStatus, readonly number[]>> = {
   standby: [700, 700, 700, 700, 130, 90, 110, 90, 130],
+  syncing: [900, 180, 900, 90, 100, 90, 160, 900],
+  review: [600, 180, 260, 700, 1000, 260, 180, 600],
+  // Notice the error, lift the mouse hand, then settle into a held facepalm.
+  fault: [140, 280, 180, 220, 260, 500],
+  // Spend most of the cycle typing with both hands, then briefly use the mouse.
+  working: [120, 130, 200, 130, 130, 130, 130, 130, 130, 130, 130, 130, 130, 130, 130, 200, 130, 160, 160, 260, 160, 200],
 }
 
 const ONE_SHOT_STATUSES = new Set<LinkStatus>([
@@ -72,126 +78,9 @@ const ONE_SHOT_STATUSES = new Set<LinkStatus>([
   'input',
   'complete',
   'fault',
+  'offline',
   'ready',
 ])
-
-/** Atlas cell size in px for the inline ORCA LINK status atlas (8×10 grid). */
-const STATUS_ATLAS_CELL = 236
-
-/**
- * Per-frame alignment compensation for every status row.
- *
- * The atlas rows were assembled from source poses whose whole-body centroid
- * drifts between frames (and between different status rows). Without
- * compensation, both an individual animation loop and a status transition can
- * visibly jump at small UI sizes. Values are source-pixel offsets (standby
- * frame 0 centroid minus this frame's centroid) applied as a translate on the
- * sprite layer, so every status and every frame shares one stable anchor while
- * the pose changes. Recompute these from the inline atlas whenever the artwork
- * is re-embedded.
- */
-const STATUS_FRAME_ALIGNMENT: Record<LinkStatus, ReadonlyArray<readonly [number, number]>> = {
-  standby: [
-    [0.0, 0.0],
-    [5.0, -0.2],
-    [2.6, 0.1],
-    [0.8, -0.2],
-    [0.9, 2.2],
-    [2.6, 2.1],
-    [2.9, 1.9],
-    [0.0, 0.0],
-  ],
-  syncing: [
-    [-3.5, 1.0],
-    [-2.9, 0.8],
-    [0.4, 0.6],
-    [1.3, 0.4],
-    [-1.1, 3.9],
-    [-2.0, 4.2],
-    [0.8, 3.4],
-    [-3.5, 1.0],
-  ],
-  working: [
-    [5.4, -1.6],
-    [5.0, -1.8],
-    [5.5, -1.6],
-    [6.2, -1.7],
-    [5.2, 0.9],
-    [4.5, 0.6],
-    [6.3, 0.4],
-    [5.4, -1.6],
-  ],
-  approval: [
-    [3.2, -1.8],
-    [2.6, -1.6],
-    [3.3, -0.1],
-    [4.2, 1.3],
-    [4.2, 1.1],
-    [3.0, 1.1],
-    [3.3, 0.6],
-    [5.3, 1.0],
-  ],
-  input: [
-    [9.6, 9.8],
-    [8.8, 9.7],
-    [8.5, 10.7],
-    [8.7, 12.5],
-    [7.3, 12.6],
-    [7.3, 12.4],
-    [8.1, 12.5],
-    [7.3, 12.4],
-  ],
-  review: [
-    [11.8, -2.5],
-    [5.8, 2.0],
-    [8.4, 2.1],
-    [9.1, -0.1],
-    [6.4, 1.1],
-    [13.7, 1.8],
-    [10.8, -0.2],
-    [11.8, -2.5],
-  ],
-  complete: [
-    [1.8, -2.3],
-    [-0.1, -2.7],
-    [-0.9, -2.7],
-    [0.8, -1.3],
-    [10.0, -2.4],
-    [-1.3, -1.1],
-    [-0.8, -0.8],
-    [8.1, -0.2],
-  ],
-  fault: [
-    [9.7, -0.8],
-    [10.2, -0.8],
-    [9.7, -0.4],
-    [16.6, -0.2],
-    [12.4, -0.1],
-    [12.8, 0.7],
-    [14.3, -0.7],
-    [11.8, 1.4],
-  ],
-  offline: [
-    [10.4, -1.8],
-    [9.7, -2.0],
-    [10.0, -2.0],
-    [11.7, -2.0],
-    [11.1, -1.5],
-    [9.5, -1.5],
-    [10.8, -1.9],
-    [10.4, -1.8],
-  ],
-  ready: [
-    [6.1, -0.1],
-    [5.7, -0.4],
-    [5.2, -1.1],
-    [7.1, -1.2],
-    [5.9, 0.9],
-    [5.7, 0.8],
-    [5.6, 0.6],
-    [7.1, 0.6],
-  ],
-}
 
 function sequenceOffset(status: LinkStatus, sequenceIndex: number, sequenceLength: number): number {
   if (ONE_SHOT_STATUSES.has(status)) return Math.min(sequenceIndex, sequenceLength - 1)
@@ -266,116 +155,165 @@ export function installOrcaStatusCharacter(body: HTMLElement, classes: {
   characterFrame: string
   characterSprite: string
 }): () => void {
+  const doc = body.ownerDocument
+  const view = doc.defaultView ?? window
+  const prefersReducedMotion = view.matchMedia?.('(prefers-reduced-motion: reduce)')
+  const readStatus = (): LinkStatus => isLinkStatus(body.dataset.orcaLinkStatus) ? body.dataset.orcaLinkStatus : 'standby'
   let character: HTMLElement | null = null
   let sprite: HTMLElement | null = null
-  let status: LinkStatus = 'standby'
+  let status = readStatus()
+  let targetStatus = status
   let sequenceIndex = 0
+  let returningFrame: number | null = null
+  let returnPath: number[] = []
   let timeout: number | undefined
 
   const mount = (): void => {
     const pane = body.querySelector<HTMLElement>(SIDEBAR_PANE_SELECTOR)
+    if (character !== null && character.parentElement === pane && character.isConnected) return
+    character?.remove()
+    character = null
+    sprite = null
     if (pane === null) return
-    const existing = pane.querySelector<HTMLElement>(CHARACTER_SELECTOR)
-    if (existing !== null) {
-      character = existing
-      sprite = existing.querySelector<HTMLElement>('[data-orca-link-character-sprite]')
-      return
-    }
+    // A different activation retains ownership of its node and animation clock.
+    if (pane.querySelector(CHARACTER_SELECTOR) !== null) return
     character = createCharacter(classes)
     sprite = character.querySelector<HTMLElement>('[data-orca-link-character-sprite]')
     pane.append(character)
   }
 
+  const currentFrame = (): { frame: number, row: number } => returningFrame === null
+    ? statusFrame(status, sequenceIndex)
+    : { frame: returningFrame, row: STATUS_ROWS[status] }
+
   const render = (): void => {
     mount()
-    const nextStatus = isLinkStatus(body.dataset.orcaLinkStatus) ? body.dataset.orcaLinkStatus : 'standby'
-    if (nextStatus !== status) {
-      status = nextStatus
-      sequenceIndex = 0
-    }
-    const current = statusFrame(status, sequenceIndex)
+    const current = currentFrame()
     if (character !== null) {
-      if (character.dataset.orcaLinkStatus !== status) character.dataset.orcaLinkStatus = status
+      // Signals follow the host immediately, even while the arm is returning.
+      if (character.dataset.orcaLinkStatus !== targetStatus) character.dataset.orcaLinkStatus = targetStatus
       if (character.dataset.orcaLinkFrame !== String(current.frame)) {
         character.dataset.orcaLinkFrame = String(current.frame)
       }
-      character.style.setProperty('--orca-status-column', String(current.frame))
-      character.style.setProperty('--orca-status-row', String(current.row))
-      character.style.setProperty('--orca-status-x', `${(current.frame / 7) * 100}%`)
-      character.style.setProperty('--orca-status-y', `${(current.row / 9) * 100}%`)
     }
-    if (sprite !== null) {
-      sprite.style.setProperty('--orca-status-column', String(current.frame))
-      sprite.style.setProperty('--orca-status-row', String(current.row))
-      sprite.style.setProperty('--orca-status-x', `${(current.frame / 7) * 100}%`)
-      sprite.style.setProperty('--orca-status-y', `${(current.row / 9) * 100}%`)
-      const alignment = STATUS_FRAME_ALIGNMENT[status]?.[current.frame]
-      if (alignment !== undefined) {
-        sprite.style.transform = `translate(${(alignment[0] / STATUS_ATLAS_CELL) * 100}%, ${(alignment[1] / STATUS_ATLAS_CELL) * 100}%)`
-      } else {
-        sprite.style.transform = ''
-      }
+    for (const layer of [character, sprite]) {
+      if (layer === null) continue
+      layer.style.setProperty('--orca-status-column', String(current.frame))
+      layer.style.setProperty('--orca-status-row', String(current.row))
+      layer.style.setProperty('--orca-status-x', `${(current.frame / 7) * 100}%`)
+      layer.style.setProperty('--orca-status-y', `${(current.row / 9) * 100}%`)
     }
   }
 
-  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
-  const doc = body.ownerDocument
-  // The loop only runs while a frame change could be seen: not in a
-  // background window, not while the manager (or the SFW schedule) has the
-  // character switched off, and not once a one-shot sequence has settled on
-  // its last cell. `complete` / `ready` are the usual idle states after a
-  // turn, and the loop used to redraw that settled cell every 83ms forever.
-  const animating = (): boolean => (
-    doc.visibilityState !== 'hidden'
+  const visible = (): boolean => doc.visibilityState !== 'hidden'
     && doc.documentElement.getAttribute(CHARACTER_VISIBILITY_ATTRIBUTE) !== 'hidden'
+
+  const enterTarget = (): void => {
+    status = targetStatus
+    returningFrame = null
+    returnPath = []
+    sequenceIndex = prefersReducedMotion?.matches === true && ONE_SHOT_STATUSES.has(status)
+      ? FRAME_SEQUENCES[status].length - 1 : 0
+  }
+
+  const animating = (): boolean => (
+    character !== null
+    && visible()
     && prefersReducedMotion?.matches !== true
-    && !(ONE_SHOT_STATUSES.has(status) && sequenceIndex >= FRAME_SEQUENCES[status].length - 1)
+    && (returningFrame !== null || !(ONE_SHOT_STATUSES.has(status) && sequenceIndex >= FRAME_SEQUENCES[status].length - 1))
   )
 
   const tick = (): void => {
     timeout = undefined
-    sequenceIndex += 1
+    if (!animating()) return
+    if (returningFrame !== null) {
+      returningFrame = returnPath.shift() ?? 0
+      if (returnPath.length === 0) enterTarget()
+    } else {
+      sequenceIndex += 1
+    }
     render()
     scheduleTick()
   }
 
   const scheduleTick = (): void => {
-    if (timeout !== undefined) window.clearTimeout(timeout)
+    if (timeout !== undefined) view.clearTimeout(timeout)
     timeout = undefined
     if (!animating()) return
-    timeout = window.setTimeout(tick, statusFrameDuration(status, sequenceIndex))
+    const returnDuration = status === 'fault' ? 100 : 60
+    timeout = view.setTimeout(tick, returningFrame === null ? statusFrameDuration(status, sequenceIndex) : returnDuration)
   }
 
-  // Resume where the loop stopped once the character can be seen again.
+  const synchronize = (): void => {
+    const nextStatus = readStatus()
+    const changed = nextStatus !== targetStatus
+    if (changed) {
+      targetStatus = nextStatus
+      const frame = currentFrame().frame
+      if (frame === 0 || !visible() || prefersReducedMotion?.matches === true) {
+        enterTarget()
+      } else if (returningFrame === null) {
+        // Each row starts with the same neutral cel. Finish a short loop or
+        // retract a held gesture before entering the latest requested action.
+        returningFrame = frame
+        if (status === 'working') {
+          // Typing and mouse motion are separate branches. Retract through the
+          // wrist-transfer cel instead of jumping from the keyboard to mouse.
+          returnPath = frame >= 2 && frame <= 4 ? [2, 1, 0] : [0]
+          if (frame === 2) returnPath = [1, 0]
+        } else if (status === 'fault') {
+          // Release the temple gesture without replaying the surprised face.
+          returnPath = frame >= 4 ? [6, 7, 0] : frame >= 2 ? [7, 0] : [0]
+        } else if (!ONE_SHOT_STATUSES.has(status) && frame >= 4) {
+          returnPath = Array.from({ length: 7 - frame }, (_, i) => frame + i + 1)
+        } else {
+          returnPath = Array.from({ length: frame }, (_, i) => frame - i - 1)
+        }
+      }
+    }
+    render()
+    if (changed || timeout === undefined) scheduleTick()
+  }
+
   const resume = (): void => {
-    if (timeout === undefined) scheduleTick()
+    if (prefersReducedMotion?.matches === true) {
+      enterTarget()
+      render()
+    }
+    scheduleTick()
   }
   const visibilityObserver = new MutationObserver(resume)
-  visibilityObserver.observe(doc.documentElement, { attributes: true, attributeFilter: [CHARACTER_VISIBILITY_ATTRIBUTE] })
-  doc.addEventListener('visibilitychange', resume)
-  prefersReducedMotion?.addEventListener?.('change', resume)
-
   const observer = new MutationObserver((records) => {
     if (!hasMutationOutsideTranscript(records)) return
-    const previousStatus = status
-    render()
-    if (status !== previousStatus) scheduleTick()
+    synchronize()
   })
-  observer.observe(body, {
-    attributes: true,
-    attributeFilter: ['data-orca-link-status'],
-    childList: true,
-    subtree: true,
-  })
-  render()
-  scheduleTick()
 
-  return () => {
-    if (timeout !== undefined) window.clearTimeout(timeout)
+  const dispose = (): void => {
+    if (timeout !== undefined) view.clearTimeout(timeout)
     observer.disconnect()
     visibilityObserver.disconnect()
     doc.removeEventListener('visibilitychange', resume)
     prefersReducedMotion?.removeEventListener?.('change', resume)
-    body.querySelectorAll(CHARACTER_SELECTOR).forEach(element => element.remove())
+    character?.remove()
+    character = null
+    sprite = null
   }
+  try {
+    visibilityObserver.observe(doc.documentElement, { attributes: true, attributeFilter: [CHARACTER_VISIBILITY_ATTRIBUTE] })
+    doc.addEventListener('visibilitychange', resume)
+    prefersReducedMotion?.addEventListener?.('change', resume)
+    observer.observe(body, {
+      attributes: true,
+      attributeFilter: ['data-orca-link-status'],
+      childList: true,
+      subtree: true,
+    })
+    enterTarget()
+    render()
+    scheduleTick()
+  } catch (error) {
+    dispose()
+    throw error
+  }
+  return dispose
 }

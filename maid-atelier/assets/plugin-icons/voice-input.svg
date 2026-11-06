@@ -1,0 +1,10 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M9 16v4M13.5 12.25v11.5M22.5 9.5v17M27 16v4" stroke="url(#maid-voice-input)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 14.25v7.5" stroke="#c5a468" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="maid-voice-input" x1="18" y1="9" x2="18" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>
