@@ -177,20 +177,22 @@ describe('Maid Atelier skin apply', () => {
   it('targets the alpha2 turn rail outside the transcript in every locale and follow state', async () => {
     document.body.innerHTML = `
       <div data-phase="active">
-        <div>
-          <div data-conversation-scroll>
-            <div class="chat-frame">
-              <div class="turn-slot">
-                <nav aria-label="Turn navigation">
-                  <div><div>
-                    <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
-                    <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
-                    <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
-                  </div></div>
-                </nav>
+        <div data-conversation-content="">
+          <div data-slot="conversation.hero.frame">
+            <div data-conversation-scroll>
+              <div class="chat-frame">
+                <div class="turn-slot">
+                  <nav aria-label="Turn navigation">
+                    <div><div>
+                      <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
+                      <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
+                      <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
+                    </div></div>
+                  </nav>
+                </div>
+                <div data-chat-following-tail><div class="chat-scroll"><div data-chat-flow></div></div></div>
+                <div><button type="button" aria-label="Return to bottom"></button></div>
               </div>
-              <div data-chat-following-tail><div class="chat-scroll"><div data-chat-flow></div></div></div>
-              <div><button type="button" aria-label="Return to bottom"></button></div>
             </div>
           </div>
           <div data-width-handle="left" data-side="left"></div>
@@ -207,11 +209,16 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).not.toContain("nav[aria-label='轮次导航']")
     expect(CSS).not.toContain("[aria-label^='跳转到第']")
     expect(CSS).toMatch(
-      /\[data-phase='active'\]\s*>\s*:has\(> \[data-conversation-scroll\]\)\s*>\s*\[data-width-handle='left'\]\[data-side='left'\]::after\s*,/s,
+      /\[data-phase='active'\]\s+\[data-conversation-content\]\s*>\s*\[data-width-handle='left'\]\[data-side='left'\]::after\s*,/s,
     )
     expect(CSS).not.toMatch(
       /\[data-phase='active'\]\s*>\s*\[data-width-handle=(?:'left'|'right')\]/,
     )
+    // The handle sits beside the scrollport's slot anchor, not directly over
+    // the scroll body: the glow must still resolve on the 0.2.2 DOM.
+    expect(document.querySelector('[data-width-handle="right"]')!.matches(
+      "[data-phase='active'] [data-conversation-content] > [data-width-handle='right'][data-side='right']",
+    )).toBe(true)
   })
 
   it('keeps every full-round Maid shape circular under the Alpha corner token', () => {
