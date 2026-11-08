@@ -4207,7 +4207,10 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]
   display: none;
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] [data-phase='active'] [data-composer-card]
+/* Both composer phases share the dark round controls; the hero's porcelain
+   wash would otherwise read as a grey disc on the navy card. */
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-phase='hero'], [data-phase='active'])
+  [data-composer-card]
   :is(button[class*='add'], [class*='modes'] button[class*='trigger'][data-maid-mode-trigger]) {
   border-color: rgba(211, 180, 119, 0.72);
   color: #ead39f;
