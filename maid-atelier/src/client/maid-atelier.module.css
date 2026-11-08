@@ -683,15 +683,24 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header
   box-shadow: 0 0 0 2px rgba(6, 17, 48, 0.68);
 }
 
-body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-slot='conversation.session.header'] > [role='tablist'] > button[role='tab'] {
+/* Since 0.2.2 the tablist sits inside an unmarked tab-row wrapper, so match it
+   by its own marker. The labels cross the trim's hairlines; a tight navy halo
+   lifts the glyphs off them without adding a surface to the band. */
+body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-slot='conversation.session.header'] [data-conversation-tabs][role='tablist'] > button[role='tab'] {
   color: #d7def0;
+  text-shadow:
+    0 0 2px rgba(4, 11, 35, 0.95),
+    0 0 6px rgba(4, 11, 35, 0.75),
+    0 0 12px rgba(4, 11, 35, 0.6);
+  transition: color 0.18s ease;
 }
 
-body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-slot='conversation.session.header'] > [role='tablist'] > button[role='tab'][aria-selected='true'] {
+body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-slot='conversation.session.header'] [data-conversation-tabs][role='tablist'] > button[role='tab']:hover,
+body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-slot='conversation.session.header'] [data-conversation-tabs][role='tablist'] > button[role='tab'][aria-selected='true'] {
   color: #fff7e6;
 }
 
-body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-slot='conversation.session.header'] > [role='tablist'] > button[role='tab'][aria-selected='true']::after {
+body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-slot='conversation.session.header'] [data-conversation-tabs][role='tablist'] > button[role='tab'][aria-selected='true']::after {
   background: var(--maid-gold);
   box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
 }
@@ -756,6 +765,15 @@ body[data-dsh-maid-atelier]
   z-index: auto;
 }
 
+/* Let the active workspace ribbon clear the gold frame (4), without lifting
+   the whole sidebar or trapping native menus in a new stacking context. */
+body[data-dsh-maid-atelier] [class*='sidebarCol'] > div > :has([data-maid-workspace-active]) {
+  z-index: auto;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active] {
+  z-index: 5;
+}
 /* A fixed-size raster corner keeps the original curl detail intact while the
    straight frame segments remain free to grow with the resizable sidebar. */
 body[data-dsh-maid-atelier] [data-skin-chrome='sidebar-corners'] {
@@ -4038,7 +4056,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-composer-card] [data-compo
 
 /* The raster extends below the naturally sized active card. Reserve that
    bleed before the docked statistics line so the gold rim cannot cover it. */
-body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-card]:has(+ *) {
+body[data-dsh-maid-atelier] [data-content-phase='active'] [data-composer-card]:has(+ [data-composer-dock]) {
   margin-block-end: 12px;
 }
 

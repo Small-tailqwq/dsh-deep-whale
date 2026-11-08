@@ -145,7 +145,7 @@ describe('Maid Atelier skin apply', () => {
         <div data-conversation-header-leading></div>
         <div data-slot="conversation.session.header">
           <div><span>Current session</span><div role="dialog"><header id="nested"></header></div></div>
-          <div role="tablist" data-conversation-tabs><button role="tab" aria-selected="true" id="tab"></button></div>
+          <div data-tab-row><div role="tablist" data-conversation-tabs><button role="tab" aria-selected="true" id="tab"></button></div></div>
         </div>
       </header></div>
     `
@@ -157,6 +157,54 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector('#tab')!.matches(selected.selector)).toBe(true)
   })
 
+  it('lets the active workspace ribbon clear the frame without lifting the content root', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `<div class="sidebarCol"><div>
+      <div data-skin-chrome="sidebar-corners" id="frame"></div>
+      <div id="content"><div data-slot="sidebar.workspaces">
+        <div data-maid-workspace-row data-maid-workspace-active id="active"></div>
+        <div data-maid-workspace-row id="idle"></div>
+      </div></div>
+    </div></div>`
+    const rules = flatCssRules(CSS)
+    const z = (id: string) => rules
+      .filter(rule => { try { return rule.selector.startsWith('body[data-dsh-maid-atelier]') && !rule.selector.includes('::') && document.querySelector(`#${id}`)!.matches(rule.selector) } catch { return false } })
+      .flatMap(rule => [...rule.body.matchAll(/z-index:\s*([^;]+);/g)].map(match => match[1]))
+    expect(z('content').at(-1)).toBe('auto')
+    expect(z('active').at(-1)).toBe('5')
+    expect(z('frame').at(-1)).toBe('4')
+    expect(z('idle')).not.toContain('5')
+  })
+  it('lifts wrapped conversation tab labels off the trim without adding a surface', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div data-slot="conversation.header"><header>
+        <div data-slot="conversation.session.header"><div data-tab-row>
+          <div role="tablist" data-conversation-tabs>
+            <button role="tab" aria-selected="true" id="selected">对话</button>
+            <button role="tab" aria-selected="false" id="idle">轨迹</button>
+          </div>
+          <button id="more">More</button>
+        </div></div>
+      </header></div>
+      <div role="tablist"><button role="tab" id="other">Other panel</button></div>`
+    for (const dark of [false, true]) {
+      const selected = declarations(document.querySelector('#selected')!, dark)
+      const idle = declarations(document.querySelector('#idle')!, dark)
+      expect(idle).toContain('color: #d7def0')
+      expect(selected).toContain('color: #fff7e6')
+      expect(idle).toMatch(/text-shadow:\s*0 0 2px rgba\(4, 11, 35, 0\.95\)/)
+      for (const tab of [selected, idle]) {
+        expect(tab).not.toContain('backdrop-filter')
+        expect(tab).not.toMatch(/background:\s*rgba/)
+      }
+      expect(selected).toContain('background: var(--maid-gold)')
+      expect(idle).not.toContain('background: var(--maid-gold)')
+      for (const id of ['more', 'other']) {
+        expect(declarations(document.querySelector(`#${id}`)!, dark)).not.toContain('rgba(4, 11, 35, 0.95)')
+      }
+    }
+  })
   it('keeps a closed alpha1 right panel transparent while its floating tab retains a reading floor', () => {
     document.body.setAttribute('data-dsh-maid-atelier', '')
     document.body.innerHTML = `
@@ -2270,7 +2318,7 @@ describe('Maid Atelier skin apply', () => {
     const cardRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const inputRule = CSS.match(/\[data-composer-card\] \[data-composer-input\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const footerClearanceRule = CSS.match(
-      /\[data-phase='active'\] \[data-composer-card\]:has\(\+ \*\)\s*\{([^}]*)\}/s,
+      /\[data-content-phase='active'\] \[data-composer-card\]:has\(\+ \[data-composer-dock\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(cardRule).toContain('min-height: 0')
     expect(cardRule).not.toContain('min-height: 210px')
