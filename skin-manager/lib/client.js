@@ -664,16 +664,128 @@ window.__ModuleLoader__.load({
 			const value = values[condition.key];
 			return condition.values.some((candidate) => candidate === value);
 		}
+		/** Every single-key condition a setting's visibility rests on. */
+		function visibilityConditions(setting) {
+			const condition = setting.visibleWhen;
+			if (condition === void 0) return [];
+			return "anyOf" in condition && Array.isArray(condition.anyOf) ? condition.anyOf : [condition];
+		}
 		/**
 		* Whether a setting should render. `anyOf` is the family-of-switches form: the
 		* control shows while any listed condition holds, and the top-level single-key
 		* mirror keeps the declaration readable for a manager that predates `anyOf`.
+		*
+		* With the full `settings` list the check is transitive: a condition only
+		* counts while the control it reads is itself shown, so the child of a hidden
+		* switch hides with it instead of hanging under an unrelated row.
 		*/
-		function settingVisible(setting, values) {
-			const condition = setting.visibleWhen;
-			if (condition === void 0) return true;
-			if ("anyOf" in condition) return condition.anyOf.some((entry) => conditionMatches(entry, values));
-			return conditionMatches(condition, values);
+		function settingVisible(setting, values, settings, seen = /* @__PURE__ */ new Set()) {
+			const conditions = visibilityConditions(setting);
+			if (conditions.length === 0) return true;
+			if (seen.has(setting.key)) return false;
+			seen.add(setting.key);
+			return conditions.some((condition) => {
+				if (!conditionMatches(condition, values)) return false;
+				const parent = settings?.find((candidate) => candidate.key === condition.key);
+				return parent === void 0 || settingVisible(parent, values, settings, new Set(seen));
+			});
+		}
+		/**
+		* The `disabledWhen` state of a control: whether it is locked, and the visible
+		* row that locks it (named in the row's caption). A lock from a control the
+		* user cannot see still holds, because the skin applies that value anyway.
+		*/
+		function settingLock(setting, values, settings) {
+			if (setting.disabledWhen === void 0 || values[setting.disabledWhen] !== true) return { locked: false };
+			const parent = settings.find((candidate) => candidate.key === setting.disabledWhen);
+			return parent !== void 0 && settingVisible(parent, values, settings) ? {
+				locked: true,
+				by: parent
+			} : { locked: true };
+		}
+		/** Keys a setting depends on, through visibility or a lock. */
+		function parentKeys(setting) {
+			const keys = visibilityConditions(setting).map((condition) => condition.key);
+			if (setting.disabledWhen !== void 0) keys.push(setting.disabledWhen);
+			return keys.filter((key) => key !== setting.key);
+		}
+		/**
+		* Arrange a definition for display. Settings land in their declared group
+		* (groups in declaration order, unknown or missing groups in one untitled
+		* block at the end), and inside a block every dependent setting sits under the
+		* last control it depends on, whatever its position in the array. A skin can
+		* therefore append a new option at the end of `settings` and still have it
+		* shown with its topic and its parent switch.
+		*/
+		function layoutSettings(definition) {
+			const sections = (Array.isArray(definition.groups) ? definition.groups.filter((group) => group !== null && typeof group === "object" && typeof group.key === "string" && typeof group.label === "string") : []).map((group) => ({
+				key: group.key,
+				label: group.label,
+				labelEn: group.labelEn,
+				nodes: []
+			}));
+			const sectionKeys = new Set(sections.map((section) => section.key));
+			const rest = {
+				key: "",
+				nodes: []
+			};
+			const members = /* @__PURE__ */ new Map();
+			for (const setting of definition.settings) {
+				const section = typeof setting.group === "string" && sectionKeys.has(setting.group) ? sections.find((candidate) => candidate.key === setting.group) : rest;
+				members.set(section, [...members.get(section) ?? [], setting]);
+			}
+			for (const section of [...sections, rest]) {
+				const list = members.get(section) ?? [];
+				const index = new Map(list.map((setting, position) => [setting.key, position]));
+				const nodes = new Map(list.map((setting) => [setting.key, {
+					setting,
+					children: []
+				}]));
+				const parentOf = /* @__PURE__ */ new Map();
+				const after = /* @__PURE__ */ new Map();
+				const parentsOf = new Map(list.map((setting) => [setting.key, [...new Set(parentKeys(setting).filter((key) => index.has(key)))]]));
+				for (const [key, parents] of parentsOf) if (parents.length === 1) parentOf.set(key, parents[0]);
+				const chain = (key) => {
+					const keys = [];
+					for (let cursor = key; cursor !== void 0 && !keys.includes(cursor); cursor = parentOf.get(cursor)) keys.push(cursor);
+					return keys;
+				};
+				for (const [key, parents] of parentsOf) {
+					if (parents.length < 2) continue;
+					const chains = parents.map(chain);
+					const shared = chains[0].find((candidate) => chains.every((keys) => keys.includes(candidate)));
+					if (shared !== void 0) parentOf.set(key, shared);
+					after.set(key, parents.reduce((last, parent) => index.get(parent) > index.get(last) ? parent : last));
+				}
+				for (const key of [...parentOf.keys()]) {
+					const path = /* @__PURE__ */ new Set([key]);
+					let cursor = parentOf.get(key);
+					while (cursor !== void 0 && !path.has(cursor)) {
+						path.add(cursor);
+						cursor = parentOf.get(cursor);
+					}
+					if (cursor !== void 0) parentOf.delete(key);
+				}
+				for (const setting of list) {
+					const parent = parentOf.get(setting.key);
+					const node = nodes.get(setting.key);
+					if (parent === void 0) section.nodes.push(node);
+					else nodes.get(parent).children.push(node);
+				}
+				const contains = (node, key) => node.setting.key === key || node.children.some((child) => contains(child, key));
+				const place = (siblings) => {
+					for (const node of [...siblings]) {
+						const anchor = after.get(node.setting.key);
+						if (anchor === void 0) continue;
+						const from = siblings.indexOf(node);
+						const target = siblings.findIndex((sibling) => sibling !== node && contains(sibling, anchor));
+						if (target > from) siblings.splice(target, 0, ...siblings.splice(from, 1));
+					}
+					for (const node of siblings) place(node.children);
+				};
+				place(section.nodes);
+			}
+			return [...sections, rest].filter((section) => section.nodes.length > 0);
 		}
 		//#endregion
 		//#region src/client/locale.ts
@@ -755,51 +867,44 @@ window.__ModuleLoader__.load({
 			increaseValue: (label) => `增大${label}`,
 			decreaseValue: (label) => `减小${label}`,
 			navLabel: "皮肤管理",
-			headerIntro: "切换已安装的皮肤并调整其设置。检查更新只对比官方构建，不修改本地文件。",
-			installedTitle: "已安装皮肤",
+			installedTitle: "已安装",
 			checking: "检查中…",
 			checkUpdates: "检查更新",
 			officialName: "官方默认",
-			officialDescription: "不启用任何皮肤",
 			stateCurrent: "当前",
-			stateSwitching: "切换中",
+			stateSwitching: "切换中…",
 			switchRestartRequired: "设置已保存，但当前窗口未完成皮肤切换。请重启桌面应用使其生效。",
-			stateSwitch: "切换",
 			compatibility: (version) => `已适配 DSH ${version}`,
-			incompatibleBlocked: (runtime) => `未声明支持当前的 DSH ${runtime}，已被自动停用`,
-			incompatibleAllowed: (runtime) => `已手动允许在 DSH ${runtime} 上运行`,
-			incompatibleConfirm: (runtime) => `这个皮肤没有声明支持当前的 DSH ${runtime}，启用后可能出现界面错乱，例如输入框消失。\n\n仍要启用吗？之后可以随时切回「官方默认」。`,
-			versionUnread: "尚未读取",
-			versionUnavailable: "版本信息不可用",
-			localCommit: "本地提交",
-			localBuild: "本地构建",
-			gitHashTitle: (hash, date) => `完整提交 ${hash}\n日期 ${date ?? "未知"}`,
-			buildHashTitle: (hash) => `完整构建指纹 ${hash}`,
-			notCompared: "未对比",
-			upToDate: (short) => `与远端一致（${short}）`,
-			updateAvailable: (short, date, message) => `仓库有新构建：${short} · ${date} · ${message}`,
-			localAhead: (short) => `本地领先（远端 ${short}）`,
-			diverged: (short) => `与远端分叉（远端 ${short}）`,
-			unknownUpdate: "无法判断更新",
-			localDirty: "本地有未提交修改",
-			noSkins: "当前 profile 未发现皮肤包；安装本仓库皮肤后可回到这里激活。",
-			copiedOk: "完整版本标识已复制到剪贴板。",
+			incompatibleBlocked: (runtime) => `不支持 DSH ${runtime}，已停用`,
+			incompatibleAllowed: (runtime) => `已允许在 DSH ${runtime} 上运行`,
+			incompatibleConfirm: (runtime) => `这个皮肤没有声明支持 DSH ${runtime}，启用后界面可能错乱，例如输入框消失。\n\n仍要启用吗？之后可以随时切回「官方默认」。`,
+			gitHashTitle: (hash, date) => `本地提交 ${hash}${date === null ? "" : `\n${date}`}\n点击复制`,
+			buildHashTitle: (hash) => `本地构建 ${hash}\n点击复制`,
+			upToDate: "已是最新",
+			updateAvailable: (short, date) => date === "" ? `有更新 ${short}` : `有更新 ${short} · ${date}`,
+			localAhead: "本地较新",
+			diverged: "与远端分叉",
+			unknownUpdate: "无法检查更新",
+			localDirty: "有本地改动",
+			noSkins: "未发现已安装的皮肤。",
+			copiedOk: "已复制。",
 			copyFailed: "复制失败：浏览器拒绝了剪贴板访问。",
-			loadingSkins: "正在读取已安装皮肤…",
+			loadingSkins: "读取中…",
 			actionFailed: (message) => `操作失败：${message}`,
-			settingsTitle: "详细配置",
-			noSettings: "当前皮肤尚未暴露可配置项；仍可在上方正常激活和切换。",
-			desktopIconTitle: "桌面图标",
-			desktopIconLabel: "桌面快捷方式跟随皮肤",
-			desktopIconDescription: "把桌面、开始菜单、任务栏和窗口缩略图上的 DeepSeek Harness 图标换成当前皮肤的图标；关闭或切回官方默认时还原。仅 Windows 桌面端，开始菜单会在几秒后刷新。",
+			noSettings: "这个皮肤没有可调整的设置。",
+			lockedBy: (label) => `「${label}」开启时不可用`,
+			locked: "当前不可用",
+			desktopIconTitle: "桌面",
+			desktopIconLabel: "快捷方式图标跟随皮肤",
+			desktopIconDescription: "替换桌面、开始菜单和任务栏中的图标；关闭或切回官方默认时还原。",
 			desktopIconPending: "正在更新快捷方式…",
 			desktopIconDone: (updated, failed, errors = []) => failed > 0 ? `已更新 ${updated} 个快捷方式，${failed} 个修改失败：${desktopIconReasons(errors, {
 				"shared-denied": "所有用户共享的快捷方式需要以管理员身份运行 DeepSeek Harness",
 				"save-blocked": "被安全软件（如 360、火绒）的快捷方式防护拦截，请把 DeepSeek Harness 加入其信任区后再切换一次开关"
-			}, "可再切换一次开关重试").join("；")}。` : updated > 0 ? `已更新 ${updated} 个快捷方式。` : "快捷方式已是目标图标，或当前皮肤未提供桌面图标。",
-			schedulePolicy: "规则方式",
-			policyHideInRanges: "这些时段隐藏，其余时间显示",
-			policyShowInRanges: "这些时段显示，其余时间隐藏",
+			}, "可再切换一次开关重试").join("；")}。` : updated > 0 ? `已更新 ${updated} 个快捷方式，开始菜单稍后刷新。` : "快捷方式已是目标图标，或当前皮肤未提供桌面图标。",
+			schedulePolicy: "规则",
+			policyHideInRanges: "在这些时段隐藏",
+			policyShowInRanges: "只在这些时段显示",
 			rangeStartAria: (index) => `时段 ${index} 开始`,
 			rangeEndAria: (index) => `时段 ${index} 结束`,
 			hourAria: (label) => `${label} 时`,
@@ -807,36 +912,33 @@ window.__ModuleLoader__.load({
 			rangeTo: "至",
 			removeRange: "删除",
 			addRange: "添加时间段",
-			scheduleHint: "使用本机时间；支持跨午夜，例如 22:00 至 07:00。时间段按“开始包含、结束不包含”计算。",
-			backupTitle: "备份与恢复",
-			backupIntro: "将所有皮肤设置导出为 JSON 文件。导入时，未加载皮肤的设置会暂存至皮肤加载。",
-			exportButton: "导出配置",
-			importButton: "导入配置",
-			dropHint: "将 JSON 文件拖放到此处，或点击上方按钮选择文件。",
+			scheduleHint: "按本机时间，可跨午夜，如 22:00 至 07:00。",
+			backupTitle: "备份",
+			backupLabel: "全部皮肤的设置",
+			backupDescription: "也可以把 JSON 文件拖到这里导入。",
+			exportButton: "导出",
+			importButton: "导入",
 			dropActive: "松开以导入",
-			exportOk: "配置已导出为 JSON 文件。",
-			importOk: (count) => `已导入 ${count} 个皮肤的配置。`,
-			importOkDeferred: (active, deferred) => `已导入 ${active} 个皮肤的配置；另有 ${deferred} 个皮肤当前未加载，配置已暂存，加载后自动生效。`,
+			exportOk: "已导出。",
+			importOk: (count) => `已导入 ${count} 个皮肤的设置。`,
+			importOkDeferred: (active, deferred) => `已导入 ${active} 个皮肤的设置；另有 ${deferred} 个皮肤未加载，加载后生效。`,
 			importFail: (message) => `导入失败：${message}`,
-			importErrorEmpty: "文件为空",
-			importErrorInvalidJson: "文件不是有效的 JSON",
-			importErrorInvalidEnvelope: "文件不是有效的皮肤配置备份",
-			importErrorNoMatchingSkins: "备份里没有皮肤配置",
-			importErrorTooLarge: "文件过大：配置内容超过 256 KiB 限制",
+			importErrorInvalidEnvelope: "文件不是有效的皮肤设置备份",
+			importErrorTooLarge: "文件过大：设置内容超过 256 KiB 限制",
 			resetSkinButton: "恢复默认",
-			resetSkinConfirm: "清空当前皮肤的所有自定义配置？",
-			resetSkinOk: "已恢复当前皮肤的默认配置。",
-			clearKeptButton: (count) => `清理 ${count} 个未加载皮肤的暂存配置`,
-			clearKeptConfirm: (count) => `删除 ${count} 个未加载皮肤的暂存配置？这些配置只在对应皮肤加载后才会生效。`,
-			clearKeptOk: (count) => `已清理 ${count} 个未加载皮肤的暂存配置。`,
+			resetSkinConfirm: (title) => `将「${title}」的设置全部恢复为默认？`,
+			clearKeptLabel: (count) => `${count} 个未加载皮肤的暂存设置`,
+			clearKeptButton: "清理",
+			clearKeptConfirm: (count) => `删除 ${count} 个未加载皮肤的暂存设置？这些设置只在对应皮肤加载后才会生效。`,
+			clearKeptOk: (count) => `已清理 ${count} 个未加载皮肤的暂存设置。`,
 			importErrorMessage: (code) => {
 				switch (code) {
 					case "empty": return "文件为空";
 					case "invalid-json": return "文件不是有效的 JSON";
-					case "invalid-envelope": return "文件不是有效的皮肤配置备份";
-					case "no-matching-skins": return "备份里没有皮肤配置";
-					case "too-large": return "文件过大：配置内容超过 256 KiB 限制";
-					case "store-too-large": return "导入后的配置会超过 256 KiB 的可恢复上限，请先清理未加载皮肤的暂存配置";
+					case "invalid-envelope": return "文件不是有效的皮肤设置备份";
+					case "no-matching-skins": return "备份里没有皮肤设置";
+					case "too-large": return "文件过大：设置内容超过 256 KiB 限制";
+					case "store-too-large": return "导入后的设置会超过 256 KiB 的可恢复上限，请先清理未加载皮肤的暂存设置";
 				}
 			}
 		};
@@ -845,51 +947,44 @@ window.__ModuleLoader__.load({
 			increaseValue: (label) => `Increase ${label}`,
 			decreaseValue: (label) => `Decrease ${label}`,
 			navLabel: "Skins",
-			headerIntro: "Switch installed skins and adjust their settings. Checking for updates compares official builds without changing local files.",
-			installedTitle: "Installed Skins",
+			installedTitle: "Installed",
 			checking: "Checking…",
-			checkUpdates: "Check updates",
-			officialName: "Official Default",
-			officialDescription: "No skin applied",
+			checkUpdates: "Check for updates",
+			officialName: "Official",
 			stateCurrent: "Current",
-			stateSwitching: "Switching",
+			stateSwitching: "Switching…",
 			switchRestartRequired: "Settings saved, but this window did not finish switching skins. Restart the desktop app to apply them.",
-			stateSwitch: "Switch",
 			compatibility: (version) => `Verified on DSH ${version}`,
-			incompatibleBlocked: (runtime) => `Not declared for DSH ${runtime}; disabled automatically`,
-			incompatibleAllowed: (runtime) => `Manually allowed on DSH ${runtime}`,
+			incompatibleBlocked: (runtime) => `Not supported on DSH ${runtime}; disabled`,
+			incompatibleAllowed: (runtime) => `Allowed on DSH ${runtime}`,
 			incompatibleConfirm: (runtime) => `This skin does not declare support for DSH ${runtime}. Enabling it may break the interface, for example hiding the composer.\n\nEnable it anyway? You can switch back to Official at any time.`,
-			versionUnread: "Not read yet",
-			versionUnavailable: "Version info unavailable",
-			localCommit: "Local commit",
-			localBuild: "Local build",
-			gitHashTitle: (hash, date) => `Full commit ${hash}\nDate ${date ?? "unknown"}`,
-			buildHashTitle: (hash) => `Full build fingerprint ${hash}`,
-			notCompared: "Not compared",
-			upToDate: (short) => `Up to date (${short})`,
-			updateAvailable: (short, date, message) => `New build available: ${short} · ${date} · ${message}`,
-			localAhead: (short) => `Local ahead (remote ${short})`,
-			diverged: (short) => `Diverged (remote ${short})`,
-			unknownUpdate: "Cannot determine updates",
-			localDirty: "Local changes present",
-			noSkins: "No skin packages found in this profile; install one of this repository's skins and return here to activate it.",
-			copiedOk: "Full version identifier copied to the clipboard.",
+			gitHashTitle: (hash, date) => `Local commit ${hash}${date === null ? "" : `\n${date}`}\nClick to copy`,
+			buildHashTitle: (hash) => `Local build ${hash}\nClick to copy`,
+			upToDate: "Up to date",
+			updateAvailable: (short, date) => date === "" ? `Update ${short}` : `Update ${short} · ${date}`,
+			localAhead: "Local is newer",
+			diverged: "Diverged from remote",
+			unknownUpdate: "Cannot check for updates",
+			localDirty: "Local changes",
+			noSkins: "No skins installed.",
+			copiedOk: "Copied.",
 			copyFailed: "Copy failed: the browser denied clipboard access.",
-			loadingSkins: "Reading installed skins…",
+			loadingSkins: "Loading…",
 			actionFailed: (message) => `Operation failed: ${message}`,
-			settingsTitle: "Detailed Options",
-			noSettings: "The active skin exposes no configurable options yet; activation and switching above still work normally.",
-			desktopIconTitle: "Desktop Icon",
+			noSettings: "This skin has no settings.",
+			lockedBy: (label) => `Unavailable while “${label}” is on`,
+			locked: "Currently unavailable",
+			desktopIconTitle: "Desktop",
 			desktopIconLabel: "Shortcut icon follows the skin",
-			desktopIconDescription: "Show the active skin's icon for DeepSeek Harness on the desktop, Start menu, taskbar and window thumbnail; turning this off or returning to the official look restores it. Windows desktop app only; the Start menu refreshes after a few seconds.",
+			desktopIconDescription: "Replaces the icon on the desktop, Start menu and taskbar; turning this off or returning to Official restores it.",
 			desktopIconPending: "Updating shortcuts…",
 			desktopIconDone: (updated, failed, errors = []) => failed > 0 ? `Updated ${updated} shortcut(s); ${failed} could not be changed: ${desktopIconReasons(errors, {
 				"shared-denied": "shortcuts shared by all users need DeepSeek Harness to run as administrator",
 				"save-blocked": "a security suite's shortcut protection (such as 360 or Huorong) blocked the write; add DeepSeek Harness to its trusted list, then toggle the switch again"
-			}, "toggle the switch again to retry").join("; ")}.` : updated > 0 ? `Updated ${updated} shortcut(s).` : "Shortcuts already show the target icon, or the active skin ships no desktop icon.",
-			schedulePolicy: "Rule mode",
-			policyHideInRanges: "Hide during these periods, show otherwise",
-			policyShowInRanges: "Show during these periods, hide otherwise",
+			}, "toggle the switch again to retry").join("; ")}.` : updated > 0 ? `Updated ${updated} shortcut(s); the Start menu refreshes shortly.` : "Shortcuts already show the target icon, or the active skin ships no desktop icon.",
+			schedulePolicy: "Rule",
+			policyHideInRanges: "Hide during these periods",
+			policyShowInRanges: "Show only during these periods",
 			rangeStartAria: (index) => `Period ${index} start`,
 			rangeEndAria: (index) => `Period ${index} end`,
 			hourAria: (label) => `${label} hour`,
@@ -897,36 +992,33 @@ window.__ModuleLoader__.load({
 			rangeTo: "to",
 			removeRange: "Remove",
 			addRange: "Add period",
-			scheduleHint: "Uses local time; crossing midnight is supported, e.g. 22:00 to 07:00. Periods are start-inclusive and end-exclusive.",
-			backupTitle: "Backup & Restore",
-			backupIntro: "Export all skin settings as a JSON file. Imported settings for unloaded skins are stored until they load.",
-			exportButton: "Export configuration",
-			importButton: "Import configuration",
-			dropHint: "Drop a JSON file here, or use the buttons above to pick one.",
+			scheduleHint: "Local time; periods may cross midnight, e.g. 22:00 to 07:00.",
+			backupTitle: "Backup",
+			backupLabel: "Settings of all skins",
+			backupDescription: "You can also drop a JSON file here to import it.",
+			exportButton: "Export",
+			importButton: "Import",
 			dropActive: "Release to import",
-			exportOk: "Configuration exported as a JSON file.",
-			importOk: (count) => `Imported configuration for ${count} skin${count === 1 ? "" : "s"}.`,
-			importOkDeferred: (active, deferred) => `Imported configuration for ${active} skin${active === 1 ? "" : "s"}; stored ${deferred} more for skins that are not loaded yet.`,
+			exportOk: "Exported.",
+			importOk: (count) => `Imported settings for ${count} skin${count === 1 ? "" : "s"}.`,
+			importOkDeferred: (active, deferred) => `Imported settings for ${active} skin${active === 1 ? "" : "s"}; ${deferred} more apply once those skins load.`,
 			importFail: (message) => `Import failed: ${message}`,
-			importErrorEmpty: "The file is empty",
-			importErrorInvalidJson: "The file is not valid JSON",
-			importErrorInvalidEnvelope: "The file is not a valid skin configuration backup",
-			importErrorNoMatchingSkins: "The backup contains no skin configuration",
-			importErrorTooLarge: "The file is too large: its configuration content exceeds the 256 KiB limit",
-			resetSkinButton: "Reset to defaults",
-			resetSkinConfirm: "Clear every custom option for the current skin?",
-			resetSkinOk: "The current skin was reset to its default configuration.",
-			clearKeptButton: (count) => `Clear stored configuration for ${count} unloaded skin${count === 1 ? "" : "s"}`,
-			clearKeptConfirm: (count) => `Delete the stored configuration for ${count} unloaded skin${count === 1 ? "" : "s"}? It only takes effect once that skin is loaded.`,
-			clearKeptOk: (count) => `Cleared stored configuration for ${count} unloaded skin${count === 1 ? "" : "s"}.`,
+			importErrorInvalidEnvelope: "The file is not a valid skin settings backup",
+			importErrorTooLarge: "The file is too large: its settings exceed the 256 KiB limit",
+			resetSkinButton: "Reset",
+			resetSkinConfirm: (title) => `Reset every setting of “${title}” to its default?`,
+			clearKeptLabel: (count) => `Stored settings for ${count} unloaded skin${count === 1 ? "" : "s"}`,
+			clearKeptButton: "Clear",
+			clearKeptConfirm: (count) => `Delete the stored settings for ${count} unloaded skin${count === 1 ? "" : "s"}? They only take effect once that skin is loaded.`,
+			clearKeptOk: (count) => `Cleared stored settings for ${count} unloaded skin${count === 1 ? "" : "s"}.`,
 			importErrorMessage: (code) => {
 				switch (code) {
 					case "empty": return "The file is empty";
 					case "invalid-json": return "The file is not valid JSON";
-					case "invalid-envelope": return "The file is not a valid skin configuration backup";
-					case "no-matching-skins": return "The backup contains no skin configuration";
-					case "too-large": return "The file is too large: its configuration content exceeds the 256 KiB limit";
-					case "store-too-large": return "The imported configuration would exceed the 256 KiB restorable limit; clear the stored configuration for unloaded skins first";
+					case "invalid-envelope": return "The file is not a valid skin settings backup";
+					case "no-matching-skins": return "The backup contains no skin settings";
+					case "too-large": return "The file is too large: its settings exceed the 256 KiB limit";
+					case "store-too-large": return "The imported settings would exceed the 256 KiB restorable limit; clear the stored settings for unloaded skins first";
 				}
 			}
 		};
@@ -945,6 +1037,9 @@ window.__ModuleLoader__.load({
 		}
 		function optionLabel(option, lang) {
 			return lang === "en" ? option.labelEn ?? option.label : option.label;
+		}
+		function groupLabel(group, lang) {
+			return lang === "en" ? group.labelEn ?? group.label : group.label;
 		}
 		//#endregion
 		//#region src/client/switch-settle.ts
@@ -988,7 +1083,7 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 		//#region \0dsh-css:../skin-manager/src/client/skin-manager.module.css.mjs
-		const css = ".orL4ja_section{color:var(--dsw-alias-label-primary);gap:14px;display:grid}.orL4ja_header h2,.orL4ja_card h3,.orL4ja_header p,.orL4ja_error{margin:0}.orL4ja_header{gap:6px;display:grid}.orL4ja_header p{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.6}.orL4ja_card{border:.5px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-lg,12px);background:var(--dsw-alias-bg-layer-1);gap:8px;padding:14px 16px;display:grid}.orL4ja_card h3{font-size:14px;font-weight:500;line-height:20px}.orL4ja_cardHeader{justify-content:space-between;align-items:center;gap:10px;display:flex}.orL4ja_skinTile{align-self:start;gap:4px;min-width:0;display:grid}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));align-items:start;gap:8px;display:grid}.orL4ja_skinButton{width:100%}.orL4ja_defaultButton,.orL4ja_defaultActive{width:100%;min-height:44px;color:var(--dsw-alias-label-primary);border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;display:flex}.orL4ja_defaultButton>span,.orL4ja_defaultActive>span{text-align:left;gap:2px;display:grid}.orL4ja_defaultButton small,.orL4ja_defaultActive small{color:var(--dsw-alias-label-tertiary)}.orL4ja_defaultButton:disabled,.orL4ja_defaultActive:disabled{opacity:.75;cursor:default}.orL4ja_defaultActive{border-style:solid;border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_defaultState{flex:none;color:var(--dsw-alias-label-secondary)!important}.orL4ja_skinButton,.orL4ja_activeSkin{min-height:58px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer;border-radius:8px;justify-items:start;gap:3px;padding:10px;display:grid}.orL4ja_activeSkin{border-color:var(--dsw-alias-brand-primary);box-shadow:inset 3px 0 var(--dsw-alias-brand-primary)}.orL4ja_skinButton small,.orL4ja_activeSkin small{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionRow{flex-wrap:wrap;align-items:center;gap:3px 8px;min-height:16px;padding-inline:2px;font-size:11px;line-height:1.5;display:flex}.orL4ja_compatibility{color:var(--dsw-alias-label-tertiary);padding-inline:2px;font-size:11px}.orL4ja_incompatible{color:var(--dsw-alias-state-warn-label);padding-inline:2px;font-size:11px}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:inherit;line-height:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;padding:0}.orL4ja_versionHash:hover{color:var(--dsw-alias-brand-primary)}.orL4ja_versionMuted{color:var(--dsw-alias-label-tertiary)}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary,#12a150)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-primary,#e08700)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow{border-bottom:.5px solid var(--dsw-alias-border-l2);justify-content:space-between;align-items:center;gap:24px;min-height:32px;padding:16px 0;display:flex}.orL4ja_toggleRow:last-child,.orL4ja_selectRow:last-child,.orL4ja_sliderRow:last-child,.orL4ja_colorRow:last-child,.orL4ja_schedule:last-child>.orL4ja_toggleRow{border-bottom:0}.orL4ja_rowText{flex:auto;gap:4px;min-width:0;display:grid}.orL4ja_rowTitle{color:var(--dsw-alias-label-primary);overflow-wrap:anywhere;font-size:14px;line-height:22px}.orL4ja_rowDescription,.orL4ja_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.orL4ja_toggleRow>:last-child,.orL4ja_selectRow>:last-child,.orL4ja_colorRow>:last-child{flex:none}.orL4ja_selectInput{box-sizing:border-box;width:240px;min-width:0;max-width:100%;height:32px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-md);background-color:var(--dsw-alias-bg-layer-1);font:inherit;white-space:nowrap;text-overflow:ellipsis;appearance:none;cursor:pointer;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");background-position:right 12px center;background-repeat:no-repeat;background-size:12px 12px;flex:none;padding:0 32px 0 10px;font-size:14px;line-height:22px;overflow:hidden}.orL4ja_selectInput:focus{border-color:var(--dsw-alias-state-business-primary);outline:none}.orL4ja_selectInput:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled{opacity:.6;cursor:default}.orL4ja_colorControl{flex:none;grid-auto-flow:column;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);cursor:pointer;border-radius:6px;width:44px;height:30px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-brand-primary)}.orL4ja_colorButton:disabled{opacity:.45;cursor:not-allowed}.orL4ja_colorSwatch{border:1px solid #0000005c;width:100%;height:100%;display:block}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-brand-primary);outline:1px solid var(--dsw-alias-border-l2);outline-offset:2px;background:var(--dsw-alias-bg-layer-1);border-radius:6px;margin:0;padding:10px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border:1px solid var(--dsw-alias-border-l2);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:30px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border:1px solid var(--dsw-alias-border-l2);border-radius:50%;width:28px;height:28px}.orL4ja_colorHueRow input[type=range]{appearance:none;border:1px solid var(--dsw-alias-border-l2);cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-secondary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;min-height:30px;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-input-major);text-align:center;border-radius:4px;padding-inline:6px}.orL4ja_checkboxGroup{border-left:2px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);gap:8px;margin-left:12px;padding:10px 12px 12px;display:grid}.orL4ja_checkboxGrid{grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:6px 12px;display:grid}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-brand-primary);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.45;cursor:not-allowed}.orL4ja_sliderRow{grid-template-columns:minmax(0,1fr) auto minmax(80px,220px);align-items:center;gap:10px;min-height:40px;display:grid}.orL4ja_sliderValue{min-width:3ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right}.orL4ja_sliderRow input[type=range]{appearance:none;cursor:pointer;background:0 0;border:0;width:100%;height:20px;margin:0;padding:0}.orL4ja_sliderRow input[type=range]::-webkit-slider-runnable-track{background:var(--dsw-alias-border-l2);border-radius:2px;height:4px}.orL4ja_sliderRow input[type=range]::-webkit-slider-thumb{appearance:none;background:var(--dsw-alias-brand-primary);border:0;border-radius:50%;width:16px;height:16px;margin-top:-6px}.orL4ja_sliderRow input[type=range]::-moz-range-track{background:var(--dsw-alias-border-l2);border-radius:2px;height:4px}.orL4ja_sliderRow input[type=range]::-moz-range-thumb{background:var(--dsw-alias-brand-primary);border:0;border-radius:50%;width:16px;height:16px}.orL4ja_numberControl{align-items:center;gap:8px;display:inline-flex}.orL4ja_stepper{background:var(--dsw-alias-bg-module-platform);border-radius:18px;justify-content:center;align-items:center;min-width:72px;height:36px;display:inline-flex;position:relative}.orL4ja_numberValue{text-align:center;font-variant-numeric:tabular-nums;min-width:18px;color:var(--dsw-alias-label-primary);font-size:14px;line-height:22px}.orL4ja_numberUnit{color:var(--dsw-alias-label-secondary);font-size:14px;line-height:22px}.orL4ja_stepperArrows{opacity:0;flex-direction:column;gap:2px;display:flex;position:absolute;right:8px}.orL4ja_stepper:hover .orL4ja_stepperArrows,.orL4ja_stepper:focus-within .orL4ja_stepperArrows{opacity:1}@media (hover:none){.orL4ja_stepperArrows{opacity:1}}.orL4ja_stepperArrow{background:color-mix(in srgb, var(--dsw-alias-bg-layer-1) 75%, transparent);width:17px;height:12px;color:var(--dsw-alias-label-primary);cursor:pointer;border:none;border-radius:3px;justify-content:center;align-items:center;padding:0;display:inline-flex}.orL4ja_stepperArrow:hover:not(:disabled){background:var(--dsw-alias-bg-layer-1)}.orL4ja_stepperArrow:disabled{color:var(--dsw-alias-label-caption);cursor:default}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect .orL4ja_selectInput{background-position:right 8px center;flex:1 1 0;width:auto;min-width:56px;max-width:none;padding:0 24px 0 8px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{gap:8px;display:grid}.orL4ja_scheduleDetails{border-left:2px solid var(--dsw-alias-border-l2);gap:8px;margin-left:12px;padding:10px;display:grid}.orL4ja_rangeList{gap:6px;display:grid}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(128px,1fr) auto minmax(128px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_addRange{justify-self:start}.orL4ja_error{color:var(--dsw-alias-state-danger,#c43d3d);font-size:12px}.orL4ja_backupActions{flex-wrap:wrap;align-items:center;gap:8px;display:flex}.orL4ja_dropZone{border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);text-align:center;border-radius:8px;gap:4px;padding:14px;font-size:12px;line-height:1.5;transition:border-color .12s,color .12s,background .12s;display:grid}.orL4ja_dropZoneActive{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}.orL4ja_resetButton:hover:not(:disabled){color:var(--dsw-alias-state-danger,#c43d3d);border-color:var(--dsw-alias-state-danger,#c43d3d)}.orL4ja_fileInput{clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.orL4ja_introHint{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}@media (width<=720px){.orL4ja_selectRow,.orL4ja_colorRow{flex-flow:column;align-items:stretch;gap:8px}.orL4ja_sliderRow{grid-template-columns:auto minmax(0,1fr)}.orL4ja_sliderRow .orL4ja_rowText{grid-column:1/-1}.orL4ja_skinGrid{grid-template-columns:1fr}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
+		const css = ".orL4ja_section{max-width:760px;color:var(--dsw-alias-label-primary);flex-direction:column;gap:24px;padding-bottom:8px;font-size:13px;line-height:22px;display:flex}.orL4ja_title,.orL4ja_blockHead h3,.orL4ja_groupTitle,.orL4ja_hint,.orL4ja_error{margin:0}.orL4ja_title{font-size:18px;font-weight:600;line-height:26px}.orL4ja_block{flex-direction:column;gap:10px;min-width:0;display:flex}.orL4ja_blockHead{justify-content:space-between;align-items:center;gap:12px;min-height:32px;display:flex}.orL4ja_blockHead h3{min-width:0;font-size:14px;font-weight:500;line-height:22px}.orL4ja_group{flex-direction:column;gap:6px;display:flex}.orL4ja_group+.orL4ja_group{margin-top:6px}.orL4ja_groupTitle{color:var(--dsw-alias-label-tertiary);padding-inline:4px;font-size:12px;font-weight:500;line-height:18px}.orL4ja_card{border:.5px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-xl);background:var(--dsw-alias-settings-card-fill);flex-direction:column;min-width:0;padding:2px 16px;display:flex}.orL4ja_card[data-dragging]{border-color:var(--dsw-alias-border-selected);background:var(--dsw-alias-bg-module-platform)}.orL4ja_skinGrid{grid-template-columns:repeat(auto-fill,minmax(164px,1fr));gap:10px;margin:0;padding:0;list-style:none;display:grid}.orL4ja_skinCard{border:.5px solid var(--dsw-alias-settings-card-stroke);border-radius:var(--dsw-radius-xl);background:var(--dsw-alias-settings-card-fill);flex-direction:column;min-width:0;transition:border-color .16s,background-color .16s;display:flex;overflow:hidden}.orL4ja_skinCard[data-active]{border-color:var(--dsw-alias-border-selected);background:var(--dsw-alias-bg-module-platform)}.orL4ja_skinMain{box-sizing:border-box;width:100%;min-height:48px;color:inherit;font:inherit;text-align:left;cursor:pointer;background:0 0;border:0;flex:1 0 auto;justify-content:space-between;align-items:flex-start;gap:8px;margin:0;padding:13px 14px;display:flex}.orL4ja_skinCard:has(>.orL4ja_skinMeta)>.orL4ja_skinMain{padding-bottom:4px}@media (hover:hover){.orL4ja_skinMain:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}}.orL4ja_skinMain:active:not(:disabled){background:var(--dsw-alias-interactive-bg-active)}.orL4ja_skinMain:disabled{cursor:default}.orL4ja_skinMain:focus-visible{outline:var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:-2px;border-radius:var(--dsw-radius-xl)}.orL4ja_skinName{overflow-wrap:anywhere;min-width:0;font-size:14px;font-weight:500;line-height:22px}.orL4ja_skinState{border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-xs);color:var(--dsw-alias-label-secondary);white-space:nowrap;flex:none;margin-top:2px;padding:1px 6px;font-size:11px;line-height:16px}.orL4ja_skinMeta{color:var(--dsw-alias-label-tertiary);flex-direction:column;gap:1px;padding:0 14px 12px;font-size:12px;line-height:18px;display:flex}.orL4ja_metaLine{overflow-wrap:anywhere}.orL4ja_incompatible{color:var(--dsw-alias-state-warn-label);overflow-wrap:anywhere}.orL4ja_versionRow{flex-wrap:wrap;align-items:baseline;gap:0 8px;display:flex}.orL4ja_versionRow:empty{display:none}.orL4ja_versionHash{appearance:none;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);font-size:11px;line-height:inherit;cursor:copy;white-space:nowrap;background:0 0;border:0;padding:0}@media (hover:hover){.orL4ja_versionHash:hover{color:var(--dsw-alias-label-primary)}}.orL4ja_versionHash:focus-visible{outline:var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:1px;border-radius:2px}.orL4ja_versionOk{color:var(--dsw-alias-state-success-primary)}.orL4ja_versionUpdate{color:var(--dsw-alias-state-warn-label)}.orL4ja_settingNode+.orL4ja_settingNode{border-top:.5px solid var(--dsw-alias-border-l2)}.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow,.orL4ja_actionRow{box-sizing:border-box;justify-content:space-between;align-items:center;gap:24px;min-height:60px;padding:12px 0;display:flex}.orL4ja_rowText{flex:auto;gap:2px;min-width:0;display:grid}.orL4ja_rowTitle{color:var(--dsw-alias-label-primary);overflow-wrap:anywhere;font-size:14px;line-height:22px}.orL4ja_rowDescription,.orL4ja_hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.orL4ja_toggleRow>:last-child,.orL4ja_selectRow>:last-child,.orL4ja_colorRow>:last-child,.orL4ja_actionRow>:last-child{flex:none}.orL4ja_rowActions{flex:none;align-items:center;gap:8px;display:inline-flex}.orL4ja_children{border-left:2px solid var(--dsw-alias-border-l2);flex-direction:column;margin:-6px 0 12px 2px;padding-left:14px;display:flex}.orL4ja_children .orL4ja_settingNode+.orL4ja_settingNode{border-top:0}.orL4ja_children :is(.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow){min-height:44px;padding:6px 0}.orL4ja_settingNode[data-locked]>:is(.orL4ja_toggleRow,.orL4ja_selectRow,.orL4ja_sliderRow,.orL4ja_colorRow,.orL4ja_checkboxGroup) .orL4ja_rowTitle{color:var(--dsw-alias-label-tertiary)}.orL4ja_selectInput{box-sizing:border-box;width:240px;min-width:0;max-width:100%;height:32px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-md);background-color:var(--dsw-alias-bg-layer-1);font:inherit;white-space:nowrap;text-overflow:ellipsis;appearance:none;cursor:pointer;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");background-position:right 12px center;background-repeat:no-repeat;background-size:12px 12px;flex:none;padding:0 32px 0 10px;font-size:14px;line-height:22px;overflow:hidden}.orL4ja_selectInput:focus{border-color:var(--dsw-alias-state-business-primary);outline:none}.orL4ja_selectInput:disabled,.orL4ja_sliderRow input:disabled,.orL4ja_colorRow input:disabled{opacity:.5;cursor:default}.orL4ja_sliderControl{box-sizing:border-box;flex:none;align-items:center;gap:10px;width:240px;max-width:100%;display:inline-flex}.orL4ja_sliderValue{min-width:4ch;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;text-align:right;flex:none;font-size:13px}.orL4ja_sliderControl input[type=range]{appearance:none;cursor:pointer;background:0 0;border:0;flex:auto;min-width:0;height:20px;margin:0;padding:0}.orL4ja_sliderControl input[type=range]::-webkit-slider-runnable-track{background:var(--dsw-alias-border-l3);border-radius:2px;height:4px}.orL4ja_sliderControl input[type=range]::-webkit-slider-thumb{background:var(--dsw-alias-button-primary-fill);appearance:none;border:0;border-radius:50%;width:16px;height:16px;margin-top:-6px}.orL4ja_sliderControl input[type=range]::-moz-range-track{background:var(--dsw-alias-border-l3);border-radius:2px;height:4px}.orL4ja_sliderControl input[type=range]::-moz-range-thumb{background:var(--dsw-alias-button-primary-fill);border:0;border-radius:50%;width:16px;height:16px}.orL4ja_sliderControl input[type=range]:focus-visible{outline:var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px;border-radius:4px}.orL4ja_colorControl{flex:none;align-items:center;gap:8px!important;display:flex!important}.orL4ja_colorControl code{min-width:7ch;color:var(--dsw-alias-label-secondary);font-family:var(--ds-font-family-code,ui-monospace, monospace);font-size:12px}.orL4ja_colorButton{box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-1);cursor:pointer;width:48px;height:32px;padding:4px}.orL4ja_colorButton:hover:not(:disabled),.orL4ja_colorButton[aria-expanded=true]{border-color:var(--dsw-alias-border-selected)}.orL4ja_colorButton:disabled{opacity:.5;cursor:default}.orL4ja_colorSwatch{border-radius:4px;width:100%;height:100%;display:block;box-shadow:inset 0 0 0 .5px #0000003d}.orL4ja_colorPopover{box-sizing:border-box;width:264px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);background:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-1));box-shadow:var(--dsw-elevation-prominent);margin:0;padding:12px;display:none;position:fixed;inset:auto}.orL4ja_colorPopover:popover-open{gap:10px;display:grid}.orL4ja_colorPopover::backdrop{background:0 0}.orL4ja_colorPalette{border-radius:var(--dsw-radius-xs);cursor:crosshair;touch-action:none;background-image:linear-gradient(#0000,#000);height:136px;position:relative;overflow:hidden}.orL4ja_colorPalette:before{content:\"\";background:linear-gradient(90deg,#fff,#0000);position:absolute;inset:0}.orL4ja_colorPaletteMarker{z-index:1;pointer-events:none;border:2px solid #fff;border-radius:50%;width:12px;height:12px;position:absolute;transform:translate(-50%,-50%);box-shadow:0 0 0 1px #000000a6}.orL4ja_colorHueRow{grid-template-columns:28px minmax(0,1fr);align-items:center;gap:10px;display:grid}.orL4ja_colorPreview{border-radius:50%;width:28px;height:28px;box-shadow:inset 0 0 0 .5px #0000003d}.orL4ja_colorHueRow input[type=range]{appearance:none;cursor:pointer;background:linear-gradient(90deg,red,#ff0,#0f0,#0ff,#00f,#f0f,red);border:0;border-radius:7px;width:100%;height:14px;margin:0}.orL4ja_colorHueRow input[type=range]::-webkit-slider-thumb{appearance:none;background:0 0;border:2px solid #fff;border-radius:7px;width:14px;height:20px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorHueRow input[type=range]::-moz-range-thumb{background:0 0;border:2px solid #fff;border-radius:7px;width:10px;height:16px;box-shadow:0 0 0 1px #00000073}.orL4ja_colorRgb{grid-template-columns:repeat(3,1fr);gap:8px;display:grid}.orL4ja_colorRgb label{color:var(--dsw-alias-label-tertiary);justify-items:center;gap:4px;font-size:11px;display:grid}.orL4ja_colorRgb input{box-sizing:border-box;width:100%;height:30px;color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l4);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-layer-1);text-align:center;padding-inline:6px}.orL4ja_checkboxGroup{flex-direction:column;gap:8px;padding:10px 0 12px;display:flex}.orL4ja_children .orL4ja_checkboxGroup{padding:6px 0 8px}.orL4ja_checkboxGrid{flex-wrap:wrap;gap:6px 16px;display:flex}.orL4ja_checkboxOption{cursor:pointer;align-items:center;gap:6px;min-height:24px;font-size:14px;display:inline-flex}.orL4ja_checkboxOption input{block-size:16px;inline-size:16px;accent-color:var(--dsw-alias-button-primary-fill);cursor:pointer;margin:0}.orL4ja_checkboxOption input:disabled{opacity:.5;cursor:default}.orL4ja_numberControl{align-items:center;gap:8px;display:inline-flex}.orL4ja_stepper{background:var(--dsw-alias-bg-module-platform);border-radius:18px;justify-content:center;align-items:center;min-width:72px;height:36px;display:inline-flex;position:relative}.orL4ja_numberValue{text-align:center;font-variant-numeric:tabular-nums;min-width:18px;color:var(--dsw-alias-label-primary);font-size:14px;line-height:22px}.orL4ja_numberUnit{color:var(--dsw-alias-label-secondary);font-size:14px;line-height:22px}.orL4ja_stepperArrows{opacity:0;flex-direction:column;gap:2px;display:flex;position:absolute;right:8px}.orL4ja_stepper:hover .orL4ja_stepperArrows,.orL4ja_stepper:focus-within .orL4ja_stepperArrows{opacity:1}@media (hover:none){.orL4ja_stepperArrows{opacity:1}}.orL4ja_stepperArrow{background:color-mix(in srgb, var(--dsw-alias-bg-layer-1) 75%, transparent);width:17px;height:12px;color:var(--dsw-alias-label-primary);cursor:pointer;border:none;border-radius:3px;justify-content:center;align-items:center;padding:0;display:inline-flex}.orL4ja_stepperArrow:hover:not(:disabled){background:var(--dsw-alias-bg-layer-1)}.orL4ja_stepperArrow:disabled{color:var(--dsw-alias-label-caption);cursor:default}.orL4ja_timeSelect{align-items:center;gap:4px;width:100%;min-width:0;display:inline-flex}.orL4ja_timeSelect .orL4ja_selectInput{background-position:right 8px center;flex:1 1 0;width:auto;min-width:56px;max-width:none;padding:0 24px 0 8px}.orL4ja_timeColon{color:var(--dsw-alias-label-tertiary);flex:none}.orL4ja_schedule{flex-direction:column;display:flex}.orL4ja_rangeList{flex-direction:column;gap:6px;padding:2px 0 8px;display:flex}.orL4ja_rangeRow{color:var(--dsw-alias-label-secondary);grid-template-columns:minmax(128px,1fr) auto minmax(128px,1fr) auto;align-items:center;gap:8px;font-size:12px;display:grid}.orL4ja_rangeFooter{flex-wrap:wrap;align-items:center;gap:6px 12px;display:flex}.orL4ja_error{color:var(--dsw-alias-state-error-primary);font-size:12px;line-height:18px}@media (hover:hover){.orL4ja_resetButton:hover:not(:disabled){color:var(--dsw-alias-state-error-primary)}}.orL4ja_fileInput{clip:rect(0, 0, 0, 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}.orL4ja_introHint{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}@media (width<=720px){.orL4ja_selectRow,.orL4ja_colorRow,.orL4ja_sliderRow{flex-flow:column;align-items:stretch;gap:8px}.orL4ja_sliderControl{width:100%}.orL4ja_rangeRow{grid-template-columns:1fr auto 1fr}.orL4ja_rangeRow button{grid-column:1/-1;justify-self:end}}";
 		const tagId = "@smalltailqwq/dsh-client-ui-skin-deep-whale-manager/skin-manager.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -998,14 +1093,14 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var skin_manager_module_css_default = {
-			"activeSkin": "orL4ja_activeSkin",
-			"addRange": "orL4ja_addRange",
-			"backupActions": "orL4ja_backupActions",
+			"actionRow": "orL4ja_actionRow",
+			"block": "orL4ja_block",
+			"blockHead": "orL4ja_blockHead",
 			"card": "orL4ja_card",
-			"cardHeader": "orL4ja_cardHeader",
 			"checkboxGrid": "orL4ja_checkboxGrid",
 			"checkboxGroup": "orL4ja_checkboxGroup",
 			"checkboxOption": "orL4ja_checkboxOption",
+			"children": "orL4ja_children",
 			"colorButton": "orL4ja_colorButton",
 			"colorControl": "orL4ja_colorControl",
 			"colorHueRow": "orL4ja_colorHueRow",
@@ -1016,35 +1111,37 @@ window.__ModuleLoader__.load({
 			"colorRgb": "orL4ja_colorRgb",
 			"colorRow": "orL4ja_colorRow",
 			"colorSwatch": "orL4ja_colorSwatch",
-			"compatibility": "orL4ja_compatibility",
-			"defaultActive": "orL4ja_defaultActive",
-			"defaultButton": "orL4ja_defaultButton",
-			"defaultState": "orL4ja_defaultState",
-			"dropZone": "orL4ja_dropZone",
-			"dropZoneActive": "orL4ja_dropZoneActive",
 			"error": "orL4ja_error",
 			"fileInput": "orL4ja_fileInput",
-			"header": "orL4ja_header",
+			"group": "orL4ja_group",
+			"groupTitle": "orL4ja_groupTitle",
 			"hint": "orL4ja_hint",
 			"incompatible": "orL4ja_incompatible",
 			"introHint": "orL4ja_introHint",
+			"metaLine": "orL4ja_metaLine",
 			"numberControl": "orL4ja_numberControl",
 			"numberUnit": "orL4ja_numberUnit",
 			"numberValue": "orL4ja_numberValue",
+			"rangeFooter": "orL4ja_rangeFooter",
 			"rangeList": "orL4ja_rangeList",
 			"rangeRow": "orL4ja_rangeRow",
 			"resetButton": "orL4ja_resetButton",
+			"rowActions": "orL4ja_rowActions",
 			"rowDescription": "orL4ja_rowDescription",
 			"rowText": "orL4ja_rowText",
 			"rowTitle": "orL4ja_rowTitle",
 			"schedule": "orL4ja_schedule",
-			"scheduleDetails": "orL4ja_scheduleDetails",
 			"section": "orL4ja_section",
 			"selectInput": "orL4ja_selectInput",
 			"selectRow": "orL4ja_selectRow",
-			"skinButton": "orL4ja_skinButton",
+			"settingNode": "orL4ja_settingNode",
+			"skinCard": "orL4ja_skinCard",
 			"skinGrid": "orL4ja_skinGrid",
-			"skinTile": "orL4ja_skinTile",
+			"skinMain": "orL4ja_skinMain",
+			"skinMeta": "orL4ja_skinMeta",
+			"skinName": "orL4ja_skinName",
+			"skinState": "orL4ja_skinState",
+			"sliderControl": "orL4ja_sliderControl",
 			"sliderRow": "orL4ja_sliderRow",
 			"sliderValue": "orL4ja_sliderValue",
 			"stepper": "orL4ja_stepper",
@@ -1052,9 +1149,9 @@ window.__ModuleLoader__.load({
 			"stepperArrows": "orL4ja_stepperArrows",
 			"timeColon": "orL4ja_timeColon",
 			"timeSelect": "orL4ja_timeSelect",
+			"title": "orL4ja_title",
 			"toggleRow": "orL4ja_toggleRow",
 			"versionHash": "orL4ja_versionHash",
-			"versionMuted": "orL4ja_versionMuted",
 			"versionOk": "orL4ja_versionOk",
 			"versionRow": "orL4ja_versionRow",
 			"versionUpdate": "orL4ja_versionUpdate"
@@ -1062,53 +1159,54 @@ window.__ModuleLoader__.load({
 		//#endregion
 		//#region src/client/SkinManager.tsx
 		const shortDate = (iso) => iso === null ? "" : iso.slice(0, 10);
-		const shortMessage = (message) => message.length > 42 ? `${message.slice(0, 42)}…` : message;
-		function VersionRow({ info, onCopied }) {
+		/**
+		* Version facts under one skin card: the short local identity (click to copy
+		* the full one), then the comparison once the user has asked for it. Nothing
+		* is shown for a comparison that has not run.
+		*/
+		function VersionFacts({ info, onCopied }) {
 			const copy = skinManagerCopy(useUiLang());
-			const segment = (text, className) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-				className: className ?? skin_manager_module_css_default.versionMuted,
-				children: text
-			});
-			if (info.source === "none" || info.local === null) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-				className: skin_manager_module_css_default.versionRow,
-				children: segment(info.note ?? copy.versionUnavailable)
-			});
-			const copyHash = async () => {
+			if (info === void 0) return null;
+			const local = info.local;
+			const remote = info.remote;
+			const latest = remote?.latest ?? null;
+			const copyHash = async (hash) => {
 				try {
-					await navigator.clipboard?.writeText(info.local.hash);
+					await navigator.clipboard?.writeText(hash);
 					onCopied(true);
 				} catch {
 					onCopied(false);
 				}
 			};
-			const remoteLatest = info.remote?.latest;
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-				className: skin_manager_module_css_default.versionRow,
-				children: [
-					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-						type: "button",
-						className: skin_manager_module_css_default.versionHash,
-						title: info.source === "git" ? copy.gitHashTitle(info.local.hash, info.local.date) : copy.buildHashTitle(info.local.hash),
-						onClick: () => void copyHash(),
-						children: [
-							info.source === "git" ? copy.localCommit : copy.localBuild,
-							" ",
-							info.local.short
-						]
-					}),
-					info.remote === null && segment(info.note ?? copy.notCompared),
-					info.remote !== null && info.remote.state === "up-to-date" && remoteLatest !== null && segment(copy.upToDate(remoteLatest.short), skin_manager_module_css_default.versionOk),
-					info.remote !== null && info.remote.state === "update-available" && remoteLatest !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(react_jsx_runtime.Fragment, { children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-						className: skin_manager_module_css_default.versionUpdate,
-						children: copy.updateAvailable(remoteLatest.short, shortDate(remoteLatest.date), shortMessage(remoteLatest.message ?? ""))
-					}) }),
-					info.remote !== null && info.remote.state === "local-ahead" && remoteLatest !== null && segment(copy.localAhead(remoteLatest.short)),
-					info.remote !== null && info.remote.state === "diverged" && remoteLatest !== null && segment(copy.diverged(remoteLatest.short)),
-					info.remote !== null && info.remote.state === "unknown" && segment(copy.unknownUpdate),
-					info.dirty && segment(copy.localDirty),
-					info.note !== void 0 && segment(info.note)
-				]
-			});
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+				info.source !== "none" && local !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+					type: "button",
+					className: skin_manager_module_css_default.versionHash,
+					title: info.source === "git" ? copy.gitHashTitle(local.hash, local.date) : copy.buildHashTitle(local.hash),
+					onClick: () => void copyHash(local.hash),
+					children: local.short
+				}),
+				remote?.state === "up-to-date" && latest !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					className: skin_manager_module_css_default.versionOk,
+					children: copy.upToDate
+				}),
+				remote?.state === "update-available" && latest !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					className: skin_manager_module_css_default.versionUpdate,
+					title: latest.message,
+					children: copy.updateAvailable(latest.short, shortDate(latest.date))
+				}),
+				remote?.state === "local-ahead" && latest !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					title: latest.short,
+					children: copy.localAhead
+				}),
+				remote?.state === "diverged" && latest !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+					title: latest.short,
+					children: copy.diverged
+				}),
+				remote?.state === "unknown" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: copy.unknownUpdate }),
+				info.dirty && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: copy.localDirty }),
+				info.note !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: info.note })
+			] });
 		}
 		/** Title plus optional description, in the host settings row typography. */
 		function RowText({ label, description }) {
@@ -1186,7 +1284,12 @@ window.__ModuleLoader__.load({
 				]
 			});
 		}
-		function ScheduleEditor({ setting, value, onChange }) {
+		/**
+		* A schedule is a switch with dependent rows: the rule and the periods sit in
+		* the same indented block that every other dependent control uses, and only
+		* while the schedule is on.
+		*/
+		function ScheduleEditor({ setting, value, description, onChange }) {
 			const lang = useUiLang();
 			const copy = skinManagerCopy(lang);
 			const updateRange = (index, patch) => onChange({
@@ -1201,82 +1304,84 @@ window.__ModuleLoader__.load({
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Toggle, {
 					checked: value.enabled,
 					label: settingLabel(setting, lang),
-					description: settingDescription(setting, lang),
+					description: description ?? settingDescription(setting, lang),
 					onChange: (enabled) => onChange({
 						...value,
 						enabled
 					})
 				}), value.enabled && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-					className: skin_manager_module_css_default.scheduleDetails,
-					children: [
-						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
-							className: skin_manager_module_css_default.selectRow,
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, { label: copy.schedulePolicy }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
-								className: skin_manager_module_css_default.selectInput,
-								value: value.outside,
-								onChange: (event) => onChange({
-									...value,
-									outside: event.currentTarget.value
-								}),
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
-									value: "visible",
-									children: copy.policyHideInRanges
-								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
-									value: "hidden",
-									children: copy.policyShowInRanges
-								})]
-							})]
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-							className: skin_manager_module_css_default.rangeList,
-							children: value.ranges.map((range, index) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-								className: skin_manager_module_css_default.rangeRow,
-								children: [
-									/* @__PURE__ */ (0, react_jsx_runtime.jsx)(TimeSelect, {
-										label: copy.rangeStartAria(index + 1),
-										value: range.start,
-										onChange: (start) => updateRange(index, { start })
-									}),
-									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: copy.rangeTo }),
-									/* @__PURE__ */ (0, react_jsx_runtime.jsx)(TimeSelect, {
-										label: copy.rangeEndAria(index + 1),
-										value: range.end,
-										onChange: (end) => updateRange(index, { end })
-									}),
-									/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-										variant: "outline",
-										size: "sm",
-										onClick: () => onChange({
-											...value,
-											ranges: value.ranges.filter((_, current) => current !== index)
-										}),
-										children: copy.removeRange
-									})
-								]
-							}, index))
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-							variant: "outline",
-							size: "sm",
-							className: skin_manager_module_css_default.addRange,
-							disabled: value.ranges.length >= 24,
-							onClick: () => onChange({
+					className: skin_manager_module_css_default.children,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
+						className: skin_manager_module_css_default.selectRow,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, { label: copy.schedulePolicy }), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
+							className: skin_manager_module_css_default.selectInput,
+							value: value.outside,
+							onChange: (event) => onChange({
 								...value,
-								ranges: [...value.ranges, {
-									start: "09:00",
-									end: "12:00"
-								}]
+								outside: event.currentTarget.value
 							}),
-							children: copy.addRange
-						}),
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", {
-							className: skin_manager_module_css_default.hint,
-							children: copy.scheduleHint
-						})
-					]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
+								value: "visible",
+								children: copy.policyHideInRanges
+							}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
+								value: "hidden",
+								children: copy.policyShowInRanges
+							})]
+						})]
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: skin_manager_module_css_default.rangeList,
+						children: [value.ranges.map((range, index) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: skin_manager_module_css_default.rangeRow,
+							children: [
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)(TimeSelect, {
+									label: copy.rangeStartAria(index + 1),
+									value: range.start,
+									onChange: (start) => updateRange(index, { start })
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: copy.rangeTo }),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)(TimeSelect, {
+									label: copy.rangeEndAria(index + 1),
+									value: range.end,
+									onChange: (end) => updateRange(index, { end })
+								}),
+								/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+									variant: "outline",
+									size: "sm",
+									onClick: () => onChange({
+										...value,
+										ranges: value.ranges.filter((_, current) => current !== index)
+									}),
+									children: copy.removeRange
+								})
+							]
+						}, index)), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: skin_manager_module_css_default.rangeFooter,
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "outline",
+								size: "sm",
+								disabled: value.ranges.length >= 24,
+								onClick: () => onChange({
+									...value,
+									ranges: [...value.ranges, {
+										start: "09:00",
+										end: "12:00"
+									}]
+								}),
+								children: copy.addRange
+							}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", {
+								className: skin_manager_module_css_default.hint,
+								children: copy.scheduleHint
+							})]
+						})]
+					})]
 				})]
 			});
 		}
+		/**
+		* Numbers take one of two controls. The slider is for a continuous amount the
+		* user judges by eye or ear (brightness, volume) and always shows its value;
+		* the stepper is for a small exact quantity (a height in px, a count).
+		*/
 		function RangeEditor({ setting, label, description, value, disabled = false, onChange }) {
 			const copy = skinManagerCopy(useUiLang());
 			if (setting.control === "stepper") {
@@ -1291,6 +1396,7 @@ window.__ModuleLoader__.load({
 						className: skin_manager_module_css_default.numberControl,
 						role: "group",
 						"aria-label": label,
+						"aria-disabled": disabled || void 0,
 						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 							className: skin_manager_module_css_default.stepper,
 							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
@@ -1347,18 +1453,14 @@ window.__ModuleLoader__.load({
 					})]
 				});
 			}
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("label", {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: skin_manager_module_css_default.sliderRow,
-				children: [
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
-						label,
-						description
-					}),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-						className: skin_manager_module_css_default.sliderValue,
-						children: [value, setting.unit ?? ""]
-					}),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
+					label,
+					description
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+					className: skin_manager_module_css_default.sliderControl,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
 						type: "range",
 						min: setting.min,
 						max: setting.max,
@@ -1366,9 +1468,14 @@ window.__ModuleLoader__.load({
 						value,
 						disabled,
 						"aria-label": label,
+						"aria-valuetext": `${value}${setting.unit ?? ""}`,
 						onChange: (event) => onChange(Number(event.currentTarget.value))
-					})
-				]
+					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+						className: skin_manager_module_css_default.sliderValue,
+						"aria-hidden": "true",
+						children: [value, setting.unit ?? ""]
+					})]
+				})]
 			});
 		}
 		const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -1529,7 +1636,7 @@ window.__ModuleLoader__.load({
 							ref: popover,
 							className: skin_manager_module_css_default.colorPopover,
 							role: "group",
-							"aria-label": `${label}色盘`,
+							"aria-label": label,
 							children: [
 								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 									className: skin_manager_module_css_default.colorPalette,
@@ -1559,7 +1666,7 @@ window.__ModuleLoader__.load({
 										min: "0",
 										max: "359",
 										value: Math.round(hue),
-										"aria-label": `${label}色相`,
+										"aria-label": `${label} H`,
 										onChange: (event) => {
 											const nextHue = Number(event.currentTarget.value);
 											setHue(nextHue);
@@ -1620,10 +1727,9 @@ window.__ModuleLoader__.load({
 				})]
 			});
 		}
-		function SettingEditor({ setting, value, disabled = false, onChange }) {
+		function SettingEditor({ setting, value, description, disabled = false, onChange }) {
 			const lang = useUiLang();
 			const label = settingLabel(setting, lang);
-			const description = settingDescription(setting, lang);
 			if (setting.type === "boolean") return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Toggle, {
 				checked: value,
 				label,
@@ -1673,37 +1779,114 @@ window.__ModuleLoader__.load({
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ScheduleEditor, {
 				setting,
 				value,
+				description,
 				onChange
 			});
 		}
-		function CustomizationCard({ definition, registry }) {
+		/**
+		* One row and, indented under it, every visible row that depends on it. A
+		* locked row (`disabledWhen`) names the control that locks it in place of
+		* its description, so the reason sits where the user is looking.
+		*/
+		function SettingNodes({ nodes, definition, values, registry }) {
+			const lang = useUiLang();
+			const copy = skinManagerCopy(lang);
+			const visible = nodes.filter((node) => settingVisible(node.setting, values, definition.settings));
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(react_jsx_runtime.Fragment, { children: visible.map(({ setting, children }) => {
+				const lock = settingLock(setting, values, definition.settings);
+				const description = !lock.locked ? settingDescription(setting, lang) : lock.by !== void 0 ? copy.lockedBy(settingLabel(lock.by, lang)) : copy.locked;
+				const shownChildren = children.filter((child) => settingVisible(child.setting, values, definition.settings));
+				return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+					className: skin_manager_module_css_default.settingNode,
+					"data-setting-key": setting.key,
+					"data-locked": lock.locked || void 0,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(SettingEditor, {
+						setting,
+						value: values[setting.key],
+						description,
+						disabled: lock.locked,
+						onChange: (value) => registry.set(definition, setting.key, value)
+					}), shownChildren.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: skin_manager_module_css_default.children,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(SettingNodes, {
+							nodes: shownChildren,
+							definition,
+							values,
+							registry
+						})
+					})]
+				}, setting.key);
+			}) });
+		}
+		/** The active skin's controls: one titled card per declared group. */
+		function CustomizationSection({ definition, registry }) {
 			const lang = useUiLang();
 			const copy = skinManagerCopy(lang);
 			const values = registry.values(definition);
+			const title = definitionTitle(definition, lang);
+			const sections = layoutSettings(definition).filter((section) => section.nodes.some((node) => settingVisible(node.setting, values, definition.settings)));
 			const onReset = () => {
-				if (window.confirm(copy.resetSkinConfirm)) registry.resetSkin(definition.skinId);
+				if (window.confirm(copy.resetSkinConfirm(title))) registry.resetSkin(definition.skinId);
 			};
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-				className: skin_manager_module_css_default.card,
+				className: skin_manager_module_css_default.block,
 				"data-skin-customization": definition.skinId,
 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-					className: skin_manager_module_css_default.cardHeader,
-					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: definitionTitle(definition, lang) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+					className: skin_manager_module_css_default.blockHead,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: title }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 						variant: "outline",
 						size: "sm",
 						className: skin_manager_module_css_default.resetButton,
 						onClick: onReset,
 						children: copy.resetSkinButton
 					})]
-				}), definition.settings.map((setting) => {
-					if (!settingVisible(setting, values)) return null;
-					const disabled = setting.disabledWhen !== void 0 && values[setting.disabledWhen] === true;
-					return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(SettingEditor, {
-						setting,
-						value: values[setting.key],
-						disabled,
-						onChange: (value) => registry.set(definition, setting.key, value)
-					}, setting.key);
+				}), sections.map((section) => {
+					const label = groupLabel(section, lang);
+					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+						className: skin_manager_module_css_default.group,
+						"data-setting-group": section.key || void 0,
+						children: [label !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h4", {
+							className: skin_manager_module_css_default.groupTitle,
+							children: label
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							className: skin_manager_module_css_default.card,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(SettingNodes, {
+								nodes: section.nodes,
+								definition,
+								values,
+								registry
+							})
+						})]
+					}, section.key);
+				})]
+			});
+		}
+		/**
+		* One choosable look. The card body is the button that switches to it; the
+		* facts below it (verified host, version) stay outside the button so the
+		* hash can be its own copy control.
+		*/
+		function SkinCard({ name, active, switching, disabled, onSelect, children }) {
+			const copy = skinManagerCopy(useUiLang());
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("li", {
+				className: skin_manager_module_css_default.skinCard,
+				"data-active": active || void 0,
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
+					type: "button",
+					className: skin_manager_module_css_default.skinMain,
+					disabled,
+					"aria-current": active || void 0,
+					onClick: onSelect,
+					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: skin_manager_module_css_default.skinName,
+						children: name
+					}), (active || switching) && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: skin_manager_module_css_default.skinState,
+						children: active ? copy.stateCurrent : copy.stateSwitching
+					})]
+				}), children !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+					className: skin_manager_module_css_default.skinMeta,
+					children
 				})]
 			});
 		}
@@ -1724,6 +1907,8 @@ window.__ModuleLoader__.load({
 			const copy = skinManagerCopy(lang);
 			const current = active(catalog);
 			const currentDefinitions = definitions.filter((definition) => definition.skinId === current);
+			const skinName = (skin) => lang === "en" && skin.nameEn !== void 0 ? skin.nameEn : skin.name;
+			const currentSkin = catalog.find((skin) => skin.id === current);
 			(0, react.useEffect)(() => {
 				live.current = true;
 				setLoading(true);
@@ -1775,19 +1960,20 @@ window.__ModuleLoader__.load({
 					if (live.current) setCopied(null);
 				}, 1600);
 			};
+			const busy = loading || switching !== null;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: skin_manager_module_css_default.section,
 				"data-dsh-skin-manager": true,
 				children: [
-					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("header", {
-						className: skin_manager_module_css_default.header,
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h2", { children: copy.headerTitle }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", { children: copy.headerIntro })]
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h2", {
+						className: skin_manager_module_css_default.title,
+						children: copy.headerTitle
 					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-						className: skin_manager_module_css_default.card,
+						className: skin_manager_module_css_default.block,
 						children: [
 							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-								className: skin_manager_module_css_default.cardHeader,
+								className: skin_manager_module_css_default.blockHead,
 								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.installedTitle }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 									variant: "outline",
 									size: "sm",
@@ -1796,58 +1982,39 @@ window.__ModuleLoader__.load({
 									children: checking ? copy.checking : copy.checkUpdates
 								})]
 							}),
-							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-								type: "button",
-								className: current === "official" ? skin_manager_module_css_default.defaultActive : skin_manager_module_css_default.defaultButton,
-								disabled: loading || switching !== null || current === "official",
-								onClick: () => choose("official"),
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: copy.officialName }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: copy.officialDescription })] }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", {
-									className: skin_manager_module_css_default.defaultState,
-									children: current === "official" ? copy.stateCurrent : switching === "official" ? copy.stateSwitching : copy.stateSwitch
-								})]
-							}),
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("ul", {
 								className: skin_manager_module_css_default.skinGrid,
-								children: catalog.map((skin) => {
-									const primaryName = lang === "en" && skin.nameEn !== void 0 ? skin.nameEn : skin.name;
-									const secondaryName = lang === "en" ? skin.nameEn !== void 0 ? skin.name : void 0 : skin.nameEn;
-									return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-										className: skin_manager_module_css_default.skinTile,
-										children: [
-											/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
-												type: "button",
-												className: current === skin.id ? skin_manager_module_css_default.activeSkin : skin_manager_module_css_default.skinButton,
-												disabled: loading || switching !== null || current === skin.id,
-												onClick: () => choose(skin.id),
-												children: [
-													/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: primaryName }),
-													secondaryName !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: secondaryName }),
-													/* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", { children: current === skin.id ? copy.stateCurrent : switching === skin.id ? copy.stateSwitching : copy.stateSwitch })
-												]
-											}),
-											skin.compatibility !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", {
-												className: skin.compatibility.exempted ? skin_manager_module_css_default.compatibility : skin_manager_module_css_default.incompatible,
-												"data-skin-incompatible": skin.compatibility.exempted ? "allowed" : "blocked",
-												children: skin.compatibility.exempted ? copy.incompatibleAllowed(skin.compatibility.runtimeVersion) : copy.incompatibleBlocked(skin.compatibility.runtimeVersion)
-											}),
-											skin.dshCompatibility && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("small", {
-												className: skin_manager_module_css_default.compatibility,
-												children: copy.compatibility(skin.dshCompatibility)
-											}),
-											/* @__PURE__ */ (0, react_jsx_runtime.jsx)(VersionRow, {
-												info: versions.get(skin.id) ?? {
-													id: skin.id,
-													source: "none",
-													local: null,
-													remote: null,
-													dirty: false,
-													note: copy.versionUnread
-												},
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(SkinCard, {
+									name: copy.officialName,
+									active: current === "official",
+									switching: switching === "official",
+									disabled: busy || current === "official",
+									onSelect: () => choose("official")
+								}), catalog.map((skin) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(SkinCard, {
+									name: skinName(skin),
+									active: current === skin.id,
+									switching: switching === skin.id,
+									disabled: busy || current === skin.id,
+									onSelect: () => choose(skin.id),
+									children: [
+										skin.compatibility !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+											className: skin.compatibility.exempted ? skin_manager_module_css_default.metaLine : skin_manager_module_css_default.incompatible,
+											"data-skin-incompatible": skin.compatibility.exempted ? "allowed" : "blocked",
+											children: skin.compatibility.exempted ? copy.incompatibleAllowed(skin.compatibility.runtimeVersion) : copy.incompatibleBlocked(skin.compatibility.runtimeVersion)
+										}),
+										skin.dshCompatibility && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+											className: skin_manager_module_css_default.metaLine,
+											children: copy.compatibility(skin.dshCompatibility)
+										}),
+										/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+											className: skin_manager_module_css_default.versionRow,
+											children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(VersionFacts, {
+												info: versions.get(skin.id),
 												onCopied: announceCopied
 											})
-										]
-									}, skin.id);
-								})
+										})
+									]
+								}, skin.id))]
 							}),
 							catalog.length === 0 && !loading && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 								className: skin_manager_module_css_default.hint,
@@ -1855,10 +2022,12 @@ window.__ModuleLoader__.load({
 							}),
 							copied === "ok" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 								className: skin_manager_module_css_default.hint,
+								role: "status",
 								children: copy.copiedOk
 							}),
 							copied === "fail" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 								className: skin_manager_module_css_default.error,
+								role: "alert",
 								children: copy.copyFailed
 							}),
 							loading && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
@@ -1867,17 +2036,21 @@ window.__ModuleLoader__.load({
 							}),
 							error !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 								className: skin_manager_module_css_default.error,
+								role: "alert",
 								children: copy.actionFailed(error)
 							})
 						]
 					}),
-					currentDefinitions.map((definition) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CustomizationCard, {
+					currentDefinitions.map((definition) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CustomizationSection, {
 						definition,
 						registry
 					}, definition.skinId)),
-					!loading && current !== "official" && current !== "unknown" && currentDefinitions.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-						className: skin_manager_module_css_default.card,
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.settingsTitle }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+					!loading && currentSkin !== void 0 && currentDefinitions.length === 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+						className: skin_manager_module_css_default.block,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							className: skin_manager_module_css_default.blockHead,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: skinName(currentSkin) })
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 							className: skin_manager_module_css_default.hint,
 							children: copy.noSettings
 						})]
@@ -1919,27 +2092,39 @@ window.__ModuleLoader__.load({
 				});
 			};
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-				className: skin_manager_module_css_default.card,
+				className: skin_manager_module_css_default.block,
 				"data-dsh-skin-desktop-icon": true,
 				children: [
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.desktopIconTitle }),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(Toggle, {
-						checked: enabled,
-						label: copy.desktopIconLabel,
-						description: copy.desktopIconDescription,
-						disabled: pending,
-						onChange: toggle
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: skin_manager_module_css_default.blockHead,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.desktopIconTitle })
+					}),
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+						className: skin_manager_module_css_default.card,
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							className: skin_manager_module_css_default.settingNode,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Toggle, {
+								checked: enabled,
+								label: copy.desktopIconLabel,
+								description: copy.desktopIconDescription,
+								disabled: pending,
+								onChange: toggle
+							})
+						})
 					}),
 					pending && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: skin_manager_module_css_default.hint,
+						role: "status",
 						children: copy.desktopIconPending
 					}),
 					outcome !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: outcome.failed > 0 ? skin_manager_module_css_default.error : skin_manager_module_css_default.hint,
+						role: "status",
 						children: copy.desktopIconDone(outcome.updated, outcome.failed, outcome.errors)
 					}),
 					error !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: skin_manager_module_css_default.error,
+						role: "alert",
 						children: copy.actionFailed(error)
 					})
 				]
@@ -1947,10 +2132,10 @@ window.__ModuleLoader__.load({
 		}
 		/**
 		* Backup & restore card: export the full preferences snapshot as a versioned
-		* JSON file, import one back (file picker or drag-and-drop), and surface the
-		* outcome through the same hint/error surface the rest of the manager uses.
-		* Imports keep blocks for skins that are not loaded, so the card also offers the
-		* one entry point that discards that kept data.
+		* JSON file, import one back (file picker, or a file dropped anywhere on the
+		* card), and surface the outcome through the same hint/error surface the rest
+		* of the manager uses. Imports keep blocks for skins that are not loaded, so
+		* the card also offers the one entry point that discards that kept data.
 		*/
 		function BackupCard({ registry }) {
 			const copy = skinManagerCopy(useUiLang());
@@ -2046,6 +2231,7 @@ window.__ModuleLoader__.load({
 				if (!event.dataTransfer.types.includes("Files")) return;
 				event.preventDefault();
 				event.stopPropagation();
+				if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
 				setDragging(false);
 			};
 			const onDrop = (event) => {
@@ -2058,60 +2244,72 @@ window.__ModuleLoader__.load({
 				readFile(file);
 			};
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-				className: skin_manager_module_css_default.card,
+				className: skin_manager_module_css_default.block,
 				"data-dsh-skin-backup": true,
 				children: [
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-						className: skin_manager_module_css_default.cardHeader,
+						className: skin_manager_module_css_default.blockHead,
 						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: copy.backupTitle })
 					}),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-						className: skin_manager_module_css_default.hint,
-						children: copy.backupIntro
-					}),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-						className: skin_manager_module_css_default.backupActions,
-						children: [
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-								variant: "outline",
-								size: "sm",
-								onClick: onExport,
-								children: copy.exportButton
-							}),
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-								variant: "outline",
-								size: "sm",
-								onClick: onImportClick,
-								children: copy.importButton
-							}),
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
-								ref: fileInput,
-								type: "file",
-								accept: "application/json,.json",
-								className: skin_manager_module_css_default.fileInput,
-								onChange: onFileChange
-							})
-						]
-					}),
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-						className: `${skin_manager_module_css_default.dropZone} ${dragging ? skin_manager_module_css_default.dropZoneActive : ""}`,
+						className: skin_manager_module_css_default.card,
+						"data-dragging": dragging || void 0,
 						onDragEnter: onDragOver,
 						onDragOver,
 						onDragLeave,
 						onDrop,
-						children: dragging ? copy.dropActive : copy.dropHint
-					}),
-					keptSkins.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-						className: skin_manager_module_css_default.backupActions,
-						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
-							variant: "outline",
-							size: "sm",
-							onClick: onClearKept,
-							children: copy.clearKeptButton(keptSkins.length)
-						})
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							className: skin_manager_module_css_default.settingNode,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: skin_manager_module_css_default.actionRow,
+								children: [
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, {
+										label: copy.backupLabel,
+										description: dragging ? copy.dropActive : copy.backupDescription
+									}),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
+										className: skin_manager_module_css_default.rowActions,
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+											variant: "outline",
+											size: "sm",
+											onClick: onExport,
+											children: copy.exportButton
+										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+											variant: "outline",
+											size: "sm",
+											onClick: onImportClick,
+											children: copy.importButton
+										})]
+									}),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
+										ref: fileInput,
+										type: "file",
+										accept: "application/json,.json",
+										className: skin_manager_module_css_default.fileInput,
+										onChange: onFileChange
+									})
+								]
+							})
+						}), keptSkins.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							className: skin_manager_module_css_default.settingNode,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: skin_manager_module_css_default.actionRow,
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(RowText, { label: copy.clearKeptLabel(keptSkins.length) }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+									className: skin_manager_module_css_default.rowActions,
+									children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+										variant: "outline",
+										size: "sm",
+										className: skin_manager_module_css_default.resetButton,
+										onClick: onClearKept,
+										children: copy.clearKeptButton
+									})
+								})]
+							})
+						})]
 					}),
 					notice !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: notice.kind === "ok" ? skin_manager_module_css_default.hint : skin_manager_module_css_default.error,
+						role: notice.kind === "ok" ? "status" : "alert",
 						children: notice.text
 					})
 				]

@@ -83,6 +83,13 @@ interface SettingBase<T> {
   description?: string
   descriptionEn?: string
   defaultValue: T
+  /**
+   * Key of one entry in the definition's `groups`. The manager renders groups
+   * in their declared order, so a setting appended to the end of `settings`
+   * still lands in its topic. A manager that predates groups ignores the
+   * field and renders the flat array order.
+   */
+  group?: string
   /** When this boolean setting key is true, the control becomes disabled. */
   disabledWhen?: string
   /** Only render this control while the referenced value matches one of these values. */
@@ -140,11 +147,20 @@ export interface SkinCustomizationState {
   visibility: Record<string, boolean>
 }
 
+/** One titled block of settings; see `SettingBase.group`. */
+export interface SkinSettingGroup {
+  key: string
+  label: string
+  labelEn?: string
+}
+
 interface SkinCustomizationDefinitionBase<P extends SkinCustomizationProtocol, S extends SkinSetting> {
   protocol: P
   skinId: string
   title: string
   titleEn?: string
+  /** Optional topic order. Settings without a known group render after them. */
+  groups?: SkinSettingGroup[]
   settings: S[]
   /** null means release all customization-owned state. Must be idempotent. */
   apply(state: SkinCustomizationState | null): void

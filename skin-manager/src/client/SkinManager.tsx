@@ -7,8 +7,8 @@ import type {
   TimeRange,
   VisibilitySchedule,
 } from '../protocol.ts'
-import { SkinCustomizationRegistry, settingVisible } from './runtime.ts'
-import { currentUiLang, definitionTitle, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
+import { layoutSettings, settingLock, settingVisible, SkinCustomizationRegistry, type SettingNode } from './runtime.ts'
+import { currentUiLang, definitionTitle, groupLabel, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
 import { activeSkins, isDesktopShell, waitForSkins } from './switch-settle.ts'
 import {
   buildPreferencesExport,
@@ -29,60 +29,48 @@ interface SkinManagerInjected {
 }
 
 const shortDate = (iso: string | null): string => iso === null ? '' : iso.slice(0, 10)
-const shortMessage = (message: string): string => message.length > 42 ? `${message.slice(0, 42)}…` : message
 
-function VersionRow({ info, onCopied }: { info: SkinVersionInfo, onCopied(): void }) {
+/**
+ * Version facts under one skin card: the short local identity (click to copy
+ * the full one), then the comparison once the user has asked for it. Nothing
+ * is shown for a comparison that has not run.
+ */
+function VersionFacts({ info, onCopied }: { info: SkinVersionInfo | undefined, onCopied(ok: boolean): void }) {
   const copy = skinManagerCopy(useUiLang())
-  const segment = (text: string, className?: string): ReactNode => (
-    <span className={className ?? css.versionMuted}>{text}</span>
-  )
-  if (info.source === 'none' || info.local === null) {
-    return <div className={css.versionRow}>{segment(info.note ?? copy.versionUnavailable)}</div>
-  }
-  const copyHash = async (): Promise<void> => {
+  if (info === undefined) return null
+  const local = info.local
+  const remote = info.remote
+  const latest = remote?.latest ?? null
+  const copyHash = async (hash: string): Promise<void> => {
     try {
-      await navigator.clipboard?.writeText(info.local!.hash)
+      await navigator.clipboard?.writeText(hash)
       onCopied(true)
     } catch {
       onCopied(false)
     }
   }
-  const remoteLatest = info.remote?.latest
   return (
-    <div className={css.versionRow}>
-      <button
-        type="button"
-        className={css.versionHash}
-        title={info.source === 'git'
-          ? copy.gitHashTitle(info.local.hash, info.local.date)
-          : copy.buildHashTitle(info.local.hash)}
-        onClick={() => void copyHash()}
-      >
-        {info.source === 'git' ? copy.localCommit : copy.localBuild} {info.local.short}
-      </button>
-      {info.remote === null && segment(info.note ?? copy.notCompared)}
-      {info.remote !== null && info.remote.state === 'up-to-date' && remoteLatest !== null && (
-        segment(copy.upToDate(remoteLatest.short), css.versionOk)
+    <>
+      {info.source !== 'none' && local !== null && (
+        <button
+          type="button"
+          className={css.versionHash}
+          title={info.source === 'git' ? copy.gitHashTitle(local.hash, local.date) : copy.buildHashTitle(local.hash)}
+          onClick={() => void copyHash(local.hash)}
+        >
+          {local.short}
+        </button>
       )}
-      {info.remote !== null && info.remote.state === 'update-available' && remoteLatest !== null && (
-        <>
-          <span className={css.versionUpdate}>
-            {copy.updateAvailable(remoteLatest.short, shortDate(remoteLatest.date), shortMessage(remoteLatest.message ?? ''))}
-          </span>
-        </>
+      {remote?.state === 'up-to-date' && latest !== null && <span className={css.versionOk}>{copy.upToDate}</span>}
+      {remote?.state === 'update-available' && latest !== null && (
+        <span className={css.versionUpdate} title={latest.message}>{copy.updateAvailable(latest.short, shortDate(latest.date))}</span>
       )}
-      {info.remote !== null && info.remote.state === 'local-ahead' && remoteLatest !== null && (
-        segment(copy.localAhead(remoteLatest.short))
-      )}
-      {info.remote !== null && info.remote.state === 'diverged' && remoteLatest !== null && (
-        segment(copy.diverged(remoteLatest.short))
-      )}
-      {info.remote !== null && info.remote.state === 'unknown' && (
-        segment(copy.unknownUpdate)
-      )}
-      {info.dirty && segment(copy.localDirty)}
-      {info.note !== undefined && segment(info.note)}
-    </div>
+      {remote?.state === 'local-ahead' && latest !== null && <span title={latest.short}>{copy.localAhead}</span>}
+      {remote?.state === 'diverged' && latest !== null && <span title={latest.short}>{copy.diverged}</span>}
+      {remote?.state === 'unknown' && <span>{copy.unknownUpdate}</span>}
+      {info.dirty && <span>{copy.localDirty}</span>}
+      {info.note !== undefined && <span>{info.note}</span>}
+    </>
   )
 }
 
@@ -151,9 +139,15 @@ function TimeSelect({ label, value, onChange }: {
   )
 }
 
-export function ScheduleEditor({ setting, value, onChange }: {
+/**
+ * A schedule is a switch with dependent rows: the rule and the periods sit in
+ * the same indented block that every other dependent control uses, and only
+ * while the schedule is on.
+ */
+export function ScheduleEditor({ setting, value, description, onChange }: {
   setting: Extract<SkinSetting, { type: 'visibility-schedule' }>
   value: VisibilitySchedule
+  description?: string
   onChange(value: VisibilitySchedule): void
 }) {
   const lang = useUiLang()
@@ -167,11 +161,11 @@ export function ScheduleEditor({ setting, value, onChange }: {
       <Toggle
         checked={value.enabled}
         label={settingLabel(setting, lang)}
-        description={settingDescription(setting, lang)}
+        description={description ?? settingDescription(setting, lang)}
         onChange={enabled => onChange({ ...value, enabled })}
       />
       {value.enabled && (
-        <div className={css.scheduleDetails}>
+        <div className={css.children}>
           <label className={css.selectRow}>
             <RowText label={copy.schedulePolicy} />
             <select className={css.selectInput} value={value.outside} onChange={event => onChange({ ...value, outside: event.currentTarget.value as VisibilitySchedule['outside'] })}>
@@ -196,23 +190,29 @@ export function ScheduleEditor({ setting, value, onChange }: {
                 <Button variant="outline" size="sm" onClick={() => onChange({ ...value, ranges: value.ranges.filter((_, current) => current !== index) })}>{copy.removeRange}</Button>
               </div>
             ))}
+            <div className={css.rangeFooter}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={value.ranges.length >= 24}
+                onClick={() => onChange({ ...value, ranges: [...value.ranges, { start: '09:00', end: '12:00' }] })}
+              >
+                {copy.addRange}
+              </Button>
+              <small className={css.hint}>{copy.scheduleHint}</small>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className={css.addRange}
-            disabled={value.ranges.length >= 24}
-            onClick={() => onChange({ ...value, ranges: [...value.ranges, { start: '09:00', end: '12:00' }] })}
-          >
-            {copy.addRange}
-          </Button>
-          <small className={css.hint}>{copy.scheduleHint}</small>
         </div>
       )}
     </div>
   )
 }
 
+/**
+ * Numbers take one of two controls. The slider is for a continuous amount the
+ * user judges by eye or ear (brightness, volume) and always shows its value;
+ * the stepper is for a small exact quantity (a height in px, a count).
+ */
 function RangeEditor({ setting, label, description, value, disabled = false, onChange }: {
   setting: Extract<SkinSetting, { type: 'range' }>
   label: string
@@ -230,7 +230,7 @@ function RangeEditor({ setting, label, description, value, disabled = false, onC
     return (
       <div className={css.selectRow}>
         <RowText label={label} description={description} />
-        <div className={css.numberControl} role="group" aria-label={label}>
+        <div className={css.numberControl} role="group" aria-label={label} aria-disabled={disabled || undefined}>
           <div className={css.stepper}>
             <span className={css.numberValue}>{value}</span>
             <span className={css.stepperArrows}>
@@ -252,20 +252,23 @@ function RangeEditor({ setting, label, description, value, disabled = false, onC
     )
   }
   return (
-    <label className={css.sliderRow}>
+    <div className={css.sliderRow}>
       <RowText label={label} description={description} />
-      <span className={css.sliderValue}>{value}{setting.unit ?? ''}</span>
-      <input
-        type="range"
-        min={setting.min}
-        max={setting.max}
-        step={setting.step ?? 1}
-        value={value}
-        disabled={disabled}
-        aria-label={label}
-        onChange={event => onChange(Number(event.currentTarget.value))}
-      />
-    </label>
+      <span className={css.sliderControl}>
+        <input
+          type="range"
+          min={setting.min}
+          max={setting.max}
+          step={setting.step ?? 1}
+          value={value}
+          disabled={disabled}
+          aria-label={label}
+          aria-valuetext={`${value}${setting.unit ?? ''}`}
+          onChange={event => onChange(Number(event.currentTarget.value))}
+        />
+        <span className={css.sliderValue} aria-hidden="true">{value}{setting.unit ?? ''}</span>
+      </span>
+    </div>
   )
 }
 
@@ -415,7 +418,7 @@ function ColorEditor({ label, description, value, disabled = false, onChange }: 
         >
           <span className={css.colorSwatch} style={{ backgroundColor: value }} />
         </button>
-        <div ref={popover} className={css.colorPopover} role="group" aria-label={`${label}色盘`}>
+        <div ref={popover} className={css.colorPopover} role="group" aria-label={label}>
           <div
             className={css.colorPalette}
             style={{ backgroundColor: `hsl(${hue} 100% 50%)` }}
@@ -439,7 +442,7 @@ function ColorEditor({ label, description, value, disabled = false, onChange }: 
               min="0"
               max="359"
               value={Math.round(hue)}
-              aria-label={`${label}色相`}
+              aria-label={`${label} H`}
               onChange={(event) => {
                 const nextHue = Number(event.currentTarget.value)
                 setHue(nextHue)
@@ -505,15 +508,15 @@ function CheckboxGroupEditor({ setting, label, description, value, disabled = fa
   )
 }
 
-function SettingEditor({ setting, value, disabled = false, onChange }: {
+function SettingEditor({ setting, value, description, disabled = false, onChange }: {
   setting: SkinSetting
   value: SkinSettingValue
+  description?: string
   disabled?: boolean
   onChange(value: SkinSettingValue): void
 }) {
   const lang = useUiLang()
   const label = settingLabel(setting, lang)
-  const description = settingDescription(setting, lang)
   if (setting.type === 'boolean') {
     return <Toggle checked={value as boolean} label={label} description={description} disabled={disabled} onChange={onChange} />
   }
@@ -545,41 +548,111 @@ function SettingEditor({ setting, value, disabled = false, onChange }: {
       />
     )
   }
-  return <ScheduleEditor setting={setting} value={value as VisibilitySchedule} onChange={onChange} />
+  return <ScheduleEditor setting={setting} value={value as VisibilitySchedule} description={description} onChange={onChange} />
 }
 
-function CustomizationCard({ definition, registry }: {
+/**
+ * One row and, indented under it, every visible row that depends on it. A
+ * locked row (`disabledWhen`) names the control that locks it in place of
+ * its description, so the reason sits where the user is looking.
+ */
+function SettingNodes({ nodes, definition, values, registry }: {
+  nodes: SettingNode[]
+  definition: SkinCustomizationDefinition
+  values: Record<string, SkinSettingValue>
+  registry: SkinCustomizationRegistry
+}) {
+  const lang = useUiLang()
+  const copy = skinManagerCopy(lang)
+  const visible = nodes.filter(node => settingVisible(node.setting, values, definition.settings))
+  return (
+    <>
+      {visible.map(({ setting, children }) => {
+        const lock = settingLock(setting, values, definition.settings)
+        const description = !lock.locked
+          ? settingDescription(setting, lang)
+          : lock.by !== undefined ? copy.lockedBy(settingLabel(lock.by, lang)) : copy.locked
+        const shownChildren = children.filter(child => settingVisible(child.setting, values, definition.settings))
+        return (
+          <div className={css.settingNode} key={setting.key} data-setting-key={setting.key} data-locked={lock.locked || undefined}>
+            <SettingEditor
+              setting={setting}
+              value={values[setting.key]!}
+              description={description}
+              disabled={lock.locked}
+              onChange={value => registry.set(definition, setting.key, value)}
+            />
+            {shownChildren.length > 0 && (
+              <div className={css.children}>
+                <SettingNodes nodes={shownChildren} definition={definition} values={values} registry={registry} />
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+/** The active skin's controls: one titled card per declared group. */
+function CustomizationSection({ definition, registry }: {
   definition: SkinCustomizationDefinition
   registry: SkinCustomizationRegistry
 }) {
   const lang = useUiLang()
   const copy = skinManagerCopy(lang)
   const values = registry.values(definition)
+  const title = definitionTitle(definition, lang)
+  const sections = layoutSettings(definition)
+    .filter(section => section.nodes.some(node => settingVisible(node.setting, values, definition.settings)))
   const onReset = (): void => {
-    if (window.confirm(copy.resetSkinConfirm)) registry.resetSkin(definition.skinId)
+    if (window.confirm(copy.resetSkinConfirm(title))) registry.resetSkin(definition.skinId)
   }
   return (
-    <section className={css.card} data-skin-customization={definition.skinId}>
-      <div className={css.cardHeader}>
-        <h3>{definitionTitle(definition, lang)}</h3>
+    <section className={css.block} data-skin-customization={definition.skinId}>
+      <div className={css.blockHead}>
+        <h3>{title}</h3>
         <Button variant="outline" size="sm" className={css.resetButton} onClick={onReset}>
           {copy.resetSkinButton}
         </Button>
       </div>
-      {definition.settings.map(setting => {
-        if (!settingVisible(setting, values)) return null
-        const disabled = setting.disabledWhen !== undefined && values[setting.disabledWhen] === true
+      {sections.map(section => {
+        const label = groupLabel(section, lang)
         return (
-          <SettingEditor
-            key={setting.key}
-            setting={setting}
-            value={values[setting.key]!}
-            disabled={disabled}
-            onChange={value => registry.set(definition, setting.key, value)}
-          />
+          <div className={css.group} key={section.key} data-setting-group={section.key || undefined}>
+            {label !== undefined && <h4 className={css.groupTitle}>{label}</h4>}
+            <div className={css.card}>
+              <SettingNodes nodes={section.nodes} definition={definition} values={values} registry={registry} />
+            </div>
+          </div>
         )
       })}
     </section>
+  )
+}
+
+/**
+ * One choosable look. The card body is the button that switches to it; the
+ * facts below it (verified host, version) stay outside the button so the
+ * hash can be its own copy control.
+ */
+function SkinCard({ name, active, switching, disabled, onSelect, children }: {
+  name: string
+  active: boolean
+  switching: boolean
+  disabled: boolean
+  onSelect(): void
+  children?: ReactNode
+}) {
+  const copy = skinManagerCopy(useUiLang())
+  return (
+    <li className={css.skinCard} data-active={active || undefined}>
+      <button type="button" className={css.skinMain} disabled={disabled} aria-current={active || undefined} onClick={onSelect}>
+        <span className={css.skinName}>{name}</span>
+        {(active || switching) && <span className={css.skinState}>{active ? copy.stateCurrent : copy.stateSwitching}</span>}
+      </button>
+      {children !== undefined && <div className={css.skinMeta}>{children}</div>}
+    </li>
   )
 }
 
@@ -600,6 +673,8 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
   const copy = skinManagerCopy(lang)
   const current = active(catalog)
   const currentDefinitions = definitions.filter(definition => definition.skinId === current)
+  const skinName = (skin: SkinCatalogEntry): string => lang === 'en' && skin.nameEn !== undefined ? skin.nameEn : skin.name
+  const currentSkin = catalog.find(skin => skin.id === current)
 
   useEffect(() => {
     live.current = true
@@ -618,8 +693,8 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
     void fetchSkinLocalVersions().then((info) => {
       if (live.current) setVersions(info)
     }).catch(() => {
-      // Version rows retain their per-skin "尚未读取" fallback. This optional
-      // diagnostic must not turn catalog discovery into a failed operation.
+      // Version facts stay empty. This optional diagnostic must not turn
+      // catalog discovery into a failed operation.
     })
     return () => {
       live.current = false
@@ -664,15 +739,14 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
     }, 1600)
   }
 
+  const busy = loading || switching !== null
+
   return (
     <div className={css.section} data-dsh-skin-manager>
-      <header className={css.header}>
-        <h2>{copy.headerTitle}</h2>
-        <p>{copy.headerIntro}</p>
-      </header>
+      <h2 className={css.title}>{copy.headerTitle}</h2>
 
-      <section className={css.card}>
-        <div className={css.cardHeader}>
+      <section className={css.block}>
+        <div className={css.blockHead}>
           <h3>{copy.installedTitle}</h3>
           <Button
             variant="outline"
@@ -683,71 +757,50 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
             {checking ? copy.checking : copy.checkUpdates}
           </Button>
         </div>
-        <button
-          type="button"
-          className={current === 'official' ? css.defaultActive : css.defaultButton}
-          disabled={loading || switching !== null || current === 'official'}
-          onClick={() => choose('official')}
-        >
-          <span>
-            <span>{copy.officialName}</span>
-            <small>{copy.officialDescription}</small>
-          </span>
-          <small className={css.defaultState}>
-            {current === 'official' ? copy.stateCurrent : switching === 'official' ? copy.stateSwitching : copy.stateSwitch}
-          </small>
-        </button>
-        <div className={css.skinGrid}>
-          {catalog.map(skin => {
-            // English UI: lead with the English name and demote the Chinese
-            // one to the subtitle, mirroring the default zh presentation.
-            const primaryName = lang === 'en' && skin.nameEn !== undefined ? skin.nameEn : skin.name
-            const secondaryName = lang === 'en' ? (skin.nameEn !== undefined ? skin.name : undefined) : skin.nameEn
-            return (
-              <div key={skin.id} className={css.skinTile}>
-                <button
-                  type="button"
-                  className={current === skin.id ? css.activeSkin : css.skinButton}
-                  disabled={loading || switching !== null || current === skin.id}
-                  onClick={() => choose(skin.id)}
-                >
-                  <span>{primaryName}</span>
-                  {secondaryName !== undefined && <small>{secondaryName}</small>}
-                  <small>{current === skin.id ? copy.stateCurrent : switching === skin.id ? copy.stateSwitching : copy.stateSwitch}</small>
-                </button>
-                {skin.compatibility !== undefined && (
-                  <small className={skin.compatibility.exempted ? css.compatibility : css.incompatible} data-skin-incompatible={skin.compatibility.exempted ? 'allowed' : 'blocked'}>
-                    {skin.compatibility.exempted
-                      ? copy.incompatibleAllowed(skin.compatibility.runtimeVersion)
-                      : copy.incompatibleBlocked(skin.compatibility.runtimeVersion)}
-                  </small>
-                )}
-                {skin.dshCompatibility && (
-                  <small className={css.compatibility}>{copy.compatibility(skin.dshCompatibility)}</small>
-                )}
-                <VersionRow
-                  info={versions.get(skin.id) ?? { id: skin.id, source: 'none', local: null, remote: null, dirty: false, note: copy.versionUnread }}
-                  onCopied={announceCopied}
-                />
-              </div>
-            )
-          })}
-        </div>
-        {catalog.length === 0 && !loading && (
-          <p className={css.hint}>{copy.noSkins}</p>
-        )}
-        {copied === 'ok' && <p className={css.hint}>{copy.copiedOk}</p>}
-        {copied === 'fail' && <p className={css.error}>{copy.copyFailed}</p>}
+        <ul className={css.skinGrid}>
+          <SkinCard
+            name={copy.officialName}
+            active={current === 'official'}
+            switching={switching === 'official'}
+            disabled={busy || current === 'official'}
+            onSelect={() => choose('official')}
+          />
+          {catalog.map(skin => (
+            <SkinCard
+              key={skin.id}
+              name={skinName(skin)}
+              active={current === skin.id}
+              switching={switching === skin.id}
+              disabled={busy || current === skin.id}
+              onSelect={() => choose(skin.id)}
+            >
+              {skin.compatibility !== undefined && (
+                <span className={skin.compatibility.exempted ? css.metaLine : css.incompatible} data-skin-incompatible={skin.compatibility.exempted ? 'allowed' : 'blocked'}>
+                  {skin.compatibility.exempted
+                    ? copy.incompatibleAllowed(skin.compatibility.runtimeVersion)
+                    : copy.incompatibleBlocked(skin.compatibility.runtimeVersion)}
+                </span>
+              )}
+              {skin.dshCompatibility && <span className={css.metaLine}>{copy.compatibility(skin.dshCompatibility)}</span>}
+              <span className={css.versionRow}>
+                <VersionFacts info={versions.get(skin.id)} onCopied={announceCopied} />
+              </span>
+            </SkinCard>
+          ))}
+        </ul>
+        {catalog.length === 0 && !loading && <p className={css.hint}>{copy.noSkins}</p>}
+        {copied === 'ok' && <p className={css.hint} role="status">{copy.copiedOk}</p>}
+        {copied === 'fail' && <p className={css.error} role="alert">{copy.copyFailed}</p>}
         {loading && <p className={css.hint}>{copy.loadingSkins}</p>}
-        {error !== null && <p className={css.error}>{copy.actionFailed(error)}</p>}
+        {error !== null && <p className={css.error} role="alert">{copy.actionFailed(error)}</p>}
       </section>
 
       {currentDefinitions.map(definition => (
-        <CustomizationCard key={definition.skinId} definition={definition} registry={registry} />
+        <CustomizationSection key={definition.skinId} definition={definition} registry={registry} />
       ))}
-      {!loading && current !== 'official' && current !== 'unknown' && currentDefinitions.length === 0 && (
-        <section className={css.card}>
-          <h3>{copy.settingsTitle}</h3>
+      {!loading && currentSkin !== undefined && currentDefinitions.length === 0 && (
+        <section className={css.block}>
+          <div className={css.blockHead}><h3>{skinName(currentSkin)}</h3></div>
           <p className={css.hint}>{copy.noSettings}</p>
         </section>
       )}
@@ -789,28 +842,32 @@ function DesktopIconCard({ initial }: { initial: DesktopIconStatus }) {
     })
   }
   return (
-    <section className={css.card} data-dsh-skin-desktop-icon>
-      <h3>{copy.desktopIconTitle}</h3>
-      <Toggle
-        checked={enabled}
-        label={copy.desktopIconLabel}
-        description={copy.desktopIconDescription}
-        disabled={pending}
-        onChange={toggle}
-      />
-      {pending && <p className={css.hint}>{copy.desktopIconPending}</p>}
-      {outcome !== null && <p className={outcome.failed > 0 ? css.error : css.hint}>{copy.desktopIconDone(outcome.updated, outcome.failed, outcome.errors)}</p>}
-      {error !== null && <p className={css.error}>{copy.actionFailed(error)}</p>}
+    <section className={css.block} data-dsh-skin-desktop-icon>
+      <div className={css.blockHead}><h3>{copy.desktopIconTitle}</h3></div>
+      <div className={css.card}>
+        <div className={css.settingNode}>
+          <Toggle
+            checked={enabled}
+            label={copy.desktopIconLabel}
+            description={copy.desktopIconDescription}
+            disabled={pending}
+            onChange={toggle}
+          />
+        </div>
+      </div>
+      {pending && <p className={css.hint} role="status">{copy.desktopIconPending}</p>}
+      {outcome !== null && <p className={outcome.failed > 0 ? css.error : css.hint} role="status">{copy.desktopIconDone(outcome.updated, outcome.failed, outcome.errors)}</p>}
+      {error !== null && <p className={css.error} role="alert">{copy.actionFailed(error)}</p>}
     </section>
   )
 }
 
 /**
  * Backup & restore card: export the full preferences snapshot as a versioned
- * JSON file, import one back (file picker or drag-and-drop), and surface the
- * outcome through the same hint/error surface the rest of the manager uses.
- * Imports keep blocks for skins that are not loaded, so the card also offers the
- * one entry point that discards that kept data.
+ * JSON file, import one back (file picker, or a file dropped anywhere on the
+ * card), and surface the outcome through the same hint/error surface the rest
+ * of the manager uses. Imports keep blocks for skins that are not loaded, so
+ * the card also offers the one entry point that discards that kept data.
  */
 function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
   const lang = useUiLang()
@@ -924,6 +981,8 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
     if (!event.dataTransfer.types.includes('Files')) return
     event.preventDefault()
     event.stopPropagation()
+    // Moving between the card's own children fires leave on the old child.
+    if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return
     setDragging(false)
   }
 
@@ -938,40 +997,47 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
   }
 
   return (
-    <section className={css.card} data-dsh-skin-backup>
-      <div className={css.cardHeader}>
-        <h3>{copy.backupTitle}</h3>
-      </div>
-      <p className={css.hint}>{copy.backupIntro}</p>
-      <div className={css.backupActions}>
-        <Button variant="outline" size="sm" onClick={onExport}>{copy.exportButton}</Button>
-        <Button variant="outline" size="sm" onClick={onImportClick}>{copy.importButton}</Button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="application/json,.json"
-          className={css.fileInput}
-          onChange={onFileChange}
-        />
-      </div>
+    <section className={css.block} data-dsh-skin-backup>
+      <div className={css.blockHead}><h3>{copy.backupTitle}</h3></div>
       <div
-        className={`${css.dropZone} ${dragging ? css.dropZoneActive : ''}`}
+        className={css.card}
+        data-dragging={dragging || undefined}
         onDragEnter={onDragOver}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
       >
-        {dragging ? copy.dropActive : copy.dropHint}
-      </div>
-      {keptSkins.length > 0 && (
-        <div className={css.backupActions}>
-          <Button variant="outline" size="sm" onClick={onClearKept}>
-            {copy.clearKeptButton(keptSkins.length)}
-          </Button>
+        <div className={css.settingNode}>
+          <div className={css.actionRow}>
+            <RowText label={copy.backupLabel} description={dragging ? copy.dropActive : copy.backupDescription} />
+            <span className={css.rowActions}>
+              <Button variant="outline" size="sm" onClick={onExport}>{copy.exportButton}</Button>
+              <Button variant="outline" size="sm" onClick={onImportClick}>{copy.importButton}</Button>
+            </span>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="application/json,.json"
+              className={css.fileInput}
+              onChange={onFileChange}
+            />
+          </div>
         </div>
-      )}
+        {keptSkins.length > 0 && (
+          <div className={css.settingNode}>
+            <div className={css.actionRow}>
+              <RowText label={copy.clearKeptLabel(keptSkins.length)} />
+              <span className={css.rowActions}>
+                <Button variant="outline" size="sm" className={css.resetButton} onClick={onClearKept}>
+                  {copy.clearKeptButton}
+                </Button>
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
       {notice !== null && (
-        <p className={notice.kind === 'ok' ? css.hint : css.error}>{notice.text}</p>
+        <p className={notice.kind === 'ok' ? css.hint : css.error} role={notice.kind === 'ok' ? 'status' : 'alert'}>{notice.text}</p>
       )}
     </section>
   )
