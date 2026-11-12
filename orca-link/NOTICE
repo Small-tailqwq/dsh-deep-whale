@@ -38,8 +38,16 @@ Artwork usage terms (LICENSE-ARTWORK): CC BY-NC-SA 4.0 —— 署名 (attributio
 Software code is covered by LICENSE (MIT). Artwork copyright remains with the
 respective authors above, including embedded and transformed copies.
 
+The preset plugin SVGs in assets/plugin-icons/ are included unchanged in the
+client stylesheet. These skin artwork assets retain LICENSE-ARTWORK terms.
+
 The host SVG test fixtures in tests/fixtures/dsh-icons.json are
 rendered from deepseek-ai/deepseek-harness at commit
-66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db, copyright (c) 2026 DeepSeek,
+ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c, copyright (c) 2026 DeepSeek,
 under the MIT License reproduced in tests/fixtures/DSH-LICENSE. These test
 fixtures are separate from the character artwork licensed above.
+
+The minimal DOM projections in tests/fixtures/conversation-width.json are
+reviewed against official deepseek-ai/deepseek-harness source at the commits
+and blobs recorded in each variant, copyright (c) 2026 DeepSeek, under the
+MIT License reproduced in tests/fixtures/DSH-LICENSE.

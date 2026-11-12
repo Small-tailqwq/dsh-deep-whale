@@ -3,6 +3,13 @@ export const SKIN_MANAGER_ROUTE = '/api/dsh/skins'
 
 export type SkinTarget = 'official' | string
 
+/** Desired skins, the published client graph, and disposed entries still present in that graph. */
+export interface SkinSwitchState {
+  configured: string[]
+  active: string[]
+  stale: string[]
+}
+
 /** Safe manifest fields exposed to the browser; package paths never leave the host. */
 export interface SkinCatalogEntry {
   id: string

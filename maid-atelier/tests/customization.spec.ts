@@ -120,7 +120,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['sceneBrightnessLight', 'plainProcess', 'artwork', 'sfwMode', 'font', 'workspaceFont', 'modelExit', 'mobileModelExit', 'flashGlasses', 'mobileNav', 'composerMode', 'composerBottomOnly', 'sidebarLace', 'workspaceRowHeight'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'modelExit', 'mobileModelExit', 'flashGlasses', 'sfwMode', 'sceneBrightnessLight', 'plainProcess', 'font', 'workspaceFont', 'sidebarLace', 'workspaceRowHeight', 'mobileNav', 'composerMode', 'composerBottomOnly'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },
@@ -165,8 +165,8 @@ describe('maid customization declaration', () => {
     const composerMode = registration!.definition.settings.find(setting => setting.key === 'composerMode')
     expect(composerMode?.type).toBe('select')
     expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.value) : []).toEqual(['persistent', 'capsule', 'scroll'])
-    expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.label) : []).toEqual(['始终显示', '空态胶囊（点击展开）', '上滚隐去 · 下滚渐现'])
-    expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.labelEn) : []).toEqual(['Always visible', 'Idle capsule (click to expand)', 'Hide on scroll up · show on scroll down'])
+    expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.label) : []).toEqual(['始终显示', '空闲时收起为胶囊', '上滚隐藏，下滚显示'])
+    expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.labelEn) : []).toEqual(['Always visible', 'Collapse to a capsule when idle', 'Hide on scroll up, show on scroll down'])
     dispose()
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
@@ -364,6 +364,27 @@ describe('maid customization declaration', () => {
       expect(legacyVisible(setting.visibleWhen, values), `${setting.key} legacy result`).toBeTypeOf('boolean')
     }
     expect(checked).toBeGreaterThan(0)
+    dispose()
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('files every control under a declared group, in group order', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installMaidCustomization()
+    const definition = registration!.definition
+    const groups = (definition.groups ?? []).map(group => group.key)
+    expect(groups).toEqual(['artwork', 'appearance', 'sidebar', 'composer'])
+    for (const group of definition.groups ?? []) expect(group.labelEn, `${group.key} labelEn`).toBeTypeOf('string')
+    const order = definition.settings.map(setting => groups.indexOf(setting.group ?? ''))
+    expect(order.every(index => index >= 0)).toBe(true)
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    // Model matching, the glasses option and the schedule only change the
+    // artwork, so they hang under its switch.
+    for (const key of ['modelExit', 'mobileModelExit', 'sfwMode']) {
+      expect(definition.settings.find(setting => setting.key === key)?.visibleWhen, key).toEqual({ key: 'artwork', values: [true] })
+    }
     dispose()
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })

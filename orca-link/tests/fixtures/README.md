@@ -1,13 +1,46 @@
-# Host icon fixtures
+# Host fixtures
+
+## Conversation width handles
+
+`conversation-width.json` contains reviewed minimal DOM projections for the
+active main conversation. Each variant records the exact official host commit
+and the Git blobs for the main panel, content body, width controls, native CSS,
+slot registration and renderer. Message and composer contents are omitted.
+The `0.2.2-rc.1` release and a later official master report the same version,
+but the latter wraps the scrollport in `conversation.hero.frame`. The
+`0.2.2-rc.2` projection retains that wrapper and records its updated slot sources.
+
+`apply.spec.ts` runs the production width-handle selectors against all three
+projections in light/dark and dragging states, including the reduced-motion
+rule's target. These are DOM matching assertions; browser animation, hover
+rendering and native drag behavior require browser checks.
+
+```sh
+npm run test:host-structure -- --source /path/to/deepseek-harness --ref <tag-or-sha>
+```
+
+The command reads immutable Git objects, matches all source bindings against a
+reviewed variant, then runs the width-handle tests. Unrecognized source changes
+stop with `NEEDS_REVALIDATION`; inspect the changed components and their slot
+callers before updating the projection and blobs. Updating only the hashes
+does not review a fixture. The command covers width handles only and does not
+refresh fixtures automatically. Use a fetched full SHA to record a new target;
+it does not fetch refs or follow releases itself.
+
+The DOM projections share the host MIT attribution in `DSH-LICENSE`.
+See [the workflow study](../../../docs/style-matching-workflow.md) for the
+proposed wider audit.
+
+## Icons and loaders
 
 `dsh-icons.json` contains complete SVG markup rendered with React
 `renderToStaticMarkup` from the official DSH commit recorded in `hostCommit`.
 `sources` records Git blob IDs; `component` identifies the export or inline
 variant, and `name` is the reviewed expected ORCA redraw. Expected names are
-independent of the production matcher. `symbols` records all 196 official
+independent of the production matcher. `symbols` records all 202 official
 symbol drawings, and `symbolId` links each primitive variant to its artwork.
 
-The 266 variants cover every exported primitive/permission icon, both compact
+The 271 variants cover every exported primitive/permission icon, both compact
 AppsAdd weights, all four
 composer SVG branches, dock split/five drop zones, browser sandbox states,
 the shared ongoing StateDot at its default and installation-dialog sizes,
@@ -17,6 +50,11 @@ usage at 0/25/100%. Selected inline drawings come from the host TypeScript AST;
 caller layout attributes, classes, refs and handlers are omitted while drawing
 children and geometry constants are retained. `site` links rendered variants
 to their source SVG. Dynamic usage updates have additional cases in `apply.spec.ts`.
+
+The Layers glyph identifies the jobs entry in `ui-jobs/JobListAction.tsx`.
+Both weights map to `layers`, drawn as three stacked straight-edged planes.
+The file sidebar's hidden-file toggle uses the Eye and EyeOff glyphs; both
+weights map to the existing `eye` and `eye-off` artwork.
 
 `loaders` captures representative native HTML structures for the file-upload
 card and platform authorization overlay, with placeholder CSS module hashes.
@@ -28,7 +66,7 @@ Run from `orca-link` against a local official Git object database:
 
 ```sh
 npm run test:host-icons -- --source /path/to/deepseek-harness
-npm run test:host-icons -- --source /path/to/deepseek-harness --ref dsh-v0.2.2-rc.1
+npm run test:host-icons -- --source /path/to/deepseek-harness --ref dsh-v0.2.2-rc.2
 ```
 
 The default ref comes from the fixture's `hostCommit`. The command reads

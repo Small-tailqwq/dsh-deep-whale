@@ -8,9 +8,8 @@
  * old skin -> official look -> new skin. The page now reloads as soon as the
  * Host begins applying the switch (the first body-attribute change), so the new
  * skin makes its entrance once, on a page booted from the recomposed graph.
- * The desktop shell replays the boot graph captured at Host startup on every
- * reload, so there the in-place switch is kept. A timeout asks for an app
- * restart instead of replaying the old graph with a renderer reload.
+ * Desktop confirmation and disposed-entry recovery live in desktop-switch.ts;
+ * the shell replays its startup graph on reload, so it switches in place.
  */
 import type { SkinCatalogEntry } from '../contract.ts'
 
@@ -51,6 +50,7 @@ export function waitForSkins(
       signal?.removeEventListener('abort', abort)
       resolve(settled)
     }
+    if (signal?.aborted) { finish(false); return }
     observer.observe(doc.body, { attributes: true, attributeFilter: catalog.map(skin => skin.bodyAttr) })
     timer = window.setTimeout(() => finish(false), timeoutMs)
     signal?.addEventListener('abort', abort, { once: true })

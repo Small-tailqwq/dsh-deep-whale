@@ -4,12 +4,15 @@
 
 - 从当前 Web profile 的依赖中发现所有带有效 `skin.json` 的皮肤；
 - 在官方默认与任意已安装皮肤之间互斥切换；
+- 桌面切换同时核对宿主插件清单与页面激活标记；若宿主仍发布已销毁并停用的旧皮肤，自动重新启用旧皮肤后再切回目标，最多恢复一次。正常切换不增加中间步骤，多套皮肤同时生效时显示冲突。
 - 启动时兜底检测 profile→home 两层的有效启停状态；若两套及以上皮肤会同时启用，原子回退到官方默认；
 - 渲染活动皮肤通过版本化协议主动暴露的开关、下拉、复选组、滑杆、颜色与可见时段配置项；当前声明使用 v2，manager 仍兼容已发布的完整 v1 声明，包括颜色、复选组、条件显示与旧值映射；
-- 通用的“不那么二次元模式”：按本机时间设置多个显示或隐藏时段。
+- 通用的可见时段（如「定时隐藏立绘」）：按本机时间设置多个显示或隐藏时段；
+- 按皮肤声明的 `groups` 分组渲染设置项，依赖项缩进在其父项下方，被锁定的项注明原因。
 - DSH 0.1.7+ 会自动停用未声明支持当前版本的皮肤；管理页会标出这类皮肤，点「切换」并确认后，通过 DSH 自己的放行接口只放行"这个皮肤版本 + 这个 DSH 版本"，不会自动放行；
 - 窄屏（宽度小于 1024px，与 DSH 自身的侧栏折叠断点一致）下，再点一次已打开的「插件」等全局面板入口即可回到原来的对话。
 - Windows 桌面端可选开启「桌面快捷方式跟随皮肤」（默认关闭），见下方「桌面图标」。
+- 管理页末尾的「插件图标 → 使用皮肤预设图标」可将官方预设插件的列表及详情图标切换为当前皮肤提供的图形；默认关闭，设置包含在备份中。未登记的插件及未提供图标的皮肤保留原图。
 
 > 若已安装 `@linxin666/dsh-web-all`（dsh-web），请使用 dsh-web 自带的皮肤中心/安装入口及其 `maid-atelier`、`orca-link` 适配版，不要安装本管理器或执行下面的 standalone 安装命令。两种发行方式不能在同一 profile 中叠装。
 
@@ -37,11 +40,16 @@ const dispose = exposeSkinCustomization({
   protocol: SKIN_CUSTOMIZATION_PROTOCOL,
   skinId: 'deepcel',
   title: 'Deepcel',
+  groups: [
+    { key: 'artwork', label: '立绘', labelEn: 'Artwork' },
+    { key: 'appearance', label: '外观', labelEn: 'Appearance' },
+  ],
   settings: [
-    { key: 'artwork', type: 'boolean', label: '显示立绘', defaultValue: true },
-    { key: 'accent', type: 'color', label: '强调色', defaultValue: '#ff536f' },
+    { key: 'artwork', group: 'artwork', type: 'boolean', label: '显示立绘', defaultValue: true },
+    { key: 'accent', group: 'appearance', type: 'color', label: '强调色', defaultValue: '#ff536f' },
     {
       key: 'accentTargets',
+      group: 'artwork',
       type: 'checkbox-group',
       label: '强调目标',
       defaultValue: [],
@@ -50,8 +58,9 @@ const dispose = exposeSkinCustomization({
     },
     {
       key: 'sfwMode',
+      group: 'artwork',
       type: 'visibility-schedule',
-      label: '不那么二次元模式',
+      label: '定时隐藏立绘',
       defaultValue: { enabled: false, outside: 'visible', ranges: [] },
     },
   ],
@@ -62,7 +71,7 @@ const dispose = exposeSkinCustomization({
 })
 ```
 
-`visibleWhen` 按另一设置的当前值决定是否渲染依赖项；需要「同族开关任一开启即可」时用 `visibleWhen: { key, values, anyOf: [{ key, values }, …] }`，任一条目成立就渲染。`anyOf` 声明**必须**同时保留顶层的 `key`/`values`：只认识单键形式的管理器会直接读这两个字段，缺失时会读到 `undefined` 并在渲染卡片时抛错，而不是降级为常显。`legacyValue` 可在新键尚未写入时把旧键值映射为新默认值，用于无损拆分已有设置。复选组的值按声明中的 option 顺序保存为字符串数组。颜色设置由 manager 自绘带完整边框的色域、色相与 RGB 弹层，不依赖无法被页面样式控制的浏览器原生取色弹窗。
+`visibleWhen` 按另一设置的当前值决定是否渲染依赖项；需要「同族开关任一开启即可」时用 `visibleWhen: { key, values, anyOf: [{ key, values }, …] }`，任一条目成立就渲染。`anyOf` 声明**必须**同时保留顶层的 `key`/`values`：只认识单键形式的管理器会直接读这两个字段，缺失时会读到 `undefined` 并在渲染卡片时抛错，而不是降级为常显。`legacyValue` 可在新键尚未写入时把旧键值映射为新默认值，用于无损拆分已有设置。`disabledWhen` 指向一个布尔设置，该设置开启时本项变灰并注明原因。`groups` 与 `group` 决定分组和组的顺序，依赖项（`visibleWhen` / `disabledWhen`）自动排在同组父项下方；旧版管理器忽略分组，按数组顺序平铺。分组、文案与控件选型的约定见 [`docs/skin-settings-guidelines.md`](../docs/skin-settings-guidelines.md)。复选组的值按声明中的 option 顺序保存为字符串数组。颜色设置由 manager 自绘带完整边框的色域、色相与 RGB 弹层，不依赖无法被页面样式控制的浏览器原生取色弹窗。
 
 皮肤必须持有并清理自己的 DOM、CSS、observer、listener 与 timer；管理器只处理声明、持久化和时间规则，不了解皮肤内部选择器。`exposeSkinCustomization()` 的返回值应注册到皮肤的 Cordis effect disposer。
 

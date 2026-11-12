@@ -1531,7 +1531,11 @@ const SKIN_MANAGER_ROUTE = "/api/dsh/skins";
 //#endregion
 //#region src/index.ts
 const name = "ui-skin-deep-whale-manager";
-const inject = ["webServer", "connection"];
+const inject = [
+	"webServer",
+	"connection",
+	"clientModules"
+];
 const MANAGED_START = "# --- dsh-skin managed (auto-generated; do not edit) ---";
 const MANAGED_END = "# --- end dsh-skin managed ---";
 /**
@@ -2219,6 +2223,17 @@ function enabledSkins(sources, catalog) {
 	for (const source of sources) for (const [id, disabled] of readSkinStates(source, catalog)) states.set(id, disabled);
 	return catalog.filter((skin) => states.get(skin.wiringId) !== true);
 }
+/** Compare persisted enablement with the Host's public graph and Loader lifecycle. */
+function skinSwitchState(sources, catalog, graph, entries) {
+	const published = new Set(graph.map((entry) => entry.id));
+	const disposed = new Set([...entries].filter((entry) => entry.disabled && entry.fiber?.uid === null).map((entry) => entry.options.name));
+	const active = catalog.filter((skin) => published.has(skin.package));
+	return {
+		configured: enabledSkins(sources, catalog).filter((skin) => skin.compatibility === void 0 || skin.compatibility.exempted).map((skin) => skin.id),
+		active: active.map((skin) => skin.id),
+		stale: active.filter((skin) => disposed.has(skin.package)).map((skin) => skin.id)
+	};
+}
 /** Fail safe when a direct marketplace install would otherwise activate multiple skins. */
 function ensureSafeInitialState(patchPaths = resolvePatchTargets(), catalog = discoverInstalledSkins(patchPaths[0])) {
 	if (catalog.length < 2) return false;
@@ -2268,7 +2283,7 @@ function readBody(req) {
 /** Create the local catalog/activation route; POST targets are catalog-validated. */
 function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), applyTarget = (target, catalog) => useSkin(target, resolvePatchTargets(), catalog), dirProvider = () => /* @__PURE__ */ new Map(), grantExemption = async () => {
 	throw new Error("exemption-unavailable");
-}, desktopIcon, admission = () => 503) {
+}, desktopIcon, admission = () => 503, runtime) {
 	const versionCache = /* @__PURE__ */ new Map();
 	const branchCache = /* @__PURE__ */ new Map();
 	const deps = {
@@ -2339,6 +2354,7 @@ function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), 
 					json(res, 200, {
 						ok: true,
 						skins: catalog,
+						...runtime === void 0 ? {} : { runtime: runtime(catalog) },
 						...desktopIcon === void 0 ? {} : { desktopIcon: { enabled: desktopIcon.enabled() } }
 					});
 					return;
@@ -2424,7 +2440,7 @@ function apply(ctx) {
 			console.error("[skin-manager] failed to enforce startup mutual exclusion", error);
 		}
 		const desktopIcon = desktopIconControl(profilePatch, patchPaths, catalog);
-		const unregister = ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch), (compatibility) => grantThroughHost(ctx, compatibility), desktopIcon?.control, (request) => ctx.connection.requestRejection(request)));
+		const unregister = ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch), (compatibility) => grantThroughHost(ctx, compatibility), desktopIcon?.control, (request) => ctx.connection.requestRejection(request), (installed) => skinSwitchState(patchPaths.map((path) => existsSync(path) ? readFileSync(path, "utf8") : ""), installed, ctx.clientModules.graph().entries, ctx.loader.entries())));
 		return () => {
 			unregister();
 			return desktopIcon?.dispose();
@@ -2475,4 +2491,4 @@ function desktopIconControl(profilePatch, patchPaths, catalog) {
 	};
 }
 //#endregion
-export { LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_EVENTS, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, activeSkinTarget, apply, classifyUpdate, computeSkinFingerprint, discoverInstalledSkins, discoverSkinDesktopIcons, discoverSkinDirectories, enabledSkins, ensureSafeInitialState, exposeSkinCustomization, inject, inspectInstalledVersion, inspectSkinVersion, makeSkinManagerRoute, name, parseGitHubRemote, readSkinBuildMeta, readSkinStates, renderManagedBlock, repositoryRelativePath, resolvePatchTargets, resolveProfilePatch, resolveRuntimeProfilePatch, stripManagedBlock, switchPatch, useSkin };
+export { LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, MANAGED_END, MANAGED_START, SKIN_CUSTOMIZATION_EVENTS, SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_READY_EVENT, SKIN_CUSTOMIZATION_REGISTER_EVENT, SKIN_CUSTOMIZATION_UNREGISTER_EVENT, SKIN_MANAGER_ROUTE, SkinAttributeProjector, activeSkinTarget, apply, classifyUpdate, computeSkinFingerprint, discoverInstalledSkins, discoverSkinDesktopIcons, discoverSkinDirectories, enabledSkins, ensureSafeInitialState, exposeSkinCustomization, inject, inspectInstalledVersion, inspectSkinVersion, makeSkinManagerRoute, name, parseGitHubRemote, readSkinBuildMeta, readSkinStates, renderManagedBlock, repositoryRelativePath, resolvePatchTargets, resolveProfilePatch, resolveRuntimeProfilePatch, skinSwitchState, stripManagedBlock, switchPatch, useSkin };

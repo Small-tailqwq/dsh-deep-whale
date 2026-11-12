@@ -227,7 +227,7 @@ Nếu không dùng được trình quản lý, hãy sửa tệp thủ công. Th�
 
 Nếu tệp vẫn là mẫu mặc định của DSH (vài dòng chú thích cùng một dòng `[]`), hãy **thay** dòng `[]` bằng danh sách trên; để cả hai sẽ làm tệp không hợp lệ. Bạn cũng có thể chạy `stage-mutual-exclusion.mjs` ở mục trước để tự ghi, hoặc gỡ giao diện không dùng bằng `dsh plugin --profile web remove <tên package>`.
 
-Thiết lập riêng của từng giao diện (ví dụ khung giờ của «chế độ bớt anime») được lưu trong trình duyệt hiện tại và do trình quản lý áp dụng.
+Thiết lập riêng của từng giao diện (ví dụ khung giờ của «Hide the artwork on a schedule») được lưu trong trình duyệt hiện tại và do trình quản lý áp dụng.
 
 </details>
 

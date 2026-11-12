@@ -20,16 +20,16 @@ describe('ORCA LINK customization declaration', () => {
     const dispose = installOrcaCustomization()
     const definition = registration!.definition
     expect(definition.settings.map(setting => setting.key)).toEqual([
+      'background',
       'character',
       'mirrorCharacter',
-      'background',
-      'pricingLight',
-      'centerSettings',
-      'scrollHideComposer',
-      'composerBottomOnly',
-      'composerHandles',
-      'headlineTypewriter',
       'sfwMode',
+      'pricingLight',
+      'headlineTypewriter',
+      'centerSettings',
+      'composerBottomOnly',
+      'scrollHideComposer',
+      'composerHandles',
     ])
     definition.apply({
       values: {
@@ -101,6 +101,28 @@ describe('ORCA LINK customization declaration', () => {
       expect(setting.labelEn, `${setting.key} labelEn`).toBeTypeOf('string')
       if (setting.description !== undefined) expect(setting.descriptionEn, `${setting.key} descriptionEn`).toBeTypeOf('string')
     }
+    dispose()
+    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+  })
+
+  it('files every control under a declared group, in group order', () => {
+    let registration: SkinCustomizationRegistration | undefined
+    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
+    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
+    const dispose = installOrcaCustomization()
+    const definition = registration!.definition
+    const groups = (definition.groups ?? []).map(group => group.key)
+    expect(groups).toEqual(['scene', 'interface', 'composer'])
+    for (const group of definition.groups ?? []) expect(group.labelEn, `${group.key} labelEn`).toBeTypeOf('string')
+    // The array follows the group order too, so a manager without groups still
+    // lists related options together.
+    const order = definition.settings.map(setting => groups.indexOf(setting.group ?? ''))
+    expect(order.every(index => index >= 0)).toBe(true)
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    // Bottom-only already hides the composer away from the tail; the scroll
+    // rule is locked while it is on.
+    expect(definition.settings.find(setting => setting.key === 'scrollHideComposer')?.disabledWhen).toBe('composerBottomOnly')
+    expect(definition.settings.find(setting => setting.key === 'mirrorCharacter')?.visibleWhen).toEqual({ key: 'character', values: [true] })
     dispose()
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })

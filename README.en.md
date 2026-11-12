@@ -227,7 +227,7 @@ If the manager isn't available, edit the files yourself. Add the following to **
 
 If a file still holds DSH's default template (a few comments plus a line containing `[]`), **replace** the `[]` line with the list above; keeping both makes the file invalid. You can also run `stage-mutual-exclusion.mjs` from the previous section to write this for you, or uninstall the skin you don't use with `dsh plugin --profile web remove <package>`.
 
-Per-skin preferences (such as the active hours of "less-anime mode") are stored in the current browser and applied by the manager.
+Per-skin preferences (such as the hours for "Hide the artwork on a schedule") are stored in the current browser and applied by the manager.
 
 </details>
 

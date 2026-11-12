@@ -7,6 +7,8 @@ import { installPanelToggle, type PanelLayout } from './panel-toggle.ts'
 import { currentUiLang, skinManagerCopy } from './locale.ts'
 import { PreferencesStore } from './preferences.ts'
 import { SkinCustomizationRegistry } from './runtime.ts'
+import { createPresetPluginIcons } from './preset-plugin-icons.ts'
+import { activeSkins } from './switch-settle.ts'
 import './skin-manager.module.css'
 
 interface SlotsContext extends Context {
@@ -18,19 +20,21 @@ interface SlotsContext extends Context {
 
 export const inject = ['slots']
 
-function activeSkin(catalog: SkinCatalogEntry[]): string {
-  const active = catalog.find(skin => document.body.hasAttribute(skin.bodyAttr))
-  if (active !== undefined) return active.id
-  return 'official'
+function activeSkin(catalog: SkinCatalogEntry[]): string | null {
+  const active = activeSkins(catalog, document.body)
+  return active.length > 1 ? null : active[0] ?? 'official'
 }
 
 /** Register settings and the generic customization registry with owned cleanup. */
 export function apply(ctx: SlotsContext): void {
   const store = new PreferencesStore()
   const registry = new SkinCustomizationRegistry(store)
+  const switching = new AbortController()
+  ctx.effect(() => () => switching.abort(), 'ui-skin-manager: skin switching')
   ctx.effect(() => () => {
     registry.dispose()
   }, 'ui-skin-manager: customization registry')
+  ctx.effect(() => registry.registerLocal(createPresetPluginIcons()), 'ui-skin-manager: preset plugin icons')
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'dsh-skins',
@@ -41,11 +45,10 @@ export function apply(ctx: SlotsContext): void {
     // <html lang>; the page itself follows through `useUiLang`. The nav cell is
     // narrow and ellipsises, hence the dedicated short `navLabel`.
     label: () => skinManagerCopy(currentUiLang()).navLabel,
-    inject: () => ({ registry, active: activeSkin, switchSkin: requestSkinSwitch }),
+    inject: () => ({ registry, active: activeSkin, switchSkin: (target: string, acceptRisk?: boolean) => requestSkinSwitch(target, acceptRisk, switching.signal) }),
   }, SkinManager))
 
-  // The Plugins page localizes each package's own title, description and icon;
-  // the manager adds only the host build each skin declares as verified.
+  // Bundle introductions add the host build each skin declares as verified.
   ctx.effect(() => installBundleIntros(ctx.slots, fetchSkinCatalog), 'ui-skin-manager: bundle introductions')
 
   // Narrow frames have no way back from a global panel but the drawer's

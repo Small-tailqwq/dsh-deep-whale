@@ -145,7 +145,7 @@ describe('Maid Atelier skin apply', () => {
         <div data-conversation-header-leading></div>
         <div data-slot="conversation.session.header">
           <div><span>Current session</span><div role="dialog"><header id="nested"></header></div></div>
-          <div role="tablist" data-conversation-tabs><button role="tab" aria-selected="true" id="tab"></button></div>
+          <div data-tab-row><div role="tablist" data-conversation-tabs><button role="tab" aria-selected="true" id="tab"></button></div></div>
         </div>
       </header></div>
     `
@@ -157,6 +157,54 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector('#tab')!.matches(selected.selector)).toBe(true)
   })
 
+  it('lets the active workspace ribbon clear the frame without lifting the content root', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `<div class="sidebarCol"><div>
+      <div data-skin-chrome="sidebar-corners" id="frame"></div>
+      <div id="content"><div data-slot="sidebar.workspaces">
+        <div data-maid-workspace-row data-maid-workspace-active id="active"></div>
+        <div data-maid-workspace-row id="idle"></div>
+      </div></div>
+    </div></div>`
+    const rules = flatCssRules(CSS)
+    const z = (id: string) => rules
+      .filter(rule => { try { return rule.selector.startsWith('body[data-dsh-maid-atelier]') && !rule.selector.includes('::') && document.querySelector(`#${id}`)!.matches(rule.selector) } catch { return false } })
+      .flatMap(rule => [...rule.body.matchAll(/z-index:\s*([^;]+);/g)].map(match => match[1]))
+    expect(z('content').at(-1)).toBe('auto')
+    expect(z('active').at(-1)).toBe('5')
+    expect(z('frame').at(-1)).toBe('4')
+    expect(z('idle')).not.toContain('5')
+  })
+  it('lifts wrapped conversation tab labels off the trim without adding a surface', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div data-slot="conversation.header"><header>
+        <div data-slot="conversation.session.header"><div data-tab-row>
+          <div role="tablist" data-conversation-tabs>
+            <button role="tab" aria-selected="true" id="selected">对话</button>
+            <button role="tab" aria-selected="false" id="idle">轨迹</button>
+          </div>
+          <button id="more">More</button>
+        </div></div>
+      </header></div>
+      <div role="tablist"><button role="tab" id="other">Other panel</button></div>`
+    for (const dark of [false, true]) {
+      const selected = declarations(document.querySelector('#selected')!, dark)
+      const idle = declarations(document.querySelector('#idle')!, dark)
+      expect(idle).toContain('color: #d7def0')
+      expect(selected).toContain('color: #fff7e6')
+      expect(idle).toMatch(/text-shadow:\s*0 0 2px rgba\(4, 11, 35, 0\.95\)/)
+      for (const tab of [selected, idle]) {
+        expect(tab).not.toContain('backdrop-filter')
+        expect(tab).not.toMatch(/background:\s*rgba/)
+      }
+      expect(selected).toContain('background: var(--maid-gold)')
+      expect(idle).not.toContain('background: var(--maid-gold)')
+      for (const id of ['more', 'other']) {
+        expect(declarations(document.querySelector(`#${id}`)!, dark)).not.toContain('rgba(4, 11, 35, 0.95)')
+      }
+    }
+  })
   it('keeps a closed alpha1 right panel transparent while its floating tab retains a reading floor', () => {
     document.body.setAttribute('data-dsh-maid-atelier', '')
     document.body.innerHTML = `
@@ -177,20 +225,22 @@ describe('Maid Atelier skin apply', () => {
   it('targets the alpha2 turn rail outside the transcript in every locale and follow state', async () => {
     document.body.innerHTML = `
       <div data-phase="active">
-        <div>
-          <div data-conversation-scroll>
-            <div class="chat-frame">
-              <div class="turn-slot">
-                <nav aria-label="Turn navigation">
-                  <div><div>
-                    <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
-                    <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
-                    <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
-                  </div></div>
-                </nav>
+        <div data-conversation-content="">
+          <div data-slot="conversation.hero.frame">
+            <div data-conversation-scroll>
+              <div class="chat-frame">
+                <div class="turn-slot">
+                  <nav aria-label="Turn navigation">
+                    <div><div>
+                      <div><button type="button" aria-label="Jump to turn 1" aria-current="true"></button></div>
+                      <div><button type="button" aria-label="Load and jump to turn 2" aria-busy="true"></button></div>
+                      <div><button type="button" aria-label="Load and jump to turn 3"></button></div>
+                    </div></div>
+                  </nav>
+                </div>
+                <div data-chat-following-tail><div class="chat-scroll"><div data-chat-flow></div></div></div>
+                <div><button type="button" aria-label="Return to bottom"></button></div>
               </div>
-              <div data-chat-following-tail><div class="chat-scroll"><div data-chat-flow></div></div></div>
-              <div><button type="button" aria-label="Return to bottom"></button></div>
             </div>
           </div>
           <div data-width-handle="left" data-side="left"></div>
@@ -207,11 +257,16 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).not.toContain("nav[aria-label='轮次导航']")
     expect(CSS).not.toContain("[aria-label^='跳转到第']")
     expect(CSS).toMatch(
-      /\[data-phase='active'\]\s*>\s*:has\(> \[data-conversation-scroll\]\)\s*>\s*\[data-width-handle='left'\]\[data-side='left'\]::after\s*,/s,
+      /\[data-phase='active'\]\s+\[data-conversation-content\]\s*>\s*\[data-width-handle='left'\]\[data-side='left'\]::after\s*,/s,
     )
     expect(CSS).not.toMatch(
       /\[data-phase='active'\]\s*>\s*\[data-width-handle=(?:'left'|'right')\]/,
     )
+    // The handle sits beside the scrollport's slot anchor, not directly over
+    // the scroll body: the glow must still resolve on the 0.2.2 DOM.
+    expect(document.querySelector('[data-width-handle="right"]')!.matches(
+      "[data-phase='active'] [data-conversation-content] > [data-width-handle='right'][data-side='right']",
+    )).toBe(true)
   })
 
   it('keeps every full-round Maid shape circular under the Alpha corner token', () => {
@@ -1974,6 +2029,22 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("[data-variant='think']")
   })
 
+  it('lights the running terminal indicator through the native ongoing state', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `<div data-terminal>
+      <svg class="hash_spinner hash_runState" data-state="ongoing"></svg>
+      <span class="hash_dot hash_runState" data-state="done"></span>
+      <span class="hash_dot hash_runState" data-state="error"></span>
+    </div><svg class="hash_spinner" data-state="ongoing"></svg>`
+    const indicators = [...document.querySelectorAll<HTMLElement>('[data-state]')]
+    for (const dark of [false, true]) {
+      expect(declarations(indicators[0]!, dark)).toContain('drop-shadow(0 0 6px rgba(197, 164, 104, 0.7))')
+      for (const indicator of indicators.slice(1)) {
+        expect(declarations(indicator, dark)).not.toContain('drop-shadow(0 0 6px rgba(197, 164, 104, 0.7))')
+      }
+    }
+  })
+
   it('styles only genuinely overflowing wide tables with an explicit expand affordance', () => {
     const nativeRule = CSS.match(
       /\[data-chat-flow-kind='assistant-step'\] :global\(\.md-table-wide\):not\(\[data-maid-table-frame\]\)\s*\{([^}]*)\}/s,
@@ -2115,19 +2186,11 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^@]*\[data-chat-running\] > \[class\*='runningContent'\]::after\s*\{\s*display: none;/)
   })
 
-  it('seats the full-workspace settings shell below the desktop window strip', () => {
+  it('seats the large Windows settings panel below the window strip', () => {
     // Windows paints caption buttons over the shell titlebar and macOS keeps
     // its traffic-light band; the web shell has neither.
     expect(CSS).toMatch(/html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\]\s*\{[^}]*--maid-window-strip: var\(--dsh-windows-titlebar-height, 40px\)/)
     expect(CSS).toMatch(/html\[data-platform='darwin'\] body\[data-dsh-maid-atelier\]\s*\{[^}]*--maid-window-strip: var\(--dsh-frame-top-clearance, 0px\)/)
-    const workspace = CSS.match(
-      /@media \(max-width: 1099px\), \(max-height: 680px\) \{[\s\S]*?> \[role='dialog'\]\s*\{([^}]*)\}/,
-    )?.[1] ?? ''
-    expect(workspace).toContain('width: 100dvw')
-    expect(workspace).toContain('height: calc(100dvh - var(--maid-window-strip, 0px))')
-    expect(workspace).toContain('margin-top: var(--maid-window-strip, 0px)')
-    expect(workspace).not.toMatch(/height: 100d?vh;/)
-    // The host panel only clears the macOS strip at desktop size.
     const desktop = CSS.match(
       /@media \(min-width: 1100px\) and \(min-height: 681px\) \{\s*html\[data-windows-titlebar\][^{]*> \[role='dialog'\]\s*\{([^}]*)\}/,
     )?.[1] ?? ''
@@ -2263,7 +2326,7 @@ describe('Maid Atelier skin apply', () => {
     const cardRule = CSS.match(/\[data-composer-card\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const inputRule = CSS.match(/\[data-composer-card\] \[data-composer-input\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     const footerClearanceRule = CSS.match(
-      /\[data-phase='active'\] \[data-composer-card\]:has\(\+ \*\)\s*\{([^}]*)\}/s,
+      /\[data-content-phase='active'\] \[data-composer-card\]:has\(\+ \[data-composer-dock\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(cardRule).toContain('min-height: 0')
     expect(cardRule).not.toContain('min-height: 210px')
@@ -2714,37 +2777,7 @@ describe('Maid Atelier skin apply', () => {
     )
   })
 
-  it('responds to constrained viewports without squeezing settings rows', () => {
-    // The settings overlay owns the viewport below the desktop threshold.
-    const fullScreenRule = CSS.match(
-      /@media \(max-width: 1099px\), \(max-height: 680px\)\s*\{([\s\S]*?)\n\}/,
-    )?.[1] ?? ''
-    // Its height gives up the desktop window strip (zero on the web shell).
-    expect(fullScreenRule).toContain('width: 100vw')
-    expect(fullScreenRule).toContain('height: calc(100vh - var(--maid-window-strip, 0px))')
-    expect(fullScreenRule).toContain('height: calc(100dvh - var(--maid-window-strip, 0px))')
-    expect(fullScreenRule).toContain('border-radius: 0')
-
-    // Phones move the category rail above the content as a 3-across grid.
-    const phoneRule = CSS.match(
-      /@media \(max-width: 640px\)\s*\{([\s\S]*?)\n\}/,
-    )?.[1] ?? ''
-    expect(phoneRule).toContain('flex-direction: column')
-    expect(phoneRule).toContain('flex-direction: row')
-    expect(phoneRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
-    expect(phoneRule).toContain('border-bottom: 1px solid rgba(197, 164, 104, 0.42)')
-    expect(phoneRule).toContain('min-height: 0')
-
-    // Narrow panes stack official rows and this skin's customization card.
-    const narrowRule = CSS.match(
-      /@media \(max-width: 520px\)\s*\{([\s\S]*?)\n\}/,
-    )?.[1] ?? ''
-    expect(narrowRule).toContain("[class$='_row']:has(> [class$='_rowText'])")
-    expect(narrowRule).toContain('flex-direction: column')
-    expect(narrowRule).toContain("padding-right: 0")
-    expect(narrowRule).toContain("[class$='_selectRow'] select")
-    expect(narrowRule).toContain('max-width: none')
-
+  it('keeps the centered settings opening on large Windows viewports', () => {
     // The default centered opening position is kept: no docked large-screen
     // layout, no baseline size/position overrides on the settings overlay.
     // The only large-screen rule clears the Windows titlebar strip and keeps

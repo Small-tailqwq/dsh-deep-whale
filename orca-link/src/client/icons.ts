@@ -13,7 +13,7 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  * the art groups.
  *
  * Product icons use the host's semantic symbol IDs. Library-external SVGs
- * use distinctive drawing fragments from DSH 0.2.2-rc.1 (66491b05e3f0).
+ * use distinctive drawing fragments from DSH 0.2.2-rc.2 (ddac96760b6e).
  * Unmatched drawings, such as the brand wordmark and hero artwork, keep
  * their host geometry.
  */
@@ -80,6 +80,10 @@ const ICON_ART: Record<string, string> = {
   data: [
     '<rect x="2.5" y="2.5" width="11" height="4"/>',
     '<rect x="2.5" y="9" width="11" height="4"/>',
+  ].join(''),
+  layers: [
+    '<path d="M8 2 14 5 8 8 2 5Z"/>',
+    '<path d="m2 8 6 3 6-3M2 11l6 3 6-3"/>',
   ].join(''),
   // Token usage: the host draws a tall cylinder; the skin squares the same
   // three-tier store into one closed column with two rules. Two detached bars
@@ -489,6 +493,9 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['dark-outline', 'moon'],
   ['followsystem-outline', 'monitor'],
   ['data-outline', 'data'],
+  ['layers-outline', 'layers'],
+  ['eye-outline', 'eye'],
+  ['eye-off-outline', 'eye-off'],
   ['database-outline', 'database'],
   ['clock-outline', 'clock'],
   ['gauge-outline', 'gauge'],
@@ -528,7 +535,7 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['apps-add-compact-outline', 'apps-add'],
 ])
 
-/** Inline glyph fragments verified against DSH 0.2.2-rc.1 (66491b05e3f0).
+/** Inline glyph fragments verified against DSH 0.2.2-rc.2 (ddac96760b6e).
  * Shared contours are keyed by their distinguishing drawing, not the frame.
  * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [

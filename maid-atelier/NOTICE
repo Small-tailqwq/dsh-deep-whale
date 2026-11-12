@@ -35,3 +35,6 @@ Artwork usage terms (LICENSE-ARTWORK): CC BY-NC-SA 4.0 —— 署名 (attributio
 
 Software code is covered by LICENSE (MIT). Artwork copyright remains with the
 respective authors above, including embedded and transformed copies.
+
+The preset plugin SVGs in assets/plugin-icons/ are included unchanged in the
+client stylesheet. These skin artwork assets retain LICENSE-ARTWORK terms.

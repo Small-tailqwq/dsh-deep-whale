@@ -24,7 +24,9 @@
   "scripts": {
     "build": "node ../scripts/prepare-skin-assets.mjs . && tsdown && node ../scripts/write-skin-build.mjs . Small-tailqwq/dsh-deep-whale",
     "test": "vitest run",
-    "test:host-icons": "node scripts/test-host-icons.mjs"
+    "test:host-icons": "node scripts/test-host-icons.mjs",
+    "test:host-structure": "node scripts/test-host-structure.mjs",
+    "audit:styles": "node ../scripts/audit-host-styles.mjs"
   },
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -51,8 +53,10 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
+    "css-tree": "3.2.1",
     "jsdom": "29.1.1",
     "lightningcss": "^1.32.0",
+    "playwright": "1.65.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "sharp": "0.35.5",

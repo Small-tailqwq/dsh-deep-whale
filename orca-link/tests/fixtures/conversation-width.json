@@ -1,0 +1,45 @@
+{
+  "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
+  "contract": "ui.conversation.body-wrapper",
+  "variants": [
+    {
+      "label": "published 0.2.2-rc.1",
+      "hostCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+      "sources": {
+        "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx": "674b644a9fa50ee0997259288fc816966bb41812",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx": "218082ae3155f5f1040c82ca26b17378fbecb175",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationWidthControls.tsx": "782aacfe0aed903d5d283848406a925a18623577",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css": "cfe09530950e4cd14b2857292588e64408650117",
+        "packages/client/ui-conversation/src/client/apply.ts": "3328e1e5da84ae045cc834d7e26bdeb0a38e31a0",
+        "packages/client/ui-renderer/src/client/scoped-slots.tsx": "89ab67fb19c43579a28ac80555fa313fbc04615d"
+      },
+      "html": "<div data-phase=\"active\"><div data-conversation-content><div data-conversation-scroll></div><div data-width-handle=\"left\" data-side=\"left\"></div><div data-width-handle=\"right\" data-side=\"right\"></div></div></div>"
+    },
+    {
+      "label": "official master with hero frame",
+      "hostCommit": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
+      "sources": {
+        "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx": "dc82d99775afb1ba8b67769a92de38fd6e9ab812",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx": "4c6b8e65784b1b35a0637d230e30024a85832f15",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationWidthControls.tsx": "53f42c199fb97a750dac3dbe7abe356d6fdf3bc8",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css": "39d6f62fef0698541cdcc2863ebad2ed6b8fcbea",
+        "packages/client/ui-conversation/src/client/apply.ts": "aae71928be55079a14eb0e5b0512ae0ab90ec83c",
+        "packages/client/ui-renderer/src/client/scoped-slots.tsx": "ee2370be222d804b4e9f49227ee27ce84d80b77e"
+      },
+      "html": "<div data-phase=\"active\"><div data-conversation-content><div data-slot=\"conversation.hero.frame\" style=\"display: contents\"><div data-conversation-scroll></div></div><div data-width-handle=\"left\" data-side=\"left\"></div><div data-width-handle=\"right\" data-side=\"right\"></div></div></div>"
+    },
+    {
+      "label": "published 0.2.2-rc.2",
+      "hostCommit": "ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c",
+      "sources": {
+        "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx": "dc82d99775afb1ba8b67769a92de38fd6e9ab812",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx": "5c5d1149f8003940a19ae1c6bd6d9750fcbe3adb",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationWidthControls.tsx": "53f42c199fb97a750dac3dbe7abe356d6fdf3bc8",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css": "39d6f62fef0698541cdcc2863ebad2ed6b8fcbea",
+        "packages/client/ui-conversation/src/client/apply.ts": "37420f7fc2ffc77e74074f553312c3910552594f",
+        "packages/client/ui-renderer/src/client/scoped-slots.tsx": "99d59ad9c7a4e9131f90f76abe5387f785c68ce7"
+      },
+      "html": "<div data-phase=\"active\"><div data-conversation-content><div data-slot=\"conversation.hero.frame\" style=\"display: contents\"><div data-conversation-scroll></div></div><div data-width-handle=\"left\" data-side=\"left\"></div><div data-width-handle=\"right\" data-side=\"right\"></div></div></div>"
+    }
+  ]
+}

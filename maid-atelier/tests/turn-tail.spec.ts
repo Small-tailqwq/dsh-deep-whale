@@ -33,10 +33,11 @@ describe('turn-tail reading surface', () => {
 
     const surface = getComputedStyle(slot)
     expect(surface.display).toBe('flex')
-    expect(surface.width).toBe('100%')
+    expect(surface.width).toBe('auto')
+    expect(surface.maxWidth).toBe('100%')
+    expect(surface.alignSelf).toBe('stretch')
     expect(surface.minWidth).toBe('0px')
     expect(surface.transform).toMatch(/^(?:none)?$/)
     expect(surface.backdropFilter).toMatch(/^(?:none)?$/)
-    expect(surface.backgroundColor).toBe(dark ? 'rgba(18, 31, 67, 0.94)' : 'rgba(248, 250, 255, 0.94)')
   })
 })

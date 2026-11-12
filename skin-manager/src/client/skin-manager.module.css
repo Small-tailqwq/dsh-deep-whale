@@ -1,162 +1,212 @@
+/* Skin Management section. Every surface takes the host's settings material
+   (ui-settings-account / ui-agent-preset / ui-settings-plugin-inventory on
+   DSH 0.2.2): cards are `--dsw-alias-settings-card-fill` with a 0.5px
+   `--dsw-alias-settings-card-stroke` at `--dsw-radius-xl`, so each skin's own
+   dressing of those tokens reaches this page exactly as it reaches the
+   official Account and Models cards. */
 .section {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 760px;
+  padding-bottom: 8px;
   color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 22px;
 }
 
-.header h2,
-.card h3,
-.header p,
+.title,
+.blockHead h3,
+.groupTitle,
+.hint,
 .error {
   margin: 0;
 }
 
-.header {
-  display: grid;
-  gap: 6px;
+/* Section heading: the Plugins / Agent preset section title. */
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
 }
 
-.header p {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.card {
-  display: grid;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: var(--dsw-radius-lg, 12px);
-  background: var(--dsw-alias-bg-layer-1);
-}
-
-.card h3 {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-}
-
-.cardHeader {
+.block {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px;
-}
-
-.skinTile {
-  display: grid;
-  gap: 4px;
   min-width: 0;
-  align-self: start;
 }
 
-/* The activation grid holds skins only; the official default is its own
-   full-width row above it. align-items keeps rows at content height so a
-   long version note can never stretch a neighbor's button. */
-.skinGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  align-items: start;
-  gap: 8px;
-}
-
-.skinButton {
-  width: 100%;
-}
-
-/* Official default: one compact full-width row instead of a stretched tile. */
-.defaultButton,
-.defaultActive {
+.blockHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 32px;
+}
+
+.blockHead h3 {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+/* Topic heading inside a skin's settings: the Agent preset group head. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group + .group {
+  margin-top: 6px;
+}
+
+.groupTitle {
+  padding-inline: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 2px 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+}
+
+.card[data-dragging] {
+  border-color: var(--dsw-alias-border-selected);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+/* ---------- Installed skins ---------- */
+
+.skinGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A card per look, like the Agent preset picker: the body is the button,
+   the facts below it are plain text plus the copyable hash. */
+.skinCard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+  transition: border-color 0.16s, background-color 0.16s;
+}
+
+.skinCard[data-active] {
+  border-color: var(--dsw-alias-border-selected);
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.skinMain {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  box-sizing: border-box;
   width: 100%;
-  min-height: 44px;
-  padding: 8px 12px;
-  color: var(--dsw-alias-label-primary);
-  border: 1px dashed var(--dsw-alias-border-l2);
-  border-radius: 8px;
-  background: var(--dsw-alias-bg-layer-2);
+  min-height: 48px;
+  margin: 0;
+  padding: 13px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.defaultButton > span,
-.defaultActive > span {
-  display: grid;
-  gap: 2px;
-  text-align: left;
+.skinCard:has(> .skinMeta) > .skinMain {
+  padding-bottom: 4px;
 }
 
-.defaultButton small,
-.defaultActive small {
-  color: var(--dsw-alias-label-tertiary);
+@media (hover: hover) {
+  .skinMain:hover:not(:disabled) {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
 }
 
-.defaultButton:disabled,
-.defaultActive:disabled {
-  opacity: 0.75;
+.skinMain:active:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.skinMain:disabled {
   cursor: default;
 }
 
-.defaultActive {
-  border-style: solid;
-  border-color: var(--dsw-alias-brand-primary);
-  box-shadow: inset 3px 0 var(--dsw-alias-brand-primary);
+.skinMain:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+  border-radius: var(--dsw-radius-xl);
 }
 
-.defaultState {
+.skinName {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+/* The Models row tag: an annotation beside the name, never a second name. */
+.skinState {
   flex: none;
-  color: var(--dsw-alias-label-secondary) !important;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-xs);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
 }
 
-.skinButton,
-.activeSkin {
-  display: grid;
-  justify-items: start;
-  gap: 3px;
-  min-height: 58px;
-  padding: 10px;
-  color: var(--dsw-alias-label-primary);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
-  background: var(--dsw-alias-bg-layer-2);
-  cursor: pointer;
-}
-
-.activeSkin {
-  border-color: var(--dsw-alias-brand-primary);
-  box-shadow: inset 3px 0 var(--dsw-alias-brand-primary);
-}
-
-.skinButton small,
-.activeSkin small {
-  color: var(--dsw-alias-label-tertiary);
-}
-
-/* Version row: read-only local commit identity plus the GitHub comparison. */
-.versionRow {
+.skinMeta {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px 8px;
-  padding-inline: 2px;
-  font-size: 11px;
-  line-height: 1.5;
-  min-height: 16px;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 14px 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
-.compatibility {
-  color: var(--dsw-alias-label-tertiary);
-  padding-inline: 2px;
-  font-size: 11px;
+.metaLine {
+  overflow-wrap: anywhere;
 }
 
 .incompatible {
   color: var(--dsw-alias-state-warn-label);
-  padding-inline: 2px;
-  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.versionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+}
+
+.versionRow:empty {
+  display: none;
 }
 
 .versionHash {
@@ -166,47 +216,52 @@
   background: none;
   color: var(--dsw-alias-label-secondary);
   font-family: var(--ds-font-family-code, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-  font-size: inherit;
+  font-size: 11px;
   line-height: inherit;
-  cursor: pointer;
+  cursor: copy;
   white-space: nowrap;
 }
 
-.versionHash:hover {
-  color: var(--dsw-alias-brand-primary);
+@media (hover: hover) {
+  .versionHash:hover {
+    color: var(--dsw-alias-label-primary);
+  }
 }
 
-.versionMuted {
-  color: var(--dsw-alias-label-tertiary);
+.versionHash:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+  border-radius: 2px;
 }
 
 .versionOk {
-  color: var(--dsw-alias-state-success-primary, #12a150);
+  color: var(--dsw-alias-state-success-primary);
 }
 
 .versionUpdate {
-  color: var(--dsw-alias-state-warn-primary, #e08700);
+  color: var(--dsw-alias-state-warn-label);
+}
+
+/* ---------- Setting rows ---------- */
+
+/* Rows inside a card are separated by the host's hairline; a dependent block
+   travels with its parent row, so the hairline sits between whole nodes. */
+.settingNode + .settingNode {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
 }
 
 .toggleRow,
 .selectRow,
 .sliderRow,
-.colorRow {
+.colorRow,
+.actionRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 32px;
-  padding: 16px 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
-}
-
-.toggleRow:last-child,
-.selectRow:last-child,
-.sliderRow:last-child,
-.colorRow:last-child,
-.schedule:last-child > .toggleRow {
-  border-bottom: 0;
+  box-sizing: border-box;
+  min-height: 60px;
+  padding: 12px 0;
 }
 
 /* Settings row copy, as the host's General and Plugins rows set it: a
@@ -215,7 +270,7 @@
 .rowText {
   display: grid;
   flex: 1 1 auto;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -235,8 +290,41 @@
 
 .toggleRow > :last-child,
 .selectRow > :last-child,
-.colorRow > :last-child {
+.colorRow > :last-child,
+.actionRow > :last-child {
   flex: none;
+}
+
+.rowActions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Dependent controls: indented under the row they depend on, behind a guide
+   line, so "this only matters while that is on" reads from the layout. The
+   block keeps its own hairlines off; the guide line already groups it. */
+.children {
+  display: flex;
+  flex-direction: column;
+  margin: -6px 0 12px 2px;
+  padding-left: 14px;
+  border-left: 2px solid var(--dsw-alias-border-l2);
+}
+
+.children .settingNode + .settingNode {
+  border-top: 0;
+}
+
+.children :is(.toggleRow, .selectRow, .sliderRow, .colorRow) {
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+/* A locked row keeps its value for when the lock lifts; only its copy dims. */
+.settingNode[data-locked] > :is(.toggleRow, .selectRow, .sliderRow, .colorRow, .checkboxGroup) .rowTitle {
+  color: var(--dsw-alias-label-tertiary);
 }
 
 /* Closed selects take the host's own settings select (ui-settings-models
@@ -278,19 +366,85 @@
   outline: none;
 }
 
-/* Dependent controls (e.g. webcam character while peak pricing is on) are
- * visually disabled but keep their value for when the dependency is toggled off. */
 .selectInput:disabled,
 .sliderRow input:disabled,
 .colorRow input:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: default;
+}
+
+/* Slider: the same 240px column as a select, with the value read out at its
+   end so every number control on the page sits on one right edge. */
+.sliderControl {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 240px;
+  max-width: 100%;
+}
+
+.sliderValue {
+  flex: none;
+  min-width: 4ch;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sliderControl input[type='range'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.sliderControl input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l3);
+}
+
+.sliderControl input[type='range']::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--dsw-alias-button-primary-fill);
+  appearance: none;
+}
+
+.sliderControl input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l3);
+}
+
+.sliderControl input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--dsw-alias-button-primary-fill);
+}
+
+.sliderControl input[type='range']:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .colorControl {
   display: flex !important;
   flex: none;
-  grid-auto-flow: column;
   align-items: center;
   gap: 8px !important;
 }
@@ -298,36 +452,37 @@
 .colorControl code {
   min-width: 7ch;
   color: var(--dsw-alias-label-secondary);
-  font-family: ui-monospace, monospace;
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
   font-size: 12px;
 }
 
 .colorButton {
   box-sizing: border-box;
-  width: 44px;
-  height: 30px;
+  width: 48px;
+  height: 32px;
   padding: 4px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  background: var(--dsw-specific-input-major);
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
   cursor: pointer;
 }
 
 .colorButton:hover:not(:disabled),
 .colorButton[aria-expanded='true'] {
-  border-color: var(--dsw-alias-brand-primary);
+  border-color: var(--dsw-alias-border-selected);
 }
 
 .colorButton:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  opacity: 0.5;
+  cursor: default;
 }
 
 .colorSwatch {
   display: block;
   width: 100%;
   height: 100%;
-  border: 1px solid rgb(0 0 0 / 36%);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 24%);
 }
 
 .colorPopover {
@@ -337,13 +492,12 @@
   box-sizing: border-box;
   width: 264px;
   margin: 0;
-  padding: 10px;
+  padding: 12px;
   color: var(--dsw-alias-label-primary);
-  border: 1px solid var(--dsw-alias-brand-primary);
-  border-radius: 6px;
-  outline: 1px solid var(--dsw-alias-border-l2);
-  outline-offset: 2px;
-  background: var(--dsw-alias-bg-layer-1);
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-1));
+  box-shadow: var(--dsw-elevation-prominent);
 }
 
 .colorPopover:popover-open {
@@ -359,7 +513,7 @@
   position: relative;
   height: 136px;
   overflow: hidden;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-xs);
   background-image: linear-gradient(to bottom, transparent, #000);
   cursor: crosshair;
   touch-action: none;
@@ -386,7 +540,7 @@
 
 .colorHueRow {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
 }
@@ -394,29 +548,29 @@
 .colorPreview {
   width: 28px;
   height: 28px;
-  border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 24%);
 }
 
 .colorHueRow input[type='range'] {
-  appearance: none;
   width: 100%;
   height: 14px;
   margin: 0;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0;
   border-radius: 7px;
   background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  appearance: none;
   cursor: pointer;
 }
 
 .colorHueRow input[type='range']::-webkit-slider-thumb {
-  appearance: none;
   width: 14px;
   height: 20px;
   border: 2px solid #fff;
   border-radius: 7px;
   background: transparent;
   box-shadow: 0 0 0 1px rgb(0 0 0 / 45%);
+  appearance: none;
 }
 
 .colorHueRow input[type='range']::-moz-range-thumb {
@@ -438,35 +592,38 @@
   display: grid;
   gap: 4px;
   justify-items: center;
-  color: var(--dsw-alias-label-secondary);
+  color: var(--dsw-alias-label-tertiary);
   font-size: 11px;
 }
 
 .colorRgb input {
   box-sizing: border-box;
   width: 100%;
-  min-height: 30px;
+  height: 30px;
   padding-inline: 6px;
   color: var(--dsw-alias-label-primary);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 4px;
-  background: var(--dsw-specific-input-major);
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
   text-align: center;
 }
 
+/* Multiple choice: the copy on top and the options wrapping below it. */
 .checkboxGroup {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-left: 12px;
-  padding: 10px 12px 12px;
-  border-left: 2px solid var(--dsw-alias-border-l2);
-  background: var(--dsw-alias-bg-layer-2);
+  padding: 10px 0 12px;
+}
+
+.children .checkboxGroup {
+  padding: 6px 0 8px;
 }
 
 .checkboxGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-  gap: 6px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
 }
 
 .checkboxOption {
@@ -475,76 +632,20 @@
   gap: 6px;
   min-height: 24px;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .checkboxOption input {
   inline-size: 16px;
   block-size: 16px;
   margin: 0;
-  accent-color: var(--dsw-alias-brand-primary);
+  accent-color: var(--dsw-alias-button-primary-fill);
   cursor: pointer;
 }
 
 .checkboxOption input:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Generic range controls use host tokens; skins own any decorative overrides. */
-.sliderRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(80px, 220px);
-  align-items: center;
-  gap: 10px;
-  min-height: 40px;
-}
-
-.sliderValue {
-  min-width: 3ch;
-  color: var(--dsw-alias-label-secondary);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.sliderRow input[type='range'] {
-  appearance: none;
-  width: 100%;
-  height: 20px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.sliderRow input[type='range']::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--dsw-alias-border-l2);
-}
-
-.sliderRow input[type='range']::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  margin-top: -6px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--dsw-alias-brand-primary);
-}
-
-.sliderRow input[type='range']::-moz-range-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--dsw-alias-border-l2);
-}
-
-.sliderRow input[type='range']::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--dsw-alias-brand-primary);
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Match the host's font-size stepper without coupling to its preference store. */
@@ -653,21 +754,15 @@
 }
 
 .schedule {
-  display: grid;
-  gap: 8px;
-}
-
-.scheduleDetails {
-  display: grid;
-  gap: 8px;
-  margin-left: 12px;
-  padding: 10px;
-  border-left: 2px solid var(--dsw-alias-border-l2);
+  display: flex;
+  flex-direction: column;
 }
 
 .rangeList {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
+  padding: 2px 0 8px;
 }
 
 .rangeRow {
@@ -680,47 +775,24 @@
   font-size: 12px;
 }
 
-.addRange {
-  justify-self: start;
+.rangeFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
 }
 
 .error {
-  color: var(--dsw-alias-state-danger, #c43d3d);
+  color: var(--dsw-alias-state-error-primary);
   font-size: 12px;
-}
-
-/* Backup & restore: export/import JSON, drag-and-drop, per-skin reset. */
-.backupActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.dropZone {
-  display: grid;
-  gap: 4px;
-  padding: 14px;
-  border: 1px dashed var(--dsw-alias-border-l2);
-  border-radius: 8px;
-  background: var(--dsw-alias-bg-layer-1);
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 1.5;
-  text-align: center;
-  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
-}
-
-.dropZoneActive {
-  border-color: var(--dsw-alias-brand-primary);
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-bg-layer-2);
+  line-height: 18px;
 }
 
 /* A destructive action: the host outline Button, tinted only on hover. */
-.resetButton:hover:not(:disabled) {
-  color: var(--dsw-alias-state-danger, #c43d3d);
-  border-color: var(--dsw-alias-state-danger, #c43d3d);
+@media (hover: hover) {
+  .resetButton:hover:not(:disabled) {
+    color: var(--dsw-alias-state-error-primary);
+  }
 }
 
 .fileInput {
@@ -745,23 +817,16 @@
 
 @media (max-width: 720px) {
   .selectRow,
-  .colorRow {
+  .colorRow,
+  .sliderRow {
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
     gap: 8px;
   }
 
-  .sliderRow {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .sliderRow .rowText {
-    grid-column: 1 / -1;
-  }
-
-  .skinGrid {
-    grid-template-columns: 1fr;
+  .sliderControl {
+    width: 100%;
   }
 
   .rangeRow {
