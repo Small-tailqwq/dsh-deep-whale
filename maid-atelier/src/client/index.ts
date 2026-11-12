@@ -38,6 +38,7 @@ import {
   MAID_ATELIER_WORKSPACE_SHIELD,
 } from './workspace-art.generated.ts'
 import './maid-atelier.module.css'
+import './plugin-icons.generated.module.css'
 import './boot-error.module.css'
 import { MAID_ATELIER_TITLEBAR_BRAND } from './titlebar-brand.ts'
 import { installMaidComposerCapsule } from './composer-capsule.ts'

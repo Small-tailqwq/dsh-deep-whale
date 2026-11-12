@@ -30,6 +30,7 @@ import { installOrcaWorkspaceMarks } from './workspace-marks.ts'
 import { installOrcaLightVisibility } from './work-light.ts'
 import { installOrcaBootError } from './boot-error.ts'
 import css from './orca-link.module.css'
+import './plugin-icons.generated.module.css'
 
 const SKIN_TITLE = 'ORCA LINK · DSH'
 const LIGHT_HERO_ART_PROPERTY = '--orca-link-light-hero-art'

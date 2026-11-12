@@ -81,6 +81,10 @@ const ICON_ART: Record<string, string> = {
     '<rect x="2.5" y="2.5" width="11" height="4"/>',
     '<rect x="2.5" y="9" width="11" height="4"/>',
   ].join(''),
+  layers: [
+    '<path d="M8 2 14 5 8 8 2 5Z"/>',
+    '<path d="m2 8 6 3 6-3M2 11l6 3 6-3"/>',
+  ].join(''),
   // Token usage: the host draws a tall cylinder; the skin squares the same
   // three-tier store into one closed column with two rules. Two detached bars
   // would read as the settings `data` glyph, and a full-width column reads as a
@@ -489,6 +493,7 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['dark-outline', 'moon'],
   ['followsystem-outline', 'monitor'],
   ['data-outline', 'data'],
+  ['layers-outline', 'layers'],
   ['database-outline', 'database'],
   ['clock-outline', 'clock'],
   ['gauge-outline', 'gauge'],

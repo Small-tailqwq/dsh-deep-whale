@@ -31,20 +31,13 @@ describe('ORCA modal style boundaries', () => {
     expect(css).toContain('transform-origin: center')
   })
 
-  it('keeps every settings layout below the desktop window strip', () => {
+  it('keeps docked and centered desktop settings below the window strip', () => {
     // Windows paints caption buttons over the shell titlebar and macOS keeps
     // its traffic-light band; the web shell has neither.
     expect(css).toMatch(/html\[data-windows-titlebar\] body\[data-dsh-orca-link\]\s*\{[^}]*--orca-window-strip: var\(--dsh-windows-titlebar-height, 40px\)/)
     expect(css).toMatch(/html\[data-platform='darwin'\] body\[data-dsh-orca-link\]\s*\{[^}]*--orca-window-strip: var\(--dsh-frame-top-clearance, 0px\)/)
 
     const dialog = escape(`${SETTINGS_OVERLAY} > [role='dialog']`)
-    const workspace = css.match(
-      new RegExp(`@media \\(max-width: 1099px\\), \\(max-height: 680px\\) \\{[\\s\\S]*?${dialog}\\s*\\{([^}]*)\\}`),
-    )?.[1] ?? ''
-    expect(workspace).toContain('height: calc(100dvh - var(--orca-window-strip, 0px))')
-    expect(workspace).toContain('margin-top: var(--orca-window-strip, 0px)')
-    expect(workspace).not.toMatch(/height: 100d?vh;/)
-
     const docked = css.match(
       new RegExp(`@media \\(min-width: 1100px\\) and \\(min-height: 681px\\) \\{[\\s\\S]*?${dialog}\\s*\\{([^}]*)\\}`),
     )?.[1] ?? ''

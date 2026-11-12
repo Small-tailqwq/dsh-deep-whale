@@ -98,7 +98,6 @@ body[data-dsh-orca-link] {
   --dsw-specific-sidebar-fill: rgba(250, 247, 241, 0.58) !important;
   --dsw-specific-sidebar-nav-item-active: rgba(216, 210, 198, 0.82) !important;
   --dsw-specific-sidebar-nav-item-active-accent: #a89f8e !important;
-  --dsw-specific-sidebar-nav-item-hover: rgba(232, 228, 218, 0.86) !important;
   --dsw-input-solid: #fbf7ef !important;
 }
 
@@ -594,13 +593,13 @@ body[data-dsh-orca-link] [data-slot='settings.launcher'] button[data-collapsed][
 }
 
 /* Static and interactive statistics share the dock surface at rest. */
-body[data-dsh-orca-link] :is([data-composer-stats], [data-composer-stat]) [class$='_pill'] {
+body[data-dsh-orca-link] [data-composer-stat] [class$='_pill'] {
   border-radius: 0 !important;
   background: transparent;
   color: var(--orca-graphite);
 }
 
-body[data-dsh-orca-link] :is([data-composer-stats], [data-composer-stat]) button[class$='_pill']:is(:hover, [aria-expanded='true']) {
+body[data-dsh-orca-link] [data-composer-stat] button[class$='_pill']:is(:hover, [aria-expanded='true']) {
   background: color-mix(in srgb, var(--orca-blue) 10%, transparent);
   color: var(--orca-ink);
 }
@@ -700,7 +699,6 @@ body[data-dsh-orca-link][data-ds-dark-theme] {
   --dsw-specific-sidebar-fill: rgba(8, 12, 19, 0.8) !important;
   --dsw-specific-sidebar-nav-item-active: rgba(29, 54, 88, 0.88) !important;
   --dsw-specific-sidebar-nav-item-active-accent: #4d91ff !important;
-  --dsw-specific-sidebar-nav-item-hover: rgba(25, 38, 58, 0.9) !important;
   --dsw-input-solid: #0e141e !important;
 }
 
@@ -995,17 +993,13 @@ body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog'] {
   --orca-dialog-bg: #0f151f;
 }
 
-/* Responsive settings shell. The official overlay, focus handling and
-   settings slots remain intact; ORCA only changes its spatial behavior.
-   Large screens dock beside the settings trigger; every constrained viewport
-   becomes a full workspace instead of squeezing an intermediate modal. */
+/* Large settings panels dock beside the sidebar trigger. */
 body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
   position: fixed;
   z-index: var(--orca-settings-overlay-z);
   isolation: isolate;
   box-sizing: border-box;
   inset: 0;
-  padding: 24px;
   pointer-events: auto;
 }
 
@@ -1024,9 +1018,6 @@ body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settin
 }
 
 body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
-  width: min(800px, calc(100vw - 48px));
-  max-width: none;
-  height: min(760px, calc(100vh - 48px));
   position: relative;
   z-index: 1;
   border: 1px solid var(--orca-line);
@@ -1094,48 +1085,50 @@ body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settin
   }
 }
 
-/* The title and signal chevron stay outside the scrolling category list.
-   The footer reserves enough space for the chevron to clear every button. */
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
-  position: relative;
-  min-height: 0;
-  padding-bottom: 24px;
-  overflow: hidden;
-}
+@media (min-width: 768px) {
+  /* The title and signal chevron stay outside the scrolling category list.
+     The footer reserves enough space for the chevron to clear every button. */
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
+    position: relative;
+    min-height: 0;
+    padding-bottom: 24px;
+    overflow: hidden;
+  }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :first-child {
-  flex-shrink: 0;
-}
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :first-child {
+    flex-shrink: 0;
+  }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
-  /* Short docked lists keep the group's bottom alignment. */
-  flex: 0 1 auto;
-  min-height: 0;
-  min-width: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
+    /* Short docked lists keep the group's bottom alignment. */
+    flex: 0 1 auto;
+    min-height: 0;
+    min-width: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child > button {
-  flex-shrink: 0;
-}
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child > button {
+    flex-shrink: 0;
+  }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
-  display: none;
-}
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+    display: none;
+  }
 
-body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav[data-orca-settings-more]::after {
-  content: '';
-  position: absolute;
-  bottom: 9px;
-  left: calc(50% - 5px);
-  width: 10px;
-  height: 10px;
-  box-sizing: border-box;
-  border: solid var(--orca-blue);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-  pointer-events: none;
+  body[data-dsh-orca-link] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav[data-orca-settings-more]::after {
+    content: '';
+    position: absolute;
+    bottom: 9px;
+    left: calc(50% - 5px);
+    width: 10px;
+    height: 10px;
+    box-sizing: border-box;
+    border: solid var(--orca-blue);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
 }
 
 /* Large desktop: the panel opens immediately beside the sidebar trigger and
@@ -1238,117 +1231,6 @@ html[data-windows-titlebar] body[data-dsh-orca-link] {
 
 html[data-platform='darwin'] body[data-dsh-orca-link] {
   --orca-window-strip: var(--dsh-frame-top-clearance, 0px);
-}
-
-/* Any viewport below the desktop dock threshold becomes a full workspace: no
-   centering tax, crushed columns or clipped lower controls. The overlay
-   centers the dialog in the whole window, so a top margin equal to the
-   height it gives up keeps the margin box window-tall and seats the dialog
-   exactly under the window strip. */
-@media (max-width: 1099px), (max-height: 680px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) {
-    padding: 0;
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
-    width: 100vw;
-    max-width: none;
-    height: calc(100vh - var(--orca-window-strip, 0px));
-    height: calc(100dvh - var(--orca-window-strip, 0px));
-    max-height: none;
-    margin-top: var(--orca-window-strip, 0px);
-    border: 0;
-    box-shadow: none;
-  }
-}
-
-/* Phones and narrow panes move the category rail above the content. */
-@media (max-width: 640px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] {
-    flex-direction: column;
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav {
-    box-sizing: border-box;
-    width: 100%;
-    gap: 8px;
-    padding: 10px 12px 24px;
-    max-height: 40%;
-    border-bottom: 1px solid var(--orca-line);
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-content: start;
-    gap: 4px;
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :first-child {
-    padding: 0 4px;
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav button {
-    min-width: 0;
-    height: 36px;
-    padding: 7px 8px;
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div {
-    min-height: 0;
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :first-child {
-    min-height: 46px;
-    height: auto;
-    padding: 8px 10px;
-  }
-
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child {
-    padding: 0 14px 16px;
-  }
-}
-
-@media (max-width: 420px) {
-  body[data-dsh-orca-link][data-orca-settings-open] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav > :last-child {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Official setting rows are desktop two-column flex layouts. On phone-sized
-   content panes, stack copy above its control and release the 48px text gutter
-   so descriptions remain normal sentences instead of vertical fragments. */
-@media (max-width: 520px) {
-  body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_row']:has(> [class$='_rowText']) {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_rowText'] {
-    width: 100%;
-    padding-right: 0;
-  }
-
-  body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_row']:has(> [class$='_rowText']) > :last-child,
-  body[data-dsh-orca-link][data-orca-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_row']:has(> [class$='_rowText']) [class$='_selector'] {
-    box-sizing: border-box;
-    width: 100%;
-    max-width: none;
-  }
-
-  body[data-dsh-orca-link]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-orca-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_selector'] {
-    justify-content: space-between;
-  }
 }
 
 body[data-dsh-orca-link] [role='menu'] {
@@ -2858,8 +2740,6 @@ body[data-dsh-orca-link] [data-composer-card] [class*='_notice']:not(
     [data-slot='conversation.input.left'] *, [data-slot='conversation.input.right'] *),
 body[data-dsh-orca-link] [data-composer-card] [class*='_chip']:not(
     [data-slot='conversation.input.left'] *, [data-slot='conversation.input.right'] *),
-body[data-dsh-orca-link] [data-composer-card] [class*='_hlSegment']:not(
-    [data-slot='conversation.input.left'] *, [data-slot='conversation.input.right'] *),
 body[data-dsh-orca-link] [data-composer-card] [class*='_pending']:not(
     [data-slot='conversation.input.left'] *, [data-slot='conversation.input.right'] *),
 body[data-dsh-orca-link] [data-composer-card] [class*='_panel']:not(
@@ -3872,12 +3752,11 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] .pricingLight[data-orca-link-price='transition'] .pricingLampAmber { animation: none; }
 }
 
-/* The semantic handles are siblings of the conversation scrollport inside the
-   host body wrapper. Anchor the rule to that relationship without depending
-   on generated class names. */
+/* The hero frame slot can wrap the scrollport while the handles stay in the
+   content body. Match their semantic owner independently of slot anchors. */
 body[data-dsh-orca-link]
   [data-phase='active']
-  > :has(> [data-conversation-scroll])
+  [data-conversation-content]
   > [data-width-handle][data-side]::after {
   width: 3px;
   /* The host bar keeps a 2px radius; the signal rail is a hard line. */
@@ -3900,7 +3779,7 @@ body[data-dsh-orca-link]
 
 body[data-dsh-orca-link][data-ds-dark-theme]
   [data-phase='active']
-  > :has(> [data-conversation-scroll])
+  [data-conversation-content]
   > [data-width-handle][data-side]::after {
   background: linear-gradient(
     to bottom,
@@ -3919,7 +3798,7 @@ body[data-dsh-orca-link][data-ds-dark-theme]
 
 body[data-dsh-orca-link]
   [data-phase='active']
-  > :has(> [data-conversation-scroll])
+  [data-conversation-content]
   > [data-width-handle][data-side]:is(:hover, [data-dragging])::after {
   transform-origin: center;
   animation: orcaLinkWidthHandleSignal 920ms steps(4, end) infinite;
@@ -3977,7 +3856,7 @@ body[data-dsh-orca-link][data-ds-dark-theme] [data-phase='active'] :has(+ * > * 
   body[data-dsh-orca-link] [data-composer-seat][data-orca-composer-manual-hidden] { opacity: 0; }
   body[data-dsh-orca-link]
     [data-phase='active']
-    > :has(> [data-conversation-scroll])
+    [data-conversation-content]
     > [data-width-handle][data-side]::after {
     animation: none;
   }

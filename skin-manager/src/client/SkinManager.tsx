@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { type SkinCatalogEntry, type SkinTarget, type SkinVersionInfo, SKIN_MANAGER_ROUTE } from '../contract.ts'
+import { type SkinCatalogEntry, type SkinSwitchState, type SkinTarget, type SkinVersionInfo, SKIN_MANAGER_ROUTE } from '../contract.ts'
 import type {
   SkinCustomizationDefinition,
   SkinSetting,
@@ -10,6 +10,7 @@ import type {
 import { layoutSettings, settingLock, settingVisible, SkinCustomizationRegistry, type SettingNode } from './runtime.ts'
 import { currentUiLang, definitionTitle, groupLabel, optionLabel, settingDescription, settingLabel, skinManagerCopy, useUiLang } from './locale.ts'
 import { activeSkins, isDesktopShell, waitForSkins } from './switch-settle.ts'
+import { switchDesktopSkin } from './desktop-switch.ts'
 import {
   buildPreferencesExport,
   defaultExportFileName,
@@ -23,7 +24,7 @@ import css from './skin-manager.module.css'
 
 interface SkinManagerInjected {
   registry: SkinCustomizationRegistry
-  active(catalog: SkinCatalogEntry[]): SkinTarget | 'unknown'
+  active(catalog: SkinCatalogEntry[]): SkinTarget | null
   /** `acceptRisk` grants the exact skin/DSH version pair the host otherwise refuses. */
   switchSkin(target: SkinTarget, acceptRisk?: boolean): Promise<void>
 }
@@ -793,6 +794,7 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
         {copied === 'fail' && <p className={css.error} role="alert">{copy.copyFailed}</p>}
         {loading && <p className={css.hint}>{copy.loadingSkins}</p>}
         {error !== null && <p className={css.error} role="alert">{copy.actionFailed(error)}</p>}
+        {current === null && <p className={css.error} role="alert">{copy.skinConflict}</p>}
       </section>
 
       {currentDefinitions.map(definition => (
@@ -805,6 +807,14 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
         </section>
       )}
       {desktopIcon !== undefined && <DesktopIconCard initial={desktopIcon} />}
+      {definitions.filter(definition => definition.skinId === 'dsh-skin-manager').map(definition => (
+        <section className={css.block} data-dsh-skin-plugin-icons key={definition.skinId}>
+          <div className={css.blockHead}><h3>{definitionTitle(definition, lang)}</h3></div>
+          <div className={css.card}>
+            <SettingNodes nodes={layoutSettings(definition).flatMap(section => section.nodes)} definition={definition} values={registry.values(definition)} registry={registry} />
+          </div>
+        </section>
+      ))}
       <BackupCard registry={registry} />
     </div>
   )
@@ -1049,14 +1059,15 @@ interface DesktopIconStatus {
 }
 
 /** Installed skin catalog plus host capabilities; never waits for optional version probes. */
-export async function fetchSkinCatalogState(): Promise<{ skins: SkinCatalogEntry[], desktopIcon?: DesktopIconStatus }> {
-  const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: 'same-origin' })
-  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], desktopIcon?: { enabled?: unknown }, error?: string }
+export async function fetchSkinCatalogState(signal?: AbortSignal): Promise<{ skins: SkinCatalogEntry[], runtime?: SkinSwitchState, desktopIcon?: DesktopIconStatus }> {
+  const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: 'same-origin', signal })
+  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], runtime?: SkinSwitchState, desktopIcon?: { enabled?: unknown }, error?: string }
   if (!response.ok || result.ok !== true || !Array.isArray(result.skins)) {
     throw new Error(result.error ?? `HTTP ${response.status}`)
   }
   return {
     skins: result.skins,
+    runtime: result.runtime,
     ...(typeof result.desktopIcon?.enabled === 'boolean' ? { desktopIcon: { enabled: result.desktopIcon.enabled } } : {}),
   }
 }
@@ -1118,39 +1129,39 @@ export async function fetchSkinVersions(): Promise<Map<string, SkinVersionInfo>>
 }
 
 /**
- * Same-origin host switch. The page reloads once DSH starts applying the patch
- * rather than after a fixed delay, and the desktop shell keeps the in-place
- * switch (see switch-settle.ts).
+ * Web reloads at the first skin change; desktop confirms the graph and page
+ * in place and repairs a disposed skin retained by the Host once.
  */
-export async function requestSkinSwitch(target: SkinTarget, acceptRisk = false): Promise<void> {
-  const catalog = await fetchSkinCatalog()
+export async function requestSkinSwitch(target: SkinTarget, acceptRisk = false, signal?: AbortSignal): Promise<void> {
+  const { skins: catalog } = await fetchSkinCatalogState(signal)
   const desktop = isDesktopShell()
-  const before = activeSkins(catalog, document.body).join(',')
-  const isTarget = (active: string[]): boolean => target === 'official'
-    ? active.length === 0
-    : active.length === 1 && active[0] === target
-  const cancel = new AbortController()
-  // Web reloads at the first change (old skin removed or new one added); the
-  // desktop shell waits until the requested skin is mounted in place.
-  const settled = waitForSkins(catalog, desktop ? isTarget : active => active.join(',') !== before, document, undefined, cancel.signal)
-  try {
+  const request = async (next: SkinTarget, pending?: AbortSignal): Promise<void> => {
     const response = await fetch(SKIN_MANAGER_ROUTE, {
-      method: 'POST',
-      credentials: 'same-origin',
+      method: 'POST', credentials: 'same-origin', signal: pending,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(acceptRisk ? { target, acceptRisk: true } : { target }),
+      body: JSON.stringify(next === target && acceptRisk ? { target: next, acceptRisk: true } : { target: next }),
     })
     const result = await response.json() as { ok?: boolean, error?: string }
     if (!response.ok || result.ok !== true) throw new Error(result.error ?? `HTTP ${response.status}`)
+  }
+  if (desktop) {
+    await switchDesktopSkin(catalog, target, request, async pending => {
+      const state = await fetchSkinCatalogState(pending)
+      return state.runtime
+    }, document, signal)
+    return
+  }
+  const before = activeSkins(catalog, document.body).join(',')
+  const cancel = new AbortController()
+  const pending = signal === undefined ? cancel.signal : AbortSignal.any([signal, cancel.signal])
+  const settled = waitForSkins(catalog, active => active.join(',') !== before, document, undefined, pending)
+  try {
+    await request(target, pending)
   } catch (error) {
     cancel.abort()
     throw error
   }
-  const completed = await settled
-  if (desktop) {
-    // A renderer reload replays the shell's startup graph, including disabled skins.
-    if (!completed) throw new Error(skinManagerCopy(currentUiLang()).switchRestartRequired)
-    return
-  }
+  await settled
+  signal?.throwIfAborted()
   window.location.reload()
 }

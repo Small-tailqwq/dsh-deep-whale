@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { requestSkinSwitch } from '../src/client/SkinManager.tsx'
 
 const skin = { id: 'maid', name: 'Maid', package: '@test/maid', wiringId: 'ui-skin-maid', bodyAttr: 'data-maid', order: 1 }
+const runtime = { configured: ['maid'], active: [], stale: [] }
 
 afterEach(() => {
   vi.useRealTimers()
@@ -18,6 +19,7 @@ describe('desktop skin switching', () => {
     Object.defineProperty(window, 'dshDesktopBoot', { value: {}, configurable: true })
     document.documentElement.lang = 'en'
     vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ ok: true, skins: [skin], runtime }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true, skins: [skin] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) }))
 
@@ -30,6 +32,7 @@ describe('desktop skin switching', () => {
   it('finishes when the requested skin mounts', async () => {
     Object.defineProperty(window, 'dshDesktopBoot', { value: {}, configurable: true })
     vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ ok: true, skins: [skin], runtime: { ...runtime, active: ['maid'] } }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true, skins: [skin] }) })
       .mockImplementationOnce(async () => {
         document.body.setAttribute('data-maid', '')

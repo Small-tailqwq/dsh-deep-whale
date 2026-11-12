@@ -542,6 +542,19 @@ window.__ModuleLoader__.load({
 			set(definition, key, value) {
 				this.store.set(definition, key, value);
 			}
+			/** Manager-owned controls belong to this registry, without a skin discovery broadcast. */
+			registerLocal(definition) {
+				const token = {};
+				this.definitions.set(token, definition);
+				this.rebuildSnapshot();
+				this.applyAll();
+				return () => {
+					if (!this.definitions.delete(token)) return;
+					definition.apply(null);
+					this.rebuildSnapshot();
+					this.scheduleClock();
+				};
+			}
 			/** Raw preferences snapshot for export; never mutates store state. */
 			exportPreferences() {
 				return this.store.snapshot();
@@ -873,6 +886,9 @@ window.__ModuleLoader__.load({
 			officialName: "官方默认",
 			stateCurrent: "当前",
 			stateSwitching: "切换中…",
+			skinConflict: "检测到多套皮肤同时生效，请重新选择目标皮肤。",
+			switchStateUnavailable: "无法读取宿主的皮肤运行状态。",
+			switchChanged: "皮肤选择已被其他操作更改。",
 			switchRestartRequired: "设置已保存，但当前窗口未完成皮肤切换。请重启桌面应用使其生效。",
 			compatibility: (version) => `已适配 DSH ${version}`,
 			incompatibleBlocked: (runtime) => `不支持 DSH ${runtime}，已停用`,
@@ -914,14 +930,14 @@ window.__ModuleLoader__.load({
 			addRange: "添加时间段",
 			scheduleHint: "按本机时间，可跨午夜，如 22:00 至 07:00。",
 			backupTitle: "备份",
-			backupLabel: "全部皮肤的设置",
+			backupLabel: "皮肤与管理器设置",
 			backupDescription: "也可以把 JSON 文件拖到这里导入。",
 			exportButton: "导出",
 			importButton: "导入",
 			dropActive: "松开以导入",
 			exportOk: "已导出。",
-			importOk: (count) => `已导入 ${count} 个皮肤的设置。`,
-			importOkDeferred: (active, deferred) => `已导入 ${active} 个皮肤的设置；另有 ${deferred} 个皮肤未加载，加载后生效。`,
+			importOk: (count) => `已导入 ${count} 组设置。`,
+			importOkDeferred: (active, deferred) => `已导入 ${active} 组设置；另有 ${deferred} 个皮肤未加载，加载后生效。`,
 			importFail: (message) => `导入失败：${message}`,
 			importErrorInvalidEnvelope: "文件不是有效的皮肤设置备份",
 			importErrorTooLarge: "文件过大：设置内容超过 256 KiB 限制",
@@ -953,6 +969,9 @@ window.__ModuleLoader__.load({
 			officialName: "Official",
 			stateCurrent: "Current",
 			stateSwitching: "Switching…",
+			skinConflict: "Multiple skins are active. Select the skin to use.",
+			switchStateUnavailable: "The Host skin runtime state is unavailable.",
+			switchChanged: "Another operation changed the selected skin.",
 			switchRestartRequired: "Settings saved, but this window did not finish switching skins. Restart the desktop app to apply them.",
 			compatibility: (version) => `Verified on DSH ${version}`,
 			incompatibleBlocked: (runtime) => `Not supported on DSH ${runtime}; disabled`,
@@ -994,14 +1013,14 @@ window.__ModuleLoader__.load({
 			addRange: "Add period",
 			scheduleHint: "Local time; periods may cross midnight, e.g. 22:00 to 07:00.",
 			backupTitle: "Backup",
-			backupLabel: "Settings of all skins",
+			backupLabel: "Skin and manager settings",
 			backupDescription: "You can also drop a JSON file here to import it.",
 			exportButton: "Export",
 			importButton: "Import",
 			dropActive: "Release to import",
 			exportOk: "Exported.",
-			importOk: (count) => `Imported settings for ${count} skin${count === 1 ? "" : "s"}.`,
-			importOkDeferred: (active, deferred) => `Imported settings for ${active} skin${active === 1 ? "" : "s"}; ${deferred} more apply once those skins load.`,
+			importOk: (count) => `Imported ${count} settings group${count === 1 ? "" : "s"}.`,
+			importOkDeferred: (active, deferred) => `Imported ${active} settings group${active === 1 ? "" : "s"}; ${deferred} more apply once those skins load.`,
 			importFail: (message) => `Import failed: ${message}`,
 			importErrorInvalidEnvelope: "The file is not a valid skin settings backup",
 			importErrorTooLarge: "The file is too large: its settings exceed the 256 KiB limit",
@@ -1073,6 +1092,10 @@ window.__ModuleLoader__.load({
 					signal?.removeEventListener("abort", abort);
 					resolve(settled);
 				};
+				if (signal?.aborted) {
+					finish(false);
+					return;
+				}
 				observer.observe(doc.body, {
 					attributes: true,
 					attributeFilter: catalog.map((skin) => skin.bodyAttr)
@@ -1080,6 +1103,76 @@ window.__ModuleLoader__.load({
 				timer = window.setTimeout(() => finish(false), timeoutMs);
 				signal?.addEventListener("abort", abort, { once: true });
 			});
+		}
+		//#endregion
+		//#region src/client/desktop-switch.ts
+		var SelectionChanged = class extends Error {};
+		function matches(active, target) {
+			return target === "official" ? active.length === 0 : active.length === 1 && active[0] === target;
+		}
+		function pause(signal) {
+			return new Promise((resolve, reject) => {
+				signal.throwIfAborted();
+				const finish = () => {
+					signal.removeEventListener("abort", abort);
+					resolve();
+				};
+				const timer = window.setTimeout(finish, 200);
+				const abort = () => {
+					window.clearTimeout(timer);
+					signal.removeEventListener("abort", abort);
+					reject(signal.reason);
+				};
+				signal.addEventListener("abort", abort, { once: true });
+			});
+		}
+		/** Confirm the Host graph and page together, repairing one disposed skin retained by the Host. */
+		async function switchDesktopSkin(catalog, target, request, readState, doc = document, signal) {
+			const copy = skinManagerCopy(currentUiLang());
+			const wait = async (next, repair) => {
+				const timeout = new AbortController();
+				let available = false;
+				const timer = window.setTimeout(() => timeout.abort(new Error(available ? copy.switchRestartRequired : copy.switchStateUnavailable)), SWITCH_SETTLE_TIMEOUT_MS);
+				const pending = signal === void 0 ? timeout.signal : AbortSignal.any([signal, timeout.signal]);
+				try {
+					for (;;) {
+						pending.throwIfAborted();
+						const state = await readState(pending);
+						if (state === void 0) {
+							await pause(pending);
+							continue;
+						}
+						available = true;
+						if (!matches(state.configured, next)) throw new SelectionChanged(copy.switchChanged);
+						if (matches(state.active, next) && matches(activeSkins(catalog, doc.body), next)) return;
+						const stale = state.stale.find((id) => id !== next);
+						if (stale !== void 0) {
+							const skin = catalog.find((skin) => skin.id === stale);
+							if (!repair || skin === void 0 || skin.compatibility !== void 0 && !skin.compatibility.exempted) throw new Error(copy.skinConflict);
+							return stale;
+						}
+						await pause(pending);
+					}
+				} finally {
+					window.clearTimeout(timer);
+					timeout.abort();
+				}
+			};
+			signal?.throwIfAborted();
+			await request(target, signal);
+			const stale = await wait(target, true);
+			if (stale === void 0) return;
+			let restore = true;
+			try {
+				await request(stale, signal);
+				await wait(stale, false);
+			} catch (error) {
+				if (error instanceof SelectionChanged) restore = false;
+				throw error;
+			} finally {
+				if (restore) await request(target);
+			}
+			await wait(target, false);
 		}
 		//#endregion
 		//#region \0dsh-css:../skin-manager/src/client/skin-manager.module.css.mjs
@@ -2038,6 +2131,11 @@ window.__ModuleLoader__.load({
 								className: skin_manager_module_css_default.error,
 								role: "alert",
 								children: copy.actionFailed(error)
+							}),
+							current === null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+								className: skin_manager_module_css_default.error,
+								role: "alert",
+								children: copy.skinConflict
 							})
 						]
 					}),
@@ -2056,6 +2154,22 @@ window.__ModuleLoader__.load({
 						})]
 					}),
 					desktopIcon !== void 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(DesktopIconCard, { initial: desktopIcon }),
+					definitions.filter((definition) => definition.skinId === "dsh-skin-manager").map((definition) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
+						className: skin_manager_module_css_default.block,
+						"data-dsh-skin-plugin-icons": true,
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							className: skin_manager_module_css_default.blockHead,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h3", { children: definitionTitle(definition, lang) })
+						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+							className: skin_manager_module_css_default.card,
+							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(SettingNodes, {
+								nodes: layoutSettings(definition).flatMap((section) => section.nodes),
+								definition,
+								values: registry.values(definition),
+								registry
+							})
+						})]
+					}, definition.skinId)),
 					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(BackupCard, { registry })
 				]
 			});
@@ -2316,12 +2430,16 @@ window.__ModuleLoader__.load({
 			});
 		}
 		/** Installed skin catalog plus host capabilities; never waits for optional version probes. */
-		async function fetchSkinCatalogState() {
-			const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: "same-origin" });
+		async function fetchSkinCatalogState(signal) {
+			const response = await fetch(SKIN_MANAGER_ROUTE, {
+				credentials: "same-origin",
+				signal
+			});
 			const result = await response.json();
 			if (!response.ok || result.ok !== true || !Array.isArray(result.skins)) throw new Error(result.error ?? `HTTP ${response.status}`);
 			return {
 				skins: result.skins,
+				runtime: result.runtime,
 				...typeof result.desktopIcon?.enabled === "boolean" ? { desktopIcon: { enabled: result.desktopIcon.enabled } } : {}
 			};
 		}
@@ -2369,38 +2487,44 @@ window.__ModuleLoader__.load({
 			return new Map(result.versions.map((version) => [version.id, version]));
 		}
 		/**
-		* Same-origin host switch. The page reloads once DSH starts applying the patch
-		* rather than after a fixed delay, and the desktop shell keeps the in-place
-		* switch (see switch-settle.ts).
+		* Web reloads at the first skin change; desktop confirms the graph and page
+		* in place and repairs a disposed skin retained by the Host once.
 		*/
-		async function requestSkinSwitch(target, acceptRisk = false) {
-			const catalog = await fetchSkinCatalog();
+		async function requestSkinSwitch(target, acceptRisk = false, signal) {
+			const { skins: catalog } = await fetchSkinCatalogState(signal);
 			const desktop = isDesktopShell();
-			const before = activeSkins(catalog, document.body).join(",");
-			const isTarget = (active) => target === "official" ? active.length === 0 : active.length === 1 && active[0] === target;
-			const cancel = new AbortController();
-			const settled = waitForSkins(catalog, desktop ? isTarget : (active) => active.join(",") !== before, document, void 0, cancel.signal);
-			try {
+			const request = async (next, pending) => {
 				const response = await fetch(SKIN_MANAGER_ROUTE, {
 					method: "POST",
 					credentials: "same-origin",
+					signal: pending,
 					headers: { "content-type": "application/json" },
-					body: JSON.stringify(acceptRisk ? {
-						target,
+					body: JSON.stringify(next === target && acceptRisk ? {
+						target: next,
 						acceptRisk: true
-					} : { target })
+					} : { target: next })
 				});
 				const result = await response.json();
 				if (!response.ok || result.ok !== true) throw new Error(result.error ?? `HTTP ${response.status}`);
+			};
+			if (desktop) {
+				await switchDesktopSkin(catalog, target, request, async (pending) => {
+					return (await fetchSkinCatalogState(pending)).runtime;
+				}, document, signal);
+				return;
+			}
+			const before = activeSkins(catalog, document.body).join(",");
+			const cancel = new AbortController();
+			const pending = signal === void 0 ? cancel.signal : AbortSignal.any([signal, cancel.signal]);
+			const settled = waitForSkins(catalog, (active) => active.join(",") !== before, document, void 0, pending);
+			try {
+				await request(target, pending);
 			} catch (error) {
 				cancel.abort();
 				throw error;
 			}
-			const completed = await settled;
-			if (desktop) {
-				if (!completed) throw new Error(skinManagerCopy(currentUiLang()).switchRestartRequired);
-				return;
-			}
+			await settled;
+			signal?.throwIfAborted();
 			window.location.reload();
 		}
 		//#endregion
@@ -2494,19 +2618,52 @@ window.__ModuleLoader__.load({
 			};
 		}
 		//#endregion
+		//#region src/client/preset-plugin-icons.ts
+		/** The active skin supplies its artwork; the manager owns only the opt-in. */
+		function createPresetPluginIcons(doc = document) {
+			let style;
+			return {
+				protocol: 2,
+				skinId: "dsh-skin-manager",
+				title: "插件图标",
+				titleEn: "Plugin icons",
+				settings: [{
+					key: "presetPluginIcons",
+					type: "boolean",
+					label: "使用皮肤预设图标",
+					labelEn: "Use skin preset icons",
+					defaultValue: false
+				}],
+				apply(state) {
+					if (state?.values.presetPluginIcons !== true) {
+						style?.remove();
+						style = void 0;
+					} else if (style === void 0) {
+						style = doc.createElement("style");
+						style.setAttribute("data-plugin", "@smalltailqwq/dsh-client-ui-skin-deep-whale-manager");
+						style.setAttribute("data-skin-manager-preset-icons", "");
+						style.textContent = ":root{--dsh-preset-plugin-native:hidden;--dsh-preset-plugin-display:block}";
+						doc.head.append(style);
+					}
+				}
+			};
+		}
+		//#endregion
 		//#region src/client/index.ts
 		const inject = ["slots"];
 		function activeSkin(catalog) {
-			const active = catalog.find((skin) => document.body.hasAttribute(skin.bodyAttr));
-			if (active !== void 0) return active.id;
-			return "official";
+			const active = activeSkins(catalog, document.body);
+			return active.length > 1 ? null : active[0] ?? "official";
 		}
 		/** Register settings and the generic customization registry with owned cleanup. */
 		function apply(ctx) {
 			const registry = new SkinCustomizationRegistry(new PreferencesStore());
+			const switching = new AbortController();
+			ctx.effect(() => () => switching.abort(), "ui-skin-manager: skin switching");
 			ctx.effect(() => () => {
 				registry.dispose();
 			}, "ui-skin-manager: customization registry");
+			ctx.effect(() => registry.registerLocal(createPresetPluginIcons()), "ui-skin-manager: preset plugin icons");
 			ctx.slots.inject("settings.section", () => ctx.slots.register({
 				name: "settings.section",
 				id: "dsh-skins",
@@ -2515,7 +2672,7 @@ window.__ModuleLoader__.load({
 				inject: () => ({
 					registry,
 					active: activeSkin,
-					switchSkin: requestSkinSwitch
+					switchSkin: (target, acceptRisk) => requestSkinSwitch(target, acceptRisk, switching.signal)
 				})
 			}, SkinManager));
 			ctx.effect(() => installBundleIntros(ctx.slots, fetchSkinCatalog), "ui-skin-manager: bundle introductions");

@@ -4562,13 +4562,6 @@ body[data-dsh-maid-atelier] [data-composer-card] > [data-model-compact]
   margin-left: auto;
 }
 
-/* Conversation surfaces stay transparent so the character backdrop shows
-   through (including the new-session workspace); only message-carrying
-   surfaces (bubbles, think blocks) get a translucent porcelain base. */
-body[data-dsh-maid-atelier] [class*='ConversationRoot'] {
-  background: transparent;
-}
-
 body[data-dsh-maid-atelier] header[class*='header'] {
   border-bottom-color: rgba(197, 164, 104, 0.28);
 }
@@ -5758,7 +5751,7 @@ body[data-dsh-maid-atelier] [data-tool='present'] > [data-open='true'] {
   border-radius: 10px;
 }
 
-body[data-dsh-maid-atelier] [data-state='running'] :is([class*='runState'], [class*='stateDot']) {
+body[data-dsh-maid-atelier] [data-terminal] [class*='runState'][data-state='ongoing'] {
   filter: drop-shadow(0 0 6px rgba(197, 164, 104, 0.7));
 }
 
@@ -6099,17 +6092,6 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
   --dsw-alias-bg-layer-2: rgba(24, 40, 80, 0.82);
 }
 
-/* Responsive settings shell for constrained viewports only. The official
-   SettingsPanel keeps its default centered modal position and size on
-   desktop; once the viewport drops below the desktop threshold the panel
-   owns the full workspace instead of squeezing an intermediate modal, and
-   on phones the category rail moves above the content. The narrowest panes
-   stack setting rows so descriptions stay readable instead of collapsing
-   into vertical fragments. Mirrors orca-link's constrained-viewport rules
-   without adopting its docked opening position. The translucent glass
-   surface from the block above stays intact at every size;
-   `data-maid-settings-open` is projected by index.ts from the live dialog,
-   so every rule below self-restores on close. */
 /* Desktop shells keep a window strip above the page. Windows paints its
    caption buttons over the titlebar the shell sizes as
    --dsh-windows-titlebar-height; macOS reserves the traffic-light band the
@@ -6136,221 +6118,75 @@ html[data-platform='darwin'] body[data-dsh-maid-atelier] {
   }
 }
 
-/* Any viewport below the desktop threshold becomes a full workspace: no
-   centering tax, crushed columns or clipped lower controls. The host overlay
-   centers the dialog in the whole window, so a top margin equal to the
-   height it gives up keeps the margin box window-tall and seats the dialog
-   exactly under the window strip. */
-@media (max-width: 1099px), (max-height: 680px) {
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] {
-    width: 100vw;
-    width: 100dvw;
-    max-width: none;
-    height: calc(100vh - var(--maid-window-strip, 0px));
-    height: calc(100dvh - var(--maid-window-strip, 0px));
-    max-height: none;
-    margin-top: var(--maid-window-strip, 0px);
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-}
-
-/* Only the category list scrolls; its title and the reserved hint footer stay
-   outside the scrollport. The glass hint never covers a navigation button. */
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav {
-  position: relative;
-  min-height: 0;
-  padding-bottom: 28px;
-  overflow: hidden;
-}
-
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :first-child {
-  flex-shrink: 0;
-}
-
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child {
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
-  display: none;
-}
-
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child > button {
-  flex-shrink: 0;
-}
-
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::before {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: calc(50% - 17px);
-  width: 34px;
-  height: 20px;
-  box-sizing: border-box;
-  border: 1px solid rgba(197, 164, 104, 0.48);
-  border-radius: 10px;
-  background: rgba(247, 249, 255, 0.58);
-  box-shadow: 0 2px 6px rgba(15, 30, 72, 0.12), inset 0 1px rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  pointer-events: none;
-}
-
-body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::after {
-  content: '';
-  position: absolute;
-  bottom: 12px;
-  left: calc(50% - 4px);
-  width: 8px;
-  height: 8px;
-  box-sizing: border-box;
-  border: solid #52699c;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
-  pointer-events: none;
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::before {
-  border-color: rgba(211, 180, 119, 0.48);
-  background: rgba(24, 40, 80, 0.65);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.08);
-}
-
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::after {
-  border-color: #d3b477;
-}
-
-/* Phones and narrow panes move the category rail above the content. */
-@media (max-width: 640px) {
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] {
-    flex-direction: column;
-  }
-
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav {
-    box-sizing: border-box;
-    flex-direction: row;
-    align-items: stretch;
-    width: 100%;
-    max-height: 40%;
-    gap: 8px;
-    padding: 10px 12px 28px;
-    border-bottom: 1px solid rgba(197, 164, 104, 0.42);
-  }
-
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-content: start;
-    gap: 4px;
-    flex: 1;
-    width: auto;
-  }
-
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :first-child {
-    padding: 0 4px;
-    align-self: flex-start;
-  }
-
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav button {
-    min-width: 0;
-    height: 36px;
-    padding: 7px 8px;
-  }
-
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div {
+@media (min-width: 768px) {
+  /* Only the category list scrolls; its title and the reserved hint footer stay
+     outside the scrollport. The glass hint never covers a navigation button. */
+  body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav {
+    position: relative;
     min-height: 0;
+    padding-bottom: 28px;
+    overflow: hidden;
   }
 
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :first-child {
-    min-height: 46px;
-    height: auto;
-    padding: 8px 10px;
+  body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :first-child {
+    flex-shrink: 0;
   }
 
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child {
-    padding: 0 14px 16px;
-  }
-}
-
-@media (max-width: 420px) {
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Official setting rows are desktop two-column flex layouts. On phone-sized
-   content panes, stack copy above its control and release the 48px text
-   gutter so descriptions remain normal sentences instead of vertical
-   fragments. The skin-manager customization card (this skin's own controls)
-   uses the same row contract and stacks with it. */
-@media (max-width: 520px) {
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_row']:has(> [class$='_rowText']) {
-    align-items: stretch;
-    flex-direction: column;
+  body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
   }
 
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_rowText'] {
-    width: 100%;
-    padding-right: 0;
+  body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child::-webkit-scrollbar {
+    display: none;
   }
 
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_row'] > :is([class$='_rowText'], [class$='_rowText'] ~ *):last-child,
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_selector'] {
+  body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav > :last-child > button {
+    flex-shrink: 0;
+  }
+
+  body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: calc(50% - 17px);
+    width: 34px;
+    height: 20px;
     box-sizing: border-box;
-    width: 100%;
-    max-width: none;
+    border: 1px solid rgba(197, 164, 104, 0.48);
+    border-radius: 10px;
+    background: rgba(247, 249, 255, 0.58);
+    box-shadow: 0 2px 6px rgba(15, 30, 72, 0.12), inset 0 1px rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
   }
 
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_selector'] {
-    justify-content: space-between;
-  }
-
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    :is([class$='_toggleRow'], [class$='_selectRow']) {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    :is([class$='_toggleRow'], [class$='_selectRow']) > span {
-    width: 100%;
-  }
-
-  body[data-dsh-maid-atelier]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :last-child
-    [class$='_selectRow'] select {
+  body[data-dsh-maid-atelier] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::after {
+    content: '';
+    position: absolute;
+    bottom: 12px;
+    left: calc(50% - 4px);
+    width: 8px;
+    height: 8px;
     box-sizing: border-box;
-    width: 100%;
-    max-width: none;
+    border: solid #52699c;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::before {
+    border-color: rgba(211, 180, 119, 0.48);
+    background: rgba(24, 40, 80, 0.65);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav[data-maid-settings-more]::after {
+    border-color: #d3b477;
   }
 }
 
@@ -6662,10 +6498,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
   }
 }
 
-/* Phone ergonomics. The category rail drops to 36px tall at <=640px, the
-   dialog close affordance is a 28px glyph and the lightbox close is 30px —
-   all below the comfortable touch minimum — and the composer keeps its last
-   row flush with the home indicator. */
+/* Touch affordances and composer clearance for coarse pointers. */
 @media (pointer: coarse) {
   body[data-dsh-maid-atelier] {
     -webkit-tap-highlight-color: transparent;
@@ -6673,18 +6506,6 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
 
   body[data-dsh-maid-atelier] :is(button, [role='button'], select, input) {
     touch-action: manipulation;
-  }
-
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav button {
-    min-height: 44px;
-    height: auto;
-  }
-
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div > :first-child > :last-child {
-    min-width: 44px;
-    min-height: 44px;
   }
 
   body[data-dsh-maid-atelier] [data-maid-table-close] {
@@ -6700,10 +6521,6 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
     padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
   }
 
-  body[data-dsh-maid-atelier][data-maid-settings-open]
-    :is([data-slot='sidebar.settings'] > [role='presentation'], :where(body) > [role='presentation'][data-maid-settings-overlay]) > [role='dialog'] > nav + div {
-    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

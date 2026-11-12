@@ -23,6 +23,9 @@ function hostIcon(component: string, attributes = ''): string {
 }
 
 const CSS = readFileSync(resolve(process.cwd(), 'src/client/orca-link.module.css'), 'utf8')
+const WIDTH_FIXTURES: { label: string; html: string }[] = JSON.parse(
+  readFileSync(resolve(process.cwd(), 'tests/fixtures/conversation-width.json'), 'utf8'),
+).variants
 const TURN_MARK_SELECTOR = "[data-phase='active'] :has(+ * > * > [data-chat-flow]) > nav button[type='button'][aria-label]"
 
 let activePanelId: string | null = null
@@ -63,6 +66,45 @@ describe('Orca Link skin apply', () => {
 
     expect(rule).toContain('padding-bottom: var(--dsh-scrollbar-width, 8px)')
     expect(rule).not.toContain('overflow-x:')
+  })
+
+  it.each(WIDTH_FIXTURES)('styles both width handles across themes and drag states ($label)', ({ html }) => {
+    const fixture = document.implementation.createHTMLDocument()
+    fixture.body.setAttribute('data-dsh-orca-link', '')
+    fixture.body.innerHTML = html
+    const handles = fixture.querySelectorAll('[data-conversation-content] > [data-width-handle]')
+    expect(handles).toHaveLength(2)
+    const rules = [...CSS.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, selector]) => selector!.includes('[data-width-handle]'))
+      .map(([, selector, declarations]) => ({
+        selector: selector!.trim().replace(/::after\b/g, ''),
+        declarations: declarations!,
+      }))
+    expect(rules).toHaveLength(4)
+    const base = rules.find(rule => rule.declarations.includes('width: 3px'))!
+    const dark = rules.find(rule => rule.declarations.includes('var(--orca-cyan)'))!
+    const dragging = rules.find(rule => rule.declarations.includes('orcaLinkWidthHandleSignal'))!
+    const reduced = rules.find(rule => rule.declarations.includes('animation: none'))!
+    for (const isDark of [false, true]) {
+      fixture.body.toggleAttribute('data-ds-dark-theme', isDark)
+      for (const handle of handles) {
+        expect(handle.matches(base.selector)).toBe(true)
+        expect(handle.matches(dark.selector)).toBe(isDark)
+        expect(handle.matches(dragging.selector)).toBe(false)
+        handle.setAttribute('data-dragging', '')
+        expect(handle.matches(dragging.selector)).toBe(true)
+        expect(handle.matches(reduced.selector)).toBe(true)
+        handle.removeAttribute('data-dragging')
+      }
+    }
+    const other = fixture.createElement('div')
+    other.setAttribute('data-width-handle', 'other')
+    other.setAttribute('data-side', 'right')
+    fixture.querySelector('[data-phase]')!.append(other)
+    expect(rules.some(rule => other.matches(rule.selector))).toBe(false)
+    fixture.body.removeAttribute('data-dsh-orca-link')
+    const handle = fixture.querySelector('[data-width-handle="left"]')!
+    expect(rules.some(rule => handle.matches(rule.selector))).toBe(false)
   })
 
   it('targets the alpha2 turn rail outside the transcript in every locale and follow state', async () => {

@@ -12,13 +12,13 @@ import { promisify } from 'node:util'
 import { hashSkinAssets } from '../../scripts/skin-asset-inputs.mjs'
 import { evaluateSkinCompatibility, readDshRuntimeVersion, readProfileExemptions } from './compatibility.ts'
 import { detectDesktopShell, DesktopIconSync, resolveSkinDesktopIcon, WindowIconHolder, type DesktopIconResult } from './desktop-icon.ts'
-import { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinCompatibility, type SkinTarget, type SkinUpdateState, type SkinVersionCommit, type SkinVersionInfo, type SkinVersionSource } from './contract.ts'
+import { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinCompatibility, type SkinSwitchState, type SkinTarget, type SkinUpdateState, type SkinVersionCommit, type SkinVersionInfo, type SkinVersionSource } from './contract.ts'
 
 export { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget } from './contract.ts'
 export * from './protocol.ts'
 
 export const name = 'ui-skin-deep-whale-manager'
-export const inject = ['webServer']
+export const inject = ['webServer', 'clientModules']
 
 export const MANAGED_START = '# --- dsh-skin managed (auto-generated; do not edit) ---'
 export const MANAGED_END = '# --- end dsh-skin managed ---'
@@ -31,6 +31,14 @@ interface WebRoute {
 
 type HostContext = Context & {
   webServer: { register(route: WebRoute): () => void }
+  clientModules: { graph(): { entries: { id: string }[] } }
+  loader: { entries(): Iterable<SkinLoaderEntry> }
+}
+
+interface SkinLoaderEntry {
+  options: { name: string }
+  disabled: boolean
+  fiber?: { uid: number | null }
 }
 
 /** The slice of DSH 0.1.7's `pluginManager` service that owns exact-version grants. */
@@ -889,6 +897,20 @@ export function enabledSkins(sources: string[], catalog: SkinCatalogEntry[]): Sk
   return catalog.filter(skin => states.get(skin.wiringId) !== true)
 }
 
+/** Compare persisted enablement with the Host's public graph and Loader lifecycle. */
+export function skinSwitchState(
+  sources: string[], catalog: SkinCatalogEntry[], graph: readonly { id: string }[], entries: Iterable<SkinLoaderEntry>,
+): SkinSwitchState {
+  const published = new Set(graph.map(entry => entry.id))
+  const disposed = new Set([...entries].filter(entry => entry.disabled && entry.fiber?.uid === null).map(entry => entry.options.name))
+  const active = catalog.filter(skin => published.has(skin.package))
+  return {
+    configured: enabledSkins(sources, catalog).filter(skin => skin.compatibility === undefined || skin.compatibility.exempted).map(skin => skin.id),
+    active: active.map(skin => skin.id),
+    stale: active.filter(skin => disposed.has(skin.package)).map(skin => skin.id),
+  }
+}
+
 /** Fail safe when a direct marketplace install would otherwise activate multiple skins. */
 export function ensureSafeInitialState(
   patchPaths = resolvePatchTargets(),
@@ -950,6 +972,7 @@ export function makeSkinManagerRoute(
   dirProvider: () => Map<string, string> = () => new Map(),
   grantExemption: (compatibility: SkinCompatibility) => Promise<void> = async () => { throw new Error('exemption-unavailable') },
   desktopIcon?: DesktopIconControl,
+  runtime?: (catalog: SkinCatalogEntry[]) => SkinSwitchState,
 ): WebRoute {
   const versionCache = new Map<string, { at: number, value: SkinVersionInfo }>()
   const branchCache = new Map<string, { at: number, value: string }>()
@@ -1002,6 +1025,7 @@ export function makeSkinManagerRoute(
           json(res, 200, {
             ok: true,
             skins: catalog,
+            ...(runtime === undefined ? {} : { runtime: runtime(catalog) }),
             ...(desktopIcon === undefined ? {} : { desktopIcon: { enabled: desktopIcon.enabled() } }),
           })
           return
@@ -1082,6 +1106,10 @@ export function apply(ctx: HostContext): void {
       () => discoverSkinDirectories(profilePatch),
       compatibility => grantThroughHost(ctx, compatibility),
       desktopIcon?.control,
+      installed => skinSwitchState(
+        patchPaths.map(path => existsSync(path) ? readFileSync(path, 'utf8') : ''),
+        installed, ctx.clientModules.graph().entries, ctx.loader.entries(),
+      ),
     ))
     return () => {
       unregister()

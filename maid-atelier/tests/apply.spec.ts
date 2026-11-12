@@ -2029,6 +2029,22 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toContain("[data-variant='think']")
   })
 
+  it('lights the running terminal indicator through the native ongoing state', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `<div data-terminal>
+      <svg class="hash_spinner hash_runState" data-state="ongoing"></svg>
+      <span class="hash_dot hash_runState" data-state="done"></span>
+      <span class="hash_dot hash_runState" data-state="error"></span>
+    </div><svg class="hash_spinner" data-state="ongoing"></svg>`
+    const indicators = [...document.querySelectorAll<HTMLElement>('[data-state]')]
+    for (const dark of [false, true]) {
+      expect(declarations(indicators[0]!, dark)).toContain('drop-shadow(0 0 6px rgba(197, 164, 104, 0.7))')
+      for (const indicator of indicators.slice(1)) {
+        expect(declarations(indicator, dark)).not.toContain('drop-shadow(0 0 6px rgba(197, 164, 104, 0.7))')
+      }
+    }
+  })
+
   it('styles only genuinely overflowing wide tables with an explicit expand affordance', () => {
     const nativeRule = CSS.match(
       /\[data-chat-flow-kind='assistant-step'\] :global\(\.md-table-wide\):not\(\[data-maid-table-frame\]\)\s*\{([^}]*)\}/s,
@@ -2170,19 +2186,11 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^@]*\[data-chat-running\] > \[class\*='runningContent'\]::after\s*\{\s*display: none;/)
   })
 
-  it('seats the full-workspace settings shell below the desktop window strip', () => {
+  it('seats the large Windows settings panel below the window strip', () => {
     // Windows paints caption buttons over the shell titlebar and macOS keeps
     // its traffic-light band; the web shell has neither.
     expect(CSS).toMatch(/html\[data-windows-titlebar\] body\[data-dsh-maid-atelier\]\s*\{[^}]*--maid-window-strip: var\(--dsh-windows-titlebar-height, 40px\)/)
     expect(CSS).toMatch(/html\[data-platform='darwin'\] body\[data-dsh-maid-atelier\]\s*\{[^}]*--maid-window-strip: var\(--dsh-frame-top-clearance, 0px\)/)
-    const workspace = CSS.match(
-      /@media \(max-width: 1099px\), \(max-height: 680px\) \{[\s\S]*?> \[role='dialog'\]\s*\{([^}]*)\}/,
-    )?.[1] ?? ''
-    expect(workspace).toContain('width: 100dvw')
-    expect(workspace).toContain('height: calc(100dvh - var(--maid-window-strip, 0px))')
-    expect(workspace).toContain('margin-top: var(--maid-window-strip, 0px)')
-    expect(workspace).not.toMatch(/height: 100d?vh;/)
-    // The host panel only clears the macOS strip at desktop size.
     const desktop = CSS.match(
       /@media \(min-width: 1100px\) and \(min-height: 681px\) \{\s*html\[data-windows-titlebar\][^{]*> \[role='dialog'\]\s*\{([^}]*)\}/,
     )?.[1] ?? ''
@@ -2769,37 +2777,7 @@ describe('Maid Atelier skin apply', () => {
     )
   })
 
-  it('responds to constrained viewports without squeezing settings rows', () => {
-    // The settings overlay owns the viewport below the desktop threshold.
-    const fullScreenRule = CSS.match(
-      /@media \(max-width: 1099px\), \(max-height: 680px\)\s*\{([\s\S]*?)\n\}/,
-    )?.[1] ?? ''
-    // Its height gives up the desktop window strip (zero on the web shell).
-    expect(fullScreenRule).toContain('width: 100vw')
-    expect(fullScreenRule).toContain('height: calc(100vh - var(--maid-window-strip, 0px))')
-    expect(fullScreenRule).toContain('height: calc(100dvh - var(--maid-window-strip, 0px))')
-    expect(fullScreenRule).toContain('border-radius: 0')
-
-    // Phones move the category rail above the content as a 3-across grid.
-    const phoneRule = CSS.match(
-      /@media \(max-width: 640px\)\s*\{([\s\S]*?)\n\}/,
-    )?.[1] ?? ''
-    expect(phoneRule).toContain('flex-direction: column')
-    expect(phoneRule).toContain('flex-direction: row')
-    expect(phoneRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
-    expect(phoneRule).toContain('border-bottom: 1px solid rgba(197, 164, 104, 0.42)')
-    expect(phoneRule).toContain('min-height: 0')
-
-    // Narrow panes stack official rows and this skin's customization card.
-    const narrowRule = CSS.match(
-      /@media \(max-width: 520px\)\s*\{([\s\S]*?)\n\}/,
-    )?.[1] ?? ''
-    expect(narrowRule).toContain("[class$='_row']:has(> [class$='_rowText'])")
-    expect(narrowRule).toContain('flex-direction: column')
-    expect(narrowRule).toContain("padding-right: 0")
-    expect(narrowRule).toContain("[class$='_selectRow'] select")
-    expect(narrowRule).toContain('max-width: none')
-
+  it('keeps the centered settings opening on large Windows viewports', () => {
     // The default centered opening position is kept: no docked large-screen
     // layout, no baseline size/position overrides on the settings overlay.
     // The only large-screen rule clears the Windows titlebar strip and keeps

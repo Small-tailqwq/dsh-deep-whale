@@ -58,6 +58,20 @@ export class SkinCustomizationRegistry {
     this.store.set(definition, key, value)
   }
 
+  /** Manager-owned controls belong to this registry, without a skin discovery broadcast. */
+  registerLocal(definition: SkinCustomizationDefinition): () => void {
+    const token = {}
+    this.definitions.set(token, definition)
+    this.rebuildSnapshot()
+    this.applyAll()
+    return () => {
+      if (!this.definitions.delete(token)) return
+      definition.apply(null)
+      this.rebuildSnapshot()
+      this.scheduleClock()
+    }
+  }
+
   /** Raw preferences snapshot for export; never mutates store state. */
   exportPreferences(): Preferences {
     return this.store.snapshot()

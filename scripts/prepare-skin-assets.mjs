@@ -2,8 +2,10 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { hashSkinAssets } from './skin-asset-inputs.mjs'
+import { presetPluginIconCss } from './preset-plugin-icons.mjs'
 
 const root = resolve(process.argv[2] ?? '.')
+writeFileSync(`${root}/src/client/plugin-icons.generated.module.css`, presetPluginIconCss(root))
 const files = new Set()
 for (const file of readdirSync(`${root}/src/client`).filter(file => file.endsWith('.ts'))) {
   const source = readFileSync(`${root}/src/client/${file}`, 'utf8')
