@@ -7,6 +7,7 @@
  */
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, resolve } from 'node:path'
+import { satisfies } from 'semver'
 import { describe, expect, it } from 'vitest'
 
 const repo = resolve(__dirname, '../..')
@@ -36,11 +37,19 @@ describe.each(packages)('%s plugin metadata', (dir) => {
   })
 
   it('declares the DSH range the host admits it on, without asking pnpm to install DSH', () => {
-    // Skins stop at the next minor so an unadapted skin falls back to the
+    // Skins stop at the next patch so an unadapted skin falls back to the
     // official UI; the manager stays usable so it can offer the manual override.
-    const range = dir === 'skin-manager' ? '>=0.1.7-rc.1' : '>=0.2.2-rc.1 <0.3.0-0'
+    const range = dir === 'skin-manager' ? '>=0.1.7-rc.1' : '>=0.2.2-0 <0.2.3-0'
     expect(manifest.peerDependencies['@deepseek-ai/dsh']).toBe(range)
     expect(manifest.peerDependenciesMeta['@deepseek-ai/dsh']).toEqual({ optional: true })
+    if (dir !== 'skin-manager') {
+      for (const version of ['0.2.2-alpha.1', '0.2.2-alpha.2', '0.2.2-alpha.3', '0.2.2-rc.1', '0.2.2-rc.2', '0.2.2']) {
+        expect(satisfies(version, range, { includePrerelease: true })).toBe(true)
+      }
+      for (const version of ['0.2.1-rc.2', '0.2.3-alpha.1', '0.3.0']) {
+        expect(satisfies(version, range, { includePrerelease: true })).toBe(false)
+      }
+    }
   })
 
   it('declares a shipped icon the host accepts', () => {

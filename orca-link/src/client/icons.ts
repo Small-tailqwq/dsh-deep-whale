@@ -13,7 +13,7 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  * the art groups.
  *
  * Product icons use the host's semantic symbol IDs. Library-external SVGs
- * use distinctive drawing fragments from DSH 0.2.2-rc.1 (66491b05e3f0).
+ * use distinctive drawing fragments from DSH 0.2.2-rc.2 (ddac96760b6e).
  * Unmatched drawings, such as the brand wordmark and hero artwork, keep
  * their host geometry.
  */
@@ -494,6 +494,8 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['followsystem-outline', 'monitor'],
   ['data-outline', 'data'],
   ['layers-outline', 'layers'],
+  ['eye-outline', 'eye'],
+  ['eye-off-outline', 'eye-off'],
   ['database-outline', 'database'],
   ['clock-outline', 'clock'],
   ['gauge-outline', 'gauge'],
@@ -533,7 +535,7 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['apps-add-compact-outline', 'apps-add'],
 ])
 
-/** Inline glyph fragments verified against DSH 0.2.2-rc.1 (66491b05e3f0).
+/** Inline glyph fragments verified against DSH 0.2.2-rc.2 (ddac96760b6e).
  * Shared contours are keyed by their distinguishing drawing, not the frame.
  * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [

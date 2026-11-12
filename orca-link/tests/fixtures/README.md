@@ -6,10 +6,11 @@
 active main conversation. Each variant records the exact official host commit
 and the Git blobs for the main panel, content body, width controls, native CSS,
 slot registration and renderer. Message and composer contents are omitted.
-The release tag and the later official master both report `0.2.2-rc.1`, but only
-the latter wraps the scrollport in `conversation.hero.frame`.
+The `0.2.2-rc.1` release and a later official master report the same version,
+but the latter wraps the scrollport in `conversation.hero.frame`. The
+`0.2.2-rc.2` projection retains that wrapper and records its updated slot sources.
 
-`apply.spec.ts` runs the production width-handle selectors against both
+`apply.spec.ts` runs the production width-handle selectors against all three
 projections in light/dark and dragging states, including the reduced-motion
 rule's target. These are DOM matching assertions; browser animation, hover
 rendering and native drag behavior require browser checks.
@@ -36,10 +37,10 @@ proposed wider audit.
 `renderToStaticMarkup` from the official DSH commit recorded in `hostCommit`.
 `sources` records Git blob IDs; `component` identifies the export or inline
 variant, and `name` is the reviewed expected ORCA redraw. Expected names are
-independent of the production matcher. `symbols` records all 198 official
+independent of the production matcher. `symbols` records all 202 official
 symbol drawings, and `symbolId` links each primitive variant to its artwork.
 
-The 268 variants cover every exported primitive/permission icon, both compact
+The 271 variants cover every exported primitive/permission icon, both compact
 AppsAdd weights, all four
 composer SVG branches, dock split/five drop zones, browser sandbox states,
 the shared ongoing StateDot at its default and installation-dialog sizes,
@@ -52,6 +53,8 @@ to their source SVG. Dynamic usage updates have additional cases in `apply.spec.
 
 The Layers glyph identifies the jobs entry in `ui-jobs/JobListAction.tsx`.
 Both weights map to `layers`, drawn as three stacked straight-edged planes.
+The file sidebar's hidden-file toggle uses the Eye and EyeOff glyphs; both
+weights map to the existing `eye` and `eye-off` artwork.
 
 `loaders` captures representative native HTML structures for the file-upload
 card and platform authorization overlay, with placeholder CSS module hashes.
@@ -63,7 +66,7 @@ Run from `orca-link` against a local official Git object database:
 
 ```sh
 npm run test:host-icons -- --source /path/to/deepseek-harness
-npm run test:host-icons -- --source /path/to/deepseek-harness --ref dsh-v0.2.2-rc.1
+npm run test:host-icons -- --source /path/to/deepseek-harness --ref dsh-v0.2.2-rc.2
 ```
 
 The default ref comes from the fixture's `hostCommit`. The command reads

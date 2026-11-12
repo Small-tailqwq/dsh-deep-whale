@@ -732,6 +732,21 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] > div {
     inset -8px 0 18px rgba(0, 0, 0, 0.26);
 }
 
+/* macOS desktop clears SidebarRoot's fill and swaps the column's for a
+   translucent vibrancy tint. The maid sidebar is an opaque navy panel, and
+   the root fill is what veils the sidebar mascot into a watermark; without
+   it the full-colour chibi sits under the transparent session rows. Restore
+   both fills. The column selector mirrors the host's non-drawer condition so
+   it also outranks the host's dark-theme variant. */
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [class*='frame']:not([data-sidebar-drawer]) > [class*='sidebarCol'] {
+  background: #0a173b;
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier] [data-slot='sidebar'] > [class*='root'] {
+  background: var(--dsw-specific-sidebar-fill);
+}
+
 body[data-dsh-maid-atelier] [class*='sidebarCol'] > div::before {
   content: '';
   position: absolute;

@@ -43,7 +43,7 @@ describe('preset plugin icons', () => {
   })
 
   it('matches the official card and detail owners without touching nested or unknown plugins', () => {
-    // DSH fcc0ad462172: CardHead, DetailTop, PackageCard and ItemCard.
+    // DSH ddac96760b6e: CardHead, DetailTop, PackageCard and ItemCard.
     document.body.innerHTML = `
       <li data-plugin-item="shell"><div class="host_cardHead"><span class="host_cardIcon" id="shell"><svg></svg></span></div></li>
       <li data-plugin-package="@deepseek-ai/dsh-experimental-voice-input-bundle"><div class="host_cardHead"><span class="host_cardIcon" id="voice"><img src="/voice.svg"></span></div></li>

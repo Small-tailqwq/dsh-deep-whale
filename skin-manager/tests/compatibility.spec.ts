@@ -1,3 +1,4 @@
+import { makeAdmittedSkinManagerRoute } from './admitted-route.ts'
 /**
  * DSH 0.1.7 disables a plugin whose `@deepseek-ai/dsh*` peer ranges exclude
  * the running version, in memory only. These specs pin the manager's mirror of
@@ -12,7 +13,7 @@ import { Readable } from 'node:stream'
 import { describe, expect, it, vi } from 'vitest'
 import { evaluateSkinCompatibility, readProfileExemptions } from '../src/compatibility.ts'
 import type { SkinCatalogEntry, SkinCompatibility } from '../src/contract.ts'
-import { discoverInstalledSkins, makeSkinManagerRoute } from '../src/index.ts'
+import { discoverInstalledSkins } from '../src/index.ts'
 
 const skin = (peers: Record<string, unknown>): unknown => ({
   name: '@test/skin', version: '1.2.3', peerDependencies: { '@deepseek-ai/cordis': '^4.0.1', ...peers },
@@ -86,7 +87,7 @@ const catalog: SkinCatalogEntry[] = [
   { id: 'test-skin', name: 'Test', package: '@test/skin', wiringId: 'ui-skin-test', bodyAttr: 'data-test', order: 1, compatibility: blocked },
 ]
 
-async function post(route: ReturnType<typeof makeSkinManagerRoute>, body: unknown): Promise<{ status: number, body: Record<string, unknown> }> {
+async function post(route: ReturnType<typeof makeAdmittedSkinManagerRoute>, body: unknown): Promise<{ status: number, body: Record<string, unknown> }> {
   const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), {
     method: 'POST', headers: { host: 'localhost' }, url: '/api/dsh/skins',
   }) as unknown as IncomingMessage
@@ -104,7 +105,7 @@ describe('switching to a refused skin', () => {
   it('asks for consent instead of writing a patch the host would ignore', async () => {
     const apply = vi.fn()
     const grant = vi.fn(async () => {})
-    const route = makeSkinManagerRoute(() => catalog, apply, () => new Map(), grant)
+    const route = makeAdmittedSkinManagerRoute(() => catalog, apply, () => new Map(), grant)
     const answer = await post(route, { target: 'test-skin' })
     expect(answer).toEqual({ status: 409, body: { ok: false, error: 'incompatible-version', compatibility: blocked } })
     expect(grant).not.toHaveBeenCalled()
@@ -113,7 +114,7 @@ describe('switching to a refused skin', () => {
 
   it('grants the exact pair through the host, then switches', async () => {
     const order: string[] = []
-    const route = makeSkinManagerRoute(
+    const route = makeAdmittedSkinManagerRoute(
       () => catalog,
       () => { order.push('switch') },
       () => new Map(),
@@ -126,7 +127,7 @@ describe('switching to a refused skin', () => {
 
   it('leaves the patch untouched when the host refuses the grant', async () => {
     const apply = vi.fn()
-    const route = makeSkinManagerRoute(() => catalog, apply, () => new Map(), async () => { throw new Error('exemption-unavailable') })
+    const route = makeAdmittedSkinManagerRoute(() => catalog, apply, () => new Map(), async () => { throw new Error('exemption-unavailable') })
     const answer = await post(route, { target: 'test-skin', acceptRisk: true })
     expect(answer).toEqual({ status: 400, body: { ok: false, error: 'exemption-unavailable' } })
     expect(apply).not.toHaveBeenCalled()
@@ -136,7 +137,7 @@ describe('switching to a refused skin', () => {
     const grant = vi.fn(async () => {})
     const apply = vi.fn()
     const allowed = [{ ...catalog[0]!, compatibility: { ...blocked, exempted: true } }]
-    const route = makeSkinManagerRoute(() => allowed, apply, () => new Map(), grant)
+    const route = makeAdmittedSkinManagerRoute(() => allowed, apply, () => new Map(), grant)
     expect((await post(route, { target: 'test-skin' })).status).toBe(200)
     expect(grant).not.toHaveBeenCalled()
     expect(apply).toHaveBeenCalledOnce()

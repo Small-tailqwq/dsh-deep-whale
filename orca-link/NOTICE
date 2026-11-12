@@ -43,7 +43,7 @@ client stylesheet. These skin artwork assets retain LICENSE-ARTWORK terms.
 
 The host SVG test fixtures in tests/fixtures/dsh-icons.json are
 rendered from deepseek-ai/deepseek-harness at commit
-fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159, copyright (c) 2026 DeepSeek,
+ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c, copyright (c) 2026 DeepSeek,
 under the MIT License reproduced in tests/fixtures/DSH-LICENSE. These test
 fixtures are separate from the character artwork licensed above.
 

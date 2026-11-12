@@ -56,7 +56,7 @@ github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier
 github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link
 ```
 
-在默认配置下，DSH 捆绑的 pnpm 11.7.0 优先选择发布满 24 小时的 npm 版本。想立即安装某个刚发布的新版，可以在同一个「添加插件」框里填入 `包名@^版本号`，例如 `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.9`（不加命令前缀）。这次显式 `add` 会安装新版，并把具体版本写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`，依赖仍保持 caret 范围。此行为对应捆绑版本及默认配置，其他 pnpm 版本或自定义策略可能不同。GitHub 来源不受这项 npm 包龄检查影响。
+在默认配置下，DSH 捆绑的 pnpm 11.7.0 优先选择发布满 24 小时的 npm 版本。想立即安装某个刚发布的新版，可以在同一个「添加插件」框里填入 `包名@^版本号`，例如 `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.10`（不加命令前缀）。这次显式 `add` 会安装新版，并把具体版本写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`，依赖仍保持 caret 范围。此行为对应捆绑版本及默认配置，其他 pnpm 版本或自定义策略可能不同。GitHub 来源不受这项 npm 包龄检查影响。
 
 桌面版通过应用管理自己的 `desktop` profile，不需要先配置 `dsh` 命令。下面的 `web` 命令不会给桌面版安装皮肤。
 
@@ -131,7 +131,7 @@ dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-man
 在默认配置下，DSH 内置的 pnpm 11.7.0 优先选择发布满 24 小时的 npm 版本，所以 `update` 可能仍停在旧版。要立即安装某个新版，可以显式 `add` 包名加 `@^版本号`：pnpm 会安装新版，并把具体版本写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`，依赖仍保持 caret 范围。其他 pnpm 版本或自定义策略可能不同。版本号见 [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases)：
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.9'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.10'
 ```
 
 版本号前的 `^` 不要省：省掉后会固定在这个版本，以后的 `update` 就不会再升级了。
@@ -140,7 +140,7 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.9'
 
 **升级 DSH 后皮肤不见了**
 
-每套皮肤只声明支持自己适配过的 DSH 版本（目前是 0.2 系列，从 0.2.0-rc.2 起）。DSH 升级到更新的版本而皮肤还没跟上时，DSH 会自动停用皮肤、恢复官方界面，免得皮肤把输入框之类的控件挡住。
+每套皮肤声明支持的 DSH 版本范围（目前是 0.2.2 系列，包含 alpha、RC 和正式版）。DSH 升级到更新的版本而皮肤还没跟上时，DSH 会自动停用皮肤、恢复官方界面，免得皮肤把输入框之类的控件挡住。
 
 先按上面的更新说明更新皮肤。如果还没有新版，又想先用着旧皮肤，可以打开「设置 → 皮肤管理」：被停用的皮肤会显示「未声明支持当前的 DSH x.y.z，已被自动停用」，点「切换」并确认即可。这个放行只针对当前的皮肤版本和 DSH 版本，任意一方升级后会重新检查；用得不顺手随时切回「官方默认」。
 

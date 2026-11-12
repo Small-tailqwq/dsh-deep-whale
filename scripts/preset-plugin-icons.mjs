@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Reviewed official DSH 0.2.2-rc.1 identities and the skin's existing artwork keys. */
+/** Reviewed official DSH 0.2.2-rc.2 identities and the skin's existing artwork keys. */
 export const PRESET_PLUGIN_ICONS = [
   { item: 'shell', art: 'terminal' },
   { item: 'agent-loop', art: 'loop' },
