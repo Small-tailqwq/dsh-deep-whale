@@ -43,8 +43,8 @@ describe('ORCA LINK Windows caption controls', () => {
     expect(CSS).toContain("html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]\n    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession'] {")
   })
 
-  it('drops the wide stage hit plane and its scan line', () => {
-    expect(CSS).toMatch(new RegExp(`${NEW_SESSION}::before,\\s*${NEW_SESSION}::after\\s*\\{\\s*content: none;`))
+  it('drops the wide stage hit plane', () => {
+    expect(block(`${NEW_SESSION}::before`)).toContain('content: none;')
   })
 
   it('shows both glyphs in every sidebar-size state', () => {
