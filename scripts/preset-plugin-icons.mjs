@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Reviewed official DSH 0.2.2-rc.2 identities and the skin's existing artwork keys. */
+/** Reviewed official DSH 0.2.2-rc.3 identities and the skin's artwork keys. */
 export const PRESET_PLUGIN_ICONS = [
   { item: 'shell', art: 'terminal' },
   { item: 'agent-loop', art: 'loop' },
@@ -22,6 +22,8 @@ export const PRESET_PLUGIN_ICONS = [
   { package: '@deepseek-ai/dsh-experimental-session-search', art: 'session-search' },
   { package: '@deepseek-ai/dsh-experimental-terminal-bundle', art: 'terminal' },
   { package: '@deepseek-ai/dsh-experimental-ralph-bundle', art: 'loop' },
+  { package: '@deepseek-ai/dsh-cua-bundle', art: 'computer-use' },
+  { package: '@deepseek-ai/dsh-deepseek-chat-import', art: 'chat-import' },
 ]
 
 function targets(entry, bodyAttr) {

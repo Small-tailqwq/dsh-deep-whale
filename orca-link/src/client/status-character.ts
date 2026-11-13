@@ -5,6 +5,8 @@ import { createOrcaWorkLight } from './work-light.ts'
 
 const CHARACTER_SELECTOR = '[data-orca-link-character]'
 const SIDEBAR_PANE_SELECTOR = "[data-slot='sidebar'] > :first-child"
+const STAGE_ACTION = "[data-slot='sidebar.session.action'] > :is(button[class*='newSession'], button:has(> svg[data-icon^='dsw-icon-upload-outline-']))"
+const FRAME_OFFSET = '--orca-frame-offset'
 /** Projected by customization.ts from the character switch and the SFW schedule. */
 const CHARACTER_VISIBILITY_ATTRIBUTE = 'data-dsh-whale-orca-character'
 
@@ -148,6 +150,53 @@ function createCharacter(classes: {
   return character
 }
 
+function followStagePointer(pane: HTMLElement, character: HTMLElement, signal: AbortSignal): void {
+  const view = pane.ownerDocument.defaultView ?? window
+  const motion = view.matchMedia?.('(min-width: 901px) and (hover: hover) and (prefers-reduced-motion: no-preference)')
+  const originalOffset = pane.style.getPropertyValue(FRAME_OFFSET)
+  const originalPriority = pane.style.getPropertyPriority(FRAME_OFFSET)
+  let writtenOffset: string | undefined
+  let frame: number | undefined
+  let x = 0
+  let y = 0
+
+  const reset = (): void => {
+    if (frame !== undefined) view.cancelAnimationFrame(frame)
+    frame = undefined
+    if (writtenOffset !== undefined && pane.style.getPropertyValue(FRAME_OFFSET) === writtenOffset
+      && pane.style.getPropertyPriority(FRAME_OFFSET) === '') {
+      pane.style.setProperty(FRAME_OFFSET, originalOffset, originalPriority)
+    }
+    writtenOffset = undefined
+  }
+  const paint = (): void => {
+    frame = undefined
+    const rect = character.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return
+    const offset = (fraction: number): number => Math.round(Math.max(-1, Math.min(1, fraction * 2 - 1)) * 3)
+    const value = `${offset((x - rect.left) / rect.width)}px ${offset((y - rect.top) / rect.height)}px`
+    if (pane.style.getPropertyValue(FRAME_OFFSET) !== value) {
+      pane.style.setProperty(FRAME_OFFSET, value)
+      writtenOffset = value
+    }
+  }
+  const isAction = (target: EventTarget | null): boolean => target instanceof Element && target.closest(STAGE_ACTION) !== null
+  const move = (event: PointerEvent): void => {
+    if (!motion?.matches || event.pointerType === 'touch' || !isAction(event.target)) return
+    if (!pane.parentElement?.hasAttribute('data-orca-sidebar-wide') || pane.className.includes('collapsed')
+      || character.ownerDocument.documentElement.getAttribute(CHARACTER_VISIBILITY_ATTRIBUTE) === 'hidden') return
+    x = event.clientX
+    y = event.clientY
+    if (frame === undefined) frame = view.requestAnimationFrame(paint)
+  }
+  const leave = (event: PointerEvent): void => {
+    if (isAction(event.target) && !isAction(event.relatedTarget)) reset()
+  }
+  signal.addEventListener('abort', reset, { once: true })
+  pane.addEventListener('pointermove', move, { passive: true, signal })
+  pane.addEventListener('pointerout', leave, { signal })
+}
+
 /** Mount the ORCA-specific state actor in the sidebar's existing art stage. */
 export function installOrcaStatusCharacter(body: HTMLElement, classes: {
   character: string
@@ -161,6 +210,7 @@ export function installOrcaStatusCharacter(body: HTMLElement, classes: {
   const readStatus = (): LinkStatus => isLinkStatus(body.dataset.orcaLinkStatus) ? body.dataset.orcaLinkStatus : 'standby'
   let character: HTMLElement | null = null
   let sprite: HTMLElement | null = null
+  let pointerEvents: AbortController | undefined
   let status = readStatus()
   let targetStatus = status
   let sequenceIndex = 0
@@ -171,6 +221,8 @@ export function installOrcaStatusCharacter(body: HTMLElement, classes: {
   const mount = (): void => {
     const pane = body.querySelector<HTMLElement>(SIDEBAR_PANE_SELECTOR)
     if (character !== null && character.parentElement === pane && character.isConnected) return
+    pointerEvents?.abort()
+    pointerEvents = undefined
     character?.remove()
     character = null
     sprite = null
@@ -180,6 +232,8 @@ export function installOrcaStatusCharacter(body: HTMLElement, classes: {
     character = createCharacter(classes)
     sprite = character.querySelector<HTMLElement>('[data-orca-link-character-sprite]')
     pane.append(character)
+    pointerEvents = new view.AbortController()
+    followStagePointer(pane, character, pointerEvents.signal)
   }
 
   const currentFrame = (): { frame: number, row: number } => returningFrame === null
@@ -294,6 +348,7 @@ export function installOrcaStatusCharacter(body: HTMLElement, classes: {
     visibilityObserver.disconnect()
     doc.removeEventListener('visibilitychange', resume)
     prefersReducedMotion?.removeEventListener?.('change', resume)
+    pointerEvents?.abort()
     character?.remove()
     character = null
     sprite = null
