@@ -39,16 +39,31 @@ describe.each(packages)('%s plugin metadata', (dir) => {
   it('declares the DSH range the host admits it on, without asking pnpm to install DSH', () => {
     // Skins stop at the next patch so an unadapted skin falls back to the
     // official UI; the manager stays usable so it can offer the manual override.
-    const range = dir === 'skin-manager' ? '>=0.1.7-rc.1' : '>=0.2.2-0 <0.2.3-0'
+    // orca-link follows the 0.2.2-rc.3 New Session row (`sidebar.session.action`)
+    // and no longer reserves its stage on earlier 0.2.2 builds.
+    const ranges = {
+      'skin-manager': '>=0.1.7-rc.1',
+      'maid-atelier': '>=0.2.2-0 <0.2.3-0',
+      'orca-link': '>=0.2.2-rc.3 <0.2.3-0',
+    } as const
+    const admitted = {
+      'skin-manager': [],
+      'maid-atelier': ['0.2.2-alpha.1', '0.2.2-alpha.2', '0.2.2-alpha.3', '0.2.2-rc.1', '0.2.2-rc.2', '0.2.2-rc.3', '0.2.2'],
+      'orca-link': ['0.2.2-rc.3', '0.2.2'],
+    } as const
+    const refused = {
+      'skin-manager': [],
+      'maid-atelier': ['0.2.1-rc.2', '0.2.3-alpha.1', '0.3.0'],
+      'orca-link': ['0.2.1-rc.2', '0.2.2-alpha.3', '0.2.2-rc.2', '0.2.3-alpha.1', '0.3.0'],
+    } as const
+    const range = ranges[dir]
     expect(manifest.peerDependencies['@deepseek-ai/dsh']).toBe(range)
     expect(manifest.peerDependenciesMeta['@deepseek-ai/dsh']).toEqual({ optional: true })
-    if (dir !== 'skin-manager') {
-      for (const version of ['0.2.2-alpha.1', '0.2.2-alpha.2', '0.2.2-alpha.3', '0.2.2-rc.1', '0.2.2-rc.2', '0.2.2']) {
-        expect(satisfies(version, range, { includePrerelease: true })).toBe(true)
-      }
-      for (const version of ['0.2.1-rc.2', '0.2.3-alpha.1', '0.3.0']) {
-        expect(satisfies(version, range, { includePrerelease: true })).toBe(false)
-      }
+    for (const version of admitted[dir]) {
+      expect(satisfies(version, range, { includePrerelease: true })).toBe(true)
+    }
+    for (const version of refused[dir]) {
+      expect(satisfies(version, range, { includePrerelease: true })).toBe(false)
     }
   })
 
