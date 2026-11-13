@@ -1903,7 +1903,7 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
 /* Only the native New Session seat owns the portrait's space and hit plane.
    The host's collapsed class also gates zero-width Windows caption mode. */
 @media (min-width: 901px) {
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession'] {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession'] {
     /* Native flow: 6px root padding + 60px logo + 4px gap = 70px top.
        With the native 12px bottom margin, this seat ends at stage + 4px.
        All following entries then keep their host spacing, regardless of type. */
@@ -1916,12 +1916,29 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
     color: transparent;
   }
 
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession'] > * {
+  /* 0.2.2-rc.3 seats New Session in a `newSessionRow` flex row through the
+     `sidebar.session.action` HOC anchor (`display: contents`), so the row, not
+     the button, is now the root's child after the logo row. The stage rule
+     above would make the row the containing block of the hit plane and shift
+     it 70px down; keep it static like the button it replaced. Controls an
+     occupant adds beside New Session sit on the stage's lower edge, above the
+     portrait's hit plane. */
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] {
+    position: static;
+    align-items: flex-end;
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] > :not(button[class*='newSession'], [role='tooltip'], :has(button[class*='newSession'])) {
+    position: relative;
+    z-index: 3;
+  }
+
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession'] > * {
     opacity: 0;
     pointer-events: none;
   }
 
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']::before {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']::before {
     position: absolute;
     z-index: 2;
     top: calc(58px + var(--orca-stage-top, 0px));
@@ -1944,7 +1961,7 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
     transition: opacity 160ms ease;
   }
 
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']::after {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']::after {
     position: absolute;
     z-index: 2;
     /* Bottom-right corner of the plane above, 3px / 4px inside it. */
@@ -1959,33 +1976,33 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
     transition: opacity 160ms ease, transform 160ms ease;
   }
 
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:hover::before,
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:focus-visible::before {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:hover::before,
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:focus-visible::before {
     opacity: 0.62;
   }
 
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:hover::after,
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:focus-visible::after {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:hover::after,
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:focus-visible::after {
     opacity: 0.92;
     transform: translate(-2px, -2px);
   }
 
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']:focus-visible {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:focus-visible {
     outline: none;
   }
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + button[class*='newSession'] {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession'] {
   position: relative;
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + button[class*='newSession'] > svg {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession'] > svg {
   opacity: 0;
 }
 
-body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + button[class*='newSession']::before {
+body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']::before {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -2012,7 +2029,7 @@ body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :
    collapsed sidebar is zero wide: the host hides the column's lists and pins
    its toggle and New Session button into the caption row as two 28px icons
    (ui-sidebar `.collapsed .toggle` / `.collapsed .newSession`, fixed at
-   left 12px / 48px). New Session is a direct child of the sidebar root, so
+   left 12px / 48px). New Session was a direct child of the sidebar root, so
    the stage rule above (`> :not(...) { position: relative }`) pulled it back
    into the zero-wide, clipped column, and the wide stage's portrait hit plane
    and transparent glyph came with it: the button vanished. The skin's
@@ -2020,8 +2037,16 @@ body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :
    hid the toggle's glyph behind a wordmark the zero-wide column clips away.
    Both controls take one caption treatment keyed on the host's own collapse
    state; the host keeps position, size, hit area and no-drag. */
+/* Since 0.2.2-rc.3 the stage rule lifts the button's `newSessionRow` instead;
+   release the row's stacking context so the fixed caption button competes in
+   the sidebar root as it did when it was the root's own child. */
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
-    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] {
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] {
+  z-index: auto;
+}
+
+html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession'] {
   position: fixed;
   z-index: 30;
   clip-path: none;
@@ -2029,21 +2054,21 @@ html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
 }
 
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
-    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] > * {
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession'] > * {
   opacity: 1;
 }
 
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
-    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']::before,
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession']::before,
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
-    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']::after {
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession']::after {
   content: none;
 }
 
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
     [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='logoRow'] > button[class*='toggle'] > svg,
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
-    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] svg {
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession'] svg {
   color: currentColor;
   opacity: 1;
 }
@@ -2051,7 +2076,7 @@ html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
     [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='logoRow'] > button[class*='toggle']:is(:hover, :focus-visible),
 html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]
-    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession']:is(:hover, :focus-visible) {
+    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession']:is(:hover, :focus-visible) {
   background: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
 }
 
@@ -2106,7 +2131,7 @@ html[data-windows-titlebar] body[data-dsh-orca-link]
 }
 
 html[data-windows-titlebar] body[data-dsh-orca-link]
-    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > button[class*='newSession'] {
+    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='newSessionRow'] {
   margin-top: 0;
 }
 
@@ -3743,7 +3768,7 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [data-orca-composer-restore],
   body[data-dsh-orca-link] .lightSceneLayer,
   body[data-dsh-orca-link] .darkSceneLayer,
-  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > [class*='logoRow'] + button[class*='newSession']::before,
+  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']::before,
   body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }

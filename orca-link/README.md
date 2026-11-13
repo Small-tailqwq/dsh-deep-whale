@@ -21,6 +21,8 @@ DeepSeek Harness Web GUI 的虎鲸链路皮肤：酷酷的小黑鲸操作员，�
 
 两种形态之外的直接子 `button` 会被当作宿主原生控件（宽态下隐藏内容、保留热区）；位于插件宿主的按钮则完全不受接管。
 
+DSH 0.2.2-rc.3 起，新会话按钮由宿主的 `sidebar.session.action` 行渲染；插件经这个 HOC 槽位加在新会话旁的控件，展开态下会落到舞台下沿并保持可点。
+
 ## 安装
 
 > 若已安装 `@linxin666/dsh-web-all`（dsh-web），请从 dsh-web 自带的皮肤中心/安装入口安装其适配版 `maid-atelier` 与 `orca-link`，不要执行下面的 standalone 安装命令。两种发行方式的组件与样式契约不同，不能在同一 profile 中叠装。
