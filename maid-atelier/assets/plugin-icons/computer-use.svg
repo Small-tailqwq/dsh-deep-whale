@@ -1,0 +1,10 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M14 9.5V26.75L18.25 22.75L21.25 29.25L24.25 27.9L21.25 21.45L27 21Z" fill="url(#maid-computer-use)" stroke="#c5a468" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M14 4.75V6.75M8.25 9.5H10.25M10 5.5L11.4 6.9" stroke="#c5a468" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="maid-computer-use" x1="20.5" y1="9.5" x2="20.5" y2="29.25" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -4,7 +4,7 @@
 
 `npm run build` 通过 `scripts/prepare-skin-assets.mjs` 与 `scripts/preset-plugin-icons.mjs` 读取原 SVG，生成各皮肤的 `src/client/plugin-icons.generated.module.css`。SVG 原文编码为本地 data URL，嵌入客户端样式并计入 `lib/client.js` 的构建指纹；原素材文件保持不变。`NOTICE` 声明这些素材沿用美术许可。小型 SVG 不进入 PNG/WebP 运行时资源清单。
 
-当前绑定核对官方 `0.2.2-rc.2 @ ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c` 的 `PluginManagerPage.tsx`：按 `data-plugin-item` / `data-plugin-package` 及各自详情标记定位，原图节点保留，图框伪元素用独立图片显示 SVG。皮肤样式限定在自己的 body 标记下，管理器只控制显示变量；切换皮肤后自动采用新皮肤的素材。无映射的插件、官方默认界面及未提供该样式的皮肤显示原图。
+当前绑定核对官方 `0.2.2-rc.3 @ 38a6a5c965aa99ab525161efb7cc5cf1fe62fced` 的 `PluginManagerPage.tsx`（卡片与详情结构与 rc.2 相同）：按 `data-plugin-item` / `data-plugin-package` 及各自详情标记定位，原图节点保留，图框伪元素用独立图片显示 SVG。皮肤样式限定在自己的 body 标记下，管理器只控制显示变量；切换皮肤后自动采用新皮肤的素材。无映射的插件、官方默认界面及未提供该样式的皮肤显示原图。
 
 替换覆盖插件列表和详情页的图标，不改变插件开关、状态与控件。右栏引导与 Agent 团队的素材仍保留在素材目录。
 
@@ -28,6 +28,8 @@
 | `agent-team` | `dsh-experimental-agent-team-profile` | Agent 团队 |
 | `auto-review` | `dsh-experimental-auto-review` | 自动授权审查 |
 | `skill-badge` | `dsh-skill-badge`、`dsh-experimental-badge-skill-bundle`（同图） | 徽章技能 |
+| `chat-import` | `dsh-deepseek-chat-import` | DeepSeek 会话导入（0.2.2-rc.3 起） |
+| `computer-use` | `dsh-cua-bundle` | Computer Use |
 | `cot-translation` | `dsh-experimental-cot-translation-bundle` | 思维链翻译 |
 | `inspector` | `dsh-experimental-inspector`、`dsh-experimental-inspector-profile`（同图） | 检查器 |
 | `plugin-market` | `dsh-experimental-plugin-market-bundle` | 自定义插件市场 |

@@ -1,0 +1,11 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 8H26C27.66 8 29 9.34 29 11V21C29 22.66 27.66 24 26 24H15.5L11.6 27.6C11.2 28 10.5 27.7 10.5 27.15V24H10C8.34 24 7 22.66 7 21V11C7 9.34 8.34 8 10 8Z" fill="url(#maid-chat-import)" stroke="#c5a468" stroke-width="1.1"/>
+  <path d="M18 11.5V17.75M15 14.75L18 17.75L21 14.75" stroke="#fffaf0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M14.25 20.75H21.75" stroke="#c5a468" stroke-width="2" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="maid-chat-import" x1="18" y1="8" x2="18" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>
