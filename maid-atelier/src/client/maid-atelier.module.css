@@ -1052,6 +1052,27 @@ body[data-dsh-maid-atelier] button[class*='newSession']:hover {
   transform: translateY(-1px);
 }
 
+body[data-dsh-maid-atelier] [data-slot='sidebar.session.action'] > button:has(> svg[data-icon^='dsw-icon-upload-outline-']) {
+  align-self: center;
+  border: 1px solid #c9aa73;
+  border-radius: 50%;
+  corner-shape: round;
+  color: #f3dba8;
+  background: linear-gradient(145deg, #455c88, #17294c 68%, #101d38);
+  box-shadow: inset 0 0 0 2px #1c2d4d, inset 0 0 0 3px #82765f, 0 2px 5px #060e264d;
+
+  &:is(:hover, :focus-visible) {
+    color: #fff3d9;
+    border-color: #ffe1a5;
+    background: linear-gradient(145deg, #526e9d, #23385d 68%, #172746);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffe1a5;
+    outline-offset: 2px;
+  }
+}
+
 body[data-dsh-maid-atelier] button[class*='newSession'] svg {
   color: #24345c;
   stroke-width: 1.8;

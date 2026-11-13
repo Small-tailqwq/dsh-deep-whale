@@ -1910,25 +1910,95 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
     height: calc(var(--orca-stage, 300px) - 78px);
     position: static;
     overflow: visible;
+    pointer-events: none;
     border-color: transparent;
     background: transparent;
     box-shadow: none;
     color: transparent;
   }
 
-  /* 0.2.2-rc.3 seats New Session in a `newSessionRow` flex row through the
-     `sidebar.session.action` HOC anchor (`display: contents`), so the row, not
-     the button, is now the root's child after the logo row. The stage rule
-     above would make the row the containing block of the hit plane and shift
-     it 70px down; keep it static like the button it replaced. Controls an
-     occupant adds beside New Session sit on the stage's lower edge, above the
-     portrait's hit plane. */
+  body[data-dsh-orca-link] [data-slot='sidebar'] {
+    --orca-import-size: 64px;
+  }
+
+  /* The boxless session-action slot keeps both native buttons in the row.
+     Their stage coordinates resolve against the sidebar root. */
   html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] {
     position: static;
     align-items: flex-end;
+
+    & > [data-slot='sidebar.session.action'] > button:has(> svg[data-icon^='dsw-icon-upload-outline-']) {
+      --orca-import-line: color-mix(in srgb, var(--orca-blue) 43%, transparent);
+      position: absolute;
+      z-index: 3;
+      top: calc(var(--orca-stage-top, 0px) + var(--orca-stage, 300px) - 8px - var(--orca-import-size));
+      left: calc(var(--orca-sidebar-art-width, 280px) - 8px - var(--orca-import-size));
+      width: var(--orca-import-size);
+      height: var(--orca-import-size);
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 0 9px 9px 0;
+      border: 0;
+      border-radius: 0;
+      outline: none;
+      clip-path: polygon(100% 0, 100% 100%, 0 100%);
+      color: var(--orca-blue);
+      background: transparent;
+      opacity: 0;
+
+      &::before {
+        position: absolute;
+        inset: 0;
+        content: '';
+        pointer-events: none;
+        color: var(--orca-import-line);
+        background:
+          linear-gradient(135deg, transparent 50%, currentColor 50% calc(50% + 1px), transparent calc(50% + 1px)),
+          linear-gradient(currentColor, currentColor) right bottom / 14px 1px no-repeat,
+          linear-gradient(currentColor, currentColor) right bottom / 1px 14px no-repeat,
+          repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 9px) left bottom / calc(100% - 18px) 1px no-repeat,
+          repeating-linear-gradient(180deg, currentColor 0 4px, transparent 4px 9px) right top / 1px calc(100% - 18px) no-repeat;
+      }
+
+      & > svg {
+        width: 16px;
+        height: 16px;
+        opacity: 0.56;
+      }
+
+      &:hover { --orca-import-line: color-mix(in srgb, var(--orca-blue) 58%, transparent); }
+      &:hover > svg { opacity: 0.8; }
+      &:focus-visible { --orca-import-line: var(--orca-blue); }
+      &:focus-visible > svg { opacity: 1; }
+
+      @media (hover: none) { opacity: 1; }
+    }
+
+    &:has(> [data-slot='sidebar.session.action'] > button > svg[data-icon^='dsw-icon-upload-outline-']) button[class*='newSession']::after {
+      content: none;
+    }
+
+    /* The import button draws the lower-right corner. Leave that part of
+       the moving frame clear so the gaps in its dashed edges stay visible. */
+    &:has(> [data-slot='sidebar.session.action'] > button > svg[data-icon^='dsw-icon-upload-outline-']) ~ .statusCharacter::before {
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--orca-import-size) - 4px), calc(100% - var(--orca-import-size) - 4px) 100%, 0 100%);
+    }
+
+    &:has(button[class*='newSession']:is(:hover, :focus-visible), button:is(:hover, :focus-visible) > svg[data-icon^='dsw-icon-upload-outline-']) {
+      & ~ .statusCharacter::before { opacity: 0.72; }
+      & > [data-slot='sidebar.session.action'] > button:has(> svg[data-icon^='dsw-icon-upload-outline-']) {
+        opacity: 1;
+      }
+      @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+        & ~ .statusCharacter::before,
+        & > [data-slot='sidebar.session.action'] > button:has(> svg[data-icon^='dsw-icon-upload-outline-']) {
+          animation: stageImportSignal 280ms linear;
+        }
+      }
+    }
   }
 
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] > :not(button[class*='newSession'], [role='tooltip'], :has(button[class*='newSession'])) {
+  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] > :not(button[class*='newSession'], [role='tooltip'], :has(button[class*='newSession']), button:has(> svg[data-icon^='dsw-icon-upload-outline-'])) {
     position: relative;
     z-index: 3;
   }
@@ -1947,6 +2017,14 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
     height: calc(var(--orca-stage, 300px) - 66px);
     content: '';
     cursor: pointer;
+    pointer-events: auto;
+  }
+
+  body[data-dsh-orca-link] .statusCharacter::before {
+    position: absolute;
+    inset: 0;
+    content: '';
+    pointer-events: none;
     opacity: 0;
     background:
       linear-gradient(var(--orca-blue), var(--orca-blue)) left top / 18px 1px no-repeat,
@@ -1958,7 +2036,10 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
       linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 18px 1px no-repeat,
       linear-gradient(var(--orca-blue), var(--orca-blue)) right bottom / 1px 18px no-repeat;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--orca-blue) 12%, transparent);
-    transition: opacity 160ms ease;
+    @media (prefers-reduced-motion: no-preference) {
+      translate: var(--orca-frame-offset, 0 0);
+      transition: opacity 160ms ease, translate 100ms ease-out;
+    }
   }
 
   html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']::after {
@@ -1970,15 +2051,11 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
     width: 9px;
     height: 9px;
     content: '';
+    pointer-events: none;
     background: var(--orca-blue);
     clip-path: polygon(100% 0, 100% 100%, 0 100%);
     opacity: 0.36;
     transition: opacity 160ms ease, transform 160ms ease;
-  }
-
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:hover::before,
-  html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:focus-visible::before {
-    opacity: 0.62;
   }
 
   html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:hover::after,
@@ -1990,6 +2067,11 @@ html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [dat
   html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']:focus-visible {
     outline: none;
   }
+}
+
+@keyframes stageImportSignal {
+  0%, 55% { opacity: 0.28; }
+  32% { opacity: 0.85; }
 }
 
 body[data-dsh-orca-link] [data-slot='sidebar']:not([data-orca-sidebar-wide]) > :first-child > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession'] {
@@ -3768,7 +3850,6 @@ body[data-dsh-orca-link] {
   body[data-dsh-orca-link] [data-orca-composer-restore],
   body[data-dsh-orca-link] .lightSceneLayer,
   body[data-dsh-orca-link] .darkSceneLayer,
-  body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']::before,
   body[data-dsh-orca-link] [role='switch'] > [class*='thumb'],
   body[data-dsh-orca-link] [data-slot='sidebar'] button[aria-haspopup='dialog']::after { transition: none; }
   body[data-dsh-orca-link] .statusCharacterBubble { transition: none; }
