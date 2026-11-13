@@ -1796,7 +1796,7 @@ window.__ModuleLoader__.load({
 		* the art groups.
 		*
 		* Product icons use the host's semantic symbol IDs. Library-external SVGs
-		* use distinctive drawing fragments from DSH 0.2.2-rc.2 (ddac96760b6e).
+		* use distinctive drawing fragments from DSH 0.2.2-rc.3 (38a6a5c965aa).
 		* Unmatched drawings, such as the brand wordmark and hero artwork, keep
 		* their host geometry.
 		*/
@@ -1929,6 +1929,7 @@ window.__ModuleLoader__.load({
 			paperclip: ["<path d=\"M12 4.25v6.5a2.75 2.75 0 0 1-5.5 0V4.25a1.5 1.5 0 0 1 3 0v6.5\" transform=\"rotate(-45 8 8)\"/>"].join(""),
 			command: ["<path d=\"M4.5 4.5 8 8l-3.5 3.5M8.75 11.5h4\"/>"].join(""),
 			download: ["<path d=\"M8 2.25v7.5M5.25 7 8 9.75 10.75 7\"/>", "<path d=\"M2.5 11.25v2.5h11v-2.5\"/>"].join(""),
+			upload: ["<path d=\"M8 9.75v-7.5M5.25 5 8 2.25 10.75 5\"/>", "<path d=\"M2.5 11.25v2.5h11v-2.5\"/>"].join(""),
 			share: ["<path d=\"M2.5 8h9.75M9 4.75 12.75 8 9 11.25\"/>"].join(""),
 			"right-up": ["<path d=\"M3 13.25 13.25 3M6.5 3h6.75v6.75\"/>"].join(""),
 			enhance: ["<path d=\"M2 2.75h12M2 6.75h12M2 10.75h12M2 14h8.5\"/>"].join(""),
@@ -2096,6 +2097,7 @@ window.__ModuleLoader__.load({
 			["paperclip-outline", "paperclip"],
 			["loading-outline", "loading"],
 			["download-outline", "download"],
+			["upload-outline", "upload"],
 			["play-outline", "play"],
 			["pause-outline", "pause"],
 			["fullscreen-outline", "fullscreen"],
@@ -2153,7 +2155,7 @@ window.__ModuleLoader__.load({
 			["apps-add-outline", "apps-add"],
 			["apps-add-compact-outline", "apps-add"]
 		]);
-		/** Inline glyph fragments verified against DSH 0.2.2-rc.2 (ddac96760b6e).
+		/** Inline glyph fragments verified against DSH 0.2.2-rc.3 (38a6a5c965aa).
 		* Shared contours are keyed by their distinguishing drawing, not the frame.
 		* Full target SVGs, including inline controls, live in tests/fixtures. */
 		const ICON_KEYS = [

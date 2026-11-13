@@ -13,7 +13,7 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  * the art groups.
  *
  * Product icons use the host's semantic symbol IDs. Library-external SVGs
- * use distinctive drawing fragments from DSH 0.2.2-rc.2 (ddac96760b6e).
+ * use distinctive drawing fragments from DSH 0.2.2-rc.3 (38a6a5c965aa).
  * Unmatched drawings, such as the brand wordmark and hero artwork, keep
  * their host geometry.
  */
@@ -279,6 +279,11 @@ const ICON_ART: Record<string, string> = {
     '<path d="M8 2.25v7.5M5.25 7 8 9.75 10.75 7"/>',
     '<path d="M2.5 11.25v2.5h11v-2.5"/>',
   ].join(''),
+  // 0.2.2-rc.3 upload: the download tray with the arrow pointing up.
+  upload: [
+    '<path d="M8 9.75v-7.5M5.25 5 8 2.25 10.75 5"/>',
+    '<path d="M2.5 11.25v2.5h11v-2.5"/>',
+  ].join(''),
   share: ['<path d="M2.5 8h9.75M9 4.75 12.75 8 9 11.25"/>'].join(''),
   'right-up': ['<path d="M3 13.25 13.25 3M6.5 3h6.75v6.75"/>'].join(''),
   enhance: ['<path d="M2 2.75h12M2 6.75h12M2 10.75h12M2 14h8.5"/>'].join(''),
@@ -477,6 +482,7 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['paperclip-outline', 'paperclip'],
   ['loading-outline', 'loading'],
   ['download-outline', 'download'],
+  ['upload-outline', 'upload'],
   ['play-outline', 'play'],
   ['pause-outline', 'pause'],
   ['fullscreen-outline', 'fullscreen'],
@@ -535,7 +541,7 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['apps-add-compact-outline', 'apps-add'],
 ])
 
-/** Inline glyph fragments verified against DSH 0.2.2-rc.2 (ddac96760b6e).
+/** Inline glyph fragments verified against DSH 0.2.2-rc.3 (38a6a5c965aa).
  * Shared contours are keyed by their distinguishing drawing, not the frame.
  * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
