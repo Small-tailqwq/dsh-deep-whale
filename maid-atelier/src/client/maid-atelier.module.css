@@ -247,10 +247,12 @@ body[data-dsh-maid-atelier] [class*='centerCol'] {
 /* The ConversationRoot is the column's in-flow content. `position: relative`
    without a z-index lifts it into the positioned band AFTER the stage in DOM
    order, so chat rows, the header and the composer paint above the artwork
-   while fixed popups inside it keep painting at page level. */
+   while fixed popups inside it keep painting at page level. Release the host
+   Hero's isolation so the header and its tooltips can clear the column trims. */
 body[data-dsh-maid-atelier] [class*='centerCol']
   :is([data-phase='hero'], [data-phase='active'], [data-phase='settling']) {
   position: relative;
+  isolation: auto;
 }
 
 body[data-dsh-maid-atelier] [data-maid-character] {
@@ -484,12 +486,20 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer] {
   transition: transform 520ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* The compact source retains the landing-page lace. Slight overscan keeps the
-   source's transparent edge rows outside the 48px layer. */
+/* The native header's 28px controls need a continuous navy band above the lace.
+   Keep the embroidery at its original scale and extend only the fabric. */
 body[data-dsh-maid-atelier] [data-skin-trim-layer='landing'] {
-  height: 48px;
-  background: var(--maid-top-trim-art) left -2px / auto 51px repeat-x;
+  height: 56px;
+  background: var(--maid-top-trim-art) left 6px / auto 51px repeat-x;
   transform: translateY(0);
+}
+
+body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 26px;
+  background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x;
 }
 
 /* At the expanded scale, the source's white embroidery starts below this
@@ -521,7 +531,7 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
   /* ConversationRoot reserves DSH's stable 8px scrollbar gutter. Center the
      ornaments on that content box, the same axis as the title and composer. */
   left: calc((100% - 8px) / 2);
-  top: -1px;
+  top: 7px;
   width: 80px;
   height: 42px;
   transform: translateX(-50%);
@@ -661,6 +671,13 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header {
   z-index: 21;
   color: #f8f3e8;
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
+}
+
+/* Center the native control within the landing ribbon without shrinking its hit area. */
+body[data-dsh-maid-atelier] [class*='centerCol'] [data-phase='hero']
+  [data-slot='conversation.header'] [data-sidebar-right-expand] {
+  position: relative;
+  top: -11px;
 }
 
 /* Those light, glowing labels are drawn for the navy top band that only the

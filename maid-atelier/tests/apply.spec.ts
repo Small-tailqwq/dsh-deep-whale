@@ -1901,6 +1901,7 @@ describe('Maid Atelier skin apply', () => {
       /\[class\*='centerCol'\]\s*:is\(\[data-phase='hero'\], \[data-phase='active'\], \[data-phase='settling'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(conversationRootRule).toContain('position: relative')
+    expect(conversationRootRule).toContain('isolation: auto')
     expect(conversationRootRule).not.toContain('z-index')
     // Left maid at chat-area bottom-left, right maid at chat-area bottom-right,
     // both sized against the chat area's height (percentages of the stage).
@@ -3065,8 +3066,8 @@ describe('Maid Atelier skin apply', () => {
     const workspaceTrimRule = CSS.match(/\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     expect(topTrimRule).toContain('height: 76px')
     expect(topTrimRule).toContain('overflow: hidden')
-    expect(landingTrimRule).toContain('height: 48px')
-    expect(landingTrimRule).toContain('background: var(--maid-top-trim-art) left -2px / auto 51px repeat-x')
+    expect(landingTrimRule).toContain('height: 56px')
+    expect(landingTrimRule).toContain('background: var(--maid-top-trim-art) left 6px / auto 51px repeat-x')
     expect(workspaceTrimRule).toContain('height: 76px')
     expect(workspaceTrimRule).toContain('background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x')
     expect(CSS).not.toMatch(/var\(--maid-top-trim-art\)[^;]*100% 100%/)
