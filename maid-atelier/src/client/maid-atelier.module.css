@@ -217,6 +217,7 @@ body[data-dsh-maid-atelier] [data-shell-leading] {
    the client entry; the maids seat at the stage's bottom corners and scale
    with its height (% of the stage), never with the viewport. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
+  --maid-character-edge: clamp(8px, 1.5%, 24px);
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -235,6 +236,11 @@ body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
      the palace's own ground edge lands below the visible bottom, the floor is
      cut in half, and the maids read as standing inside it. */
   background: var(--maid-palace-art) center bottom / cover no-repeat;
+}
+
+body[data-dsh-maid-atelier] [data-skin-chrome='character-span'] {
+  position: absolute;
+  inset: 0 var(--maid-character-edge);
 }
 
 /* The conversation column is the stage's containing block. It stays
@@ -276,13 +282,13 @@ body[data-dsh-maid-atelier] [data-maid-character] {
    the transcript column (max 748px, centered) in a wide chat. */
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
   bottom: 0;
-  left: clamp(8px, 1.5%, 24px);
+  left: var(--maid-character-edge);
   height: 96%;
 }
 
 body[data-dsh-maid-atelier]
   :is([data-maid-character='right'], [data-maid-character='vision']) {
-  right: clamp(8px, 1.5%, 24px);
+  right: var(--maid-character-edge);
   bottom: 0;
   height: 92%;
 }

@@ -15,12 +15,12 @@
  * them: the active-conversation retreat, the phone layout, the model-exit feature, or a
  * later revision of the character rules.
  *
- * The distance comes from `offsetLeft`/`offsetWidth` — layout geometry, not
- * painted geometry. `translate` therefore never feeds back into the
- * measurement: the maid this module slides away (or the one the model-exit
- * rules slid away) keeps the box it had, the gap stays what it really is, and
- * the decision holds until the column itself changes.
+ * The available span shares the figures' CSS insets. ResizeObserver gives us
+ * the span and figure widths from completed layout, so a frame callback can
+ * decide whether they fit without forcing layout. Translation leaves those
+ * widths intact when a figure slides offscreen.
  */
+const SPAN_SELECTOR = "[data-skin-chrome='character-span']"
 const LEFT_SELECTOR = "[data-maid-character='left']"
 const RIGHT_SELECTOR = "[data-maid-character='right']"
 /** Body marker the stylesheet's `character-fit` rules are scoped on. */
@@ -39,15 +39,17 @@ const RESTORE_GAP_PX = 96
 export function installMaidCharacterFit(stage: HTMLElement): () => void {
   const body = stage.ownerDocument.body
   const view = stage.ownerDocument.defaultView
+  const span = stage.querySelector<HTMLElement>(SPAN_SELECTOR)
   const left = stage.querySelector<HTMLElement>(LEFT_SELECTOR)
   const right = stage.querySelector<HTMLElement>(RIGHT_SELECTOR)
   // Both maids are created with the stage, so an absent one means this is not
   // the stage shape the module drives; leave the marker alone.
-  if (body === null || view === null || left === null || right === null) return () => {}
+  if (body === null || view === null || span === null || left === null || right === null) return () => {}
 
   let crowded = false
   let frame: number | null = null
   let observer: ResizeObserver | undefined
+  const widths = new Map<Element, number>()
 
   const decide = (next: boolean): void => {
     // A same-value write is still a mutation record every `body[...]` rule pays
@@ -60,13 +62,12 @@ export function installMaidCharacterFit(stage: HTMLElement): () => void {
 
   const measure = (): void => {
     frame = null
-    // A stage that is not laid out yet — the conversation column has not
-    // mounted, or it is detached mid-render — measures as 0/0 and must not
-    // decide anything; the observer re-runs this once the column exists.
-    if (!stage.isConnected || stage.offsetWidth === 0) return
-    // Both maids are absolutely positioned in the stage, so they share an offset
-    // parent and the difference of their offsets is the room between them.
-    const gap = right.offsetLeft - left.offsetLeft - left.offsetWidth
+    if (!stage.isConnected) return
+    const available = widths.get(span)
+    const leftWidth = widths.get(left)
+    const rightWidth = widths.get(right)
+    if (available === undefined || available === 0 || leftWidth === undefined || rightWidth === undefined) return
+    const gap = available - leftWidth - rightWidth
     decide(crowded ? gap < RESTORE_GAP_PX : gap < CROWDED_GAP_PX)
   }
 
@@ -75,22 +76,37 @@ export function installMaidCharacterFit(stage: HTMLElement): () => void {
     if (frame === null) frame = view.requestAnimationFrame(measure)
   }
 
-  if (typeof view.ResizeObserver === 'function') {
-    observer = new view.ResizeObserver(schedule)
-    // The column's width (stage) and both maids' boxes are the only inputs: the
-    // maids' height is a percentage of the column, and the active-conversation retreat
-    // changes it again. Anything that moves them moves one of these three.
-    observer.observe(stage)
-    observer.observe(left)
-    observer.observe(right)
-  }
-  schedule()
-
-  return () => {
+  const dispose = (): void => {
     if (frame !== null) view.cancelAnimationFrame(frame)
     frame = null
     observer?.disconnect()
-    observer = undefined
     decide(false)
   }
+
+  try {
+    if (typeof view.ResizeObserver === 'function') {
+      observer = new view.ResizeObserver(entries => {
+        for (const entry of entries) widths.set(entry.target, entry.contentRect.width)
+        schedule()
+      })
+      observer.observe(span)
+      observer.observe(left)
+      observer.observe(right)
+    } else {
+      frame = view.requestAnimationFrame(() => {
+        if (!stage.isConnected || stage.offsetWidth === 0) {
+          frame = null
+          return
+        }
+        widths.set(span, span.offsetWidth)
+        widths.set(left, left.offsetWidth)
+        widths.set(right, right.offsetWidth)
+        measure()
+      })
+    }
+  } catch (error) {
+    dispose()
+    throw error
+  }
+  return dispose
 }

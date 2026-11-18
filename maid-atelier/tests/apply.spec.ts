@@ -1905,10 +1905,11 @@ describe('Maid Atelier skin apply', () => {
     expect(conversationRootRule).not.toContain('z-index')
     // Left maid at chat-area bottom-left, right maid at chat-area bottom-right,
     // both sized against the chat area's height (percentages of the stage).
-    expect(baseLeftRule).toContain('left: clamp(8px, 1.5%, 24px)')
+    expect(stageRule).toContain('--maid-character-edge: clamp(8px, 1.5%, 24px)')
+    expect(baseLeftRule).toContain('left: var(--maid-character-edge)')
     expect(baseLeftRule).toContain('bottom: 0')
     expect(baseLeftRule).toContain('height: 96%')
-    expect(baseRightRule).toContain('right: clamp(8px, 1.5%, 24px)')
+    expect(baseRightRule).toContain('right: var(--maid-character-edge)')
     expect(baseRightRule).toContain('bottom: 0')
     expect(baseRightRule).toContain('height: 92%')
     // Left and right maids share the same corner layout: no asymmetric
