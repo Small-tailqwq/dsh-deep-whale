@@ -665,6 +665,14 @@ describe('Maid Atelier skin apply', () => {
     expect(current!.hasAttribute('data-maid-session-last')).toBe(false)
     expect(other!.hasAttribute('data-maid-session-first')).toBe(false)
     expect(other!.hasAttribute('data-maid-session-last')).toBe(true)
+    expect(group.querySelectorAll(':scope > [data-maid-session-branch]')).toHaveLength(2)
+    expect(current!.hasAttribute('data-maid-selected-branch')).toBe(true)
+    expect(other!.parentElement!.hasAttribute('data-maid-session-branch')).toBe(true)
+    current!.setAttribute('aria-selected', 'false')
+    childSession!.setAttribute('aria-selected', 'true')
+    await flushMutations()
+    expect(group.querySelector(':scope > [data-maid-selected-branch]')).toBeNull()
+    expect(childSession!.hasAttribute('data-maid-selected-branch')).toBe(true)
     expect([...group.querySelectorAll('[role="treeitem"]')].map(row => row.textContent))
       .toEqual(['Parent', 'Child', 'Child session', 'Current', 'Other'])
 
@@ -696,6 +704,7 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector('[data-maid-session-row]')).toBeNull()
     expect(document.querySelector('[data-maid-session-first]')).toBeNull()
     expect(document.querySelector('[data-maid-session-last]')).toBeNull()
+    expect(document.querySelector('[data-maid-session-branch], [data-maid-selected-branch]')).toBeNull()
   })
 
   it('keeps skin hooks on a row the host is fading out of the exit overlay', async () => {
@@ -2686,14 +2695,14 @@ describe('Maid Atelier skin apply', () => {
     expect(sessionRowRule).toContain('min-width: 0')
     expect(selectedSessionRule).toContain('background: transparent')
     expect(selectedSessionRule).toContain('color: #fff8e8')
-    expect(selectedSessionPlaqueRule).toContain('inset: 0 0 0 calc(18px + var(--dsh-workspace-indent, 0px))')
+    expect(selectedSessionPlaqueRule).toContain('inset: 0 0 0 var(--maid-session-plaque-start, 18px)')
     expect(selectedSessionPlaqueRule).toContain('border-radius: 8px')
     expect(selectedSessionPlaqueRule).toContain('rgba(226, 190, 112, 0.72)')
     expect(selectedSessionPlaqueRule).toContain('rgba(82, 111, 184, 0.74)')
-    expect(sessionBranchRule).toContain('repeating-linear-gradient')
-    expect(sessionBranchRule).toContain('left: calc(8px + var(--dsh-workspace-indent, 0px))')
-    expect(sessionBranchRule).toContain('width: 10px')
-    expect(CSS).toMatch(/\[data-maid-session-last\]::before\s*\{[^}]*1px 50% no-repeat/s)
+    expect(sessionBranchRule).toContain('var(--maid-thread-tip)')
+    expect(sessionBranchRule).toContain('var(--maid-thread-in)')
+    expect(sessionBranchRule).toContain('var(--maid-thread-through)')
+    expect(CSS).toMatch(/\[data-maid-session-last\]::before\s*\{[^}]*--maid-thread-out-height: 0px/s)
   })
 
   // Issue #211: the host indents "group by workspace tree" levels with a
@@ -2711,9 +2720,6 @@ describe('Maid Atelier skin apply', () => {
     const sessionBranchRule = CSS.match(
       /\[data-maid-session-row\]::before\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
-    const sessionRuleRule = CSS.match(
-      /\[data-maid-session-row\]:not\(:last-child\)::after\s*\{([^}]*)\}/s,
-    )?.[1] ?? ''
     const plaqueRule = CSS.match(
       /\[data-maid-session-row\]:not\(\[data-maid-session-flat\]\)\[aria-selected='true'\]::after\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
@@ -2722,9 +2728,10 @@ describe('Maid Atelier skin apply', () => {
     expect(workspaceRowRule).toContain(`padding-inline-start: calc(10px + ${indent})`)
     expect(sessionRowRule).toContain(`padding-inline-start: calc(24px + ${indent})`)
     expect(sessionSlotRule).toContain(`left: calc(6px + ${indent})`)
-    expect(sessionBranchRule).toContain(`left: calc(8px + ${indent})`)
-    expect(sessionRuleRule).toContain(`left: calc(28px + ${indent})`)
-    expect(plaqueRule).toContain(`inset: 0 0 0 calc(18px + ${indent})`)
+    expect(sessionBranchRule).toContain('left: var(--maid-thread-axis)')
+    expect(CSS).toContain(`--maid-thread-axis: calc(16.5px + ${indent})`)
+    expect(CSS).toContain('--maid-session-plaque-start: calc(var(--maid-thread-axis) + 8.5px)')
+    expect(plaqueRule).toContain('inset: 0 0 0 var(--maid-session-plaque-start, 18px)')
     expect(ribbonRule).toContain('inset: calc(-1 * var(--maid-workspace-ribbon-overhang)) 0 calc(-1 * var(--maid-workspace-ribbon-overhang)) -12px')
     // The flat list is not a tree: it must keep its own even gutter instead of
     // inheriting a leftover indent step from an enclosing group section.
