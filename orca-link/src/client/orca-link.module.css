@@ -549,14 +549,23 @@ body[data-dsh-orca-link][data-orca-panel-page]
   pointer-events: none;
 }
 
-/* The page root only lifts above the sheet; it must not carry the filter. Its
-   cards take the skin's own surface instead of the 24% base wash, so a row
-   still reads as a row on the sheet. Host overlays portal to body, so the new
-   stacking context traps nothing. */
+/* The column sheet provides the page backdrop. Sticky rows and cards consume
+   these opaque tokens independently so their content never blends with rows below. */
 body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > * {
   position: relative;
   z-index: 2;
-  --dsw-alias-bg-base: var(--orca-surface);
+  --dsw-alias-bg-base: #fdfaf4;
+  --dsw-alias-bg-layer-1: #fffcf6;
+  --dsw-alias-bg-layer-2: #f7f4ee;
+  --dsw-alias-bg-layer-3: #f0ece5;
+  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-panel-page] [data-slot='main'] > * {
+  --dsw-alias-bg-base: #0c111a;
+  --dsw-alias-bg-layer-1: #0e141e;
+  --dsw-alias-bg-layer-2: #131b28;
+  --dsw-alias-bg-layer-3: #1a2332;
 }
 
 /* Host primitives spend `disabled` as a 40% opacity budget, priced against the

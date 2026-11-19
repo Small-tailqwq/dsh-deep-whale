@@ -242,6 +242,9 @@ function createCharacterStage(): HTMLDivElement {
   stage.dataset.skinOwner = SKIN_OWNER
   stage.setAttribute('aria-hidden', 'true')
 
+  const span = document.createElement('div')
+  span.dataset.skinChrome = 'character-span'
+
   const left = document.createElement('img')
   left.dataset.maidCharacter = 'left'
   left.alt = ''
@@ -257,7 +260,7 @@ function createCharacterStage(): HTMLDivElement {
   vision.alt = ''
   vision.src = MAID_ATELIER_MAID_RIGHT_VISION
 
-  stage.append(left, right, vision)
+  stage.append(span, left, right, vision)
   return stage
 }
 

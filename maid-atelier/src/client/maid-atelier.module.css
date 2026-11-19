@@ -217,6 +217,7 @@ body[data-dsh-maid-atelier] [data-shell-leading] {
    the client entry; the maids seat at the stage's bottom corners and scale
    with its height (% of the stage), never with the viewport. */
 body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
+  --maid-character-edge: clamp(8px, 1.5%, 24px);
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -237,6 +238,11 @@ body[data-dsh-maid-atelier] [data-skin-chrome='character-stage'] {
   background: var(--maid-palace-art) center bottom / cover no-repeat;
 }
 
+body[data-dsh-maid-atelier] [data-skin-chrome='character-span'] {
+  position: absolute;
+  inset: 0 var(--maid-character-edge);
+}
+
 /* The conversation column is the stage's containing block. It stays
    z-index auto (no new stacking context), so fixed popups keep their
    page-level tier. */
@@ -247,10 +253,12 @@ body[data-dsh-maid-atelier] [class*='centerCol'] {
 /* The ConversationRoot is the column's in-flow content. `position: relative`
    without a z-index lifts it into the positioned band AFTER the stage in DOM
    order, so chat rows, the header and the composer paint above the artwork
-   while fixed popups inside it keep painting at page level. */
+   while fixed popups inside it keep painting at page level. Release the host
+   Hero's isolation so the header and its tooltips can clear the column trims. */
 body[data-dsh-maid-atelier] [class*='centerCol']
   :is([data-phase='hero'], [data-phase='active'], [data-phase='settling']) {
   position: relative;
+  isolation: auto;
 }
 
 body[data-dsh-maid-atelier] [data-maid-character] {
@@ -274,13 +282,13 @@ body[data-dsh-maid-atelier] [data-maid-character] {
    the transcript column (max 748px, centered) in a wide chat. */
 body[data-dsh-maid-atelier] [data-maid-character='left'] {
   bottom: 0;
-  left: clamp(8px, 1.5%, 24px);
+  left: var(--maid-character-edge);
   height: 96%;
 }
 
 body[data-dsh-maid-atelier]
   :is([data-maid-character='right'], [data-maid-character='vision']) {
-  right: clamp(8px, 1.5%, 24px);
+  right: var(--maid-character-edge);
   bottom: 0;
   height: 92%;
 }
@@ -484,12 +492,20 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer] {
   transition: transform 520ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* The compact source retains the landing-page lace. Slight overscan keeps the
-   source's transparent edge rows outside the 48px layer. */
+/* The native header's 28px controls need a continuous navy band above the lace.
+   Keep the embroidery at its original scale and extend only the fabric. */
 body[data-dsh-maid-atelier] [data-skin-trim-layer='landing'] {
-  height: 48px;
-  background: var(--maid-top-trim-art) left -2px / auto 51px repeat-x;
+  height: 56px;
+  background: var(--maid-top-trim-art) left 6px / auto 51px repeat-x;
   transform: translateY(0);
+}
+
+body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 26px;
+  background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x;
 }
 
 /* At the expanded scale, the source's white embroidery starts below this
@@ -521,7 +537,7 @@ body[data-dsh-maid-atelier] [data-skin-trim-layer='landing']::after {
   /* ConversationRoot reserves DSH's stable 8px scrollbar gutter. Center the
      ornaments on that content box, the same axis as the title and composer. */
   left: calc((100% - 8px) / 2);
-  top: -1px;
+  top: 7px;
   width: 80px;
   height: 42px;
   transform: translateX(-50%);
@@ -661,6 +677,13 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header {
   z-index: 21;
   color: #f8f3e8;
   text-shadow: 0 1px 3px rgba(4, 11, 35, 0.55);
+}
+
+/* Center the native control within the landing ribbon without shrinking its hit area. */
+body[data-dsh-maid-atelier] [class*='centerCol'] [data-phase='hero']
+  [data-slot='conversation.header'] [data-sidebar-right-expand] {
+  position: relative;
+  top: -11px;
 }
 
 /* Those light, glowing labels are drawn for the navy top band that only the
@@ -1859,14 +1882,27 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
   pointer-events: none;
 }
 
-/* The page root only lifts; it must not carry the filter. `z-index: 2` clears
-   the stage (0), the sheet (1) and the trims (1), and the stacking context
-   traps nothing because host overlays portal to body. */
+/* The column sheet provides the page backdrop. Sticky rows and cards consume
+   these opaque tokens independently so their content never blends with rows below. */
 body[data-dsh-maid-atelier][data-maid-panel-page]
   [data-slot='main']
   > * {
   position: relative;
   z-index: 2;
+  --dsw-alias-bg-base: #f8faff;
+  --dsw-alias-bg-layer-1: #f8faff;
+  --dsw-alias-bg-layer-2: #ebf0fa;
+  --dsw-alias-bg-layer-3: #e0e7f6;
+  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
+  [data-slot='main']
+  > * {
+  --dsw-alias-bg-base: #0d193b;
+  --dsw-alias-bg-layer-1: #121f43;
+  --dsw-alias-bg-layer-2: #182850;
+  --dsw-alias-bg-layer-3: #20315b;
 }
 
 /* Convert the host's header collapse into unitless progress: the page sheet
