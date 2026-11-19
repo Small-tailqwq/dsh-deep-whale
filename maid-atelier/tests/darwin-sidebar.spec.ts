@@ -68,14 +68,18 @@ describe('Maid Atelier macOS sidebar fills', () => {
     expect(CSS).toMatch(/\[class\*='sidebarCol'\] > div > :not\(\s*\[data-skin-chrome='sidebar-mascot'\],[^)]*\)\s*\{\s*position: relative;\s*z-index: 2;/)
   })
 
-  it('docks the native toggle into a brand plate that clears the traffic lights', () => {
+  it('docks the native toggle as a segment of the brand plate below the traffic lights', () => {
     const strip = "html[data-platform='darwin'] body[data-dsh-maid-atelier]\n  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip']"
     expect(declarations(strip)).toContain('z-index: 6')
     const plate = declarations(`${strip} + [class*='logoRow']`)
     expect(plate).toContain('z-index: 5')
-    expect(plate).toMatch(/margin: -42px 8px 0 84px;/)
-    expect(plate).toMatch(/padding: 0 40px 0 10px;/)
-    expect(declarations(`${strip} > button[data-sidebar-toggle]`)).toContain('transform: translate(-8px, 3px)')
+    expect(plate).toMatch(/height: 50px;/)
+    expect(plate).toMatch(/margin: -16px 8px 0;/)
+    expect(plate).toMatch(/padding: 0 48px 0 12px;/)
+    const toggle = declarations(`${strip} > button[data-sidebar-toggle]`)
+    expect(toggle).toMatch(/width: 40px;\s*height: 48px;/)
+    expect(toggle).toContain('margin: 37px 5px 0 0')
+    expect(toggle).toContain('transform: none')
     expect(CSS).toMatch(/button\[data-sidebar-opener\] \{\s*width: 28px;/)
   })
 })
