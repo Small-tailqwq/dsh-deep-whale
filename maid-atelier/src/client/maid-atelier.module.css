@@ -952,6 +952,76 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier]
   padding: 8px 8px 10px;
 }
 
+/* macOS hiddenInset: lift the brand plate into the traffic-light row, right of
+ * the lights, and dock the host's native sidebar toggle inside its right end
+ * as a gold medallion. The collapsed header opener gets the same medallion. */
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] {
+  position: relative;
+  z-index: 6;
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] + [class*='logoRow'] {
+  position: relative;
+  z-index: 5;
+  box-sizing: border-box;
+  height: 36px;
+  min-height: 36px;
+  margin: -42px 8px 0 84px;
+  padding: 0 40px 0 10px;
+  justify-content: flex-start;
+}
+
+html[data-platform='darwin'][data-fullscreen] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] {
+  justify-content: flex-end;
+}
+
+html[data-platform='darwin'][data-fullscreen] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] + [class*='logoRow'] {
+  margin-left: 8px;
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] > button[data-sidebar-toggle],
+html[data-platform='darwin'] body[data-dsh-maid-atelier] button[data-sidebar-opener] {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(225, 191, 124, 0.82);
+  border-radius: 50%;
+  corner-shape: round;
+  color: #ebd29e;
+  background: linear-gradient(145deg, rgba(77, 103, 169, 0.55), rgba(7, 18, 52, 0.9));
+  box-shadow:
+    inset 0 0 0 2px rgba(5, 15, 45, 0.76),
+    0 2px 6px rgba(1, 7, 24, 0.32);
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] > button[data-sidebar-toggle] {
+  transform: translate(-8px, 3px);
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] > button[data-sidebar-toggle]:is(:hover, :focus-visible),
+html[data-platform='darwin'] body[data-dsh-maid-atelier] button[data-sidebar-opener]:is(:hover, :focus-visible) {
+  border-color: #e6c77e;
+  color: #fff4d9;
+  background: linear-gradient(145deg, rgba(103, 132, 204, 0.62), rgba(14, 30, 78, 0.92));
+}
+
+/* macOS renders the brand as a span, so the button wordmark rules below miss it. */
+html[data-platform='darwin'] body[data-dsh-maid-atelier] [data-slot='sidebar'] span[class*='brand'][class*='wide'] {
+  --dsw-alias-label-primary-inverted: #10204d;
+  color: #f3e3c0;
+  filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.72));
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier] [data-slot='sidebar'] span[class*='brand'][class*='wide'] svg > rect {
+  fill: #d7b46a;
+}
+
 /* Reuse the product's exact 182x24 vector wordmark. Porcelain ink keeps the
    DeepSeek paths crisp on navy, while the HARNESS plate uses the same gold
    accent as the surrounding frame and knocks its lettering back to navy. */
