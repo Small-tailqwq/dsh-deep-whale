@@ -3327,7 +3327,13 @@ describe('Maid Atelier skin apply', () => {
     // (z 1), below the skin's interactive tiers (21 / 40 / 1000).
     expect(pageLight).toContain('z-index: 2;')
     expect(pageLight).toContain('--dsw-alias-label-tertiary: #52658c;')
-    expect(declarations(panel, true)).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    expect(pageLight).toContain('--dsw-alias-bg-base: #f8faff;')
+    expect(pageLight).toContain('--dsw-alias-bg-layer-2: #ebf0fa;')
+    expect(pageLight).toContain('--dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);')
+    const pageDark = declarations(panel, true)
+    expect(pageDark).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    expect(pageDark).toContain('--dsw-alias-bg-base: #0d193b;')
+    expect(pageDark).toContain('--dsw-alias-bg-layer-2: #182850;')
     // No panel brings its own floor any more: an opaque second floor would cover
     // the sheet again and read as a plain white page.
     expect(pageLight).not.toContain('background: rgba(242, 246, 253, 0.94);')

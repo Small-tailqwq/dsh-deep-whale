@@ -1861,14 +1861,27 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
   pointer-events: none;
 }
 
-/* The page root only lifts; it must not carry the filter. `z-index: 2` clears
-   the stage (0), the sheet (1) and the trims (1), and the stacking context
-   traps nothing because host overlays portal to body. */
+/* The column sheet provides the page backdrop. Sticky rows and cards consume
+   these opaque tokens independently so their content never blends with rows below. */
 body[data-dsh-maid-atelier][data-maid-panel-page]
   [data-slot='main']
   > * {
   position: relative;
   z-index: 2;
+  --dsw-alias-bg-base: #f8faff;
+  --dsw-alias-bg-layer-1: #f8faff;
+  --dsw-alias-bg-layer-2: #ebf0fa;
+  --dsw-alias-bg-layer-3: #e0e7f6;
+  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
+  [data-slot='main']
+  > * {
+  --dsw-alias-bg-base: #0d193b;
+  --dsw-alias-bg-layer-1: #121f43;
+  --dsw-alias-bg-layer-2: #182850;
+  --dsw-alias-bg-layer-3: #20315b;
 }
 
 /* Convert the host's header collapse into unitless progress: the page sheet

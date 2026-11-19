@@ -29,8 +29,17 @@ describe('ORCA panel pages', () => {
     const root = block(`${GATE} ${PAGE}`)
     expect(root).toContain('position: relative')
     expect(root).toContain('z-index: 2')
-    expect(root).toContain('--dsw-alias-bg-base: var(--orca-surface)')
     expect(root).not.toContain('backdrop-filter')
+  })
+
+  it('keeps sticky rows and cards opaque in both themes', () => {
+    const light = block(`${GATE} ${PAGE}`)
+    const dark = block(`body[data-dsh-orca-link][data-ds-dark-theme][data-orca-panel-page] ${PAGE}`)
+    expect(light).toContain('--dsw-alias-bg-base: #fdfaf4')
+    expect(light).toContain('--dsw-alias-bg-layer-2: #f7f4ee')
+    expect(light).toContain('--dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2)')
+    expect(dark).toContain('--dsw-alias-bg-base: #0c111a')
+    expect(dark).toContain('--dsw-alias-bg-layer-2: #131b28')
   })
 
   it('squares the whole page subtree, whatever plugin draws it', () => {
