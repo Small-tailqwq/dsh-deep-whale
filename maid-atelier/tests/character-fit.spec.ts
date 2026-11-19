@@ -5,9 +5,7 @@ import { installMaidCharacterFit } from '../src/client/character-fit.ts'
 /** The marker the stylesheet's crowded rules are scoped on. */
 const CROWDED_ATTRIBUTE = 'data-maid-figures-crowded'
 
-/** jsdom lays nothing out (every offset is 0), so hand each element its box. */
-interface Box {
-  left: number
+interface ObservedBox {
   width: number
 }
 
@@ -19,25 +17,12 @@ let disconnected: boolean
 
 interface Fixture {
   stage: HTMLElement
-  stageBox: Box
+  span: HTMLElement
+  spanBox: ObservedBox
   setGap: (gap: number) => void
   /** One box changed: the observer notifies, then the frame measures. */
   remeasure: () => void
   dispose: () => void
-}
-
-/** The boxes jsdom would report for a pair of maids that must stand apart. */
-const LEFT_BOX: Box = { left: 24, width: 300 }
-const RIGHT_BOX: Box = { left: 0, width: 280 }
-const STAGE_BOX: Box = { left: 0, width: 900 }
-
-/**
- * Mirror the stylesheet: both maids are absolutely positioned in the stage, so
- * they share an offset parent and every offset is relative to its padding edge.
- */
-function setBox(element: HTMLElement, box: Box): void {
-  Object.defineProperty(element, 'offsetLeft', { configurable: true, get: () => box.left })
-  Object.defineProperty(element, 'offsetWidth', { configurable: true, get: () => box.width })
 }
 
 /**
@@ -47,26 +32,41 @@ function setBox(element: HTMLElement, box: Box): void {
 function mount(): Fixture {
   const stage = document.createElement('div')
   stage.dataset.skinChrome = 'character-stage'
+  const span = document.createElement('div')
+  span.dataset.skinChrome = 'character-span'
   const left = document.createElement('img')
   left.dataset.maidCharacter = 'left'
   const right = document.createElement('img')
   right.dataset.maidCharacter = 'right'
-  stage.append(left, right)
+  stage.append(span, left, right)
   document.body.append(stage)
-  setBox(stage, STAGE_BOX)
-  setBox(left, LEFT_BOX)
-  setBox(right, RIGHT_BOX)
+  for (const element of [stage, span, left, right]) {
+    for (const property of ['offsetWidth', 'offsetLeft']) {
+      Object.defineProperty(element, property, {
+        get: () => { throw new Error(`Unexpected layout read: ${property}`) },
+      })
+    }
+  }
+  const spanBox = { width: 900 }
+  const leftBox = { width: 300 }
+  const rightBox = { width: 280 }
   const setGap = (gap: number): void => {
-    RIGHT_BOX.left = LEFT_BOX.left + LEFT_BOX.width + gap
+    rightBox.width = spanBox.width - leftBox.width - gap
   }
   setGap(240)
   const dispose = installMaidCharacterFit(stage)
   return {
     stage,
-    stageBox: STAGE_BOX,
+    span,
+    spanBox,
     setGap,
     remeasure: () => {
-      notifications?.([], {} as ResizeObserver)
+      const entries = [
+        { target: span, contentRect: spanBox },
+        { target: left, contentRect: leftBox },
+        { target: right, contentRect: rightBox },
+      ] as ResizeObserverEntry[]
+      notifications?.(entries, {} as ResizeObserver)
       const pending = frames
       frames = []
       for (const callback of pending) callback(0)
@@ -106,12 +106,10 @@ afterEach(() => {
 })
 
 describe('maid character fit', () => {
-  it('watches the stage and both maids, and starts a fitting pair unmarked', () => {
+  it('watches the available span and both maids, and starts a fitting pair unmarked', () => {
     const fixture = mount()
     try {
-      // The column's width is the stage's, the maids' height is a percentage of
-      // it, and the chat-active retreat changes that height again.
-      expect(observed.has(fixture.stage)).toBe(true)
+      expect(observed.has(fixture.span)).toBe(true)
       expect(observed.size).toBe(3)
       fixture.remeasure()
       expect(crowded()).toBe(false)
@@ -166,11 +164,11 @@ describe('maid character fit', () => {
       expect(crowded()).toBe(false)
 
       document.body.append(fixture.stage)
-      fixture.stageBox.width = 0
+      fixture.spanBox.width = 0
       fixture.remeasure()
       expect(crowded()).toBe(false)
 
-      fixture.stageBox.width = 900
+      fixture.spanBox.width = 900
       fixture.remeasure()
       expect(crowded()).toBe(true)
     } finally {
@@ -202,7 +200,6 @@ describe('maid character fit', () => {
     const stage = document.createElement('div')
     stage.dataset.skinChrome = 'character-stage'
     document.body.append(stage)
-    setBox(stage, STAGE_BOX)
     const dispose = installMaidCharacterFit(stage)
     try {
       expect(frames).toHaveLength(0)

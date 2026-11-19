@@ -1901,13 +1901,15 @@ describe('Maid Atelier skin apply', () => {
       /\[class\*='centerCol'\]\s*:is\(\[data-phase='hero'\], \[data-phase='active'\], \[data-phase='settling'\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(conversationRootRule).toContain('position: relative')
+    expect(conversationRootRule).toContain('isolation: auto')
     expect(conversationRootRule).not.toContain('z-index')
     // Left maid at chat-area bottom-left, right maid at chat-area bottom-right,
     // both sized against the chat area's height (percentages of the stage).
-    expect(baseLeftRule).toContain('left: clamp(8px, 1.5%, 24px)')
+    expect(stageRule).toContain('--maid-character-edge: clamp(8px, 1.5%, 24px)')
+    expect(baseLeftRule).toContain('left: var(--maid-character-edge)')
     expect(baseLeftRule).toContain('bottom: 0')
     expect(baseLeftRule).toContain('height: 96%')
-    expect(baseRightRule).toContain('right: clamp(8px, 1.5%, 24px)')
+    expect(baseRightRule).toContain('right: var(--maid-character-edge)')
     expect(baseRightRule).toContain('bottom: 0')
     expect(baseRightRule).toContain('height: 92%')
     // Left and right maids share the same corner layout: no asymmetric
@@ -3065,8 +3067,8 @@ describe('Maid Atelier skin apply', () => {
     const workspaceTrimRule = CSS.match(/\[data-skin-trim-layer='workspace'\]\s*\{([^}]*)\}/s)?.[1] ?? ''
     expect(topTrimRule).toContain('height: 76px')
     expect(topTrimRule).toContain('overflow: hidden')
-    expect(landingTrimRule).toContain('height: 48px')
-    expect(landingTrimRule).toContain('background: var(--maid-top-trim-art) left -2px / auto 51px repeat-x')
+    expect(landingTrimRule).toContain('height: 56px')
+    expect(landingTrimRule).toContain('background: var(--maid-top-trim-art) left 6px / auto 51px repeat-x')
     expect(workspaceTrimRule).toContain('height: 76px')
     expect(workspaceTrimRule).toContain('background: var(--maid-top-trim-art) left -4px / auto 149px repeat-x')
     expect(CSS).not.toMatch(/var\(--maid-top-trim-art\)[^;]*100% 100%/)
@@ -3325,7 +3327,13 @@ describe('Maid Atelier skin apply', () => {
     // (z 1), below the skin's interactive tiers (21 / 40 / 1000).
     expect(pageLight).toContain('z-index: 2;')
     expect(pageLight).toContain('--dsw-alias-label-tertiary: #52658c;')
-    expect(declarations(panel, true)).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    expect(pageLight).toContain('--dsw-alias-bg-base: #f8faff;')
+    expect(pageLight).toContain('--dsw-alias-bg-layer-2: #ebf0fa;')
+    expect(pageLight).toContain('--dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);')
+    const pageDark = declarations(panel, true)
+    expect(pageDark).toContain('--dsw-alias-label-tertiary: #96a6c9;')
+    expect(pageDark).toContain('--dsw-alias-bg-base: #0d193b;')
+    expect(pageDark).toContain('--dsw-alias-bg-layer-2: #182850;')
     // No panel brings its own floor any more: an opaque second floor would cover
     // the sheet again and read as a plain white page.
     expect(pageLight).not.toContain('background: rgba(242, 246, 253, 0.94);')
