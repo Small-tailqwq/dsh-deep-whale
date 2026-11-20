@@ -12,6 +12,7 @@ import { promisify } from 'node:util'
 import { hashSkinAssets } from '../../scripts/skin-asset-inputs.mjs'
 import { evaluateSkinCompatibility, readDshRuntimeVersion, readProfileExemptions } from './compatibility.ts'
 import { detectDesktopShell, DesktopIconSync, resolveSkinDesktopIcon, WindowIconHolder, type DesktopIconResult } from './desktop-icon.ts'
+import { detectFinderApp, FinderIconSync } from './finder-icon.ts'
 import { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinCompatibility, type SkinSwitchState, type SkinTarget, type SkinUpdateState, type SkinVersionCommit, type SkinVersionInfo, type SkinVersionSource } from './contract.ts'
 
 export { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget } from './contract.ts'
@@ -73,7 +74,7 @@ interface SkinManifest {
   dshCompatibility?: unknown
   order?: unknown
   wiring?: { id?: unknown }
-  /** Package-relative `.ico` the Windows desktop shortcuts may show while the skin is active. */
+  /** Package-relative ICO for desktop icon sync. */
   desktopIcon?: unknown
 }
 
@@ -281,8 +282,9 @@ export function activeSkinTarget(sources: string[], catalog: SkinCatalogEntry[])
   return enabled.length === 1 ? enabled[0]!.id : 'official'
 }
 
-/** Route seam for the opt-in desktop shortcut icon; absent outside the Windows desktop shell. */
+/** Route seam for opt-in icon sync, available in the supported desktop shells. */
 interface DesktopIconControl {
+  platform?: 'darwin'
   enabled(): boolean
   setEnabled(enabled: boolean): Promise<DesktopIconResult>
   /** Called after a successful switch; must not throw. */
@@ -1034,7 +1036,7 @@ export function makeSkinManagerRoute(
             ok: true,
             skins: catalog,
             ...(runtime === undefined ? {} : { runtime: runtime(catalog) }),
-            ...(desktopIcon === undefined ? {} : { desktopIcon: { enabled: desktopIcon.enabled() } }),
+            ...(desktopIcon === undefined ? {} : { desktopIcon: { enabled: desktopIcon.enabled(), platform: desktopIcon.platform } }),
           })
           return
         }
@@ -1120,6 +1122,7 @@ export function apply(ctx: HostContext): void {
         installed, ctx.clientModules.graph().entries, ctx.loader.entries(),
       ),
     ))
+    desktopIcon?.start()
     return () => {
       unregister()
       return desktopIcon?.dispose()
@@ -1128,25 +1131,17 @@ export function apply(ctx: HostContext): void {
 }
 
 /**
- * Windows desktop shell only: the shortcut icon follows the active skin once
- * the user opts in. Shortcuts deliberately keep the skin icon across restarts;
- * only the switch, a return to the official look, or a skin without an icon
- * restores them. Startup reconciles, which also repairs a reset by a DSH update.
- * The window icon (taskbar thumbnail, Alt+Tab) lives only as long as this
- * plugin: disposing stops the helper, which restores the previous icon.
+ * Disk-backed icons follow the active skin across restarts. Startup reconciles
+ * them after an app update. The Windows window icon is restored on disposal.
  */
 function desktopIconControl(
   profilePatch: string,
   patchPaths: string[],
   catalog: () => SkinCatalogEntry[],
-): { control: DesktopIconControl, dispose(): Promise<void> } | undefined {
+): { control: DesktopIconControl, start(): void, dispose(): Promise<void> } | undefined {
   const shell = detectDesktopShell()
-  if (shell === null) return undefined
-  const windowIcon = new WindowIconHolder()
-  let disposed = false
-  const sync = new DesktopIconSync(dirname(dirname(dirname(profilePatch))), shell, undefined, (file) => {
-    if (!disposed) windowIcon.set(file)
-  })
+  const app = detectFinderApp()
+  if (shell === null && app === null) return undefined
   const source = (target: SkinTarget): { skinId: string, file: string } | null => {
     if (target === 'official') return null
     const file = discoverSkinDesktopIcons(profilePatch).get(target)
@@ -1159,7 +1154,35 @@ function desktopIconControl(
   const report = (error: unknown): void => {
     console.error('[skin-manager] desktop icon sync failed', error)
   }
-  void Promise.resolve().then(() => sync.reconcile(source(current()))).catch(report)
+  const home = dirname(dirname(dirname(profilePatch)))
+  if (app !== null) {
+    const sync = new FinderIconSync(home, app)
+    const follow = (target: () => SkinTarget): void => {
+      try {
+        void sync.reconcile(source(target())?.file ?? null).then(result => {
+          if (result.failed > 0) report(result.errors)
+        }).catch(report)
+      } catch (error) {
+        report(error)
+      }
+    }
+    return {
+      control: {
+        platform: 'darwin',
+        enabled: () => sync.enabled,
+        setEnabled: enabled => sync.setEnabled(enabled, source(current())?.file ?? null),
+        follow: target => follow(() => target),
+      },
+      start: () => follow(current),
+      dispose: () => sync.drain(),
+    }
+  }
+  if (shell === null) return undefined
+  const windowIcon = new WindowIconHolder()
+  let disposed = false
+  const sync = new DesktopIconSync(home, shell, undefined, (file) => {
+    if (!disposed) windowIcon.set(file)
+  })
   return {
     control: {
       enabled: () => sync.enabled,
@@ -1168,6 +1191,7 @@ function desktopIconControl(
         void Promise.resolve().then(() => sync.reconcile(source(target))).catch(report)
       },
     },
+    start: () => { void Promise.resolve().then(() => sync.reconcile(source(current()))).catch(report) },
     dispose: async () => {
       disposed = true
       await Promise.all([windowIcon.stop(), sync.drain()])
