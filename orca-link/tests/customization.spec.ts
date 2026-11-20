@@ -24,6 +24,7 @@ describe('ORCA LINK customization declaration', () => {
       'character',
       'mirrorCharacter',
       'sfwMode',
+      'readability',
       'pricingLight',
       'headlineTypewriter',
       'centerSettings',
@@ -41,6 +42,7 @@ describe('ORCA LINK customization declaration', () => {
         scrollHideComposer: false,
         composerHandles: true,
         headlineTypewriter: false,
+        readability: true,
         sfwMode: { enabled: true, outside: 'visible', ranges: [] },
       },
       visibility: { sfwMode: false },
@@ -49,6 +51,7 @@ describe('ORCA LINK customization declaration', () => {
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-composer-bottom-only')).toBe('off')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-composer-handles')).toBe('on')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-headline-typewriter')).toBe('off')
+    expect(document.documentElement.getAttribute('data-dsh-whale-orca-readability')).toBe('on')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-character')).toBe('hidden')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-background')).toBe('visible')
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-pricing')).toBe('hidden')
@@ -57,6 +60,7 @@ describe('ORCA LINK customization declaration', () => {
     expect(document.documentElement.getAttribute('data-dsh-whale-orca-settings-layout')).toBe('centered')
     dispose()
     expect(document.documentElement.hasAttribute('data-dsh-whale-orca-art')).toBe(false)
+    expect(document.documentElement.hasAttribute('data-dsh-whale-orca-readability')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
 
