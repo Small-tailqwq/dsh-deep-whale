@@ -911,6 +911,10 @@ window.__ModuleLoader__.load({
 			lockedBy: (label) => `「${label}」开启时不可用`,
 			locked: "当前不可用",
 			desktopIconTitle: "桌面",
+			finderIconLabel: "Finder 中的应用图标跟随皮肤",
+			finderIconDescription: "更换 Finder「应用程序」里的图标。自定义图标会影响应用的严格签名校验，关闭开关或切回官方默认即可还原。",
+			finderIconPending: "正在更新 Finder 图标…",
+			finderIconDone: (updated, failed, errors = []) => failed > 0 ? errors.includes("finder-custom-icon") ? "已保留你设置的 Finder 图标。移除该自定义图标后可再试。" : "无法更新 Finder 图标。请检查文件权限和系统设置中的「应用管理」权限，再试一次。" : updated > 0 ? "Finder 图标已更新。若 Apps 应用网格仍显示旧图标，请关掉网格后重新打开。" : "Finder 图标无需更改。",
 			desktopIconLabel: "快捷方式图标跟随皮肤",
 			desktopIconDescription: "替换桌面、开始菜单和任务栏中的图标；关闭或切回官方默认时还原。",
 			desktopIconPending: "正在更新快捷方式…",
@@ -994,6 +998,10 @@ window.__ModuleLoader__.load({
 			lockedBy: (label) => `Unavailable while “${label}” is on`,
 			locked: "Currently unavailable",
 			desktopIconTitle: "Desktop",
+			finderIconLabel: "Finder app icon follows the skin",
+			finderIconDescription: "Changes the app icon in Finder’s Applications folder. A custom icon affects strict code-signature verification. Turn this off or return to Official to restore it.",
+			finderIconPending: "Updating the Finder icon…",
+			finderIconDone: (updated, failed, errors = []) => failed > 0 ? errors.includes("finder-custom-icon") ? "Your custom Finder icon was kept. Remove it to let the icon follow the skin." : "Could not update the Finder icon. Check file permissions and App Management permissions in System Settings, then retry." : updated > 0 ? "Finder icon updated. If the Apps grid still shows the old icon, close and reopen the grid." : "The Finder icon needs no change.",
 			desktopIconLabel: "Shortcut icon follows the skin",
 			desktopIconDescription: "Replaces the icon on the desktop, Start menu and taskbar; turning this off or returning to Official restores it.",
 			desktopIconPending: "Updating shortcuts…",
@@ -2175,11 +2183,11 @@ window.__ModuleLoader__.load({
 			});
 		}
 		/**
-		* Opt-in Windows desktop shortcut icon. The host only reports the status on
-		* the desktop shell, so the card never renders in a browser.
+		* The desktop host reports which icon surface the toggle controls.
 		*/
 		function DesktopIconCard({ initial }) {
 			const copy = skinManagerCopy(useUiLang());
+			const finder = initial.platform === "darwin";
 			const [enabled, setEnabled] = (0, react.useState)(initial.enabled);
 			const [pending, setPending] = (0, react.useState)(false);
 			const [outcome, setOutcome] = (0, react.useState)(null);
@@ -2219,8 +2227,8 @@ window.__ModuleLoader__.load({
 							className: skin_manager_module_css_default.settingNode,
 							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(Toggle, {
 								checked: enabled,
-								label: copy.desktopIconLabel,
-								description: copy.desktopIconDescription,
+								label: finder ? copy.finderIconLabel : copy.desktopIconLabel,
+								description: finder ? copy.finderIconDescription : copy.desktopIconDescription,
 								disabled: pending,
 								onChange: toggle
 							})
@@ -2229,12 +2237,12 @@ window.__ModuleLoader__.load({
 					pending && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: skin_manager_module_css_default.hint,
 						role: "status",
-						children: copy.desktopIconPending
+						children: finder ? copy.finderIconPending : copy.desktopIconPending
 					}),
 					outcome !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: outcome.failed > 0 ? skin_manager_module_css_default.error : skin_manager_module_css_default.hint,
 						role: "status",
-						children: copy.desktopIconDone(outcome.updated, outcome.failed, outcome.errors)
+						children: (finder ? copy.finderIconDone : copy.desktopIconDone)(outcome.updated, outcome.failed, outcome.errors)
 					}),
 					error !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 						className: skin_manager_module_css_default.error,
@@ -2440,7 +2448,10 @@ window.__ModuleLoader__.load({
 			return {
 				skins: result.skins,
 				runtime: result.runtime,
-				...typeof result.desktopIcon?.enabled === "boolean" ? { desktopIcon: { enabled: result.desktopIcon.enabled } } : {}
+				...typeof result.desktopIcon?.enabled === "boolean" ? { desktopIcon: {
+					enabled: result.desktopIcon.enabled,
+					...result.desktopIcon.platform === "darwin" ? { platform: "darwin" } : {}
+				} } : {}
 			};
 		}
 		/** Installed skin catalog; never waits for optional version probes. */

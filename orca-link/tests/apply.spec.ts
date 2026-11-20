@@ -207,7 +207,7 @@ describe('Orca Link skin apply', () => {
       short_name: 'DSH',
       start_url: root,
       scope: root,
-      display: 'fullscreen',
+      display: 'standalone',
       // Bitmap icons only: Windows rasterises the installed app, taskbar and
       // start-menu icons from them, and a `sizes: "any"` SVG entry lets the
       // update path pick an icon it cannot rasterise.

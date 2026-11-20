@@ -47,6 +47,8 @@ describe('preset plugin icons', () => {
     document.body.innerHTML = `
       <li data-plugin-item="shell"><div class="host_cardHead"><span class="host_cardIcon" id="shell"><svg></svg></span></div></li>
       <li data-plugin-package="@deepseek-ai/dsh-experimental-voice-input-bundle"><div class="host_cardHead"><span class="host_cardIcon" id="voice"><img src="/voice.svg"></span></div></li>
+      <li data-plugin-package="@deepseek-ai/dsh-deepseek-chat-import"><div class="host_cardHead"><span class="host_cardIcon" id="chat-import"><img src="/chat-import.svg"></span></div></li>
+      <div data-plugin-detail="@deepseek-ai/dsh-cua-bundle"><div class="host_detailTop"><div class="host_detailHead"><span class="host_cardIcon" id="cua"><img src="/cua.svg"></span></div></div></div>
       <div data-plugin-detail="@deepseek-ai/dsh-subagent-codex"><div class="host_detailTop"><div class="host_detailHead"><span class="host_cardIcon" id="codex"><img src="/codex.svg"></span></div></div>
         <li data-plugin-package="third-party"><div class="host_cardHead"><span class="host_cardIcon" id="nested"><svg></svg></span></div></li>
       </div>
@@ -62,7 +64,7 @@ describe('preset plugin icons', () => {
     cleanups.push(() => definition.apply(null))
     definition.apply(enabled)
     const rules = [...skinStyle.sheet!.cssRules] as CSSStyleRule[]
-    for (const id of ['shell', 'voice', 'codex', 'search']) {
+    for (const id of ['shell', 'voice', 'chat-import', 'cua', 'codex', 'search']) {
       const target = document.getElementById(id)!
       expect(rules.some(rule => rule.style.getPropertyValue('--dsh-preset-plugin-icon') && target.matches(rule.selectorText)), id).toBe(true)
     }

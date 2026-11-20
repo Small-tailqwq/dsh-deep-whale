@@ -56,7 +56,7 @@ github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier
 github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link
 ```
 
-Với cấu hình mặc định, pnpm 11.7.0 đi kèm DSH ưu tiên các phiên bản npm đã phát hành ít nhất 24 giờ. Để cài ngay một bản mới cụ thể, nhập `tên-package@^phiên-bản` vào cùng ô **Add plugin**, ví dụ `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.10` (không thêm tiền tố lệnh). Thao tác `add` chỉ định phiên bản này sẽ cài bản mới và ghi phiên bản chính xác vào `minimumReleaseAgeExclude` trong `pnpm-workspace.yaml`, đồng thời giữ dependency ở dạng khoảng phiên bản caret. Hành vi này áp dụng cho phiên bản đi kèm và cấu hình mặc định; phiên bản pnpm khác hoặc chính sách tùy chỉnh có thể khác. Nguồn GitHub không chịu kiểm tra tuổi package npm này.
+Với cấu hình mặc định, pnpm 11.7.0 đi kèm DSH ưu tiên các phiên bản npm đã phát hành ít nhất 24 giờ. Để cài ngay một bản mới cụ thể, nhập `tên-package@^phiên-bản` vào cùng ô **Add plugin**, ví dụ `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.11` (không thêm tiền tố lệnh). Thao tác `add` chỉ định phiên bản này sẽ cài bản mới và ghi phiên bản chính xác vào `minimumReleaseAgeExclude` trong `pnpm-workspace.yaml`, đồng thời giữ dependency ở dạng khoảng phiên bản caret. Hành vi này áp dụng cho phiên bản đi kèm và cấu hình mặc định; phiên bản pnpm khác hoặc chính sách tùy chỉnh có thể khác. Nguồn GitHub không chịu kiểm tra tuổi package npm này.
 
 Ứng dụng desktop tự quản lý profile `desktop`; bạn không cần thiết lập lệnh `dsh`. Các lệnh dùng `web` bên dưới không cài giao diện vào ứng dụng desktop.
 
@@ -131,7 +131,7 @@ Lệnh này dùng được cho cả hai nguồn: nguồn npm sẽ lên bản ph�
 Với cấu hình mặc định, pnpm 11.7.0 đi kèm DSH ưu tiên các phiên bản npm đã phát hành ít nhất 24 giờ, nên `update` có thể vẫn giữ bản cũ. Để cài ngay một bản mới cụ thể, hãy dùng `add` với `@^<phiên bản>` sau tên package: pnpm sẽ cài bản đó và ghi phiên bản chính xác vào `minimumReleaseAgeExclude` trong `pnpm-workspace.yaml`, đồng thời giữ dependency ở dạng khoảng phiên bản caret. Phiên bản pnpm khác hoặc chính sách tùy chỉnh có thể khác. Số phiên bản có tại [Releases](https://github.com/Small-tailqwq/dsh-deep-whale/releases):
 
 ```sh
-dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.10'
+dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.11'
 ```
 
 Đừng bỏ dấu `^`: thiếu nó, package sẽ bị cố định ở đúng phiên bản đó và các lần `update` sau sẽ không nâng cấp nữa.
@@ -140,7 +140,7 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.10
 
 **Giao diện biến mất sau khi nâng cấp DSH**
 
-Mỗi giao diện khai báo phạm vi phiên bản DSH hỗ trợ (hiện là dòng 0.2.2, gồm các bản alpha, RC và chính thức). Khi DSH mới hơn giao diện, DSH sẽ tự tắt giao diện và trở về giao diện chính thức, tránh việc giao diện cũ che mất các điều khiển như ô nhập.
+Mỗi giao diện khai báo phạm vi phiên bản DSH hỗ trợ (hiện từ 0.2.2-rc.3 đến bản chính thức 0.2.2). Khi DSH mới hơn giao diện, DSH sẽ tự tắt giao diện và trở về giao diện chính thức, tránh việc giao diện cũ che mất các điều khiển như ô nhập.
 
 Hãy cập nhật giao diện trước. Nếu chưa có bản mới mà vẫn muốn dùng tạm bản cũ, mở «Cài đặt → Quản lý giao diện»: giao diện bị tắt sẽ được ghi chú là chưa khai báo hỗ trợ phiên bản DSH hiện tại. Nhấn «Chuyển» và xác nhận. Việc cho phép này chỉ áp dụng cho phiên bản giao diện và phiên bản DSH hiện tại, sẽ được kiểm tra lại khi một trong hai thay đổi; bạn có thể quay về «Mặc định chính thức» bất cứ lúc nào.
 

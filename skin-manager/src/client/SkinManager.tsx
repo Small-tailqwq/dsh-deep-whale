@@ -821,11 +821,11 @@ export function SkinManager({ registry, active, switchSkin }: SkinManagerInjecte
 }
 
 /**
- * Opt-in Windows desktop shortcut icon. The host only reports the status on
- * the desktop shell, so the card never renders in a browser.
+ * The desktop host reports which icon surface the toggle controls.
  */
 function DesktopIconCard({ initial }: { initial: DesktopIconStatus }) {
   const copy = skinManagerCopy(useUiLang())
+  const finder = initial.platform === 'darwin'
   const [enabled, setEnabled] = useState(initial.enabled)
   const [pending, setPending] = useState(false)
   const [outcome, setOutcome] = useState<DesktopIconOutcome | null>(null)
@@ -858,15 +858,15 @@ function DesktopIconCard({ initial }: { initial: DesktopIconStatus }) {
         <div className={css.settingNode}>
           <Toggle
             checked={enabled}
-            label={copy.desktopIconLabel}
-            description={copy.desktopIconDescription}
+            label={finder ? copy.finderIconLabel : copy.desktopIconLabel}
+            description={finder ? copy.finderIconDescription : copy.desktopIconDescription}
             disabled={pending}
             onChange={toggle}
           />
         </div>
       </div>
-      {pending && <p className={css.hint} role="status">{copy.desktopIconPending}</p>}
-      {outcome !== null && <p className={outcome.failed > 0 ? css.error : css.hint} role="status">{copy.desktopIconDone(outcome.updated, outcome.failed, outcome.errors)}</p>}
+      {pending && <p className={css.hint} role="status">{finder ? copy.finderIconPending : copy.desktopIconPending}</p>}
+      {outcome !== null && <p className={outcome.failed > 0 ? css.error : css.hint} role="status">{(finder ? copy.finderIconDone : copy.desktopIconDone)(outcome.updated, outcome.failed, outcome.errors)}</p>}
       {error !== null && <p className={css.error} role="alert">{copy.actionFailed(error)}</p>}
     </section>
   )
@@ -1053,22 +1053,28 @@ function BackupCard({ registry }: { registry: SkinCustomizationRegistry }) {
   )
 }
 
-/** Present only when the host runs inside the Windows desktop shell. */
+/** Present only in supported desktop shells. Older Windows hosts omit platform. */
 interface DesktopIconStatus {
   enabled: boolean
+  platform?: 'darwin'
 }
 
 /** Installed skin catalog plus host capabilities; never waits for optional version probes. */
 export async function fetchSkinCatalogState(signal?: AbortSignal): Promise<{ skins: SkinCatalogEntry[], runtime?: SkinSwitchState, desktopIcon?: DesktopIconStatus }> {
   const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: 'same-origin', signal })
-  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], runtime?: SkinSwitchState, desktopIcon?: { enabled?: unknown }, error?: string }
+  const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], runtime?: SkinSwitchState, desktopIcon?: { enabled?: unknown, platform?: unknown }, error?: string }
   if (!response.ok || result.ok !== true || !Array.isArray(result.skins)) {
     throw new Error(result.error ?? `HTTP ${response.status}`)
   }
   return {
     skins: result.skins,
     runtime: result.runtime,
-    ...(typeof result.desktopIcon?.enabled === 'boolean' ? { desktopIcon: { enabled: result.desktopIcon.enabled } } : {}),
+    ...(typeof result.desktopIcon?.enabled === 'boolean' ? {
+      desktopIcon: {
+        enabled: result.desktopIcon.enabled,
+        ...(result.desktopIcon.platform === 'darwin' ? { platform: 'darwin' } : {}),
+      },
+    } : {}),
   }
 }
 

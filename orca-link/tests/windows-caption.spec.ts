@@ -16,7 +16,7 @@ const CSS = readFileSync(new URL('../src/client/orca-link.module.css', import.me
   .replaceAll('\r\n', '\n')
 
 const ROOT = /html\[data-windows-titlebar\] body\[data-dsh-orca-link\] \[data-sidebar-collapsed\]\s*\[data-slot='sidebar'\] > \[class\*='root'\]\[class\*='collapsed'\]/.source
-const NEW_SESSION = `${ROOT} > button\\[class\\*='newSession'\\]`
+const NEW_SESSION = `${ROOT} > \\[class\\*='newSessionRow'\\] button\\[class\\*='newSession'\\]`
 const TOGGLE = `${ROOT} > \\[class\\*='logoRow'\\] > button\\[class\\*='toggle'\\]`
 
 function block(selector: string): string {
@@ -32,15 +32,19 @@ describe('ORCA LINK Windows caption controls', () => {
     expect(rule).toContain('color: var(--dsw-alias-label-secondary)')
   })
 
+  it('releases the 0.2.2-rc.3 New Session row so the caption button keeps its tier', () => {
+    expect(block(`${ROOT} > \\[class\\*='newSessionRow'\\]`)).toContain('z-index: auto')
+  })
+
   it('outranks the stage rule that makes every sidebar-root child relative', () => {
     // The stage rule is `body :is(pane, [data-slot] > :first-child) > :not(...)`;
     // the caption rule carries html, the frame flag and the root's own classes.
     expect(CSS).toMatch(/:is\(\[data-slot='sidebar'\] > :first-child\) > :not\(\[role='tooltip'\]/)
-    expect(CSS).toContain("html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]\n    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > button[class*='newSession'] {")
+    expect(CSS).toContain("html[data-windows-titlebar] body[data-dsh-orca-link] [data-sidebar-collapsed]\n    [data-slot='sidebar'] > [class*='root'][class*='collapsed'] > [class*='newSessionRow'] button[class*='newSession'] {")
   })
 
-  it('drops the wide stage hit plane and its scan line', () => {
-    expect(CSS).toMatch(new RegExp(`${NEW_SESSION}::before,\\s*${NEW_SESSION}::after\\s*\\{\\s*content: none;`))
+  it('drops the wide stage hit plane', () => {
+    expect(block(`${NEW_SESSION}::before`)).toContain('content: none;')
   })
 
   it('shows both glyphs in every sidebar-size state', () => {

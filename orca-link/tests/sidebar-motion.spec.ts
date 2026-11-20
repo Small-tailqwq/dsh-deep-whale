@@ -53,10 +53,13 @@ describe('ORCA LINK sidebar motion', () => {
   })
 
   it('takes over only the native New Session seat, independent of plugin markers', () => {
+    // 0.2.2-rc.3: logo row + newSessionRow > sidebar.session.action anchor > button.
     const selector = css.match(/@media \(min-width: 901px\) \{\s*([^{]+)\{/)?.[1]?.trim() ?? ''
     const dom = new JSDOM(`<body data-dsh-orca-link><aside data-slot="sidebar" data-orca-sidebar-wide>
       <div class="host_root"><div class="host_logoRow"></div>
-        <button id="native" class="host_newSession"></button>
+        <div class="host_newSessionRow"><div data-slot="sidebar.session.action" style="display: contents">
+          <button id="native" class="host_newSession"></button><button id="occupant"></button>
+        </div></div>
         <button id="plain"></button><button class="host_newSession" data-plugin-entry="example"></button>
         <div data-plugin-entry="wrapper"><button class="host_newSession"></button></div>
         <nav class="host_panelList"><button></button></nav>
@@ -71,8 +74,25 @@ describe('ORCA LINK sidebar motion', () => {
     dom.window.close()
   })
 
+  it('keeps the 0.2.2-rc.3 New Session row out of the hit plane coordinates', () => {
+    const row = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow']"
+    const esc = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const rowRule = css.match(new RegExp(`${esc(row)}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+    expect(rowRule).toContain('position: static;')
+    expect(rowRule).toContain('align-items: flex-end;')
+    const lift = css.match(new RegExp(`${esc(row)} > \\[data-slot='sidebar\\.session\\.action'\\] > (:not\\([^{]+\\))\\s*\\{([^}]*)\\}`))
+    expect(lift?.[2]).toContain('z-index: 3;')
+    const dom = new JSDOM(`<div data-slot="sidebar.session.action">
+      <button class="host_newSession"></button><span role="tooltip"></span>
+      <button id="occupant"></button><span id="wrap"><button class="host_newSession"></button></span>
+    </div>`)
+    const anchor = dom.window.document.querySelector('[data-slot]')!
+    expect([...anchor.querySelectorAll(`:scope > ${lift?.[1]}`)].map(node => node.id)).toEqual(['occupant'])
+    dom.window.close()
+  })
+
   it('gives the New Session hit plane exactly the portrait box', () => {
-    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']"
+    const button = "html:not([data-dsh-whale-orca-character='hidden']) body[data-dsh-orca-link] [data-slot='sidebar'][data-orca-sidebar-wide] > :first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']"
     const esc = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const block = (selector: string): string => css.match(new RegExp(`${esc(selector)}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
     const character = block("body[data-dsh-orca-link] [data-slot='sidebar'] > :first-child > .statusCharacter")
@@ -94,7 +114,7 @@ describe('ORCA LINK sidebar motion', () => {
   it('restores the web logo-row flow under the Windows caption frame', () => {
     const root = "html[data-windows-titlebar] body[data-dsh-orca-link]\n    [data-slot='sidebar'] > [class*='root']:not([class*='collapsed'])"
     expect(css).toContain(`${root} > [class*='logoRow'] {\n  height: 60px;\n  margin-bottom: 4px;\n}`)
-    expect(css).toContain(`${root} > button[class*='newSession'] {\n  margin-top: 0;\n}`)
+    expect(css).toContain(`${root} > [class*='newSessionRow'] {\n  margin-top: 0;\n}`)
   })
 
   it('moves the absolute stage below the macOS window-button strip', () => {
@@ -107,7 +127,7 @@ describe('ORCA LINK sidebar motion', () => {
   it('reserves the stage once in the native seat only while the portrait is shown', () => {
     const wide = css.match(/@media \(min-width: 901px\) \{([\s\S]*?)\n\}/)?.[1] ?? ''
     expect(wide).toContain("html:not([data-dsh-whale-orca-character='hidden'])")
-    expect(wide).toContain(":first-child:not([class*='collapsed']) > [class*='logoRow'] + button[class*='newSession']")
+    expect(wide).toContain(":first-child:not([class*='collapsed']) > [class*='logoRow'] + [class*='newSessionRow'] > [data-slot='sidebar.session.action'] button[class*='newSession']")
     expect(wide).toContain('height: calc(var(--orca-stage, 300px) - 78px);')
     const region = css.match(/\[data-orca-sidebar-wide\] \[class\*='regionArea'\] \{([^}]*)\}/)?.[1] ?? ''
     expect(region).toContain('border-top: 1px solid var(--orca-line);')
