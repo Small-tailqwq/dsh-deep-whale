@@ -38,10 +38,14 @@ describe('Maid Atelier host drawer', () => {
     expect(CSS).not.toMatch(/\[data-maid-sidebar-footer\]:not\(\s*:has\(/)
   })
 
-  it('drops the dead collapsed column only while the host runs its drawer', () => {
-    const rule = declarations("  body[data-dsh-maid-atelier]\n    div[class*='frame'][data-sidebar-drawer][data-sidebar-collapsed]\n    [class*='sidebarCol']")
-    expect(rule).toContain('display: none !important')
-    expect(CSS).not.toMatch(/div\[data-sidebar-collapsed\]\s*\[class\*='sidebarCol'\] \{\s*display: none/)
+  it('leaves the drawer geometry to the host and only pads the fullscreen top inset', () => {
+    // The retired phone-navigation modes rebuilt the collapsed column as a
+    // corner button or a top bar; the host's drawer hides and inerts that
+    // column, so no skin rule may restyle the frame or the column per mode.
+    expect(CSS).not.toContain('data-maid-nav-mode')
+    expect(CSS).not.toMatch(/\[data-slot='root'\] > div\[class\*='frame'\][^{]*\{[^}]*display: flex/)
+    const column = declarations("body[data-dsh-maid-atelier]\n  div[class*='frame'][data-sidebar-drawer] > [class*='sidebarCol']")
+    expect(column.trim()).toBe('padding-top: env(safe-area-inset-top, 0px);')
   })
 
   it('dresses only the web drawer opener and publishes its clearance', () => {

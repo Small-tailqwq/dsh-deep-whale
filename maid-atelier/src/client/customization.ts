@@ -15,11 +15,8 @@ const ATTR_MODEL = 'data-dsh-whale-model'
 const ATTR_FLASH_GLASSES = 'data-dsh-whale-maid-flash-glasses'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
 const ATTR_COMPOSER_BOTTOM_ONLY = 'data-maid-composer-bottom-only'
-const ATTR_NAV_MODE = 'data-maid-nav-mode'
 const ATTR_PLAIN_PROCESS = 'data-maid-plain-process'
 const ATTR_SIDEBAR_LACE = 'data-maid-sidebar-lace'
-/** Navigation layouts the stylesheet implements; anything else falls back to the default. */
-const NAV_MODES = new Set(['corner', 'topbar', 'rail'])
 
 const WORKSPACE_FONTS = new Set(['serif', 'system', 'conversation'])
 
@@ -182,8 +179,6 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     synchronizeModelMode()
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
     projector.set(ATTR_COMPOSER_BOTTOM_ONLY, state.values.composerBottomOnly === true ? 'on' : 'off')
-    const navMode = state.values.mobileNav
-    projector.set(ATTR_NAV_MODE, typeof navMode === 'string' && NAV_MODES.has(navMode) ? navMode : 'corner')
     properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
     properties.set('--maid-scene-brightness-light', sceneBrightness(state.values.sceneBrightnessLight))
     projector.set(ATTR_PLAIN_PROCESS, state.values.plainProcess === true ? 'on' : 'off')
@@ -338,21 +333,6 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         max: WORKSPACE_ROW_HEIGHT_MAX,
         step: 1,
         unit: 'px',
-      },
-      {
-        key: 'mobileNav',
-        group: 'sidebar',
-        type: 'select',
-        label: '移动端导航',
-        labelEn: 'Mobile navigation',
-        description: '宽度不超过 700px 的竖屏。',
-        descriptionEn: 'Portrait screens up to 700px wide.',
-        defaultValue: 'corner',
-        options: [
-          { value: 'corner', label: '左上角图标', labelEn: 'Top-left icon' },
-          { value: 'topbar', label: '顶部横栏', labelEn: 'Top bar' },
-          { value: 'rail', label: '竖向侧栏', labelEn: 'Vertical rail' },
-        ],
       },
       {
         key: 'composerMode',

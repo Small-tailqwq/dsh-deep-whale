@@ -29,7 +29,7 @@ const TOP_PROPERTY = '--maid-vv-top'
 const COMPOSER_CARD_SELECTOR = '[data-composer-card]'
 /** The takeover card that replaces the composer while a question or plan pends. */
 const TAKEOVER_CARD_SELECTOR = ":is([data-question-key], [data-plan-review-key]) > section"
-/** Phone widths own the bar-less layout; above them the host's own rail is in charge. */
+/** Phone widths own the keyboard shell even with a mouse, as narrow desktop windows do. */
 const PHONE_MAX_WIDTH = 700
 /** A touch pointer owns the keyboard shell even in landscape, where the shell is wide. */
 const COARSE_QUERY = '(pointer: coarse)'
