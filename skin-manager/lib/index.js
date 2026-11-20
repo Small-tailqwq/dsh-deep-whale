@@ -2,8 +2,8 @@ import { LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_EVENTS, SKIN_CUS
 import { createRequire } from "node:module";
 import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { closeSync, copyFileSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { closeSync, copyFileSync, existsSync, fsyncSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -25,7 +25,7 @@ var __copyProps = (to, from, except, desc) => {
 	}
 	return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
 	value: mod,
 	enumerable: true
 }) : target, mod));
@@ -94,12 +94,14 @@ var require_parse_options = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 //#endregion
 //#region node_modules/semver/internal/constants.js
 var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	const SEMVER_SPEC_VERSION = "2.0.0";
+	const MAX_LENGTH = 256;
+	const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
 	module.exports = {
-		MAX_LENGTH: 256,
+		MAX_LENGTH,
 		MAX_SAFE_COMPONENT_LENGTH: 16,
-		MAX_SAFE_BUILD_LENGTH: 250,
-		MAX_SAFE_INTEGER: Number.MAX_SAFE_INTEGER || 
-		/* istanbul ignore next */ 9007199254740991,
+		MAX_SAFE_BUILD_LENGTH: MAX_LENGTH - 6,
+		MAX_SAFE_INTEGER,
 		RELEASE_TYPES: [
 			"major",
 			"premajor",
@@ -109,7 +111,7 @@ var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			"prepatch",
 			"prerelease"
 		],
-		SEMVER_SPEC_VERSION: "2.0.0",
+		SEMVER_SPEC_VERSION,
 		FLAG_INCLUDE_PRERELEASE: 1,
 		FLAG_LOOSE: 2
 	};
@@ -235,10 +237,9 @@ var require_semver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	module.exports = class SemVer {
 		constructor(version, options) {
 			options = parseOptions(options);
-			if (version instanceof SemVer) {
-				if (version.loose === !!options.loose && version.includePrerelease === !!options.includePrerelease) return version;
-				else version = version.version;
-			} else if (typeof version !== "string") throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version}".`);
+			if (version instanceof SemVer) if (version.loose === !!options.loose && version.includePrerelease === !!options.includePrerelease) return version;
+			else version = version.version;
+			else if (typeof version !== "string") throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version}".`);
 			if (version.length > MAX_LENGTH) throw new TypeError(`version is longer than ${MAX_LENGTH} characters`);
 			debug("SemVer", version, options);
 			this.options = options;
@@ -495,10 +496,8 @@ var require_comparator = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		}
 		constructor(comp, options) {
 			options = parseOptions(options);
-			if (comp instanceof Comparator) {
-				if (comp.loose === !!options.loose) return comp;
-				else comp = comp.value;
-			}
+			if (comp instanceof Comparator) if (comp.loose === !!options.loose) return comp;
+			else comp = comp.value;
 			comp = comp.trim().split(/\s+/).join(" ");
 			debug("comparator", comp, options);
 			this.options = options;
@@ -564,10 +563,8 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	module.exports = class Range {
 		constructor(range, options) {
 			options = parseOptions(options);
-			if (range instanceof Range) {
-				if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) return range;
-				else return new Range(range.raw, options);
-			}
+			if (range instanceof Range) if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) return range;
+			else return new Range(range.raw, options);
 			if (range instanceof Comparator) {
 				this.raw = range.value;
 				this.set = [[range]];
@@ -737,21 +734,18 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			let ret;
 			if (isX(M)) ret = "";
 			else if (isX(m)) ret = `>=${M}.0.0${z} <${+M + 1}.0.0-0`;
-			else if (isX(p)) {
-				if (M === "0") ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
-				else ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
-			} else if (pr) {
+			else if (isX(p)) if (M === "0") ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
+			else ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
+			else if (pr) {
 				debug("replaceCaret pr", pr);
-				if (M === "0") {
-					if (m === "0") ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
-					else ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
-				} else ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
+				if (M === "0") if (m === "0") ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
+				else ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+				else ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
 			} else {
 				debug("no pr");
-				if (M === "0") {
-					if (m === "0") ret = `>=${M}.${m}.${p} <${M}.${m}.${+p + 1}-0`;
-					else ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
-				} else ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
+				if (M === "0") if (m === "0") ret = `>=${M}.${m}.${p} <${M}.${m}.${+p + 1}-0`;
+				else ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
+				else ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
 			}
 			debug("caret return", ret);
 			return ret;
@@ -773,10 +767,9 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const anyX = xp;
 			if (gtlt === "=" && anyX) gtlt = "";
 			pr = options.includePrerelease ? "-0" : "";
-			if (xM) {
-				if (gtlt === ">" || gtlt === "<") ret = "<0.0.0-0";
-				else ret = "*";
-			} else if (gtlt && anyX) {
+			if (xM) if (gtlt === ">" || gtlt === "<") ret = "<0.0.0-0";
+			else ret = "*";
+			else if (gtlt && anyX) {
 				if (xm) m = 0;
 				p = 0;
 				if (gtlt === ">") {
@@ -990,7 +983,7 @@ function evaluateSkinCompatibility(manifest, runtimeVersion, exemptions) {
 * PowerShell helper that sets it and puts the previous icon back on stop.
 */
 /** Largest ICO accepted from a skin manifest; real multi-size icons stay well below it. */
-const MAX_ICON_BYTES = 2097152;
+const MAX_ICON_BYTES = 2 * 1024 * 1024;
 const POWERSHELL_TIMEOUT_MS = 6e4;
 const desktopIconQueues = /* @__PURE__ */ new Map();
 /** The Windows desktop host runs plugins in `DeepSeek Harness.exe` with ELECTRON_RUN_AS_NODE. */
@@ -1346,7 +1339,7 @@ function runPowerShell(script, env) {
 			},
 			timeout: POWERSHELL_TIMEOUT_MS,
 			windowsHide: true,
-			maxBuffer: 4194304,
+			maxBuffer: 4 * 1024 * 1024,
 			encoding: "utf8"
 		}, (error, stdout, stderr) => {
 			if (error !== null) {
@@ -1522,6 +1515,174 @@ var WindowIconHolder = class WindowIconHolder {
 			child.stdin?.end("stop\n");
 		} catch {}
 		return this.stopping;
+	}
+};
+//#endregion
+//#region src/finder-icon.ts
+const exec = promisify(execFile);
+/** Only target the running DSH Electron application's bundle. */
+function detectFinderApp(platform = process.platform, env = process.env, execPath = process.execPath) {
+	if (platform !== "darwin" || env.ELECTRON_RUN_AS_NODE !== "1" || basename(execPath) !== "DeepSeek Harness") return null;
+	const macos = dirname(execPath);
+	const contents = dirname(macos);
+	const app = dirname(contents);
+	return basename(macos) === "MacOS" && basename(contents) === "Contents" && app.endsWith(".app") ? app : null;
+}
+const SET_ICON = `ObjC.import('AppKit')
+function run([bundle, file]) {
+  const image = file ? $.NSImage.alloc.initWithContentsOfFile(file) : $()
+  if (file && image.isNil()) throw new Error('Invalid icon image')
+  if (!$.NSWorkspace.sharedWorkspace.setIconForFileOptions(image, bundle, 0)) {
+    throw new Error('Could not update Finder icon')
+  }
+}`;
+async function setIcon(bundle, file) {
+	await exec("/usr/bin/osascript", [
+		"-l",
+		"JavaScript",
+		"-e",
+		SET_ICON,
+		"--",
+		bundle,
+		file ?? ""
+	], { timeout: 3e4 });
+}
+const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+function fingerprint(bundle) {
+	const icon = join(bundle, "Icon\r");
+	try {
+		if (!lstatSync(icon).isFile()) return "unknown";
+	} catch (error) {
+		if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return null;
+		throw error;
+	}
+	const resource = readFileSync(join(icon, "..namedfork", "rsrc"));
+	return resource.length > 0 ? digest(resource) : "unknown";
+}
+const queues = /* @__PURE__ */ new Map();
+/** Persist the preference and restore only Finder metadata we wrote ourselves. */
+var FinderIconSync = class {
+	app;
+	statePath;
+	constructor(home, app) {
+		this.app = app;
+		this.statePath = join(home, "skin-manager", `finder-icon-${digest(app).slice(0, 16)}.json`);
+	}
+	get enabled() {
+		return this.read().enabled;
+	}
+	setEnabled(enabled, source) {
+		return this.serial(async () => {
+			const state = {
+				...this.read(),
+				enabled
+			};
+			this.write(state);
+			return this.pass(state, source);
+		});
+	}
+	reconcile(source) {
+		return this.serial(() => this.pass(this.read(), source));
+	}
+	drain() {
+		return queues.get(this.app) ?? Promise.resolve();
+	}
+	serial(task) {
+		const run = this.drain().then(task);
+		const settled = run.then(() => {}, () => {});
+		queues.set(this.app, settled);
+		settled.then(() => {
+			if (queues.get(this.app) === settled) queues.delete(this.app);
+		});
+		return run;
+	}
+	async pass(state, source) {
+		const file = state.enabled ? source : null;
+		const unchanged = {
+			enabled: state.enabled,
+			updated: 0,
+			failed: 0
+		};
+		const failed = (reason) => ({
+			...unchanged,
+			failed: 1,
+			errors: [reason]
+		});
+		if (file === null && state.owned.length === 0) return unchanged;
+		try {
+			const current = fingerprint(this.app);
+			if (current !== null && !state.owned.includes(current)) {
+				if (state.owned.length > 0) this.write({
+					...state,
+					owned: []
+				});
+				return file === null ? unchanged : failed("finder-custom-icon");
+			}
+			if (file === null) {
+				if (current !== null) await setIcon(this.app, null);
+				if (fingerprint(this.app) !== null) return failed("finder-write-failed");
+				this.write({
+					...state,
+					owned: []
+				});
+				return {
+					...unchanged,
+					updated: Number(current !== null)
+				};
+			}
+			const staging = mkdtempSync(join(tmpdir(), "dsh-finder-icon-"));
+			try {
+				const stagedIcon = join(staging, "skin.ico");
+				copyFileSync(file, stagedIcon);
+				await setIcon(staging, stagedIcon);
+				const desired = fingerprint(staging);
+				if (desired === null || desired === "unknown") return failed("finder-write-failed");
+				if (fingerprint(this.app) !== current) return failed("finder-custom-icon");
+				this.write({
+					...state,
+					owned: current === null || current === desired ? [desired] : [current, desired]
+				});
+				if (current === desired) return unchanged;
+				await setIcon(this.app, stagedIcon);
+				if (fingerprint(this.app) !== desired) return failed("finder-write-failed");
+				this.write({
+					...state,
+					owned: [desired]
+				});
+				return {
+					...unchanged,
+					updated: 1
+				};
+			} finally {
+				rmSync(staging, {
+					recursive: true,
+					force: true
+				});
+			}
+		} catch (error) {
+			console.error("[skin-manager] Finder icon sync failed", error);
+			return failed("finder-write-failed");
+		}
+	}
+	read() {
+		try {
+			const state = JSON.parse(readFileSync(this.statePath, "utf8"));
+			return {
+				enabled: state.enabled === true,
+				owned: Array.isArray(state.owned) ? state.owned.filter((hash) => typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash)) : []
+			};
+		} catch {
+			return {
+				enabled: false,
+				owned: []
+			};
+		}
+	}
+	write(state) {
+		mkdirSync(dirname(this.statePath), { recursive: true });
+		const temporary = `${this.statePath}.${process.pid}.tmp`;
+		writeFileSync(temporary, JSON.stringify(state));
+		renameSync(temporary, this.statePath);
 	}
 };
 //#endregion
@@ -1708,7 +1869,7 @@ function activeSkinTarget(sources, catalog) {
 const execFileAsync = promisify(execFile);
 const GIT_OP_TIMEOUT_MS = 5e3;
 const GITHUB_OP_TIMEOUT_MS = 8e3;
-const BRANCH_CACHE_TTL_MS = 864e5;
+const BRANCH_CACHE_TTL_MS = 1440 * 60 * 1e3;
 const VERSION_CACHE_TTL_MS = 3e4;
 /** Parse `owner/repo` out of a GitHub remote URL (https, ssh, git@, git://). */
 function parseGitHubRemote(remoteUrl) {
@@ -2355,7 +2516,10 @@ function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), 
 						ok: true,
 						skins: catalog,
 						...runtime === void 0 ? {} : { runtime: runtime(catalog) },
-						...desktopIcon === void 0 ? {} : { desktopIcon: { enabled: desktopIcon.enabled() } }
+						...desktopIcon === void 0 ? {} : { desktopIcon: {
+							enabled: desktopIcon.enabled(),
+							platform: desktopIcon.platform
+						} }
 					});
 					return;
 				}
@@ -2441,6 +2605,7 @@ function apply(ctx) {
 		}
 		const desktopIcon = desktopIconControl(profilePatch, patchPaths, catalog);
 		const unregister = ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch), (compatibility) => grantThroughHost(ctx, compatibility), desktopIcon?.control, (request) => ctx.connection.requestRejection(request), (installed) => skinSwitchState(patchPaths.map((path) => existsSync(path) ? readFileSync(path, "utf8") : ""), installed, ctx.clientModules.graph().entries, ctx.loader.entries())));
+		desktopIcon?.start();
 		return () => {
 			unregister();
 			return desktopIcon?.dispose();
@@ -2448,21 +2613,13 @@ function apply(ctx) {
 	}, "ui-skin-manager: startup guard, catalog/activation route and desktop icon");
 }
 /**
-* Windows desktop shell only: the shortcut icon follows the active skin once
-* the user opts in. Shortcuts deliberately keep the skin icon across restarts;
-* only the switch, a return to the official look, or a skin without an icon
-* restores them. Startup reconciles, which also repairs a reset by a DSH update.
-* The window icon (taskbar thumbnail, Alt+Tab) lives only as long as this
-* plugin: disposing stops the helper, which restores the previous icon.
+* Disk-backed icons follow the active skin across restarts. Startup reconciles
+* them after an app update. The Windows window icon is restored on disposal.
 */
 function desktopIconControl(profilePatch, patchPaths, catalog) {
 	const shell = detectDesktopShell();
-	if (shell === null) return void 0;
-	const windowIcon = new WindowIconHolder();
-	let disposed = false;
-	const sync = new DesktopIconSync(dirname(dirname(dirname(profilePatch))), shell, void 0, (file) => {
-		if (!disposed) windowIcon.set(file);
-	});
+	const app = detectFinderApp();
+	if (shell === null && app === null) return void 0;
 	const source = (target) => {
 		if (target === "official") return null;
 		const file = discoverSkinDesktopIcons(profilePatch).get(target);
@@ -2475,7 +2632,35 @@ function desktopIconControl(profilePatch, patchPaths, catalog) {
 	const report = (error) => {
 		console.error("[skin-manager] desktop icon sync failed", error);
 	};
-	Promise.resolve().then(() => sync.reconcile(source(current()))).catch(report);
+	const home = dirname(dirname(dirname(profilePatch)));
+	if (app !== null) {
+		const sync = new FinderIconSync(home, app);
+		const follow = (target) => {
+			try {
+				sync.reconcile(source(target())?.file ?? null).then((result) => {
+					if (result.failed > 0) report(result.errors);
+				}).catch(report);
+			} catch (error) {
+				report(error);
+			}
+		};
+		return {
+			control: {
+				platform: "darwin",
+				enabled: () => sync.enabled,
+				setEnabled: (enabled) => sync.setEnabled(enabled, source(current())?.file ?? null),
+				follow: (target) => follow(() => target)
+			},
+			start: () => follow(current),
+			dispose: () => sync.drain()
+		};
+	}
+	if (shell === null) return void 0;
+	const windowIcon = new WindowIconHolder();
+	let disposed = false;
+	const sync = new DesktopIconSync(home, shell, void 0, (file) => {
+		if (!disposed) windowIcon.set(file);
+	});
 	return {
 		control: {
 			enabled: () => sync.enabled,
@@ -2483,6 +2668,9 @@ function desktopIconControl(profilePatch, patchPaths, catalog) {
 			follow: (target) => {
 				Promise.resolve().then(() => sync.reconcile(source(target))).catch(report);
 			}
+		},
+		start: () => {
+			Promise.resolve().then(() => sync.reconcile(source(current()))).catch(report);
 		},
 		dispose: async () => {
 			disposed = true;
