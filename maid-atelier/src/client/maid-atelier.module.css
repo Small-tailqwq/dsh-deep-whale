@@ -728,6 +728,41 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-s
   box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
 }
 
+/* Chrome ink inside the panel. The nav rail above the session list and the
+   footer both inherit the porcelain-page ink from the theme (`label-primary` is
+   near-black in the light theme), which disappears on the navy fabric: the
+   launcher labels and the usage caption drop to about 1.3:1. Rebind the ink on
+   the two subtrees that actually sit on the panel — and hand the page palette
+   back while an overlay surface is open inside them, because dialogs portal
+   into the footer and must not inherit the panel's cream. */
+body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='scrollArea'],
+body[data-dsh-maid-atelier]
+  [data-maid-sidebar-footer]:not(
+    :has([role='dialog'], [role='alertdialog'], [role='menu'])
+  ) {
+  --dsw-alias-label-primary: #f4ead5;
+  --dsw-alias-label-primary-foreground: #172347;
+  --dsw-alias-label-dimmed: #93a1bd;
+  --dsw-alias-brand-primary: #e2be70;
+}
+
+/* Inside the host's drawer the list is the only thing worth scrolling. The
+   host hands the gesture over in two stages: the shell scrolls its own ~84px
+   strip first, then a `scroll-state` container query flips the session list to
+   `overflow-y: auto`. Engines without that query stop dead on the strip, and
+   even on engines that have it the first flick ends early. The nav above the
+   list is a fixed-height strip, so let the list own the gesture from the
+   start. */
+html:not([data-maid-nav-mode='rail'])
+  body[data-dsh-maid-atelier]
+  [id='root'] > div[data-slot='root'] > div[class*='frame'][data-sidebar-drawer]:not(
+    [data-sidebar-collapsed]
+  )
+  [class*='listArea'] {
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+}
+
 /* Pane surfaces, matched by the AppFrame column class substrings. */
 body[data-dsh-maid-atelier] [class*='sidebarCol'] {
   --dsw-alias-scrollbar-bg-l2: rgba(205, 174, 111, 0.58);
