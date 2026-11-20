@@ -5,6 +5,7 @@ import {
   type SkinCustomizationState,
   type SkinSettingValue,
 } from '../../../skin-manager/src/protocol.ts'
+import { matchesMobile } from './mobile-viewport.ts'
 
 const ATTR_ART = 'data-dsh-whale-maid-art'
 const ATTR_FONT = 'data-dsh-whale-maid-font'
@@ -90,7 +91,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
   let observer: MutationObserver | undefined
   let frame: number | undefined
   let activeState: SkinCustomizationState | null = null
-  let mobile = window.innerWidth <= 700
+  let mobile = matchesMobile(window)
 
   const synchronizeModel = (): void => {
     let family: ReturnType<typeof modelFamily> = null
@@ -153,7 +154,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
   }
 
   const onResize = (): void => {
-    const nextMobile = window.innerWidth <= 700
+    const nextMobile = matchesMobile(window)
     if (mobile === nextMobile) return
     mobile = nextMobile
     synchronizeModelMode()
@@ -170,7 +171,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     }
     if (activeState === null) window.addEventListener('resize', onResize)
     activeState = state
-    mobile = window.innerWidth <= 700
+    mobile = matchesMobile(window)
     const artwork = state.values.artwork === true
     const scheduleVisible = state.visibility.sfwMode !== false
     projector.set(ATTR_ART, artwork && scheduleVisible ? 'visible' : 'hidden')
