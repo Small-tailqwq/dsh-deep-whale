@@ -80,6 +80,6 @@ describe('Maid Atelier macOS sidebar fills', () => {
     expect(toggle).toMatch(/width: 40px;\s*height: 48px;/)
     expect(toggle).toContain('margin: 37px 5px 0 0')
     expect(toggle).toContain('transform: none')
-    expect(CSS).toMatch(/button\[data-sidebar-opener\] \{\s*width: 28px;/)
+    expect(CSS).not.toContain('data-sidebar-opener')
   })
 })

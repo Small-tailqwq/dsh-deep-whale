@@ -954,7 +954,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier]
 
 /* macOS hiddenInset: keep the brand plate just below the traffic lights and
  * dock the host's native sidebar toggle into its right end as a segment split
- * by a gold rule. The collapsed header opener becomes a gold medallion. */
+ * by a gold rule. */
 html[data-platform='darwin'] body[data-dsh-maid-atelier]
   [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] {
   position: relative;
@@ -1018,25 +1018,6 @@ html[data-platform='darwin'] body[data-dsh-maid-atelier]
   [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] > button[data-sidebar-toggle]:is(:hover, :focus-visible) {
   color: #fff4d9;
   background: linear-gradient(180deg, rgba(92, 119, 187, 0.62), rgba(18, 40, 92, 0.75));
-}
-
-html[data-platform='darwin'] body[data-dsh-maid-atelier] button[data-sidebar-opener] {
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(225, 191, 124, 0.82);
-  border-radius: 50%;
-  corner-shape: round;
-  color: #ebd29e;
-  background: linear-gradient(145deg, rgba(77, 103, 169, 0.55), rgba(7, 18, 52, 0.9));
-  box-shadow:
-    inset 0 0 0 2px rgba(5, 15, 45, 0.76),
-    0 2px 6px rgba(1, 7, 24, 0.32);
-}
-
-html[data-platform='darwin'] body[data-dsh-maid-atelier] button[data-sidebar-opener]:is(:hover, :focus-visible) {
-  border-color: #e6c77e;
-  color: #fff4d9;
-  background: linear-gradient(145deg, rgba(103, 132, 204, 0.62), rgba(14, 30, 78, 0.92));
 }
 
 /* macOS renders the brand as a span, so the button wordmark rules below miss it. */
