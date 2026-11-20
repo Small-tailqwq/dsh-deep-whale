@@ -347,7 +347,8 @@ body[data-dsh-maid-atelier][data-maid-conversation-active]
 
 /* Keep portrait-phone landing figures below the headline and clear of the
    composer. Active conversations include inspection views as well as chat. */
-@media (max-width: 700px) and (orientation: portrait) {
+@media (max-width: 700px) and (orientation: portrait),
+  (max-width: 767px) and (pointer: coarse) {
   body[data-dsh-maid-atelier]:not([data-maid-conversation-active])
     [data-maid-character] {
     height: 62%;
@@ -2350,7 +2351,8 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
    Portrait only: in landscape the scarce axis is height, so the rail's 56px of
    width is the cheaper trade and every mode below leaves the host alone. */
-@media (max-width: 700px) and (orientation: portrait) {
+@media (max-width: 700px) and (orientation: portrait),
+  (max-width: 767px) and (pointer: coarse) {
   /* Frame: one column, conversation only. The column is out of flow in both
      states — collapsed it is the dock or the bar, expanded it is the overlay
      drawer — so the frame must never keep the track it vacated, or the host grid
@@ -2481,9 +2483,33 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   /* -- corner ------------------------------------------------------------- */
-  /* A fixed 48px brand button in the top-left. The box itself stays inert so it
-     never eats a tap meant for the header behind it; only the toggle inside it
-     is interactive. */
+  /* 0.2.2-rc.5 keeps the collapsed drawer column `visibility: hidden` and marks
+     it `inert` (AppFrame.module.css / AppFrame.tsx), so a medallion drawn
+     inside that column can neither be seen nor tapped; the opener the host
+     renders in `shell.leading` is the live affordance. Dress that one as the
+     medallion rather than shipping a second, dead copy. */
+  body[data-dsh-maid-atelier] [data-shell-leading] [data-sidebar-opener] {
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(226, 190, 112, 0.72);
+    border-radius: 50%;
+    corner-shape: round;
+    background: radial-gradient(circle at 50% 24%, #23396f 0%, #10214d 58%, #0a173b 100%);
+    color: #ebd29e;
+    box-shadow: 0 2px 8px rgba(2, 8, 28, 0.5),
+      inset 0 0 0 1px rgba(255, 246, 226, 0.08);
+    place-items: center;
+  }
+
+  body[data-dsh-maid-atelier] [data-shell-leading] [data-sidebar-opener] svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* The in-column medallion below is what this used to be; keep the geometry
+     (it still shapes the collapsed column) but let the host own the opener. */
   html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
@@ -4401,7 +4427,7 @@ body[data-dsh-maid-atelier] [data-composer-card] [class*='trailing']
   padding: 0 5px 0 8px;
   border-radius: 10px;
   color: #314979;
-  font-family: Georgia, 'Times New Roman', var(--dsw-font-family);
+  font-family: Georgia, 'Times New Roman', var(--dsw-font-family, system-ui, sans-serif);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -4415,7 +4441,7 @@ body[data-dsh-maid-atelier] [data-composer-card] [class*='trailing']
 body[data-dsh-maid-atelier] [data-composer-card] [class*='trailing']
   button[aria-haspopup='menu'] [class*='triggerEffort'] {
   color: #a77c36;
-  font-family: var(--dsw-font-family);
+  font-family: var(--dsw-font-family, system-ui, sans-serif);
   font-size: 11px;
   font-weight: 650;
 }
@@ -6540,7 +6566,7 @@ html[data-dsh-whale-maid-font='serif']
   :is([data-chat-flow], [class*='userRow'] [class*='bubble']:not([role='tooltip'])) {
   --dsw-font-family: Georgia, 'Times New Roman', 'Songti SC',
     'Noto Serif SC', 'Noto Serif CJK SC', STSong, SimSun, serif;
-  font-family: var(--dsw-font-family);
+  font-family: var(--dsw-font-family, system-ui, sans-serif);
 }
 
 html[data-dsh-whale-maid-font='serif']
@@ -6770,7 +6796,7 @@ body[data-dsh-maid-atelier]
   box-shadow: none;
   backdrop-filter: none;
   color: var(--dsw-alias-label-caption);
-  font-family: Georgia, 'Times New Roman', var(--dsw-font-family);
+  font-family: Georgia, 'Times New Roman', var(--dsw-font-family, system-ui, sans-serif);
   font-size: 13px;
   letter-spacing: 0.02em;
   cursor: text;
