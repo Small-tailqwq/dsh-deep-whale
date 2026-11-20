@@ -133,7 +133,7 @@ const zhCopy = {
     ? errors.includes('finder-custom-icon')
       ? '已保留你设置的 Finder 图标。移除该自定义图标后可再试。'
       : '无法更新 Finder 图标。请检查文件权限和系统设置中的「应用管理」权限，再试一次。'
-    : updated > 0 ? 'Finder 图标已更新。' : 'Finder 图标无需更改。',
+    : updated > 0 ? 'Finder 图标已更新。若 Apps 应用网格仍显示旧图标，请关掉网格后重新打开。' : 'Finder 图标无需更改。',
   desktopIconLabel: '快捷方式图标跟随皮肤',
   desktopIconDescription: '替换桌面、开始菜单和任务栏中的图标；关闭或切回官方默认时还原。',
   desktopIconPending: '正在更新快捷方式…',
@@ -228,7 +228,7 @@ const enCopy: typeof zhCopy = {
     ? errors.includes('finder-custom-icon')
       ? 'Your custom Finder icon was kept. Remove it to let the icon follow the skin.'
       : 'Could not update the Finder icon. Check file permissions and App Management permissions in System Settings, then retry.'
-    : updated > 0 ? 'Finder icon updated.' : 'The Finder icon needs no change.',
+    : updated > 0 ? 'Finder icon updated. If the Apps grid still shows the old icon, close and reopen the grid.' : 'The Finder icon needs no change.',
   desktopIconLabel: 'Shortcut icon follows the skin',
   desktopIconDescription: 'Replaces the icon on the desktop, Start menu and taskbar; turning this off or returning to Official restores it.',
   desktopIconPending: 'Updating shortcuts…',
