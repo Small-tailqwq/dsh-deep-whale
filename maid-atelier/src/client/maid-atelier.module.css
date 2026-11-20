@@ -955,6 +955,85 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier]
   padding: 8px 8px 10px;
 }
 
+/* macOS hiddenInset: keep the brand plate just below the traffic lights and
+ * dock the host's native sidebar toggle into its right end as a segment split
+ * by a gold rule. */
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] {
+  position: relative;
+  z-index: 6;
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] + [class*='logoRow'] {
+  position: relative;
+  z-index: 5;
+  box-sizing: border-box;
+  height: 50px;
+  min-height: 50px;
+  margin: -16px 8px 0;
+  padding: 0 48px 0 12px;
+  justify-content: flex-start;
+}
+
+/* Electron applies app regions in document order, so the plate's drag region
+ * would swallow clicks on the earlier toggle; carve the docked segment out. */
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] + [class*='logoRow']::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+html[data-platform='darwin'][data-fullscreen] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] {
+  justify-content: flex-end;
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] > button[data-sidebar-toggle] {
+  width: 40px;
+  height: 48px;
+  border: 0;
+  border-left: 1px solid rgba(226, 207, 170, 0.62);
+  border-radius: 0 7px 7px 0;
+  color: #ebd29e;
+  background: linear-gradient(180deg, rgba(53, 78, 142, 0.5), rgba(10, 24, 66, 0.6));
+  /* Move by layout, not transform: Electron keeps the no-drag hit region on the
+   * untransformed box, so a transformed toggle would land on the drag surface. */
+  align-self: flex-start;
+  margin: 37px 5px 0 0;
+  transform: none;
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] > button[data-sidebar-toggle] svg {
+  width: 18px;
+  height: 18px;
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier]
+  [data-slot='sidebar'] > [class*='root']:not([class*='collapsed']) > [class*='topStrip'] > button[data-sidebar-toggle]:is(:hover, :focus-visible) {
+  color: #fff4d9;
+  background: linear-gradient(180deg, rgba(92, 119, 187, 0.62), rgba(18, 40, 92, 0.75));
+}
+
+/* macOS renders the brand as a span, so the button wordmark rules below miss it. */
+html[data-platform='darwin'] body[data-dsh-maid-atelier] [data-slot='sidebar'] span[class*='brand'][class*='wide'] {
+  --dsw-alias-label-primary-inverted: #10204d;
+  color: #f3e3c0;
+  filter: drop-shadow(0 1px 2px rgba(2, 8, 28, 0.72));
+}
+
+html[data-platform='darwin'] body[data-dsh-maid-atelier] [data-slot='sidebar'] span[class*='brand'][class*='wide'] svg > rect {
+  fill: #d7b46a;
+}
+
 /* Reuse the product's exact 182x24 vector wordmark. Porcelain ink keeps the
    DeepSeek paths crisp on navy, while the HARNESS plate uses the same gold
    accent as the surrounding frame and knocks its lettering back to navy. */
