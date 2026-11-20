@@ -120,7 +120,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'modelExit', 'mobileModelExit', 'flashGlasses', 'sfwMode', 'sceneBrightnessLight', 'plainProcess', 'font', 'workspaceFont', 'sidebarLace', 'workspaceRowHeight', 'mobileNav', 'composerMode', 'composerBottomOnly'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'modelExit', 'mobileModelExit', 'flashGlasses', 'sfwMode', 'sceneBrightnessLight', 'plainProcess', 'font', 'workspaceFont', 'sidebarLace', 'workspaceRowHeight', 'composerMode', 'composerBottomOnly'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },
@@ -132,7 +132,8 @@ describe('maid customization declaration', () => {
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-font')).toBe('serif')
     expect(document.documentElement.getAttribute('data-maid-composer-mode')).toBe('scroll')
     expect(document.documentElement.getAttribute('data-maid-composer-bottom-only')).toBe('off')
-    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('topbar')
+    // A value stored by the retired phone-navigation setting projects nothing.
+    expect(document.documentElement.hasAttribute('data-maid-nav-mode')).toBe(false)
     expect(document.documentElement.getAttribute('data-dsh-whale-maid-model-exit')).toBe('disabled')
     width.mockReturnValue(420)
     window.dispatchEvent(new Event('resize'))
@@ -168,32 +169,6 @@ describe('maid customization declaration', () => {
     expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.label) : []).toEqual(['始终显示', '空闲时收起为胶囊', '上滚隐藏，下滚显示'])
     expect(composerMode && composerMode.type === 'select' ? composerMode.options.map(option => option.labelEn) : []).toEqual(['Always visible', 'Collapse to a capsule when idle', 'Hide on scroll up, show on scroll down'])
     dispose()
-    window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
-  })
-
-  it('exposes the phone navigation layouts and defaults to the corner mark', () => {
-    let registration: SkinCustomizationRegistration | undefined
-    const receive = (event: Event) => { registration = (event as CustomEvent<SkinCustomizationRegistration>).detail }
-    window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
-    const dispose = installMaidCustomization()
-    const definition = registration!.definition
-    const mobileNav = definition.settings.find(setting => setting.key === 'mobileNav')
-    expect(mobileNav?.type).toBe('select')
-    expect(mobileNav?.defaultValue).toBe('corner')
-    expect(mobileNav && mobileNav.type === 'select' ? mobileNav.options.map(option => option.value) : []).toEqual(['corner', 'topbar', 'rail'])
-
-    // A missing value and an unknown value both mean the skin default, so a phone
-    // still gets the corner mark before the manager has pushed anything.
-    const blank = normalizeSkinValues(definition, {})
-    definition.apply({ values: blank, visibility: { sfwMode: true } })
-    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('corner')
-    definition.apply({ values: { ...blank, mobileNav: 'nonsense' }, visibility: { sfwMode: true } })
-    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('corner')
-    definition.apply({ values: { ...blank, mobileNav: 'rail' }, visibility: { sfwMode: true } })
-    expect(document.documentElement.getAttribute('data-maid-nav-mode')).toBe('rail')
-
-    dispose()
-    expect(document.documentElement.hasAttribute('data-maid-nav-mode')).toBe(false)
     window.removeEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
   })
 

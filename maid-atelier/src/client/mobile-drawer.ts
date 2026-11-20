@@ -20,11 +20,14 @@
  * closing one surface must not close another the reader opened. The drawer
  * stays where it was and the dialog closes on its own.
  *
- * The breakpoint mirrors `SIDEBAR_AUTO_COLLAPSE` in the layout package: below it
- * the collapsed column is a rail and the expanded column is an overlay, above it
- * the column is docked and must stay open.
+ * The overlay is the host's own mode, not a width this module guesses. The
+ * layout marks the frame with `data-sidebar-drawer` exactly while it runs the
+ * column as an overlay; between `SIDEBAR_DRAWER_BREAKPOINT` and
+ * `SIDEBAR_AUTO_COLLAPSE` the expanded column is docked inline with no scrim,
+ * and dismissing it there would swallow the tap that was meant for the
+ * conversation.
  */
-const DRAWER_AUTO_COLLAPSE = 1024
+const DRAWER_FRAME_SELECTOR = '[data-sidebar-drawer]'
 const SIDEBAR_COLUMN_SELECTOR = "[class*='sidebarCol']"
 const SESSION_ROW_SELECTOR = '[data-maid-session-row], [role="treeitem"][class*="sessionRow"]'
 const ROW_AFFORDANCE_SELECTOR = '[role="menu"], [role="dialog"], input, textarea, [aria-haspopup]'
@@ -55,7 +58,7 @@ export function installMaidMobileDrawerAutoClose(body: HTMLElement): () => void 
   let pendingFrame: number | null = null
   let swallowTimer: ReturnType<typeof setTimeout> | null = null
 
-  const drawerOpen = (): boolean => view.innerWidth < DRAWER_AUTO_COLLAPSE
+  const drawerOpen = (): boolean => doc.querySelector(DRAWER_FRAME_SELECTOR) !== null
     && doc.querySelector('div[data-sidebar-collapsed]') === null
     && (doc.querySelector(SIDEBAR_COLUMN_SELECTOR)?.getBoundingClientRect().width ?? 0) > 0
 

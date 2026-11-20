@@ -2,9 +2,9 @@ import { LEGACY_SKIN_CUSTOMIZATION_PROTOCOL, SKIN_CUSTOMIZATION_EVENTS, SKIN_CUS
 import { createRequire } from "node:module";
 import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { closeSync, copyFileSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { closeSync, copyFileSync, existsSync, fsyncSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { basename, dirname, isAbsolute, join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 //#region \0rolldown/runtime.js
@@ -1525,6 +1525,177 @@ var WindowIconHolder = class WindowIconHolder {
 	}
 };
 //#endregion
+//#region src/finder-icon.ts
+const exec = promisify(execFile);
+/**
+* Only target the running DSH Electron application's bundle. The bundle path is
+* a macOS path whatever host evaluates it, so it is parsed with POSIX rules.
+*/
+function detectFinderApp(platform = process.platform, env = process.env, execPath = process.execPath) {
+	if (platform !== "darwin" || env.ELECTRON_RUN_AS_NODE !== "1" || posix.basename(execPath) !== "DeepSeek Harness") return null;
+	const macos = posix.dirname(execPath);
+	const contents = posix.dirname(macos);
+	const app = posix.dirname(contents);
+	return posix.basename(macos) === "MacOS" && posix.basename(contents) === "Contents" && app.endsWith(".app") ? app : null;
+}
+const SET_ICON = `ObjC.import('AppKit')
+function run([bundle, file]) {
+  const image = file ? $.NSImage.alloc.initWithContentsOfFile(file) : $()
+  if (file && image.isNil()) throw new Error('Invalid icon image')
+  if (!$.NSWorkspace.sharedWorkspace.setIconForFileOptions(image, bundle, 0)) {
+    throw new Error('Could not update Finder icon')
+  }
+}`;
+async function setIcon(bundle, file) {
+	await exec("/usr/bin/osascript", [
+		"-l",
+		"JavaScript",
+		"-e",
+		SET_ICON,
+		"--",
+		bundle,
+		file ?? ""
+	], { timeout: 3e4 });
+}
+const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+function fingerprint(bundle) {
+	const icon = join(bundle, "Icon\r");
+	try {
+		if (!lstatSync(icon).isFile()) return "unknown";
+	} catch (error) {
+		if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return null;
+		throw error;
+	}
+	const resource = readFileSync(join(icon, "..namedfork", "rsrc"));
+	return resource.length > 0 ? digest(resource) : "unknown";
+}
+const queues = /* @__PURE__ */ new Map();
+/** Persist the preference and restore only Finder metadata we wrote ourselves. */
+var FinderIconSync = class {
+	app;
+	statePath;
+	constructor(home, app) {
+		this.app = app;
+		this.statePath = join(home, "skin-manager", `finder-icon-${digest(app).slice(0, 16)}.json`);
+	}
+	get enabled() {
+		return this.read().enabled;
+	}
+	setEnabled(enabled, source) {
+		return this.serial(async () => {
+			const state = {
+				...this.read(),
+				enabled
+			};
+			this.write(state);
+			return this.pass(state, source);
+		});
+	}
+	reconcile(source) {
+		return this.serial(() => this.pass(this.read(), source));
+	}
+	drain() {
+		return queues.get(this.app) ?? Promise.resolve();
+	}
+	serial(task) {
+		const run = this.drain().then(task);
+		const settled = run.then(() => {}, () => {});
+		queues.set(this.app, settled);
+		settled.then(() => {
+			if (queues.get(this.app) === settled) queues.delete(this.app);
+		});
+		return run;
+	}
+	async pass(state, source) {
+		const file = state.enabled ? source : null;
+		const unchanged = {
+			enabled: state.enabled,
+			updated: 0,
+			failed: 0
+		};
+		const failed = (reason) => ({
+			...unchanged,
+			failed: 1,
+			errors: [reason]
+		});
+		if (file === null && state.owned.length === 0) return unchanged;
+		try {
+			const current = fingerprint(this.app);
+			if (current !== null && !state.owned.includes(current)) {
+				if (state.owned.length > 0) this.write({
+					...state,
+					owned: []
+				});
+				return file === null ? unchanged : failed("finder-custom-icon");
+			}
+			if (file === null) {
+				if (current !== null) await setIcon(this.app, null);
+				if (fingerprint(this.app) !== null) return failed("finder-write-failed");
+				this.write({
+					...state,
+					owned: []
+				});
+				return {
+					...unchanged,
+					updated: Number(current !== null)
+				};
+			}
+			const staging = mkdtempSync(join(tmpdir(), "dsh-finder-icon-"));
+			try {
+				const stagedIcon = join(staging, "skin.ico");
+				copyFileSync(file, stagedIcon);
+				await setIcon(staging, stagedIcon);
+				const desired = fingerprint(staging);
+				if (desired === null || desired === "unknown") return failed("finder-write-failed");
+				if (fingerprint(this.app) !== current) return failed("finder-custom-icon");
+				this.write({
+					...state,
+					owned: current === null || current === desired ? [desired] : [current, desired]
+				});
+				if (current === desired) return unchanged;
+				await setIcon(this.app, stagedIcon);
+				if (fingerprint(this.app) !== desired) return failed("finder-write-failed");
+				this.write({
+					...state,
+					owned: [desired]
+				});
+				return {
+					...unchanged,
+					updated: 1
+				};
+			} finally {
+				rmSync(staging, {
+					recursive: true,
+					force: true
+				});
+			}
+		} catch (error) {
+			console.error("[skin-manager] Finder icon sync failed", error);
+			return failed("finder-write-failed");
+		}
+	}
+	read() {
+		try {
+			const state = JSON.parse(readFileSync(this.statePath, "utf8"));
+			return {
+				enabled: state.enabled === true,
+				owned: Array.isArray(state.owned) ? state.owned.filter((hash) => typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash)) : []
+			};
+		} catch {
+			return {
+				enabled: false,
+				owned: []
+			};
+		}
+	}
+	write(state) {
+		mkdirSync(dirname(this.statePath), { recursive: true });
+		const temporary = `${this.statePath}.${process.pid}.tmp`;
+		writeFileSync(temporary, JSON.stringify(state));
+		renameSync(temporary, this.statePath);
+	}
+};
+//#endregion
 //#region src/contract.ts
 /** Same-origin host route used for catalog discovery and activation. */
 const SKIN_MANAGER_ROUTE = "/api/dsh/skins";
@@ -2355,7 +2526,10 @@ function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), 
 						ok: true,
 						skins: catalog,
 						...runtime === void 0 ? {} : { runtime: runtime(catalog) },
-						...desktopIcon === void 0 ? {} : { desktopIcon: { enabled: desktopIcon.enabled() } }
+						...desktopIcon === void 0 ? {} : { desktopIcon: {
+							enabled: desktopIcon.enabled(),
+							platform: desktopIcon.platform
+						} }
 					});
 					return;
 				}
@@ -2441,6 +2615,7 @@ function apply(ctx) {
 		}
 		const desktopIcon = desktopIconControl(profilePatch, patchPaths, catalog);
 		const unregister = ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch), (compatibility) => grantThroughHost(ctx, compatibility), desktopIcon?.control, (request) => ctx.connection.requestRejection(request), (installed) => skinSwitchState(patchPaths.map((path) => existsSync(path) ? readFileSync(path, "utf8") : ""), installed, ctx.clientModules.graph().entries, ctx.loader.entries())));
+		desktopIcon?.start();
 		return () => {
 			unregister();
 			return desktopIcon?.dispose();
@@ -2448,21 +2623,13 @@ function apply(ctx) {
 	}, "ui-skin-manager: startup guard, catalog/activation route and desktop icon");
 }
 /**
-* Windows desktop shell only: the shortcut icon follows the active skin once
-* the user opts in. Shortcuts deliberately keep the skin icon across restarts;
-* only the switch, a return to the official look, or a skin without an icon
-* restores them. Startup reconciles, which also repairs a reset by a DSH update.
-* The window icon (taskbar thumbnail, Alt+Tab) lives only as long as this
-* plugin: disposing stops the helper, which restores the previous icon.
+* Disk-backed icons follow the active skin across restarts. Startup reconciles
+* them after an app update. The Windows window icon is restored on disposal.
 */
 function desktopIconControl(profilePatch, patchPaths, catalog) {
 	const shell = detectDesktopShell();
-	if (shell === null) return void 0;
-	const windowIcon = new WindowIconHolder();
-	let disposed = false;
-	const sync = new DesktopIconSync(dirname(dirname(dirname(profilePatch))), shell, void 0, (file) => {
-		if (!disposed) windowIcon.set(file);
-	});
+	const app = detectFinderApp();
+	if (shell === null && app === null) return void 0;
 	const source = (target) => {
 		if (target === "official") return null;
 		const file = discoverSkinDesktopIcons(profilePatch).get(target);
@@ -2475,7 +2642,35 @@ function desktopIconControl(profilePatch, patchPaths, catalog) {
 	const report = (error) => {
 		console.error("[skin-manager] desktop icon sync failed", error);
 	};
-	Promise.resolve().then(() => sync.reconcile(source(current()))).catch(report);
+	const home = dirname(dirname(dirname(profilePatch)));
+	if (app !== null) {
+		const sync = new FinderIconSync(home, app);
+		const follow = (target) => {
+			try {
+				sync.reconcile(source(target())?.file ?? null).then((result) => {
+					if (result.failed > 0) report(result.errors);
+				}).catch(report);
+			} catch (error) {
+				report(error);
+			}
+		};
+		return {
+			control: {
+				platform: "darwin",
+				enabled: () => sync.enabled,
+				setEnabled: (enabled) => sync.setEnabled(enabled, source(current())?.file ?? null),
+				follow: (target) => follow(() => target)
+			},
+			start: () => follow(current),
+			dispose: () => sync.drain()
+		};
+	}
+	if (shell === null) return void 0;
+	const windowIcon = new WindowIconHolder();
+	let disposed = false;
+	const sync = new DesktopIconSync(home, shell, void 0, (file) => {
+		if (!disposed) windowIcon.set(file);
+	});
 	return {
 		control: {
 			enabled: () => sync.enabled,
@@ -2483,6 +2678,9 @@ function desktopIconControl(profilePatch, patchPaths, catalog) {
 			follow: (target) => {
 				Promise.resolve().then(() => sync.reconcile(source(target))).catch(report);
 			}
+		},
+		start: () => {
+			Promise.resolve().then(() => sync.reconcile(source(current()))).catch(report);
 		},
 		dispose: async () => {
 			disposed = true;
