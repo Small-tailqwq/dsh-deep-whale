@@ -2469,6 +2469,35 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
        hit-tests as the host composer seat: the column's stacking context is what
        keeps the 1000-layer overlay above the conversation chrome. */
 
+  /* The collapsed column is the host's off-canvas shelf below 768px; the
+     medallion drawn inside it never survives (the host keeps it hidden and
+     inert) and at rail widths it duplicates the opener the host already puts
+     in `shell.leading`. Keep exactly one affordance. */
+  html:not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    [class*='sidebarCol'] {
+    display: none !important;
+  }
+
+  /* The host keeps the drawer panel at its stored inline width (280px by
+     default) while the skin widens the column to `min(300px, 84vw)`; the
+     leftover strip painted fabric on the right of every row. Let the panel
+     fill the column it was given. */
+  html:not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    div[data-sidebar-collapsed]
+    [class*='sidebarCol']
+    [data-maid-sidebar-root],
+  html:not([data-maid-nav-mode='rail'])
+    body[data-dsh-maid-atelier]
+    [id='root'] > div[data-slot='root'] > div[class*='frame'][data-sidebar-drawer]:not([data-sidebar-collapsed])
+    [class*='sidebarCol']
+    [data-maid-sidebar-root] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   /* -- host drawer -------------------------------------------------------- */
   /* Below 768px the host runs the column as its own drawer behind a
      `z-index: 70` scrim that closes it on tap. The floating column above keeps
