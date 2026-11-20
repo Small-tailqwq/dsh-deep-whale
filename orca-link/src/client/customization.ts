@@ -9,6 +9,7 @@ export const COMPOSER_SCROLL_HIDE_ATTRIBUTE = 'data-dsh-whale-orca-composer-scro
 export const COMPOSER_BOTTOM_ONLY_ATTRIBUTE = 'data-dsh-whale-orca-composer-bottom-only'
 export const COMPOSER_HANDLES_ATTRIBUTE = 'data-dsh-whale-orca-composer-handles'
 export const HEADLINE_TYPEWRITER_ATTRIBUTE = 'data-dsh-whale-orca-headline-typewriter'
+export const READABILITY_ATTRIBUTE = 'data-dsh-whale-orca-readability'
 
 /** A declared behaviour switch reads as enabled until the manager says 'off'. */
 export function orcaFeatureEnabled(doc: Document, attribute: string): boolean {
@@ -55,6 +56,7 @@ export function installOrcaCustomization(root: HTMLElement = document.documentEl
     projector.set(COMPOSER_BOTTOM_ONLY_ATTRIBUTE, state.values.composerBottomOnly === true ? 'on' : 'off')
     projector.set(COMPOSER_HANDLES_ATTRIBUTE, state.values.composerHandles === false ? 'off' : 'on')
     projector.set(HEADLINE_TYPEWRITER_ATTRIBUTE, state.values.headlineTypewriter === false ? 'off' : 'on')
+    projector.set(READABILITY_ATTRIBUTE, state.values.readability === true ? 'on' : 'off')
   }
 
   return exposeSkinCustomization({
@@ -105,6 +107,17 @@ export function installOrcaCustomization(root: HTMLElement = document.documentEl
         description: '左上角小人一并隐藏。',
         descriptionEn: 'The corner character hides with it.',
         defaultValue: { enabled: false, outside: 'visible', ranges: [] },
+      },
+      {
+        key: 'readability',
+        group: 'scene',
+        type: 'boolean',
+        label: '可读性优化',
+        labelEn: 'Readability',
+        description: '对话时淡化背景立绘。',
+        descriptionEn: 'Fades the artwork behind a conversation.',
+        defaultValue: false,
+        visibleWhen: { key: 'background', values: [true] },
       },
       {
         key: 'pricingLight',
