@@ -732,6 +732,12 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-s
 body[data-dsh-maid-atelier] [class*='sidebarCol'] {
   --dsw-alias-scrollbar-bg-l2: rgba(205, 174, 111, 0.58);
   --dsw-alias-scrollbar-hover-l2: #e8c77f;
+  /* The panel is navy in both themes, so the palette's supporting inks — the
+     porcelain-page greys — cannot be inherited here: archived session rows and
+     the host's own captions would drop to about 3:1. */
+  --dsw-alias-label-caption: #a8b4cc;
+  --dsw-alias-label-secondary: #c9d3e6;
+  --dsw-alias-label-tertiary: #b4c0d8;
   position: relative;
   z-index: auto;
   border-right: 0;
@@ -2788,6 +2794,12 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     top: 0 !important;
     bottom: 0 !important;
     left: 0 !important;
+    box-sizing: border-box !important;
+    /* The installed app runs fullscreen, so the floating column owns the top
+       inset the host's own drawer gets from the shell. Padding rather than
+       `top` keeps the navy fabric under the notch instead of showing the page
+       behind it. */
+    padding-top: env(safe-area-inset-top, 0px) !important;
     width: min(300px, 84vw) !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
@@ -2795,6 +2807,15 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     border-right: 0.5px solid var(--dsw-alias-border-l3) !important;
     box-shadow: 24px 0 64px rgba(8, 17, 48, 0.35) !important;
     overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  /* The column is the drawer's box, not its scrollport: the host scrolls the
+     session list inside its own `scrollArea`. Chaining has to stop on the
+     element that actually scrolls, or a flick at the end of the list keeps
+     pulling the conversation behind the drawer (and the browser's pull-to-
+     refresh with it). */
+  body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='scrollArea'] {
     overscroll-behavior: contain !important;
   }
 

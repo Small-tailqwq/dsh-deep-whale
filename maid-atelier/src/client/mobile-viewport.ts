@@ -34,13 +34,25 @@ const PHONE_MAX_WIDTH = 700
 /** A touch pointer owns the keyboard shell even in landscape, where the shell is wide. */
 const COARSE_QUERY = '(pointer: coarse)'
 /** Narrow desktop windows share the phone layout; landscape phones use touch. */
-const MOBILE_QUERY = `(max-width: ${PHONE_MAX_WIDTH}px), ${COARSE_QUERY}`
+export const MOBILE_QUERY = `(max-width: ${PHONE_MAX_WIDTH}px), ${COARSE_QUERY}`
 /** A visual viewport this much shorter than the layout viewport is a keyboard. */
 const KEYBOARD_MIN_GAP = 120
 /** The composer mounts with the shell; a few settle passes cover the rest. */
 const SETTLE_DELAYS = [250, 1000, 3000]
 
 const viewports = new WeakMap<HTMLElement, { owners: number, dispose: () => void }>()
+
+/**
+ * Whether the skin's phone layout owns this viewport: a narrow window, or a
+ * touch pointer even in landscape. Reads the one media query the stylesheet
+ * uses, so the customization toggles and the CSS never disagree.
+ * @param view - window whose media query is read.
+ * @returns true when the phone layout applies.
+ */
+export function matchesMobile(view: Window): boolean {
+  const media = view.matchMedia?.(MOBILE_QUERY)
+  return media === undefined ? view.innerWidth <= PHONE_MAX_WIDTH : media.matches
+}
 
 /**
  * Keep the phone shell inside the visual viewport while the software keyboard is
