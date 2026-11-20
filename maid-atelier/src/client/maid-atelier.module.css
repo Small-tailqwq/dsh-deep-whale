@@ -740,6 +740,10 @@ body[data-dsh-maid-atelier]
   [data-maid-sidebar-footer]:not(
     :has([role='dialog'], [role='alertdialog'], [role='menu'])
   ) {
+  /* The rebind alone only helps the host's own `var(--dsw-alias-label-*)`
+     declarations. Widgets that paint `color: inherit` (the usage foot card is
+     one) read the color already computed on `.root`, so restate it here. */
+  color: var(--dsw-alias-label-primary);
   --dsw-alias-label-primary: #f4ead5;
   --dsw-alias-label-primary-foreground: #172347;
   --dsw-alias-label-dimmed: #93a1bd;
