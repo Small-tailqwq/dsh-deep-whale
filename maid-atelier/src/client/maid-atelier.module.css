@@ -24,9 +24,12 @@ body[data-dsh-maid-atelier] {
 }
 
 /* Page and overlay controls share one palette; navy chrome overrides it at its
-   own boundary. Overlay reading surfaces are made opaque below. */
+   own boundary. Overlay reading surfaces are made opaque below. Below the
+   host's drawer breakpoint the sidebar root itself carries `role="dialog"` and
+   `aria-modal`; it is still the navy panel, not an overlay surface, so it keeps
+   the chrome palette (its own dialogs and menus still match here). */
 body[data-dsh-maid-atelier],
-body[data-dsh-maid-atelier] :is(dialog, [role='dialog'], [role='alertdialog'], [role='menu'], [data-menu-material], [data-radix-popper-content-wrapper] > *) {
+body[data-dsh-maid-atelier] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material], [data-radix-popper-content-wrapper] > *) {
   --dsw-alias-bg-base: transparent;
   --dsw-alias-bg-layer-1: rgba(248, 250, 255, 0.72);
   --dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.84);
@@ -99,7 +102,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] {
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme],
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog'], [role='alertdialog'], [role='menu'], [data-menu-material]),
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material]),
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-radix-popper-content-wrapper] > * {
   --dsw-alias-bg-base: transparent;
   --dsw-alias-bg-layer-1: rgba(18, 31, 67, 0.9);
@@ -347,8 +350,7 @@ body[data-dsh-maid-atelier][data-maid-conversation-active]
 
 /* Keep portrait-phone landing figures below the headline and clear of the
    composer. Active conversations include inspection views as well as chat. */
-@media (max-width: 700px) and (orientation: portrait),
-  (max-width: 767px) and (pointer: coarse) {
+@media (max-width: 700px) and (orientation: portrait) {
   body[data-dsh-maid-atelier]:not([data-maid-conversation-active])
     [data-maid-character] {
     height: 62%;
@@ -729,55 +731,10 @@ body[data-dsh-maid-atelier] [data-slot='conversation.header'] > header > [data-s
   box-shadow: 0 0 8px rgba(235, 204, 143, 0.45);
 }
 
-/* Chrome ink inside the panel. The nav rail above the session list and the
-   footer both inherit the porcelain-page ink from the theme (`label-primary` is
-   near-black in the light theme), which disappears on the navy fabric: the
-   launcher labels and the usage caption drop to about 1.3:1. Rebind the ink on
-   the two subtrees that actually sit on the panel — and hand the page palette
-   back while an overlay surface is open inside them, because dialogs portal
-   into the footer and must not inherit the panel's cream. */
-body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='scrollArea'],
-body[data-dsh-maid-atelier]
-  [data-maid-sidebar-footer]:not(
-    :has([role='dialog'], [role='alertdialog'], [role='menu'])
-  ) {
-  /* The rebind alone only helps the host's own `var(--dsw-alias-label-*)`
-     declarations. Widgets that paint `color: inherit` (the usage foot card is
-     one) read the color already computed on `.root`, so restate it here. */
-  color: var(--dsw-alias-label-primary);
-  --dsw-alias-label-primary: #f4ead5;
-  --dsw-alias-label-primary-foreground: #172347;
-  --dsw-alias-label-dimmed: #93a1bd;
-  --dsw-alias-brand-primary: #e2be70;
-}
-
-/* Inside the host's drawer the list is the only thing worth scrolling. The
-   host hands the gesture over in two stages: the shell scrolls its own ~84px
-   strip first, then a `scroll-state` container query flips the session list to
-   `overflow-y: auto`. Engines without that query stop dead on the strip, and
-   even on engines that have it the first flick ends early. The nav above the
-   list is a fixed-height strip, so let the list own the gesture from the
-   start. */
-html:not([data-maid-nav-mode='rail'])
-  body[data-dsh-maid-atelier]
-  [id='root'] > div[data-slot='root'] > div[class*='frame'][data-sidebar-drawer]:not(
-    [data-sidebar-collapsed]
-  )
-  [class*='listArea'] {
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-}
-
 /* Pane surfaces, matched by the AppFrame column class substrings. */
 body[data-dsh-maid-atelier] [class*='sidebarCol'] {
   --dsw-alias-scrollbar-bg-l2: rgba(205, 174, 111, 0.58);
   --dsw-alias-scrollbar-hover-l2: #e8c77f;
-  /* The panel is navy in both themes, so the palette's supporting inks — the
-     porcelain-page greys — cannot be inherited here: archived session rows and
-     the host's own captions would drop to about 3:1. */
-  --dsw-alias-label-caption: #a8b4cc;
-  --dsw-alias-label-secondary: #c9d3e6;
-  --dsw-alias-label-tertiary: #b4c0d8;
   position: relative;
   z-index: auto;
   border-right: 0;
@@ -2063,20 +2020,20 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-sidebar] {
   color: #e7ecf7;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
   color: #d9bd83;
   font-family: var(--maid-workspace-font);
   letter-spacing: 0.025em;
   text-shadow: 0 1px 2px rgba(2, 7, 24, 0.62);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='sectionLabel'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='sectionLabel'] {
   color: #d9bd83;
   font-size: 15px;
   font-weight: 500;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] {
   position: relative;
   color: #d9bd83;
   border: 1px solid transparent;
@@ -2084,7 +2041,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:
   transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton']:is(:hover, :focus-visible) {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton']:is(:hover, :focus-visible) {
   color: #fff1cf;
   border-color: rgba(225, 191, 124, 0.56);
   background: rgba(91, 119, 188, 0.2);
@@ -2092,7 +2049,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:
   outline: none;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] svg {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] svg {
   color: inherit;
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.68));
 }
@@ -2128,12 +2085,12 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='search'][class*='sear
     0 4px 12px rgba(2, 7, 24, 0.2);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
   color: #f8f3e8;
   font-family: var(--maid-workspace-font);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog'] *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))::placeholder {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))::placeholder {
   color: #aeb9d3;
   opacity: 1;
 }
@@ -2317,6 +2274,46 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 }
 
+/* Web drawer opener. Below the host's drawer breakpoint the collapsed column is
+   hidden and inert (see the host-drawer rules in the media query below), so
+   the sidebar opener the host mounts in its `shell.leading` seat is the one way
+   back in, in every orientation. On the web that seat holds only that opener;
+   dress it as the gold-ringed medallion and publish the wider inline band it
+   now occupies (12px seat offset + 44px + 8px gap) through the frame's own
+   clearance property. Desktop seats keep their native controls. */
+html:not([data-platform]) body[data-dsh-maid-atelier]
+  [id='root'] > div[data-slot='root'] > div[class*='frame'][data-sidebar-drawer] {
+  --dsh-frame-leading-clearance: 64px;
+}
+
+html:not([data-platform]) body[data-dsh-maid-atelier]
+  div[class*='frame'][data-sidebar-drawer] [data-shell-leading] button {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(226, 190, 112, 0.72);
+  border-radius: 50%;
+  corner-shape: round;
+  background: radial-gradient(circle at 50% 24%, #23396f 0%, #10214d 58%, #0a173b 100%);
+  color: #ebd29e;
+  box-shadow: 0 2px 8px rgba(2, 8, 28, 0.5),
+    inset 0 0 0 1px rgba(255, 246, 226, 0.08);
+  place-items: center;
+}
+
+html:not([data-platform]) body[data-dsh-maid-atelier]
+  div[class*='frame'][data-sidebar-drawer] [data-shell-leading] button:is(:hover, :focus-visible) {
+  border-color: rgba(244, 218, 164, 0.92);
+  color: #fff1ce;
+}
+
+html:not([data-platform]) body[data-dsh-maid-atelier]
+  div[class*='frame'][data-sidebar-drawer] [data-shell-leading] button svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* ---------------------------------------------------------------------------
    Phone navigation layout — one skin customization value, three modes.
 
@@ -2351,8 +2348,8 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
 
    Portrait only: in landscape the scarce axis is height, so the rail's 56px of
    width is the cheaper trade and every mode below leaves the host alone. */
-@media (max-width: 700px) and (orientation: portrait),
-  (max-width: 767px) and (pointer: coarse) {
+
+@media (max-width: 700px) and (orientation: portrait) {
   /* Frame: one column, conversation only. The column is out of flow in both
      states — collapsed it is the dock or the bar, expanded it is the overlay
      drawer — so the frame must never keep the track it vacated, or the host grid
@@ -2469,28 +2466,22 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
        hit-tests as the host composer seat: the column's stacking context is what
        keeps the 1000-layer overlay above the conversation chrome. */
 
-  /* The collapsed column is the host's off-canvas shelf below 768px; the
-     medallion drawn inside it never survives (the host keeps it hidden and
-     inert) and at rail widths it duplicates the opener the host already puts
-     in `shell.leading`. Keep exactly one affordance. */
-  html:not([data-maid-nav-mode='rail'])
-    body[data-dsh-maid-atelier]
-    div[data-sidebar-collapsed]
+  /* The host's drawer keeps its collapsed column hidden and inert in every
+     mode, so neither the corner medallion nor the topbar drawn in it can be
+     reached; the host's own opener (dressed below the media query) is the one
+     affordance there. Drop the dead column instead of leaving it to animate
+     off-canvas beside that opener. */
+  body[data-dsh-maid-atelier]
+    div[class*='frame'][data-sidebar-drawer][data-sidebar-collapsed]
     [class*='sidebarCol'] {
     display: none !important;
   }
 
   /* The host keeps the drawer panel at its stored inline width (280px by
-     default) while the skin widens the column to `min(300px, 84vw)`; the
+     default) while the floating column above is `min(300px, 84vw)`; the
      leftover strip painted fabric on the right of every row. Let the panel
      fill the column it was given. */
-  html:not([data-maid-nav-mode='rail'])
-    body[data-dsh-maid-atelier]
-    div[data-sidebar-collapsed]
-    [class*='sidebarCol']
-    [data-maid-sidebar-root],
-  html:not([data-maid-nav-mode='rail'])
-    body[data-dsh-maid-atelier]
+  body[data-dsh-maid-atelier]
     [id='root'] > div[data-slot='root'] > div[class*='frame'][data-sidebar-drawer]:not([data-sidebar-collapsed])
     [class*='sidebarCol']
     [data-maid-sidebar-root] {
@@ -2512,41 +2503,14 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
   }
 
   /* -- corner ------------------------------------------------------------- */
-  /* 0.2.2-rc.5 keeps the collapsed drawer column `visibility: hidden` and marks
-     it `inert` (AppFrame.module.css / AppFrame.tsx), so a medallion drawn
-     inside that column can neither be seen nor tapped; the opener the host
-     renders in `shell.leading` is the live affordance. Dress that one as the
-     medallion rather than shipping a second, dead copy. */
-  body[data-dsh-maid-atelier] [data-shell-leading] [data-sidebar-opener] {
-    box-sizing: border-box;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border: 1px solid rgba(226, 190, 112, 0.72);
-    border-radius: 50%;
-    corner-shape: round;
-    background: radial-gradient(circle at 50% 24%, #23396f 0%, #10214d 58%, #0a173b 100%);
-    color: #ebd29e;
-    box-shadow: 0 2px 8px rgba(2, 8, 28, 0.5),
-      inset 0 0 0 1px rgba(255, 246, 226, 0.08);
-    place-items: center;
-  }
-
-  body[data-dsh-maid-atelier] [data-shell-leading] [data-sidebar-opener] svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  /* The in-column medallion below is what this used to be; keep the geometry
-     (it still shapes the collapsed column) but let the host own the opener. */
+  /* A fixed 48px brand button in the top-left. The box itself stays inert so it
+     never eats a tap meant for the header behind it; only the toggle inside it
+     is interactive. */
   html:not([data-maid-nav-mode='topbar']):not([data-maid-nav-mode='rail'])
     body[data-dsh-maid-atelier]
     div[data-sidebar-collapsed]
     [class*='sidebarCol'] {
     position: fixed !important;
-    /* The host parks its closed drawer with `translateX(-100%)` on this same
-       column; left as-is it drags the medallion off the left edge. */
-    transform: none !important;
     top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
     right: auto !important;
     bottom: auto !important;
@@ -6189,7 +6153,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], 
    keeps it from inheriting a value already resolved against the page/chrome
    tokens: the Agent Team panel mounts inside the conversation header and
    paints itself with `--dsw-specific-menu`. */
-body[data-dsh-maid-atelier] :is(dialog, [role='dialog'], [role='alertdialog'], [role='menu'], [data-menu-material]),
+body[data-dsh-maid-atelier] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material]),
 body[data-dsh-maid-atelier] [data-radix-popper-content-wrapper] > * {
   color: var(--dsw-alias-label-primary, #172347);
   text-shadow: none;
@@ -6203,7 +6167,7 @@ body[data-dsh-maid-atelier] [data-radix-popper-content-wrapper] > * {
   box-shadow: var(--maid-shadow);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog'], [role='alertdialog'], [role='menu'], [data-menu-material]),
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material]),
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-radix-popper-content-wrapper] > * {
   color: var(--dsw-alias-label-primary, #e7ecf7);
   --dsw-alias-bg-base: #0d193b;

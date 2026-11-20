@@ -46,7 +46,6 @@ import { installMaidComposerDismiss } from './composer-dismiss.ts'
 import { installMaidComposerScroll } from './composer-scroll.ts'
 import { installMaidMobileDrawerAutoClose } from './mobile-drawer.ts'
 import { installMaidMobileViewport } from './mobile-viewport.ts'
-import { claimDocumentTitle } from './title-lease.ts'
 import { createMaidSettingsNavigation } from './settings-navigation.ts'
 import { installMaidCustomization } from './customization.ts'
 import { installMaidBootError } from './boot-error.ts'
@@ -540,6 +539,7 @@ export function apply(ctx: PanelContext): void {
   // sweeps them when it unloads; hand other plugins' tags back before that.
   ctx.effect(() => () => releaseClaimedStyles(), 'ui-skin-maid-atelier: release styles claimed by the loader')
   ctx.effect(() => installMaidBootError(), 'ui-skin-maid-atelier: boot failure presentation')
+  const originalTitle = document.title
   const layoutResizeLease = createBodyAttributeLease(body, 'data-maid-layout-resizing')
   const lowPowerLease = createBodyAttributeLease(body, 'data-maid-low-power')
   const foreignShellLease = createBodyAttributeLease(body, 'data-maid-shell', 'foreign')
@@ -629,6 +629,7 @@ export function apply(ctx: PanelContext): void {
     if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) {
       themeColorMeta.content = previousThemeColor ?? ''
     }
+    if (document.title === SKIN_TITLE) document.title = originalTitle
   }, 'ui-skin-maid-atelier: layered background and ornament')
 
   handleViewportResize = (): void => {
@@ -1167,8 +1168,5 @@ export function apply(ctx: PanelContext): void {
   installMaidPageIcons(ctx)
   installMaidPlatformCaption(ctx, body)
 
-  ctx.effect(() => {
-    const lease = claimDocumentTitle(document, SKIN_TITLE)
-    return () => lease.dispose()
-  }, 'ui-skin-maid-atelier: skin title')
+  document.title = SKIN_TITLE
 }
