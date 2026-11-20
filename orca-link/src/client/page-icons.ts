@@ -32,7 +32,7 @@ const PAGE_ICON_SVG = [
 const PAGE_ICON = `data:image/svg+xml;utf8,${encodeURIComponent(PAGE_ICON_SVG)}`
 const MANIFEST_NAME = 'DeepSeek Harness'
 const MANIFEST_SHORT_NAME = 'DSH'
-const MANIFEST_DISPLAY = 'fullscreen'
+const MANIFEST_DISPLAY = 'standalone'
 const HOST_PAGE_ICON_SELECTOR = 'link[rel~="icon"], link[rel="manifest"]'
 const HOST_PAGE_ICON_ANCHOR = 'orca-link: host page icon'
 

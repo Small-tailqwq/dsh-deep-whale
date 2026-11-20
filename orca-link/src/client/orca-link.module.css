@@ -295,8 +295,11 @@ body[data-dsh-orca-link] :where([role='switch'][aria-checked='true']):not(
 
 /* Dialogs own a reading surface independent of the scene behind them. Reset
    the inherited base token here so inline backgrounds and descendant controls
-   share that surface, including native dialogs without an explicit ARIA role. */
-body[data-dsh-orca-link] :is(dialog, [role='dialog'], [role='alertdialog']) {
+   share that surface, including native dialogs without an explicit ARIA role.
+   Below the host's drawer breakpoint the sidebar root itself carries
+   `role="dialog"` and `aria-modal`; it is still the sidebar, not an overlay
+   surface, so it keeps the sidebar's own tokens. */
+body[data-dsh-orca-link] :is(dialog, [role='dialog']:not([data-slot='sidebar'] > *), [role='alertdialog']) {
   --dsw-alias-bg-base: var(--orca-surface-strong);
 }
 
@@ -993,12 +996,12 @@ body[data-dsh-orca-link][data-orca-settings-open]
   animation: none !important;
 }
 
-body[data-dsh-orca-link] [role='dialog'] {
+body[data-dsh-orca-link] [role='dialog']:not([data-slot='sidebar'] > *) {
   --orca-dialog-bg: #fbf7ef;
   background: var(--orca-dialog-bg);
 }
 
-body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog'] {
+body[data-dsh-orca-link][data-ds-dark-theme] [role='dialog']:not([data-slot='sidebar'] > *) {
   --orca-dialog-bg: #0f151f;
 }
 
@@ -1652,6 +1655,15 @@ body[data-dsh-orca-link][data-ds-dark-theme] .dshWordmark { color: #eef4ff; }
     opacity: 0;
     transform: translateX(116px) scaleY(1);
   }
+}
+
+/* Host drawer. Below its drawer breakpoint (768px) the host floats the sidebar
+   column over the conversation instead of beside it. The glass fill above lets
+   the page backdrop through on a docked column; over the transcript it lets the
+   conversation's own text through, so the drawer takes the opaque surface the
+   host's own drawer has, in the skin's paper ink. */
+body[data-dsh-orca-link] div[class*='frame'][data-sidebar-drawer] > [class*='sidebarCol'] {
+  background-color: var(--dsw-input-solid);
 }
 
 /* The operator stage belongs to the sidebar only; its state actor is mounted as

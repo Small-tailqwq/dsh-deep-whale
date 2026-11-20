@@ -13,14 +13,16 @@ interface Fixture {
 }
 
 /**
- * Build the layout shape the installer reads: a frame that drops
- * `data-sidebar-collapsed` while the narrow column is an overlay, plus a
- * decorated session row carrying DSH's nested actions control and the sidebar's
- * own settings entry.
+ * Build the layout shape the installer reads: a frame the host marks
+ * `data-sidebar-drawer` while it runs the narrow column as an overlay (and
+ * drops `data-sidebar-collapsed` once that overlay opens), plus a decorated
+ * session row carrying DSH's nested actions control and the sidebar's own
+ * settings entry.
  */
 function mount(): Fixture {
   const frame = document.createElement('div')
   frame.className = 'pI_x6G_frame'
+  frame.setAttribute('data-sidebar-drawer', '')
   const column = document.createElement('div')
   column.className = 'pI_x6G_sidebarCol'
   const toggle = document.createElement('button')
@@ -150,11 +152,31 @@ describe('Maid Atelier mobile drawer auto-close', () => {
     const fixture = mount()
     setColumnWidth(fixture.column, 280)
     setViewportWidth(1280)
+    fixture.frame.removeAttribute('data-sidebar-drawer')
     fixture.frame.removeAttribute('data-sidebar-collapsed')
     const toggleClick = vi.spyOn(fixture.toggle, 'click')
 
     fixture.row.click()
     await settle()
+
+    expect(toggleClick).not.toHaveBeenCalled()
+    fixture.dispose()
+  })
+
+  it('keeps the expanded column docked between the drawer and auto-collapse breakpoints', async () => {
+    const fixture = mount()
+    const outside = mountOutside()
+    setColumnWidth(fixture.column, 280)
+    // 768-1023px: the host has left drawer mode (`drawer=false`) but still
+    // reports narrow, so the expanded column sits inline with no scrim. A tap
+    // in the conversation must reach the conversation.
+    setViewportWidth(900)
+    fixture.frame.removeAttribute('data-sidebar-drawer')
+    fixture.frame.removeAttribute('data-sidebar-collapsed')
+    const toggleClick = vi.spyOn(fixture.toggle, 'click')
+
+    pointerDown(outside)
+    click(outside)
 
     expect(toggleClick).not.toHaveBeenCalled()
     fixture.dispose()
@@ -270,6 +292,7 @@ describe('Maid Atelier mobile drawer auto-close', () => {
     const outside = mountOutside()
     setColumnWidth(fixture.column, 280)
     setViewportWidth(1280)
+    fixture.frame.removeAttribute('data-sidebar-drawer')
     fixture.frame.removeAttribute('data-sidebar-collapsed')
     const toggleClick = vi.spyOn(fixture.toggle, 'click')
 
