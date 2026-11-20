@@ -4,7 +4,7 @@ import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { closeSync, copyFileSync, existsSync, fsyncSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 //#region \0rolldown/runtime.js
@@ -25,7 +25,7 @@ var __copyProps = (to, from, except, desc) => {
 	}
 	return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
 	value: mod,
 	enumerable: true
 }) : target, mod));
@@ -94,14 +94,12 @@ var require_parse_options = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 //#endregion
 //#region node_modules/semver/internal/constants.js
 var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	const SEMVER_SPEC_VERSION = "2.0.0";
-	const MAX_LENGTH = 256;
-	const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
 	module.exports = {
-		MAX_LENGTH,
+		MAX_LENGTH: 256,
 		MAX_SAFE_COMPONENT_LENGTH: 16,
-		MAX_SAFE_BUILD_LENGTH: MAX_LENGTH - 6,
-		MAX_SAFE_INTEGER,
+		MAX_SAFE_BUILD_LENGTH: 250,
+		MAX_SAFE_INTEGER: Number.MAX_SAFE_INTEGER || 
+		/* istanbul ignore next */ 9007199254740991,
 		RELEASE_TYPES: [
 			"major",
 			"premajor",
@@ -111,7 +109,7 @@ var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			"prepatch",
 			"prerelease"
 		],
-		SEMVER_SPEC_VERSION,
+		SEMVER_SPEC_VERSION: "2.0.0",
 		FLAG_INCLUDE_PRERELEASE: 1,
 		FLAG_LOOSE: 2
 	};
@@ -237,9 +235,10 @@ var require_semver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	module.exports = class SemVer {
 		constructor(version, options) {
 			options = parseOptions(options);
-			if (version instanceof SemVer) if (version.loose === !!options.loose && version.includePrerelease === !!options.includePrerelease) return version;
-			else version = version.version;
-			else if (typeof version !== "string") throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version}".`);
+			if (version instanceof SemVer) {
+				if (version.loose === !!options.loose && version.includePrerelease === !!options.includePrerelease) return version;
+				else version = version.version;
+			} else if (typeof version !== "string") throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version}".`);
 			if (version.length > MAX_LENGTH) throw new TypeError(`version is longer than ${MAX_LENGTH} characters`);
 			debug("SemVer", version, options);
 			this.options = options;
@@ -496,8 +495,10 @@ var require_comparator = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		}
 		constructor(comp, options) {
 			options = parseOptions(options);
-			if (comp instanceof Comparator) if (comp.loose === !!options.loose) return comp;
-			else comp = comp.value;
+			if (comp instanceof Comparator) {
+				if (comp.loose === !!options.loose) return comp;
+				else comp = comp.value;
+			}
 			comp = comp.trim().split(/\s+/).join(" ");
 			debug("comparator", comp, options);
 			this.options = options;
@@ -563,8 +564,10 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	module.exports = class Range {
 		constructor(range, options) {
 			options = parseOptions(options);
-			if (range instanceof Range) if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) return range;
-			else return new Range(range.raw, options);
+			if (range instanceof Range) {
+				if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) return range;
+				else return new Range(range.raw, options);
+			}
 			if (range instanceof Comparator) {
 				this.raw = range.value;
 				this.set = [[range]];
@@ -734,18 +737,21 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			let ret;
 			if (isX(M)) ret = "";
 			else if (isX(m)) ret = `>=${M}.0.0${z} <${+M + 1}.0.0-0`;
-			else if (isX(p)) if (M === "0") ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
-			else ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
-			else if (pr) {
+			else if (isX(p)) {
+				if (M === "0") ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
+				else ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
+			} else if (pr) {
 				debug("replaceCaret pr", pr);
-				if (M === "0") if (m === "0") ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
-				else ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
-				else ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
+				if (M === "0") {
+					if (m === "0") ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
+					else ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+				} else ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
 			} else {
 				debug("no pr");
-				if (M === "0") if (m === "0") ret = `>=${M}.${m}.${p} <${M}.${m}.${+p + 1}-0`;
-				else ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
-				else ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
+				if (M === "0") {
+					if (m === "0") ret = `>=${M}.${m}.${p} <${M}.${m}.${+p + 1}-0`;
+					else ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
+				} else ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
 			}
 			debug("caret return", ret);
 			return ret;
@@ -767,9 +773,10 @@ var require_range = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const anyX = xp;
 			if (gtlt === "=" && anyX) gtlt = "";
 			pr = options.includePrerelease ? "-0" : "";
-			if (xM) if (gtlt === ">" || gtlt === "<") ret = "<0.0.0-0";
-			else ret = "*";
-			else if (gtlt && anyX) {
+			if (xM) {
+				if (gtlt === ">" || gtlt === "<") ret = "<0.0.0-0";
+				else ret = "*";
+			} else if (gtlt && anyX) {
 				if (xm) m = 0;
 				p = 0;
 				if (gtlt === ">") {
@@ -983,7 +990,7 @@ function evaluateSkinCompatibility(manifest, runtimeVersion, exemptions) {
 * PowerShell helper that sets it and puts the previous icon back on stop.
 */
 /** Largest ICO accepted from a skin manifest; real multi-size icons stay well below it. */
-const MAX_ICON_BYTES = 2 * 1024 * 1024;
+const MAX_ICON_BYTES = 2097152;
 const POWERSHELL_TIMEOUT_MS = 6e4;
 const desktopIconQueues = /* @__PURE__ */ new Map();
 /** The Windows desktop host runs plugins in `DeepSeek Harness.exe` with ELECTRON_RUN_AS_NODE. */
@@ -1339,7 +1346,7 @@ function runPowerShell(script, env) {
 			},
 			timeout: POWERSHELL_TIMEOUT_MS,
 			windowsHide: true,
-			maxBuffer: 4 * 1024 * 1024,
+			maxBuffer: 4194304,
 			encoding: "utf8"
 		}, (error, stdout, stderr) => {
 			if (error !== null) {
@@ -1520,13 +1527,16 @@ var WindowIconHolder = class WindowIconHolder {
 //#endregion
 //#region src/finder-icon.ts
 const exec = promisify(execFile);
-/** Only target the running DSH Electron application's bundle. */
+/**
+* Only target the running DSH Electron application's bundle. The bundle path is
+* a macOS path whatever host evaluates it, so it is parsed with POSIX rules.
+*/
 function detectFinderApp(platform = process.platform, env = process.env, execPath = process.execPath) {
-	if (platform !== "darwin" || env.ELECTRON_RUN_AS_NODE !== "1" || basename(execPath) !== "DeepSeek Harness") return null;
-	const macos = dirname(execPath);
-	const contents = dirname(macos);
-	const app = dirname(contents);
-	return basename(macos) === "MacOS" && basename(contents) === "Contents" && app.endsWith(".app") ? app : null;
+	if (platform !== "darwin" || env.ELECTRON_RUN_AS_NODE !== "1" || posix.basename(execPath) !== "DeepSeek Harness") return null;
+	const macos = posix.dirname(execPath);
+	const contents = posix.dirname(macos);
+	const app = posix.dirname(contents);
+	return posix.basename(macos) === "MacOS" && posix.basename(contents) === "Contents" && app.endsWith(".app") ? app : null;
 }
 const SET_ICON = `ObjC.import('AppKit')
 function run([bundle, file]) {
@@ -1869,7 +1879,7 @@ function activeSkinTarget(sources, catalog) {
 const execFileAsync = promisify(execFile);
 const GIT_OP_TIMEOUT_MS = 5e3;
 const GITHUB_OP_TIMEOUT_MS = 8e3;
-const BRANCH_CACHE_TTL_MS = 1440 * 60 * 1e3;
+const BRANCH_CACHE_TTL_MS = 864e5;
 const VERSION_CACHE_TTL_MS = 3e4;
 /** Parse `owner/repo` out of a GitHub remote URL (https, ssh, git@, git://). */
 function parseGitHubRemote(remoteUrl) {

@@ -285,7 +285,7 @@ window.__ModuleLoader__.load({
 		/** Stable source marker so importers can reject unrelated JSON early. */
 		const PREFERENCES_EXPORT_SOURCE = "dsh-skin-manager";
 		/** Maximum accepted configuration content for an import (256 KiB of UTF-8 bytes). Defends against accidents. */
-		const PREFERENCES_IMPORT_MAX_BYTES = 256 * 1024;
+		const PREFERENCES_IMPORT_MAX_BYTES = 262144;
 		/** Error thrown when an import payload cannot be promoted to a live store. */
 		var PreferencesImportError = class extends Error {
 			code;
@@ -1606,9 +1606,11 @@ window.__ModuleLoader__.load({
 			const max = Math.max(red, green, blue);
 			const delta = max - Math.min(red, green, blue);
 			let hue = 0;
-			if (delta !== 0) if (max === red) hue = 60 * ((green - blue) / delta % 6);
-			else if (max === green) hue = 60 * ((blue - red) / delta + 2);
-			else hue = 60 * ((red - green) / delta + 4);
+			if (delta !== 0) {
+				if (max === red) hue = 60 * ((green - blue) / delta % 6);
+				else if (max === green) hue = 60 * ((blue - red) / delta + 2);
+				else hue = 60 * ((red - green) / delta + 4);
+			}
 			return {
 				h: hue < 0 ? hue + 360 : hue,
 				s: max === 0 ? 0 : delta / max,
@@ -1890,7 +1892,8 @@ window.__ModuleLoader__.load({
 		function SettingNodes({ nodes, definition, values, registry }) {
 			const lang = useUiLang();
 			const copy = skinManagerCopy(lang);
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(react_jsx_runtime.Fragment, { children: nodes.filter((node) => settingVisible(node.setting, values, definition.settings)).map(({ setting, children }) => {
+			const visible = nodes.filter((node) => settingVisible(node.setting, values, definition.settings));
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(react_jsx_runtime.Fragment, { children: visible.map(({ setting, children }) => {
 				const lock = settingLock(setting, values, definition.settings);
 				const description = !lock.locked ? settingDescription(setting, lang) : lock.by !== void 0 ? copy.lockedBy(settingLabel(lock.by, lang)) : copy.locked;
 				const shownChildren = children.filter((child) => settingVisible(child.setting, values, definition.settings));
