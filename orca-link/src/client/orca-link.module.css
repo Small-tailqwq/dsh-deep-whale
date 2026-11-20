@@ -790,7 +790,6 @@ body[data-dsh-orca-link]:not([data-ds-dark-theme])[data-orca-scene='active'] .li
   filter: saturate(0.9) contrast(0.98) blur(0);
 }
 
-
 /* Dark mode is a two-state narrative rather than a decorative wallpaper:
    the mug scene welcomes the user in hero/empty states, while the reading
    scene takes over once a task begins. Both use the same crop, grade and
