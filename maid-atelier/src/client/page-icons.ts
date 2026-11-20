@@ -68,7 +68,7 @@ function mountPageIcons(doc: Document): () => void {
       short_name: 'DSH',
       start_url: root,
       scope: root,
-      display: 'fullscreen',
+      display: 'standalone',
       icons: [
         { src: DELIGHTED_192, sizes: '192x192', type: 'image/png', purpose: 'any' },
         { src: DELIGHTED_512, sizes: '512x512', type: 'image/png', purpose: 'any' },

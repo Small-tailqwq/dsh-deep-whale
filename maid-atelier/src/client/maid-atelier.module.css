@@ -29,7 +29,7 @@ body[data-dsh-maid-atelier] {
    `aria-modal`; it is still the navy panel, not an overlay surface, so it keeps
    the chrome palette (its own dialogs and menus still match here). */
 body[data-dsh-maid-atelier],
-body[data-dsh-maid-atelier] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material], [data-radix-popper-content-wrapper] > *) {
+body[data-dsh-maid-atelier] :is(dialog, [role='dialog']:not([data-slot='sidebar'] > *), [role='alertdialog'], [role='menu'], [data-menu-material], [data-radix-popper-content-wrapper] > *) {
   --dsw-alias-bg-base: transparent;
   --dsw-alias-bg-layer-1: rgba(248, 250, 255, 0.72);
   --dsw-alias-bg-layer-2: rgba(235, 240, 250, 0.84);
@@ -102,7 +102,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] {
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme],
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material]),
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog']:not([data-slot='sidebar'] > *), [role='alertdialog'], [role='menu'], [data-menu-material]),
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-radix-popper-content-wrapper] > * {
   --dsw-alias-bg-base: transparent;
   --dsw-alias-bg-layer-1: rgba(18, 31, 67, 0.9);
@@ -2020,20 +2020,20 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-dsh-better-sidebar] {
   color: #e7ecf7;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-slot='sidebar'] > *) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
   color: #d9bd83;
   font-family: var(--maid-workspace-font);
   letter-spacing: 0.025em;
   text-shadow: 0 1px 2px rgba(2, 7, 24, 0.62);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='sectionLabel'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-slot='sidebar'] > *) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='sectionLabel'] {
   color: #d9bd83;
   font-size: 15px;
   font-weight: 500;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-slot='sidebar'] > *) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] {
   position: relative;
   color: #d9bd83;
   border: 1px solid transparent;
@@ -2041,7 +2041,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:
   transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton']:is(:hover, :focus-visible) {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-slot='sidebar'] > *) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton']:is(:hover, :focus-visible) {
   color: #fff1cf;
   border-color: rgba(225, 191, 124, 0.56);
   background: rgba(91, 119, 188, 0.2);
@@ -2049,7 +2049,7 @@ body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:
   outline: none;
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] svg {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='sectionHeader']:not(:where(dialog *, [role='dialog']:not([data-slot='sidebar'] > *) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) [class*='iconButton'] svg {
   color: inherit;
   filter: drop-shadow(0 1px 2px rgba(2, 7, 24, 0.68));
 }
@@ -2085,12 +2085,12 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] [class*='search'][class*='sear
     0 4px 12px rgba(2, 7, 24, 0.2);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog']:not([data-slot='sidebar'] > *) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *)) {
   color: #f8f3e8;
   font-family: var(--maid-workspace-font);
 }
 
-body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog']:not([data-maid-sidebar-root]) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))::placeholder {
+body[data-dsh-maid-atelier] [data-slot='sidebar'] [class*='searchInput']:not(:where(dialog *, [role='dialog']:not([data-slot='sidebar'] > *) *, [role='alertdialog'] *, [role='menu'] *, [data-menu-material] *))::placeholder {
   color: #aeb9d3;
   opacity: 1;
 }
@@ -2313,15 +2313,6 @@ html:not([data-platform]) body[data-dsh-maid-atelier]
   div[class*='frame'][data-sidebar-drawer] [data-shell-leading] button svg {
   width: 18px;
   height: 18px;
-}
-
-
-/* The skin's web manifest runs the installed app fullscreen, so the host's
-   drawer column reaches under the notch; pad it by the top inset so the panel
-   starts below it while the navy fabric still fills the inset. */
-body[data-dsh-maid-atelier]
-  div[class*='frame'][data-sidebar-drawer] > [class*='sidebarCol'] {
-  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Workspace groups receive skin-owned semantic hooks from the client entry.
@@ -5498,7 +5489,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] :is([data-testid='todo-panel'], 
    keeps it from inheriting a value already resolved against the page/chrome
    tokens: the Agent Team panel mounts inside the conversation header and
    paints itself with `--dsw-specific-menu`. */
-body[data-dsh-maid-atelier] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material]),
+body[data-dsh-maid-atelier] :is(dialog, [role='dialog']:not([data-slot='sidebar'] > *), [role='alertdialog'], [role='menu'], [data-menu-material]),
 body[data-dsh-maid-atelier] [data-radix-popper-content-wrapper] > * {
   color: var(--dsw-alias-label-primary, #172347);
   text-shadow: none;
@@ -5512,7 +5503,7 @@ body[data-dsh-maid-atelier] [data-radix-popper-content-wrapper] > * {
   box-shadow: var(--maid-shadow);
 }
 
-body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog']:not([data-maid-sidebar-root]), [role='alertdialog'], [role='menu'], [data-menu-material]),
+body[data-dsh-maid-atelier][data-ds-dark-theme] :is(dialog, [role='dialog']:not([data-slot='sidebar'] > *), [role='alertdialog'], [role='menu'], [data-menu-material]),
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-radix-popper-content-wrapper] > * {
   color: var(--dsw-alias-label-primary, #e7ecf7);
   --dsw-alias-bg-base: #0d193b;

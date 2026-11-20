@@ -27,25 +27,28 @@ describe('Maid Atelier host drawer', () => {
     const overlayLists = CSS.match(/:is\(dialog, \[role='dialog'\][^,]*,/g) ?? []
     expect(overlayLists.length).toBeGreaterThanOrEqual(4)
     for (const list of overlayLists) {
-      expect(list).toContain("[role='dialog']:not([data-maid-sidebar-root])")
+      expect(list).toContain("[role='dialog']:not([data-slot='sidebar'] > *)")
     }
     const exclusions = CSS.match(/\[data-slot='sidebar'\] \[class\*='(?:sectionHeader|searchInput)'\]:not\(:where\(.*$/gm) ?? []
     expect(exclusions.length).toBeGreaterThanOrEqual(7)
     for (const exclusion of exclusions) {
-      expect(exclusion).toContain("[role='dialog']:not([data-maid-sidebar-root]) *")
+      expect(exclusion).toContain("[role='dialog']:not([data-slot='sidebar'] > *) *")
     }
     // No parallel ink rebind for the drawer: the chrome palette already covers it.
     expect(CSS).not.toMatch(/\[data-maid-sidebar-footer\]:not\(\s*:has\(/)
   })
 
-  it('leaves the drawer geometry to the host and only pads the fullscreen top inset', () => {
+  it('leaves the drawer geometry to the host', () => {
     // The retired phone-navigation modes rebuilt the collapsed column as a
     // corner button or a top bar; the host's drawer hides and inerts that
     // column, so no skin rule may restyle the frame or the column per mode.
     expect(CSS).not.toContain('data-maid-nav-mode')
     expect(CSS).not.toMatch(/\[data-slot='root'\] > div\[class\*='frame'\][^{]*\{[^}]*display: flex/)
-    const column = declarations("body[data-dsh-maid-atelier]\n  div[class*='frame'][data-sidebar-drawer] > [class*='sidebarCol']")
-    expect(column.trim()).toBe('padding-top: env(safe-area-inset-top, 0px);')
+    // The manifest asks for `standalone` like the host's, so the browser keeps
+    // the status bar and no column has to pad the top inset itself.
+    expect(CSS).not.toMatch(/\[data-sidebar-drawer\] > \[class\*='sidebarCol'\] \{[^}]*padding-top/)
+    const pageIcons = readFileSync(resolve(process.cwd(), 'src/client/page-icons.ts'), 'utf8')
+    expect(pageIcons).toContain("display: 'standalone'")
   })
 
   it('dresses only the web drawer opener and publishes its clearance', () => {
