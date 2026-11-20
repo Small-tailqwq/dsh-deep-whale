@@ -2485,6 +2485,9 @@ body[data-dsh-maid-atelier][data-maid-sidebar-size='rail']
     div[data-sidebar-collapsed]
     [class*='sidebarCol'] {
     position: fixed !important;
+    /* The host parks its closed drawer with `translateX(-100%)` on this same
+       column; left as-is it drags the medallion off the left edge. */
+    transform: none !important;
     top: calc(env(safe-area-inset-top, 0px) + 6px) !important;
     right: auto !important;
     bottom: auto !important;
