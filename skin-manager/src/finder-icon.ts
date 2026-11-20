@@ -2,19 +2,22 @@ import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { dirname, join, posix } from 'node:path'
 import { promisify } from 'node:util'
 import type { DesktopIconResult } from './desktop-icon.ts'
 
 const exec = promisify(execFile)
 
-/** Only target the running DSH Electron application's bundle. */
+/**
+ * Only target the running DSH Electron application's bundle. The bundle path is
+ * a macOS path whatever host evaluates it, so it is parsed with POSIX rules.
+ */
 export function detectFinderApp(platform = process.platform, env = process.env, execPath = process.execPath): string | null {
-  if (platform !== 'darwin' || env.ELECTRON_RUN_AS_NODE !== '1' || basename(execPath) !== 'DeepSeek Harness') return null
-  const macos = dirname(execPath)
-  const contents = dirname(macos)
-  const app = dirname(contents)
-  return basename(macos) === 'MacOS' && basename(contents) === 'Contents' && app.endsWith('.app') ? app : null
+  if (platform !== 'darwin' || env.ELECTRON_RUN_AS_NODE !== '1' || posix.basename(execPath) !== 'DeepSeek Harness') return null
+  const macos = posix.dirname(execPath)
+  const contents = posix.dirname(macos)
+  const app = posix.dirname(contents)
+  return posix.basename(macos) === 'MacOS' && posix.basename(contents) === 'Contents' && app.endsWith('.app') ? app : null
 }
 
 const SET_ICON = `ObjC.import('AppKit')

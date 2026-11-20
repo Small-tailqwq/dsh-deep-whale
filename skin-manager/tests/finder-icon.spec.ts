@@ -1,14 +1,14 @@
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { detectFinderApp, FinderIconSync } from '../src/finder-icon.ts'
 
 it('offers Finder sync only from the macOS DSH desktop host', () => {
   const app = '/Applications/Renamed DSH.app'
-  const execPath = join(app, 'Contents', 'MacOS', 'DeepSeek Harness')
+  const execPath = posix.join(app, 'Contents', 'MacOS', 'DeepSeek Harness')
   const electron = { ELECTRON_RUN_AS_NODE: '1' }
   expect(detectFinderApp('darwin', electron, execPath)).toBe(app)
   expect(detectFinderApp('darwin', {}, execPath)).toBeNull()
