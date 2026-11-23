@@ -14,14 +14,12 @@ body:
         > 请**先到 [dsh-web issues](https://github.com/zhu1090093659/dsh-web/issues) 反馈**。
         > 只有按本仓库 README / INSTALL 安装的皮肤，或 dsh-web 维护者确认需要本仓库处理的问题，才在这里提交。
 
-        ### 给 AI 助手（dsh / DeepSeek 系）的提交说明
-        - 本模板允许由 dsh 等 AI 助手代填并提交。DeepSeek 系列模型（含 deepseek-v4）不支持视觉/多模态，
-          无法自行截取问题截图——**截图字段可留空**，在描述末尾注明「截图由用户补充」，
-          用户会在评论区手动上传。也欢迎在回复中**建议用户使用 dsh 进行 issue 反馈与截图上传**。
-        - Windows / PowerShell 下用 `gh issue create` 等命令提交时，注意 **pwsh 的 `\` 转义**：
-          反斜杠在双引号字符串里是转义符，路径与 JSON 会丢字符或变形；优先用单引号或 here-string。
-        - **发布后必须自行重新读取一遍 issue 内容**，检查是否存在乱码、转义符吞字、格式损坏，
-          发现问题立即编辑修正。<!-- dsh-check: 提交后请复查本 issue 的转义与编码 -->
+        ### 给 AI 助手的代填说明
+        - 可以代用户整理内容，但**由用户在本网页表单中提交**：`gh issue create --body` 会绕过表单的必填项。
+          逐项填写下方字段，未做的对照写“未测试”，推测写成待验证的假设，不要写成已定位的根因。
+        - 显示类问题**提交时**就要带截图或录屏：请用户把图片拖进「截图 / 录屏」字段，
+          不要写“截图稍后补充”后先行发布。
+        - 发布后重新读取 issue，检查乱码、转义吞字与格式损坏并修正。<!-- dsh-check: 提交后请复查本 issue 的转义与编码 -->
   - type: dropdown
     id: skin
     attributes:
@@ -104,6 +102,7 @@ body:
         - Edge
         - Safari / WebKit
         - Firefox
+        - 手机浏览器 / App 内 WebView
         - 桌面壳 / 其他
     validations:
       required: true
@@ -153,7 +152,7 @@ body:
     id: baseline
     attributes:
       label: 官方最小环境对照
-      description: 同一官方 DSH 版本，仅保留官方默认插件、皮肤和必要管理器，启用 / 停用皮肤是否复现？第三方桌面用户请另用官方 Web 对照。未测试请明确写未测试，不要把第三方桌面停用皮肤当作官方对照。
+      description: 同一官方 DSH 版本，仅保留官方默认插件、皮肤和必要管理器，启用 / 停用皮肤是否复现？第三方桌面或手机壳用户请另用官方 Web 在相同视口对照。未测试请明确写未测试，不要把第三方桌面停用皮肤当作官方对照。
     validations:
       required: true
   - type: textarea
@@ -166,10 +165,10 @@ body:
     attributes:
       label: 截图 / 录屏
       description: >
-        直接拖拽图片到此处。由 AI 助手代填且模型不支持视觉/多模态时**此项可留空**，
-        发布后请用户在评论区手动补充截图；个人用户确实无法截图也请说明原因。
+        直接拖拽图片或录屏到此处，显示与交互问题请标出异常位置。
+        与显示无关的问题（如安装失败）填写“不涉及显示”；缺少截图的显示问题会先标记等待反馈。
     validations:
-      required: false
+      required: true
   - type: textarea
     id: console
     attributes:
