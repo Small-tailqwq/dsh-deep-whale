@@ -1702,11 +1702,7 @@ const SKIN_MANAGER_ROUTE = "/api/dsh/skins";
 //#endregion
 //#region src/index.ts
 const name = "ui-skin-deep-whale-manager";
-const inject = [
-	"webServer",
-	"connection",
-	"clientModules"
-];
+const inject = ["webServer", "clientModules"];
 const MANAGED_START = "# --- dsh-skin managed (auto-generated; do not edit) ---";
 const MANAGED_END = "# --- end dsh-skin managed ---";
 /**
@@ -2454,7 +2450,7 @@ function readBody(req) {
 /** Create the local catalog/activation route; POST targets are catalog-validated. */
 function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), applyTarget = (target, catalog) => useSkin(target, resolvePatchTargets(), catalog), dirProvider = () => /* @__PURE__ */ new Map(), grantExemption = async () => {
 	throw new Error("exemption-unavailable");
-}, desktopIcon, admission = () => 503, runtime) {
+}, desktopIcon, runtime) {
 	const versionCache = /* @__PURE__ */ new Map();
 	const branchCache = /* @__PURE__ */ new Map();
 	const deps = {
@@ -2497,16 +2493,11 @@ function makeSkinManagerRoute(catalogProvider = () => discoverInstalledSkins(), 
 	}));
 	return {
 		kind: "exact",
+		auth: "required",
 		path: SKIN_MANAGER_ROUTE,
-		async handler(req, res) {
-			let rejection;
-			try {
-				rejection = admission(req);
-			} catch {
-				rejection = 503;
-			}
-			if (rejection !== void 0) {
-				json(res, rejection, {
+		async handler(req, res, peer) {
+			if (peer?.principal.kind !== "owner") {
+				json(res, 403, {
 					ok: false,
 					error: "access-denied"
 				});
@@ -2614,7 +2605,7 @@ function apply(ctx) {
 			console.error("[skin-manager] failed to enforce startup mutual exclusion", error);
 		}
 		const desktopIcon = desktopIconControl(profilePatch, patchPaths, catalog);
-		const unregister = ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch), (compatibility) => grantThroughHost(ctx, compatibility), desktopIcon?.control, (request) => ctx.connection.requestRejection(request), (installed) => skinSwitchState(patchPaths.map((path) => existsSync(path) ? readFileSync(path, "utf8") : ""), installed, ctx.clientModules.graph().entries, ctx.loader.entries())));
+		const unregister = ctx.webServer.register(makeSkinManagerRoute(catalog, (target, installed) => useSkin(target, patchPaths, installed), () => discoverSkinDirectories(profilePatch), (compatibility) => grantThroughHost(ctx, compatibility), desktopIcon?.control, (installed) => skinSwitchState(patchPaths.map((path) => existsSync(path) ? readFileSync(path, "utf8") : ""), installed, ctx.clientModules.graph().entries, ctx.loader.entries())));
 		desktopIcon?.start();
 		return () => {
 			unregister();
