@@ -63,4 +63,17 @@ describe('Maid Atelier host drawer', () => {
   it('leaves the session list scroll handoff to the host', () => {
     expect(CSS).not.toMatch(/\[class\*='listArea'\][^{]*\{[^}]*overflow-y: auto/)
   })
+
+  it('keeps the shell overlay layer above the skin chrome and below the open drawer', () => {
+    // The host stacks the drawer mask (70) and column (71) over the overlay
+    // layer; a full-frame overlay entry must not swallow drawer taps (#253).
+    const overlay = declarations('body[data-dsh-maid-atelier] [data-shell-overlay]')
+    const z = Number(/z-index: (\d+);/.exec(overlay)?.[1])
+    const tiers = [...CSS.matchAll(/^body\[data-dsh-maid-atelier\][^{]*\{[^}]*?z-index: (\d+);/gm)]
+      .map(match => Number(match[1]))
+    // Above the header (21), leading seat (22) and fullscreen / Cordis panels (40).
+    expect(z).toBeGreaterThan(40)
+    expect(z).toBeLessThan(70)
+    expect(Math.max(...tiers.filter(tier => tier !== z && tier < 100))).toBeLessThan(z)
+  })
 })
