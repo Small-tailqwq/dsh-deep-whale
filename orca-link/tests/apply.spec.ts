@@ -223,6 +223,16 @@ describe('Orca Link skin apply', () => {
     document.head.innerHTML = ''
   })
 
+  it('scopes the Web-app manifest to a reverse-proxy prefix', () => {
+    document.head.innerHTML = '<base href="http://localhost:3000/dsh/" />'
+    const dispose = installOrcaPageIcons()
+    const href = document.head.querySelector<HTMLLinkElement>('link[data-skin-chrome="manifest"]')!.getAttribute('href') ?? ''
+    const manifest = JSON.parse(decodeURIComponent(href.slice('data:application/manifest+json,'.length)))
+    expect(manifest).toMatchObject({ id: 'http://localhost:3000/dsh/', start_url: 'http://localhost:3000/dsh/', scope: 'http://localhost:3000/dsh/' })
+    dispose()
+    document.head.innerHTML = ''
+  })
+
   it('keeps the skin page icons until the last overlapping activation is disposed', async () => {
     document.head.innerHTML = '<link rel="icon" type="image/svg+xml" href="./favicon.svg" />'
     const first = await mount()

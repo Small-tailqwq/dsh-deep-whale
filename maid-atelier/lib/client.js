@@ -2406,7 +2406,7 @@ window.__ModuleLoader__.load({
 					return node;
 				};
 				append("icon", PAGE_ICON, "image/png").setAttribute("sizes", "32x32");
-				const root = new URL("/", doc.location.href).href;
+				const root = new URL("./", doc.baseURI).href;
 				append("manifest", `data:application/manifest+json,${encodeURIComponent(JSON.stringify({
 					id: root,
 					name: "DeepSeek Harness",
