@@ -79,7 +79,9 @@ function mountPageIcons(doc: Document): () => void {
 
     // Identity fields follow the host manifest so an installed app keeps its
     // name, scope and display mode; only the icons change.
-    const root = new URL('/', doc.location.href).href
+    // A data: manifest cannot resolve the host's `./`, so resolve it against
+    // the document base: the origin root would escape a `/dsh/` proxy prefix.
+    const root = new URL('./', doc.baseURI).href
     const manifest = {
       id: root,
       name: MANIFEST_NAME,

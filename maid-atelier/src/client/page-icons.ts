@@ -59,9 +59,10 @@ function mountPageIcons(doc: Document): () => void {
     }
     append('icon', PAGE_ICON, 'image/png').setAttribute('sizes', '32x32')
 
-    // Official DSH apps/web/public/manifest.webmanifest fields; data manifests
-    // need absolute URLs to preserve the application's identity and scope.
-    const root = new URL('/', doc.location.href).href
+    // Official DSH apps/web/public/manifest.webmanifest fields. A data: manifest
+    // cannot resolve the host's `./`, so resolve it against the document base:
+    // the origin root would escape a `/dsh/` proxy prefix.
+    const root = new URL('./', doc.baseURI).href
     const manifest = {
       id: root,
       name: 'DeepSeek Harness',
