@@ -191,15 +191,15 @@ body[data-dsh-maid-atelier] [id='root'] {
   background: transparent;
 }
 
-/* shell.overlay 浮层面板永远高于皮肤装饰层:视觉与点击都不被顶帘/装饰遮挡。
-   overlayLayer 自带 z-index 20,这里抬到 1000 是为彻底避开任何皮肤层
-   (装饰 chrome 0 / 应用 chrome 21 / 角色 -1..1) 与第三方插件对 #root 的
-   层叠上下文抬升,保证挂载在 shell.overlay 槽的浮动面板(如文件浏览器)
-   在视觉与点击层级上始终位于皮肤之上。 */
+/* The host overlay layer (z 20) shares the root stacking context with the
+   decorated header (21), the leading seat (22) and fullscreen dock panels (40),
+   so lift it above those. The phone drawer and its mask (70 / 71) stay above it,
+   as the host orders them: overlay entries such as a full-frame mask must not
+   cover the open drawer. Menus, modals and toasts portal to the body above. */
 body[data-dsh-maid-atelier] [data-shell-overlay] {
   /* Overlay surfaces need an opaque base even when the conversation is transparent. */
   --dsw-alias-bg-base: #e7edf8;
-  z-index: 1000;
+  z-index: 50;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-shell-overlay] {

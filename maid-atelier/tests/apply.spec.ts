@@ -3063,7 +3063,7 @@ describe('Maid Atelier skin apply', () => {
     const pageLight = declarations(panel, false)
     expect(pageLight).toContain('position: relative;')
     // Above the character stage (z 0), the sheet (z 1) and the top curtain
-    // (z 1), below the skin's interactive tiers (21 / 40 / 1000).
+    // (z 1), below the skin's interactive tiers (21 / 40 / 50).
     expect(pageLight).toContain('z-index: 2;')
     expect(pageLight).toContain('--dsw-alias-label-tertiary: #52658c;')
     expect(pageLight).toContain('--dsw-alias-bg-base: #f8faff;')
