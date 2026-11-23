@@ -1,5 +1,4 @@
 import type { Context } from '@deepseek-ai/cordis'
-import { SKIN_PACKAGE_ID } from './release-claimed-styles.ts'
 
 /** Match the account feature's full-window portal without depending on localized labels. */
 function platformOverlay(body: HTMLElement): HTMLElement | undefined {
@@ -53,8 +52,6 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 }`
     if (sheet === undefined) {
       sheet = document.createElement('style')
-      sheet.dataset.plugin = SKIN_PACKAGE_ID
-      sheet.dataset.pluginCss = `${SKIN_PACKAGE_ID}/platform-caption`
       sheet.dataset.skinOwner = 'maid-atelier'
       sheet.textContent = css
       document.head.append(sheet)

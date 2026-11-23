@@ -39,21 +39,23 @@ describe.each(packages)('%s plugin metadata', (dir) => {
   it('declares the DSH range the host admits it on, without asking pnpm to install DSH', () => {
     // Skins stop at the next patch so an unadapted skin falls back to the
     // official UI; the manager stays usable so it can offer the manual override.
-    // Both skins style the session-action slot introduced in 0.2.2-rc.3.
+    // 0.2.3-alpha.2 installs bundle stylesheets from module metadata and no
+    // longer sweeps self-injected style tags; the manager's routes need its
+    // authenticated peers. Earlier hosts lack both.
     const ranges = {
-      'skin-manager': '>=0.2.2-rc.3',
-      'maid-atelier': '>=0.2.2-rc.3 <0.2.3-0',
-      'orca-link': '>=0.2.2-rc.3 <0.2.3-0',
+      'skin-manager': '>=0.2.3-alpha.2',
+      'maid-atelier': '>=0.2.3-alpha.2 <0.2.4-0',
+      'orca-link': '>=0.2.3-alpha.2 <0.2.4-0',
     } as const
     const admitted = {
-      'skin-manager': ['0.2.2-rc.3', '0.2.2'],
-      'maid-atelier': ['0.2.2-rc.3', '0.2.2'],
-      'orca-link': ['0.2.2-rc.3', '0.2.2'],
+      'skin-manager': ['0.2.3-alpha.2', '0.2.3', '0.3.0'],
+      'maid-atelier': ['0.2.3-alpha.2', '0.2.3-rc.1', '0.2.3'],
+      'orca-link': ['0.2.3-alpha.2', '0.2.3-rc.1', '0.2.3'],
     } as const
     const refused = {
-      'skin-manager': ['0.1.7-rc.1', '0.2.2-rc.2'],
-      'maid-atelier': ['0.2.1-rc.2', '0.2.2-alpha.3', '0.2.2-rc.2', '0.2.3-alpha.1', '0.3.0'],
-      'orca-link': ['0.2.1-rc.2', '0.2.2-alpha.3', '0.2.2-rc.2', '0.2.3-alpha.1', '0.3.0'],
+      'skin-manager': ['0.2.2-rc.5', '0.2.2', '0.2.3-alpha.1'],
+      'maid-atelier': ['0.2.2-rc.5', '0.2.2', '0.2.3-alpha.1', '0.2.4-alpha.1', '0.3.0'],
+      'orca-link': ['0.2.2-rc.5', '0.2.2', '0.2.3-alpha.1', '0.2.4-alpha.1', '0.3.0'],
     } as const
     const range = ranges[dir]
     expect(manifest.peerDependencies['@deepseek-ai/dsh']).toBe(range)

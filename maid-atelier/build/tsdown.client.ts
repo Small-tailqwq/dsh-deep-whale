@@ -2,20 +2,23 @@
  * Reproducible tsdown preset mirrored from dsh-web-ui for this standalone
  * distribution. Emits a
  * closure-factory artifact: the bundle calls window.__ModuleLoader__.load
- * ({id, factory}) and resolves externals through the injected require
+ * ({id, factory, meta}) and resolves externals through the injected require
  * (loader module table — cordis DI entities, no globals, no import map).
  * CSS Modules are compiled by lightningcss inside the bundle: importing
- * `x.module.css` yields the hashed class map, and the css text auto-injects
- * a <style data-plugin="<id>"> tag at factory execution (the loader removes
- * plugin-owned tags on unload). The virtual loader registers each real
- * stylesheet as a watch dependency. The platform module list mirrors the
+ * `x.module.css` yields the hashed class map, and the compiled text is
+ * delivered through the load handoff's deferred `meta().stylesheets`, keyed
+ * by the stylesheet's package path. The host renderer installs and removes
+ * those `<style data-plugin data-path>` tags with the module record (DSH
+ * 0.2.3+), so the bundle never touches the document head. The virtual loader
+ * registers each real stylesheet as a watch dependency. The platform module list mirrors the
  * shell's seed table in `./web-platform.ts`.
  */
+import { randomBytes } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { basename, dirname, relative, resolve as resolvePath, sep } from 'node:path'
+import { dirname, relative, resolve as resolvePath, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { UserConfig } from 'tsdown'
+import { Rolldown, type UserConfig } from 'tsdown'
 import { transform } from 'lightningcss'
 import { PLATFORM_MODULES } from './web-platform.ts'
 import { createSelectorExpansion } from './selector-lists.ts'
@@ -67,7 +70,7 @@ function browserSourcePath(source: string, sourcemapPath: string): string {
  * the package without lib/index.js and the host Loader cannot import its node
  * half.
  * @param id - plugin id (package name), stamped into the __ModuleLoader__.load
- * handoff and onto the injected style tags.
+ * handoff, which also names the owner of its deferred stylesheets.
  * @param libEntry - node-half entries, spelled at the call site so the
  * package-invariants gate can see `src/invariant.ts` (or the tsc emit path) in
  * each package's own tsdown.config.ts.
@@ -143,6 +146,10 @@ function clientLibraryConfig(
 
 function clientConfig(id: string, entry: string, portableCssModuleIds: boolean): UserConfig {
   const cssFiles = new Map<string, string>()
+  /** Compiled stylesheet text by virtual id, keyed in metadata by its package path. */
+  const styles = new Map<string, { readonly path: string; readonly css: string }>()
+  const packageDir = process.cwd()
+  const styleMarker = `/*__dshChunkStyles_${randomBytes(16).toString('hex')}__*/`
   return {
     name: `${id}/client`,
     entry: { client: entry },
@@ -198,6 +205,27 @@ function clientConfig(id: string, entry: string, portableCssModuleIds: boolean):
         )
       },
     }, {
+      // Replace the footer marker with this chunk's deferred stylesheets.
+      name: 'dsh-client-style-factory',
+      renderChunk(code, chunk) {
+        const marker = code.indexOf(styleMarker)
+        if (marker < 0 || code.indexOf(styleMarker, marker + styleMarker.length) !== -1) {
+          throw new Error(`tsdown: ${id}: missing or repeated style factory marker in ${chunk.fileName}`)
+        }
+        const resources = new Map<string, string>()
+        for (const moduleId of Object.keys(chunk.modules)) {
+          const style = styles.get(moduleId)
+          if (style !== undefined) resources.set(style.path, style.css)
+        }
+        const expression = [...resources].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+          .map(([path, css]) => `${JSON.stringify(path)}: { text: () => ${JSON.stringify(css)} }`).join(',')
+        const output = new Rolldown.RolldownMagicString(code)
+        output.overwrite(marker, marker + styleMarker.length,
+          resources.size === 0 ? '' : `, meta: () => ({ stylesheets: {${expression}} })`)
+        // Plain code and map: a consumer such as skin-manager may run another Rolldown instance.
+        return { code: output.toString(), map: output.generateMap({ hires: true }).toString() }
+      },
+    }, {
       name: 'dsh-css-modules-inline',
       resolveId(source: string, importer: string | undefined) {
         if (!source.endsWith('.module.css')) return null
@@ -234,19 +262,11 @@ function clientConfig(id: string, entry: string, portableCssModuleIds: boolean):
         for (const [local, exp] of Object.entries(cssExports ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
           classMap[local] = exp.name
         }
-        // One <style data-plugin> per module file; idempotent under re-evaluation.
-        return [
-          `const css = ${JSON.stringify(code.toString())};`,
-          `const tagId = ${JSON.stringify(`${id}/${basename(sourceId)}`)};`,
-          'if (typeof document !== \'undefined\' && document.querySelector(\'style[data-plugin-css=\' + JSON.stringify(tagId) + \']\') === null) {',
-          '  const tag = document.createElement(\'style\');',
-          `  tag.dataset.plugin = ${JSON.stringify(id)};`,
-          '  tag.dataset.pluginCss = tagId;',
-          '  tag.textContent = css;',
-          '  document.head.appendChild(tag);',
-          '}',
-          `export default ${JSON.stringify(classMap)};`,
-        ].join('\n')
+        styles.set(virtualId, {
+          path: relative(packageDir, fileId).split(sep).join('/'),
+          css: code.toString(),
+        })
+        return { code: `export default ${JSON.stringify(classMap)};`, moduleSideEffects: 'no-treeshake' }
       },
     }],
     outputOptions: {
@@ -257,7 +277,7 @@ function clientConfig(id: string, entry: string, portableCssModuleIds: boolean):
       // without exposing that tree as an HTTP route.
       sourcemapPathTransform: browserSourcePath,
       banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(id)}, factory: (require) => {`,
-      footer: 'return module.exports; } });',
+      footer: `return module.exports; }${styleMarker} });`,
       intro: 'var module = { exports: {} }; var exports = module.exports;',
     },
   }

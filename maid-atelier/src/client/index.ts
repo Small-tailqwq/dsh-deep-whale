@@ -52,7 +52,6 @@ import { installMaidBootError } from './boot-error.ts'
 import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.generated.ts'
 import { installMaidTableCards } from './table-card.ts'
 import { installMaidPageIcons } from './page-icons.ts'
-import { releaseClaimedStyles } from './release-claimed-styles.ts'
 import { installMaidRelationalMarkers } from './relational-markers.ts'
 import { installMaidCharacterFit } from './character-fit.ts'
 import { installMaidPlatformCaption } from './platform-caption.ts'
@@ -541,9 +540,6 @@ export function apply(ctx: PanelContext): void {
   installPanelPageState(ctx, body, 'data-maid-panel-page')
   installMaidRelationalMarkers(ctx)
   ctx.effect(() => installMaidCustomization(), 'ui-skin-maid-atelier: customization declaration')
-  // The loader claims untagged <style> tags for whichever plugin loads last and
-  // sweeps them when it unloads; hand other plugins' tags back before that.
-  ctx.effect(() => () => releaseClaimedStyles(), 'ui-skin-maid-atelier: release styles claimed by the loader')
   ctx.effect(() => installMaidBootError(), 'ui-skin-maid-atelier: boot failure presentation')
   const originalTitle = document.title
   const layoutResizeLease = createBodyAttributeLease(body, 'data-maid-layout-resizing')

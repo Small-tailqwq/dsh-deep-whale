@@ -15,7 +15,7 @@ export function createPresetPluginIcons(doc: Document = document): SkinCustomiza
         style = undefined
       } else if (style === undefined) {
         style = doc.createElement('style')
-        // The host's loader must not adopt this runtime stylesheet for another plugin.
+        // Mark the manager as owner of this runtime stylesheet; apply() removes it.
         style.setAttribute('data-plugin', '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager')
         style.setAttribute('data-skin-manager-preset-icons', '')
         style.textContent = ':root{--dsh-preset-plugin-native:hidden;--dsh-preset-plugin-display:block}'
