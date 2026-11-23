@@ -8,8 +8,17 @@ window.__ModuleLoader__.load({
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		let react_jsx_runtime = require("react/jsx-runtime");
 		//#region src/contract.ts
-		/** Same-origin host route used for catalog discovery and activation. */
+		/** Host route for catalog discovery and activation; browsers resolve it through `client/route.ts`. */
 		const SKIN_MANAGER_ROUTE = "/api/dsh/skins";
+		//#endregion
+		//#region src/client/route.ts
+		/**
+		* Resolve the Host route against the document base, as the official client
+		* resolves its own channels: a root-absolute path escapes a reverse-proxy
+		* prefix such as `/dsh/`.
+		* @param base - the page base; the Host serves `<base href="./">`.
+		*/
+		const skinManagerUrl = (base = document.baseURI) => new URL(SKIN_MANAGER_ROUTE.slice(1), base).href;
 		const SKIN_CUSTOMIZATION_EVENTS = {
 			[1]: {
 				register: "dsh:skin-customization-register-v1",
@@ -2439,7 +2448,7 @@ window.__ModuleLoader__.load({
 		}
 		/** Installed skin catalog plus host capabilities; never waits for optional version probes. */
 		async function fetchSkinCatalogState(signal) {
-			const response = await fetch(SKIN_MANAGER_ROUTE, {
+			const response = await fetch(skinManagerUrl(), {
 				credentials: "same-origin",
 				signal
 			});
@@ -2460,7 +2469,7 @@ window.__ModuleLoader__.load({
 		}
 		/** Turn the desktop shortcut icon sync on or off and report how many shortcuts changed. */
 		async function requestDesktopIcon(enabled) {
-			const response = await fetch(SKIN_MANAGER_ROUTE, {
+			const response = await fetch(skinManagerUrl(), {
 				method: "POST",
 				credentials: "same-origin",
 				headers: { "content-type": "application/json" },
@@ -2475,7 +2484,7 @@ window.__ModuleLoader__.load({
 		}
 		/** Local-only version rows (git probes / build metadata, no network). */
 		async function fetchSkinLocalVersions() {
-			const response = await fetch(SKIN_MANAGER_ROUTE, {
+			const response = await fetch(skinManagerUrl(), {
 				method: "POST",
 				credentials: "same-origin",
 				headers: { "content-type": "application/json" },
@@ -2487,7 +2496,7 @@ window.__ModuleLoader__.load({
 		}
 		/** Ask the host to compare every installed skin against its GitHub origin. */
 		async function fetchSkinVersions() {
-			const response = await fetch(SKIN_MANAGER_ROUTE, {
+			const response = await fetch(skinManagerUrl(), {
 				method: "POST",
 				credentials: "same-origin",
 				headers: { "content-type": "application/json" },
@@ -2505,7 +2514,7 @@ window.__ModuleLoader__.load({
 			const { skins: catalog } = await fetchSkinCatalogState(signal);
 			const desktop = isDesktopShell();
 			const request = async (next, pending) => {
-				const response = await fetch(SKIN_MANAGER_ROUTE, {
+				const response = await fetch(skinManagerUrl(), {
 					method: "POST",
 					credentials: "same-origin",
 					signal: pending,

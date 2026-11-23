@@ -2805,7 +2805,7 @@ window.__ModuleLoader__.load({
 				favicon.dataset.skinChrome = "favicon";
 				doc.head.append(favicon);
 				owned.push(favicon);
-				const root = new URL("/", doc.location.href).href;
+				const root = new URL("./", doc.baseURI).href;
 				const manifest = {
 					id: root,
 					name: MANIFEST_NAME,
