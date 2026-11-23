@@ -39,6 +39,14 @@ describe('ORCA LINK forge refresh glyph (DSH 0.2.3-alpha.2 RefreshGlyph)', () =>
   })
 })
 
+describe('ORCA LINK timeline progress (official optional plugin)', () => {
+  it('squares the bar, rules it into cells and steps the active sweep', () => {
+    expect(CSS).toMatch(/:global\(\.timeline-progress\) \{[^}]*border-radius: 0;/)
+    expect(CSS).toMatch(/:global\(\.timeline-progress\)::after \{[^}]*repeating-linear-gradient\(90deg, transparent 0 3px, var\(--dsw-alias-bg-layer-1\) 3px 4px\)/)
+    expect(CSS).toMatch(/\[data-flow='true'\]\)\)::after \{[^}]*animation-timing-function: steps\(12, end\);/)
+  })
+})
+
 describe('ORCA LINK icon matchers for DSH 0.1.7 artwork', () => {
   it('keeps the redraws for the clock, user and users icons', () => {
     expect(ICONS).toContain(`["d=\\"M8 4.31V8.46L11 10.08", 'clock']`)

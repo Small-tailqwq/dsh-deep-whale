@@ -4003,3 +4003,32 @@ body[data-dsh-orca-link][data-ds-dark-theme] :is([data-slot='sidebar.settings'],
   color: var(--orca-muted);
 }
 
+
+/* Timeline (official optional plugin) progress: square, hairline-ruled, and
+   read as the skin's pixel cells. The grille paints over every part in the
+   track colour; host colours, widths and hover outlines stay native. */
+body[data-dsh-orca-link] :global(.timeline-progress) {
+  position: relative;
+  border: 1px solid var(--orca-line);
+  border-radius: 0;
+}
+
+body[data-dsh-orca-link] :global(.timeline-progress)::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: '';
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 3px, var(--dsw-alias-bg-layer-1) 3px 4px);
+}
+
+/* The active sweep becomes a hard-edged block that hops instead of a soft
+   glow; the host's reduced-motion rule still removes it. */
+body[data-dsh-orca-link] :global(:is(.timeline-overview, .timeline-dock))
+  :global(:is(.timeline-progress:not([data-segmented])[data-status='active'] > span, .timeline-progress > [data-flow='true']))::after {
+  background: linear-gradient(90deg,
+    transparent 42%,
+    color-mix(in srgb, var(--dsw-alias-bg-base) 45%, transparent) 42% 58%,
+    transparent 58%);
+  animation-timing-function: steps(12, end);
+}
