@@ -33,6 +33,12 @@ describe('ORCA LINK todo glyphs (DSH 0.1.7 StateDot markup)', () => {
   })
 })
 
+describe('ORCA LINK forge refresh glyph (DSH 0.2.3-alpha.2 RefreshGlyph)', () => {
+  it('ticks the host turn in quarter steps without replacing its animation', () => {
+    expect(CSS).toContain("[data-turning]:has(> svg[data-orca-link-icon='refresh']) {"+String.fromCharCode(10)+"  animation-timing-function: steps(4, end);")
+  })
+})
+
 describe('ORCA LINK icon matchers for DSH 0.1.7 artwork', () => {
   it('keeps the redraws for the clock, user and users icons', () => {
     expect(ICONS).toContain(`["d=\\"M8 4.31V8.46L11 10.08", 'clock']`)
