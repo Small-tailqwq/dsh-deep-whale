@@ -25,7 +25,7 @@ github:Small-tailqwq/dsh-deep-whale#main&path:/maid-atelier
 github:Small-tailqwq/dsh-deep-whale#main&path:/orca-link
 ```
 
-With its default configuration, DSH's bundled pnpm 11.7.0 prefers npm versions published at least 24 hours ago. To install a specific new release immediately, enter `package-name@^version` in the same **Add plugin** field, for example `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.11` (without a command prefix). This explicit `add` installs the new release and records its exact version in `pnpm-workspace.yaml` under `minimumReleaseAgeExclude`, while keeping the dependency as a caret range. This behavior describes the bundled version and default configuration; other pnpm versions or custom policies may differ. GitHub sources are not subject to this npm package-age check.
+With its default configuration, DSH's bundled pnpm 11.7.0 prefers npm versions published at least 24 hours ago. To install a specific new release immediately, enter `package-name@^version` in the same **Add plugin** field, for example `@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.12` (without a command prefix). This explicit `add` installs the new release and records its exact version in `pnpm-workspace.yaml` under `minimumReleaseAgeExclude`, while keeping the dependency as a caret range. This behavior describes the bundled version and default configuration; other pnpm versions or custom policies may differ. GitHub sources are not subject to this npm package-age check.
 
 Use the app's plugin list to check the installed packages. Desktop manages its own `desktop` profile; do not run the `web` commands below for it or use CLI `--dump-config` to verify it. No `dsh` command on PATH is needed for this route.
 
@@ -85,7 +85,7 @@ Don't verify further unless the user reports a problem; then use the README trou
 dsh plugin --profile web update '@smalltailqwq/dsh-client-ui-skin-deep-whale-manager' '@smalltailqwq/dsh-client-ui-skin-maid-atelier' '@smalltailqwq/dsh-client-ui-skin-orca-link'
 ```
 
-Works for both sources; the user refreshes the page afterwards, with no restart. With its default configuration, the bundled pnpm 11.7.0 prefers npm versions published at least 24 hours ago, so `update` can stay on the previous release. To take a specific new release immediately, explicitly `add` it with a caret range, e.g. `dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.11'`. pnpm installs it and records its exact version in `pnpm-workspace.yaml` under `minimumReleaseAgeExclude`, while keeping the dependency as a caret range. Other pnpm versions or custom policies may differ. Without the `^` the dependency is pinned and later `update` runs no longer upgrade it.
+Works for both sources; the user refreshes the page afterwards, with no restart. With its default configuration, the bundled pnpm 11.7.0 prefers npm versions published at least 24 hours ago, so `update` can stay on the previous release. To take a specific new release immediately, explicitly `add` it with a caret range, e.g. `dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.12'`. pnpm installs it and records its exact version in `pnpm-workspace.yaml` under `minimumReleaseAgeExclude`, while keeping the dependency as a caret range. Other pnpm versions or custom policies may differ. Without the `^` the dependency is pinned and later `update` runs no longer upgrade it.
 
 ## Beyond a normal install
 

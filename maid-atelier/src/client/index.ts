@@ -203,6 +203,8 @@ const WORKSPACE_FLAGS = [
   'data-maid-workspace-row',
   'data-maid-workspace-nested',
   'data-maid-workspace-sessions',
+  'data-maid-session-branch',
+  'data-maid-selected-branch',
   'data-maid-session-row',
   'data-maid-session-flat',
   'data-maid-session-first',
@@ -479,6 +481,10 @@ function decorateWorkspaceTree(decoratedElements: Set<HTMLElement>): void {
       } else if (row.hasAttribute('aria-selected')) {
         claim(row, 'data-maid-session-row')
         if (group) {
+          // Sibling paths follow the group's direct children, including HoverCard wrappers.
+          const branch = row.closest<HTMLElement>("[class*='groupSection'] > *")!
+          claim(branch, 'data-maid-session-branch')
+          if (row.getAttribute('aria-selected') === 'true') claim(branch, 'data-maid-selected-branch')
           const sessions = sessionsByGroup.get(group) ?? []
           sessions.push(row)
           sessionsByGroup.set(group, sessions)
@@ -617,14 +623,7 @@ export function apply(ctx: PanelContext): void {
     ownedNodes.forEach(element => element.remove())
     decoratedElements.forEach((element) => {
       delete element.dataset.maidSidebarFooter
-      delete element.dataset.maidWorkspaceGroup
-      delete element.dataset.maidWorkspaceRow
-      delete element.dataset.maidWorkspaceNested
-      delete element.dataset.maidWorkspaceSessions
-      delete element.dataset.maidSessionRow
-      delete element.dataset.maidSessionFlat
-      delete element.dataset.maidSessionFirst
-      delete element.dataset.maidSessionLast
+      for (const flag of WORKSPACE_FLAGS) element.removeAttribute(flag)
     })
     if (themeColorMeta?.isConnected && themeColorMeta.content === SKIN_SYSTEM_CHROME_COLOR) {
       themeColorMeta.content = previousThemeColor ?? ''

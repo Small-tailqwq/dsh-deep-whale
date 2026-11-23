@@ -2439,7 +2439,7 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row] > * {
 
 body[data-dsh-maid-atelier] [data-maid-workspace-row] > [class*='folder'] {
   display: inline-flex;
-  width: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 28px);
+  width: 28px;
   height: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 34px);
   margin: min(4px, calc((var(--maid-workspace-row-height, 54px) - 22px) / 8)) 0 0 -7px;
   background: var(--maid-workspace-crest-art) center / contain no-repeat;
@@ -2470,18 +2470,8 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row] [class*='meta'] {
   font-size: 12px;
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-nested])[aria-expanded='true']:not([data-maid-workspace-active]) {
-  border-radius: 6px;
-  background: linear-gradient(100deg, rgba(72, 98, 161, 0.32), rgba(25, 46, 95, 0.16));
-  box-shadow:
-    inset 2px 0 rgba(216, 184, 119, 0.78),
-    inset 0 1px rgba(225, 207, 170, 0.18),
-    inset 0 -1px rgba(225, 207, 170, 0.12);
+body[data-dsh-maid-atelier] [data-maid-workspace-row][aria-expanded='true']:not([data-maid-workspace-active]) {
   color: #f6e5c1;
-}
-
-body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-nested])[aria-expanded='true']:not([data-maid-workspace-active]):hover {
-  background: linear-gradient(100deg, rgba(83, 111, 178, 0.42), rgba(32, 55, 108, 0.24));
 }
 
 /* The host also highlights ancestors of the current workspace, including
@@ -2495,7 +2485,8 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active
 }
 
 body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-active] > [class*='folder'] {
-  width: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 30px);
+  width: 30px;
+  margin-inline-start: -8px;
   height: min(calc(var(--maid-workspace-row-height, 54px) - 2px), 38px);
   margin-block-start: 0;
 }
@@ -2544,8 +2535,7 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row]:not([data-maid-workspace-n
   animation: maidAtelierWorkspaceRibbonContentEnter 260ms 90ms cubic-bezier(0.2, 0.74, 0.22, 1) backwards;
 }
 
-/* Nested workspaces keep the same inset plaque in every state, so their
-   background, crest and label all describe the same level of the native tree. */
+/* Inset the nested plaque past the parent thread. */
 body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-nested] {
   min-height: 40px;
   padding-block: 3px;
@@ -2561,7 +2551,7 @@ body[data-dsh-maid-atelier] [data-maid-workspace-row][data-maid-workspace-nested
   width: 24px;
   height: 28px;
   margin-block-start: 0;
-  margin-inline-start: 0;
+  margin-inline-start: -5px;
 }
 
 body[data-dsh-maid-atelier] [data-maid-workspace-nested] [class*='title'] {
@@ -2571,7 +2561,7 @@ body[data-dsh-maid-atelier] [data-maid-workspace-nested] [class*='title'] {
 body[data-dsh-maid-atelier] [data-maid-workspace-nested]::before {
   content: '';
   position: absolute;
-  inset: 4px 2px 4px calc(2px + var(--dsh-workspace-indent, 0px));
+  inset: 4px 2px 4px calc(8px + var(--dsh-workspace-indent, 0px));
   z-index: 0;
   border: 1px solid rgba(157, 176, 214, 0.34);
   border-radius: 7px;
@@ -2584,6 +2574,10 @@ body[data-dsh-maid-atelier] [data-maid-workspace-nested]:hover::before {
   background: linear-gradient(90deg, rgba(82, 111, 174, 0.28), rgba(45, 71, 132, 0.18));
 }
 
+body[data-dsh-maid-atelier] [data-maid-workspace-nested][aria-expanded='true']:not([data-maid-workspace-active])::before {
+  content: none;
+}
+
 body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-active]::before {
   border-color: rgba(226, 190, 112, 0.72);
   background: linear-gradient(90deg, rgba(82, 111, 184, 0.74), rgba(43, 70, 139, 0.62) 72%, rgba(20, 42, 94, 0.5));
@@ -2593,24 +2587,71 @@ body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-act
     0 3px 9px rgba(2, 8, 28, 0.3);
 }
 
-body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-active]::after {
-  content: '';
-  position: absolute;
-  inset: 12px auto 12px calc(7px + var(--dsh-workspace-indent, 0px));
-  width: 3px;
-  border-radius: 999px;
-  corner-shape: round;
-  background: linear-gradient(#fff0c5, #d4a951);
-  box-shadow: 0 0 5px rgba(231, 199, 128, 0.72);
-  pointer-events: none;
-}
-
 body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-active] [class*='projectText'] {
   margin-inline-start: 0;
 }
 
-/* Bridge the child-workspace block to this group's own sessions below it.
-   Container height follows native expansion; no row reordering or measurement. */
+/* A parent's line passes beside the child-workspace block to reach its own
+   sessions. Restart the thread at each group so a passing line never lights a child. */
+body[data-dsh-maid-atelier] [data-maid-workspace-group] {
+  --maid-thread-axis: calc(16.5px + var(--dsh-workspace-indent, 0px));
+  --maid-session-plaque-start: calc(var(--maid-thread-axis) + 8.5px);
+  --maid-thread-idle: repeating-linear-gradient(to bottom, #a38b62 0 2px, transparent 2px 4px);
+  --maid-thread-hover: repeating-linear-gradient(to bottom, #f2d398 0 2px, transparent 2px 4px);
+  --maid-thread-solid: linear-gradient(#e7c582, #e7c582);
+  --maid-thread-through: var(--maid-thread-idle);
+  --maid-thread-in: var(--maid-thread-idle);
+  --maid-thread-tip: repeating-linear-gradient(to right, #a38b62 0 2px, transparent 2px 4px);
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > :has(~ [data-maid-session-branch]:where(:hover, :focus-within)) {
+  --maid-thread-through: var(--maid-thread-hover);
+  --maid-thread-in: var(--maid-thread-hover);
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-branch]:where(:hover, :focus-within) {
+  --maid-thread-in: var(--maid-thread-hover);
+  --maid-thread-tip: repeating-linear-gradient(to right, #f2d398 0 2px, transparent 2px 4px);
+}
+
+/* The shared stretch stays solid when the pointer follows a different branch. */
+body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > :has(~ [data-maid-selected-branch]) {
+  --maid-thread-through: var(--maid-thread-solid);
+  --maid-thread-in: var(--maid-thread-solid);
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > [data-maid-selected-branch] {
+  --maid-thread-in: var(--maid-thread-solid);
+  --maid-thread-tip: var(--maid-thread-solid);
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > :first-child {
+  --maid-thread-start: '';
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-row]::after {
+  content: var(--maid-thread-start, none);
+  position: absolute;
+  top: calc(50% + min(16px, (var(--maid-workspace-row-height, 54px) - 2px) / 2));
+  bottom: 0;
+  left: var(--maid-thread-axis);
+  width: 1px;
+  background: var(--maid-thread-through);
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested]::after {
+  top: calc(50% + 12px);
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-active]::after {
+  top: 100%;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-nested][data-maid-workspace-active]::after {
+  top: calc(100% - 4px);
+}
+
 body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > [role='group'] {
   position: relative;
 }
@@ -2618,18 +2659,13 @@ body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > [role='group'] {
 body[data-dsh-maid-atelier] [data-maid-workspace-sessions] > [role='group']::before {
   content: '';
   position: absolute;
-  top: -6px;
-  bottom: -2px;
-  left: calc(8px + var(--dsh-workspace-indent, 0px));
+  top: -2px;
+  bottom: 0;
+  left: var(--maid-thread-axis);
   z-index: 0;
   width: 1px;
-  background: repeating-linear-gradient(to bottom, rgba(224, 190, 120, 0.62) 0 3px, transparent 3px 7px);
+  background: var(--maid-thread-through);
   pointer-events: none;
-}
-
-/* Top-level cards reach the row edge; nested plaques end 4px above it. */
-body[data-dsh-maid-atelier] [role='tree'] > [data-maid-workspace-sessions] > [role='group']::before {
-  top: -2px;
 }
 
 @keyframes maidAtelierWorkspaceRibbonEnter {
@@ -2705,6 +2741,22 @@ body[data-dsh-maid-atelier] [data-maid-session-row]:hover:not([aria-selected='tr
   box-shadow: none;
 }
 
+body[data-dsh-maid-atelier] [data-maid-workspace-group] [data-maid-session-row]:is(:hover, :focus-visible):not([aria-selected='true']) {
+  isolation: isolate;
+  background: transparent;
+  color: #fff4df;
+}
+
+body[data-dsh-maid-atelier] [data-maid-workspace-group] [data-maid-session-row]:is(:hover, :focus-visible):not([aria-selected='true'])::after {
+  content: '';
+  position: absolute;
+  inset: 2px 0 2px var(--maid-session-plaque-start);
+  z-index: -1;
+  border-radius: 3px;
+  background: #314363;
+  pointer-events: none;
+}
+
 body[data-dsh-maid-atelier] [data-maid-session-row] > [class*='slot'] {
   position: absolute;
   left: calc(6px + var(--dsh-workspace-indent, 0px));
@@ -2750,43 +2802,37 @@ body[data-dsh-maid-atelier] [data-maid-session-row] svg[data-state='ongoing'] {
   }
 }
 
-body[data-dsh-maid-atelier] [data-maid-session-row]::before {
+body[data-dsh-maid-atelier] [data-maid-workspace-group] [data-maid-session-row]::before {
   content: '';
   position: absolute;
-  top: 0;
+  top: -2px;
   bottom: 0;
-  left: calc(8px + var(--dsh-workspace-indent, 0px));
+  left: var(--maid-thread-axis);
   z-index: 1;
-  width: 10px;
+  width: 8.5px;
   background:
-    repeating-linear-gradient(
-      to right,
-      rgba(224, 190, 120, 0.76) 0 3px,
-      transparent 3px 5px
-    ) 0 50% / 100% 1px no-repeat,
-    repeating-linear-gradient(
-      to bottom,
-      rgba(224, 190, 120, 0.78) 0 3px,
-      transparent 3px 7px
-    ) 0 0 / 1px 100% no-repeat;
+    var(--maid-thread-tip) left 0 top calc(50% + 1.5px) / 100% 1px no-repeat,
+    var(--maid-thread-in) left top / 1px calc(50% + 1px) no-repeat,
+    var(--maid-thread-through) left bottom / 1px var(--maid-thread-out-height, calc(50% - 1px)) no-repeat;
   pointer-events: none;
 }
 
 body[data-dsh-maid-atelier] [data-maid-session-last]::before {
-  background:
-    repeating-linear-gradient(
-      to right,
-      rgba(224, 190, 120, 0.76) 0 3px,
-      transparent 3px 5px
-    ) 0 50% / 100% 1px no-repeat,
-    repeating-linear-gradient(
-      to bottom,
-      rgba(224, 190, 120, 0.78) 0 3px,
-      transparent 3px 7px
-    ) 0 0 / 1px 50% no-repeat;
+  --maid-thread-out-height: 0px;
 }
 
-body[data-dsh-maid-atelier] [data-maid-session-row]:not(:last-child)::after {
+body[data-dsh-maid-atelier] [class*='searchTree'] [data-maid-session-row]::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 8px;
+  width: 10px;
+  background:
+    repeating-linear-gradient(to right, rgba(224, 190, 120, 0.76) 0 3px, transparent 3px 5px) left center / 100% 1px no-repeat,
+    repeating-linear-gradient(to bottom, rgba(224, 190, 120, 0.78) 0 3px, transparent 3px 7px) left top / 1px 100% no-repeat;
+  pointer-events: none;
+}
+
+body[data-dsh-maid-atelier] [data-maid-session-row]:not(:last-child):not(:where([data-maid-workspace-group] *))::after {
   content: '';
   position: absolute;
   right: 8px;
@@ -2803,7 +2849,7 @@ body[data-dsh-maid-atelier]
   position: absolute;
   /* Absolute insets resolve against the row box, not its padding, so the
      plaque carries the indent step explicitly. */
-  inset: 0 0 0 calc(18px + var(--dsh-workspace-indent, 0px));
+  inset: 0 0 0 var(--maid-session-plaque-start, 18px);
   z-index: 0;
   width: auto;
   height: auto;

@@ -3742,6 +3742,13 @@ body[data-dsh-orca-link] [data-orca-task-fill] {
   animation: orcaTodoFill 1.6s step-end infinite;
 }
 
+/* Forge's RefreshGlyph turns its wrapper smoothly while `[data-turning]`;
+   the rectilinear arrow reads better ticking in quarter turns. Keeping the
+   host animation keeps its 1s length and turn-completion events. */
+body[data-dsh-orca-link] [data-turning]:has(> svg[data-orca-link-icon='refresh']) {
+  animation-timing-function: steps(4, end);
+}
+
 body[data-dsh-orca-link] [data-orca-hourglass] {
   transform-origin: 8px 8px;
   animation: orcaHourglassTurn 2.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;

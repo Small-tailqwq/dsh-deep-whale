@@ -43,7 +43,8 @@ export async function switchDesktopSkin(
         if (state === undefined) { await pause(pending); continue }
         available = true
         if (!matches(state.configured, next)) throw new SelectionChanged(copy.switchChanged)
-        if (matches(state.active, next) && matches(activeSkins(catalog, doc.body), next)) return
+        // A disposed entry's old graph and DOM can match before reactivation finishes.
+        if (state.stale.length === 0 && matches(state.active, next) && matches(activeSkins(catalog, doc.body), next)) return
         const stale = state.stale.find(id => id !== next)
         if (stale !== undefined) {
           const skin = catalog.find(skin => skin.id === stale)

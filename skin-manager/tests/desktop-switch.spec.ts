@@ -42,16 +42,27 @@ describe('desktop switch confirmation and recovery', () => {
   })
 
   it.each(['maid', 'official'])('repairs a disposed LINK retained by the Host when switching to %s', async target => {
+    vi.useFakeTimers()
     let runtime = state('link')
     let requests = 0
     const request = vi.fn(async (next: string) => {
       mounted(next)
-      runtime = ++requests === 1
-        ? { configured: state(next).configured, active: ['link', ...state(next).active], stale: ['link'] }
-        : state(next)
+      requests += 1
+      if (requests === 1) {
+        runtime = { configured: state(next).configured, active: ['link', ...state(next).active], stale: ['link'] }
+      } else if (next === 'link') {
+        runtime = { configured: ['link'], active: ['link'], stale: ['link'] }
+        window.setTimeout(() => { runtime = state('link') }, 350)
+      } else {
+        runtime = state(next)
+      }
     })
     // The page can momentarily look correct while the Host still retains LINK.
-    await switchDesktopSkin(catalog, target, request, async () => runtime)
+    const switching = switchDesktopSkin(catalog, target, request, async () => runtime)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(request.mock.calls.map(call => call[0])).toEqual([target, 'link'])
+    await vi.advanceTimersByTimeAsync(200)
+    await switching
     expect(request.mock.calls.map(call => call[0])).toEqual([target, 'link', target])
     expect(runtime).toEqual(state(target))
     expect(document.body.hasAttribute('data-link')).toBe(false)
