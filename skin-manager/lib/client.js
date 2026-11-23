@@ -1152,7 +1152,7 @@ window.__ModuleLoader__.load({
 						}
 						available = true;
 						if (!matches(state.configured, next)) throw new SelectionChanged(copy.switchChanged);
-						if (matches(state.active, next) && matches(activeSkins(catalog, doc.body), next)) return;
+						if (state.stale.length === 0 && matches(state.active, next) && matches(activeSkins(catalog, doc.body), next)) return;
 						const stale = state.stale.find((id) => id !== next);
 						if (stale !== void 0) {
 							const skin = catalog.find((skin) => skin.id === stale);
