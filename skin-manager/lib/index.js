@@ -1697,7 +1697,7 @@ var FinderIconSync = class {
 };
 //#endregion
 //#region src/contract.ts
-/** Same-origin host route used for catalog discovery and activation. */
+/** Host route for catalog discovery and activation; browsers resolve it through `client/route.ts`. */
 const SKIN_MANAGER_ROUTE = "/api/dsh/skins";
 //#endregion
 //#region src/index.ts

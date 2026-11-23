@@ -1,4 +1,4 @@
-/** Same-origin host route used for catalog discovery and activation. */
+/** Host route for catalog discovery and activation; browsers resolve it through `client/route.ts`. */
 export const SKIN_MANAGER_ROUTE = '/api/dsh/skins'
 
 export type SkinTarget = 'official' | string

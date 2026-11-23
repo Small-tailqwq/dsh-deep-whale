@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { type SkinCatalogEntry, type SkinSwitchState, type SkinTarget, type SkinVersionInfo, SKIN_MANAGER_ROUTE } from '../contract.ts'
+import { type SkinCatalogEntry, type SkinSwitchState, type SkinTarget, type SkinVersionInfo } from '../contract.ts'
+import { skinManagerUrl } from './route.ts'
 import type {
   SkinCustomizationDefinition,
   SkinSetting,
@@ -1061,7 +1062,7 @@ interface DesktopIconStatus {
 
 /** Installed skin catalog plus host capabilities; never waits for optional version probes. */
 export async function fetchSkinCatalogState(signal?: AbortSignal): Promise<{ skins: SkinCatalogEntry[], runtime?: SkinSwitchState, desktopIcon?: DesktopIconStatus }> {
-  const response = await fetch(SKIN_MANAGER_ROUTE, { credentials: 'same-origin', signal })
+  const response = await fetch(skinManagerUrl(), { credentials: 'same-origin', signal })
   const result = await response.json() as { ok?: boolean, skins?: SkinCatalogEntry[], runtime?: SkinSwitchState, desktopIcon?: { enabled?: unknown, platform?: unknown }, error?: string }
   if (!response.ok || result.ok !== true || !Array.isArray(result.skins)) {
     throw new Error(result.error ?? `HTTP ${response.status}`)
@@ -1093,7 +1094,7 @@ interface DesktopIconOutcome {
 
 /** Turn the desktop shortcut icon sync on or off and report how many shortcuts changed. */
 export async function requestDesktopIcon(enabled: boolean): Promise<DesktopIconOutcome> {
-  const response = await fetch(SKIN_MANAGER_ROUTE, {
+  const response = await fetch(skinManagerUrl(), {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -1106,7 +1107,7 @@ export async function requestDesktopIcon(enabled: boolean): Promise<DesktopIconO
 
 /** Local-only version rows (git probes / build metadata, no network). */
 export async function fetchSkinLocalVersions(): Promise<Map<string, SkinVersionInfo>> {
-  const response = await fetch(SKIN_MANAGER_ROUTE, {
+  const response = await fetch(skinManagerUrl(), {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -1121,7 +1122,7 @@ export async function fetchSkinLocalVersions(): Promise<Map<string, SkinVersionI
 
 /** Ask the host to compare every installed skin against its GitHub origin. */
 export async function fetchSkinVersions(): Promise<Map<string, SkinVersionInfo>> {
-  const response = await fetch(SKIN_MANAGER_ROUTE, {
+  const response = await fetch(skinManagerUrl(), {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -1142,7 +1143,7 @@ export async function requestSkinSwitch(target: SkinTarget, acceptRisk = false, 
   const { skins: catalog } = await fetchSkinCatalogState(signal)
   const desktop = isDesktopShell()
   const request = async (next: SkinTarget, pending?: AbortSignal): Promise<void> => {
-    const response = await fetch(SKIN_MANAGER_ROUTE, {
+    const response = await fetch(skinManagerUrl(), {
       method: 'POST', credentials: 'same-origin', signal: pending,
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(next === target && acceptRisk ? { target: next, acceptRisk: true } : { target: next }),
