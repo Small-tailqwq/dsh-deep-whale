@@ -4,28 +4,32 @@ import { describe, expect, it, vi } from 'vitest'
 import { makeSkinManagerRoute, inject } from '../src/index.ts'
 
 describe('skin manager admission', () => {
-  it.each([undefined, () => 401, () => 403, () => { throw new Error('unavailable') }])('rejects before reading body or changing skin', async admission => {
+  it.each([undefined, { principal: { kind: 'remote' } }])('rejects a request without an owner before reading body or catalog', async peer => {
     const apply = vi.fn()
+    const catalog = vi.fn(() => [])
     const req = Object.assign(Readable.from([Buffer.from('{"target":"official"}')]), {
       method: 'POST', headers: { host: 'example.test' },
     }) as unknown as IncomingMessage
     const response = { writeHead: vi.fn(), end: vi.fn() }
-    const route = makeSkinManagerRoute(() => [], apply, undefined, undefined, undefined, admission)
-    await route.handler(req, response as unknown as ServerResponse)
+    const route = makeSkinManagerRoute(catalog, apply)
+    await route.handler(req, response as unknown as ServerResponse, peer)
     expect(apply).not.toHaveBeenCalled()
-    expect(response.writeHead.mock.calls[0]?.[0]).toEqual(admission === undefined ? 503 : expect.any(Number))
+    expect(catalog).not.toHaveBeenCalled()
+    expect(response.writeHead.mock.calls[0]?.[0]).toBe(403)
+    expect(JSON.parse(response.end.mock.calls[0]![0])).toEqual({ ok: false, error: 'access-denied' })
     expect(req.readableEnded).not.toBe(true)
   })
 
-  it('preserves an admitted owner switch and requires connection injection', async () => {
-    expect(inject).toContain('connection')
+  it('requires host authentication and preserves an admitted owner switch', async () => {
+    expect(inject).toContain('webServer')
     const apply = vi.fn()
-    const route = makeSkinManagerRoute(() => [], apply, undefined, undefined, undefined, () => undefined)
+    const route = makeSkinManagerRoute(() => [], apply)
+    expect(route.auth).toBe('required')
     const req = Object.assign(Readable.from([Buffer.from('{"target":"official"}')]), {
       method: 'POST', headers: { host: 'example.test' },
     }) as unknown as IncomingMessage
     const response = { writeHead: vi.fn(), end: vi.fn() }
-    await route.handler(req, response as unknown as ServerResponse)
+    await route.handler(req, response as unknown as ServerResponse, { principal: { kind: 'owner' } })
     expect(response.writeHead.mock.calls[0]?.[0]).toBe(200)
     expect(apply).toHaveBeenCalledOnce()
   })

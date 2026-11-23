@@ -41,17 +41,17 @@ describe.each(packages)('%s plugin metadata', (dir) => {
     // official UI; the manager stays usable so it can offer the manual override.
     // Both skins style the session-action slot introduced in 0.2.2-rc.3.
     const ranges = {
-      'skin-manager': '>=0.1.7-rc.1',
+      'skin-manager': '>=0.2.2-rc.3',
       'maid-atelier': '>=0.2.2-rc.3 <0.2.3-0',
       'orca-link': '>=0.2.2-rc.3 <0.2.3-0',
     } as const
     const admitted = {
-      'skin-manager': [],
+      'skin-manager': ['0.2.2-rc.3', '0.2.2'],
       'maid-atelier': ['0.2.2-rc.3', '0.2.2'],
       'orca-link': ['0.2.2-rc.3', '0.2.2'],
     } as const
     const refused = {
-      'skin-manager': [],
+      'skin-manager': ['0.1.7-rc.1', '0.2.2-rc.2'],
       'maid-atelier': ['0.2.1-rc.2', '0.2.2-alpha.3', '0.2.2-rc.2', '0.2.3-alpha.1', '0.3.0'],
       'orca-link': ['0.2.1-rc.2', '0.2.2-alpha.3', '0.2.2-rc.2', '0.2.3-alpha.1', '0.3.0'],
     } as const

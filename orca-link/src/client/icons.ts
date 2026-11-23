@@ -40,6 +40,11 @@ const ICON_ART: Record<string, string> = {
     '<path d="M2.25 2.25h7.5v7.5h-7.5z"/>',
     '<path d="M10.25 10.25 13.75 13.75"/>',
   ].join(''),
+  timeline: [
+    '<path d="M3.5 3.5v9"/>',
+    '<path d="M2.25 2.25h2.5v2.5h-2.5zM2.25 6.75h2.5v2.5h-2.5zM2.25 11.25h2.5v2.5h-2.5z" fill="currentColor" stroke="none"/>',
+    '<path d="M7 3.5h6M7 8h4M7 12.5h6"/>',
+  ].join(''),
   sliders: [
     '<path d="M2 4.75h12M2 8h12M2 11.25h12"/>',
     '<path d="M4.75 4h2.5v1.5h-2.5zM8.75 7.25h2.5v1.5h-2.5zM6.25 10.5h2.5v1.5h-2.5z" fill="currentColor" stroke="none"/>',
@@ -545,6 +550,7 @@ const SYMBOL_ICONS = new Map<string, string>([
  * Shared contours are keyed by their distinguishing drawing, not the frame.
  * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
+  ['d="M3.5 4.75v2M3.5 9.25v2"', 'timeline'], // TimelineIcon
   ['d="M8 2a6 6 0 0 1 6 6"', 'loading'], // Composer sending
   ['d="M2.8125 0.583008L3.2002', 'quote'], // QuotePreview
   ['d="M5.45873 5.04102H7.90157', 'apps-add'], // GuideMoreIcon

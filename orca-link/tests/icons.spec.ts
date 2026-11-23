@@ -31,6 +31,21 @@ it('decorates auto-review permission controls and releases their marker', () => 
   expect(document.querySelector('[data-orca-permission]')).toBeNull()
 })
 
+it('redraws the connected timeline glyph and restores its native nodes', () => {
+  // DSH 0.2.3-alpha.2 (4b399c39a6d1): packages/experimental/timeline/src/client/TimelineIcon.tsx.
+  document.body.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3.5 4.75v2M3.5 9.25v2"/><circle cx="3.5" cy="3.5" r="1.25"/><circle cx="3.5" cy="8" r="1.25"/><circle cx="3.5" cy="12.5" r="1.25"/><path d="M7 3.5h6M7 8h4M7 12.5h6"/></svg>'
+  const host = document.querySelector('svg')!
+  const original = host.outerHTML
+  const nodes = Array.from(host.childNodes)
+  dispose = installOrcaIcons(document.body)
+  expect(host.getAttribute('data-orca-link-icon')).toBe('timeline')
+  expect(host.querySelector('[data-orca-link-icon-art]')?.innerHTML).toContain('M2.25 2.25h2.5')
+  dispose()
+  dispose = undefined
+  expect(host.outerHTML).toBe(original)
+  expect(Array.from(host.childNodes)).toEqual(nodes)
+})
+
 describe('official host icon inventory', () => {
   it.each(target.icons)('$component redraws as $name and restores the original nodes', ({ component, name, svg }) => {
     expect(name, `Review semantic mapping for ${component}`).toBeTypeOf('string')

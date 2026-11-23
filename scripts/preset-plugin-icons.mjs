@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Reviewed official DSH 0.2.2-rc.3 identities and the skin's artwork keys. */
+/** Reviewed DSH plugin identities and the skin's artwork keys. */
 export const PRESET_PLUGIN_ICONS = [
   { item: 'shell', art: 'terminal' },
   { item: 'agent-loop', art: 'loop' },
@@ -24,6 +24,7 @@ export const PRESET_PLUGIN_ICONS = [
   { package: '@deepseek-ai/dsh-experimental-ralph-bundle', art: 'loop' },
   { package: '@deepseek-ai/dsh-cua-bundle', art: 'computer-use' },
   { package: '@deepseek-ai/dsh-deepseek-chat-import', art: 'chat-import' },
+  { package: '@deepseek-ai/dsh-timeline', art: 'timeline' },
 ]
 
 function targets(entry, bodyAttr) {
@@ -39,10 +40,16 @@ function targets(entry, bodyAttr) {
 /** Embed the SVG source unchanged, with each image isolated from the page's SVG ids. */
 export function presetPluginIconCss(root) {
   const { bodyAttr } = JSON.parse(readFileSync(join(root, 'skin.json'), 'utf8'))
-  const all = PRESET_PLUGIN_ICONS.flatMap(entry => targets(entry, bodyAttr))
-  const mappings = PRESET_PLUGIN_ICONS.map(entry => {
-    const svg = readFileSync(join(root, 'assets/plugin-icons', `${entry.art}.svg`), 'utf8')
-    return `${targets(entry, bodyAttr).join(',')}{--dsh-preset-plugin-icon:url("data:image/svg+xml,${encodeURIComponent(svg)}")}`
+  const bindings = PRESET_PLUGIN_ICONS.map(entry => ({ art: entry.art, selectors: targets(entry, bodyAttr) }))
+  // MarketIcon renders a direct SVG only for the default or failed-image fallback.
+  bindings.push({ art: 'default', selectors: [
+    `body[${bodyAttr}] [data-plugin-tab="discover"] [data-market-entry] > [class$="_icon"]:has(> svg[viewBox="0 0 36 36"])`,
+    `body[${bodyAttr}] [data-plugin-tab="discover"] [data-market-detail] > [class$="_detailHead"] > [class$="_icon"]:has(> svg[viewBox="0 0 36 36"])`,
+  ] })
+  const all = bindings.flatMap(binding => binding.selectors)
+  const mappings = bindings.map(({ art, selectors }) => {
+    const svg = readFileSync(join(root, 'assets/plugin-icons', `${art}.svg`), 'utf8')
+    return `${selectors.join(',')}{--dsh-preset-plugin-icon:url("data:image/svg+xml,${encodeURIComponent(svg)}")}`
   })
   return `/* Generated from assets/plugin-icons/ by npm run build. */\n${mappings.join('\n')}
 ${all.join(',')}{position:relative}

@@ -19,20 +19,24 @@ export { SKIN_MANAGER_ROUTE, type SkinCatalogEntry, type SkinTarget } from './co
 export * from './protocol.ts'
 
 export const name = 'ui-skin-deep-whale-manager'
-export const inject = ['webServer', 'connection', 'clientModules']
+export const inject = ['webServer', 'clientModules']
 
 export const MANAGED_START = '# --- dsh-skin managed (auto-generated; do not edit) ---'
 export const MANAGED_END = '# --- end dsh-skin managed ---'
 
+interface WebPeer {
+  readonly principal: { readonly kind: string }
+}
+
 interface WebRoute {
   kind: 'exact'
+  auth: 'required'
   path: string
-  handler(req: IncomingMessage, res: ServerResponse): void | Promise<void>
+  handler(req: IncomingMessage, res: ServerResponse, peer?: WebPeer): void | Promise<void>
 }
 
 type HostContext = Context & {
   webServer: { register(route: WebRoute): () => void }
-  connection: { requestRejection(req: IncomingMessage): number | undefined }
   clientModules: { graph(): { entries: { id: string }[] } }
   loader: { entries(): Iterable<SkinLoaderEntry> }
 }
@@ -975,7 +979,6 @@ export function makeSkinManagerRoute(
   dirProvider: () => Map<string, string> = () => new Map(),
   grantExemption: (compatibility: SkinCompatibility) => Promise<void> = async () => { throw new Error('exemption-unavailable') },
   desktopIcon?: DesktopIconControl,
-  admission: (req: IncomingMessage) => number | undefined = () => 503,
   runtime?: (catalog: SkinCatalogEntry[]) => SkinSwitchState,
 ): WebRoute {
   const versionCache = new Map<string, { at: number, value: SkinVersionInfo }>()
@@ -1015,12 +1018,11 @@ export function makeSkinManagerRoute(
     }))
   return {
     kind: 'exact',
+    auth: 'required',
     path: SKIN_MANAGER_ROUTE,
-    async handler(req, res): Promise<void> {
-      let rejection: number | undefined
-      try { rejection = admission(req) } catch { rejection = 503 }
-      if (rejection !== undefined) {
-        json(res, rejection, { ok: false, error: 'access-denied' })
+    async handler(req, res, peer): Promise<void> {
+      if (peer?.principal.kind !== 'owner') {
+        json(res, 403, { ok: false, error: 'access-denied' })
         return
       }
       if (!sameOrigin(req)) {
@@ -1116,7 +1118,6 @@ export function apply(ctx: HostContext): void {
       () => discoverSkinDirectories(profilePatch),
       compatibility => grantThroughHost(ctx, compatibility),
       desktopIcon?.control,
-      request => ctx.connection.requestRejection(request),
       installed => skinSwitchState(
         patchPaths.map(path => existsSync(path) ? readFileSync(path, 'utf8') : ''),
         installed, ctx.clientModules.graph().entries, ctx.loader.entries(),

@@ -40,6 +40,7 @@ respective authors above, including embedded and transformed copies.
 
 The preset plugin SVGs in assets/plugin-icons/ are included unchanged in the
 client stylesheet. These skin artwork assets retain LICENSE-ARTWORK terms.
+The timeline preset is an original geometric drawing for this skin.
 
 The host SVG test fixtures in tests/fixtures/dsh-icons.json are
 rendered from deepseek-ai/deepseek-harness at commit

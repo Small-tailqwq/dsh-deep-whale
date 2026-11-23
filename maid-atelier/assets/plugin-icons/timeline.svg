@@ -1,0 +1,18 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 10V26" stroke="#c5a468" stroke-width="2" stroke-linecap="round"/>
+  <g fill="url(#maid-timeline)" stroke="#c5a468" stroke-width="1.1">
+    <circle cx="10" cy="10" r="3"/>
+    <circle cx="10" cy="18" r="3"/>
+    <circle cx="10" cy="26" r="3"/>
+    <rect x="16" y="7.5" width="12" height="5" rx="2.5"/>
+    <rect x="16" y="15.5" width="8" height="5" rx="2.5"/>
+    <rect x="16" y="23.5" width="10" height="5" rx="2.5"/>
+  </g>
+  <circle cx="10" cy="18" r="1" fill="#fffaf0"/>
+  <defs>
+    <linearGradient id="maid-timeline" x1="18" y1="7" x2="18" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ea5da"/>
+      <stop offset="1" stop-color="#31498f"/>
+    </linearGradient>
+  </defs>
+</svg>
