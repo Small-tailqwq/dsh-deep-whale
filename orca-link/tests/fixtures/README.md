@@ -9,8 +9,10 @@ slot registration and renderer. Message and composer contents are omitted.
 The `0.2.2-rc.1` release and a later official master report the same version,
 but the latter wraps the scrollport in `conversation.hero.frame`. The
 `0.2.2-rc.2` projection retains that wrapper and records its updated slot sources.
+The `0.2.3-alpha.2` projection keeps the same handle DOM; its sources add the
+end-reserve positioning (`--dsh-chat-end-inset`) that the skins do not override.
 
-`apply.spec.ts` runs the production width-handle selectors against all three
+`apply.spec.ts` runs the production width-handle selectors against all four
 projections in light/dark and dragging states, including the reduced-motion
 rule's target. These are DOM matching assertions; browser animation, hover
 rendering and native drag behavior require browser checks.
@@ -37,10 +39,10 @@ proposed wider audit.
 `renderToStaticMarkup` from the official DSH commit recorded in `hostCommit`.
 `sources` records Git blob IDs; `component` identifies the export or inline
 variant, and `name` is the reviewed expected ORCA redraw. Expected names are
-independent of the production matcher. `symbols` records all 202 official
+independent of the production matcher. `symbols` records all 212 official
 symbol drawings, and `symbolId` links each primitive variant to its artwork.
 
-The 271 variants cover every exported primitive/permission icon, both compact
+The 281 variants cover every exported primitive/permission icon, both compact
 AppsAdd weights, all four
 composer SVG branches, dock split/five drop zones, browser sandbox states,
 the shared ongoing StateDot at its default and installation-dialog sizes,

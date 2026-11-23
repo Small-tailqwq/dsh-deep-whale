@@ -13,7 +13,7 @@ import { hasMutationOutsideTerminal } from './mutation-filter.ts'
  * the art groups.
  *
  * Product icons use the host's semantic symbol IDs. Library-external SVGs
- * use distinctive drawing fragments from DSH 0.2.2-rc.3 (38a6a5c965aa).
+ * use distinctive drawing fragments from DSH 0.2.3-alpha.2 (4b399c39a6d1).
  * Unmatched drawings, such as the brand wordmark and hero artwork, keep
  * their host geometry.
  */
@@ -368,6 +368,25 @@ const ICON_ART: Record<string, string> = {
   image: ['<path d="M2 2.5h12v11H2zM2 10l3-3 4 4 2-2 3 3M9 5h2v2H9z"/>'].join(''),
   json: ['<path d="M6 2H4v4L2 8l2 2v4h2M10 2h2v4l2 2-2 2v4h-2"/>'].join(''),
   logout: ['<path d="M7 2H2v12h5M6 8h8M11 5l3 3-3 3"/>'].join(''),
+  // Overlapping change sheets; the front one carries the added and removed lines.
+  'files-diff': [
+    '<path d="M4.75 4.5V2.25h9v9H11.5"/>',
+    '<path d="M2.25 4.75h9v9h-9z"/>',
+    '<path d="M4.75 8h4M6.75 6v4M4.75 11.25h4"/>',
+  ].join(''),
+  'mail-unread': [
+    '<path d="M8.75 3.5h-6.5v9h11.5V7"/>',
+    '<path d="M2.5 4.75 8 8.5l2.5-1.75"/>',
+    '<path d="M11.5 1.75h3v3h-3z" fill="currentColor" stroke="none"/>',
+  ].join(''),
+  'mail-read': [
+    '<path d="M2.25 6.5 8 2.25l5.75 4.25v7.25H2.25z"/>',
+    '<path d="M2.5 7 8 10.5 13.5 7"/>',
+  ].join(''),
+  'remote-connection': [
+    '<path d="M4 1.5h8v13H4z"/>',
+    '<path d="M6.5 11.75h3"/>',
+  ].join(''),
   minus: ['<path d="M2 8h12"/>'].join(''),
   target: ['<path d="M4.5 4.5h7v7h-7zM8 1v4M8 11v4M1 8h4M11 8h4"/>'].join(''),
   microphone: ['<path d="M5.5 1.75h5v8h-5zM2.5 7.5v4h11v-4M8 11.5v3M5.5 14.5h5"/>'].join(''),
@@ -462,6 +481,10 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['close-circle-fill', 'close-circle'],
   ['copy-outline', 'copy'],
   ['refresh-outline', 'refresh'],
+  ['files-diff-outline', 'files-diff'],
+  ['mail-unread-outline', 'mail-unread'],
+  ['mail-read-outline', 'mail-read'],
+  ['remote-connection-outline', 'remote-connection'],
   ['like-outline', 'thumb-up'],
   ['like-fill', 'thumb-up'],
   ['dislike-outline', 'thumb-down'],
@@ -546,7 +569,7 @@ const SYMBOL_ICONS = new Map<string, string>([
   ['apps-add-compact-outline', 'apps-add'],
 ])
 
-/** Inline glyph fragments verified against DSH 0.2.2-rc.3 (38a6a5c965aa).
+/** Inline glyph fragments verified against DSH 0.2.3-alpha.2 (4b399c39a6d1).
  * Shared contours are keyed by their distinguishing drawing, not the frame.
  * Full target SVGs, including inline controls, live in tests/fixtures. */
 const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
@@ -559,7 +582,8 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ['d="M4.5 5.1V10.9M4.5 5.1C', 'change-merged'],
   ['d="M4 5.1V10.9M12 10.9V8.6', 'change-closed'],
   ['d="M12 10.9V6.6C12 5.5', 'change-open'],
-  ['d="M8 3.5A4.5 4.5 0 0 1 8 12.5Z"', 'loading'],
+  ['d="M8 2.8A5.2 5.2 0 0 1 8 13.2Z"', 'loading'], // ForgeCheck pending
+  ['d="M5.9 5.9L10.1 10.1', 'close-circle'], // ForgeCheck failure
   ['d="M5.5 8H10.5"', 'check-neutral'],
   ['d="M9.5 1.5V6.5H14.5M1.5 9.5H6.5V14.5"', 'fullscreen-exit'], // JsonString collapse
   ['d="M12.4326 2.38086H3.56763', 'image'], // LinkIcon photo
@@ -567,7 +591,7 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ['d="M3.75275 14.271H12.2473', 'file'], // LinkIcon file
   ['d="M1.4 5.6H12.6"', 'calendar'], // CalendarIcon
   ['d="M3.6355 6.93969C3.6355', 'bell'], // AccountNotice
-  ['d="M3.9961 1.40039C3.37842', 'logout'], // LogoutIcon
+  ['d="M5.5 1.5H3C2.17 1.5 1.5 2.17', 'logout'], // LogoutIcon
   ['d="M10.28 5.86536C10.28', 'search'], // ShortcutReference
   ['d="M2 8h12"', 'minus'], // ZoomControls
   ['d="M2.33203 10.4054V13.1681', 'fullscreen'], // SidebarRight
@@ -680,9 +704,9 @@ const ICON_KEYS: ReadonlyArray<readonly [string, string]> = [
   ["d=\"M8.7 8.1v3M11.2 8.1v3\"", 'workspace-tree'], // IconWorkspaceTreeOutlineMedium
   ["d=\"M10.9999 8C10.9999 6.895", 'wrap'], // IconWrapFillMedium
   ["d=\"M2.3457 11.7369H6.4849\"", 'wrap-lines'], // IconWrapLinesOutlineMedium
-  ["d=\"M8 4.39209V9.89209\"", 'permission-full'], // PermissionIconFullAccessMedium
+  ['d="M8 4.5V10"', 'permission-full'], // PermissionIconFullAccessMedium
   ["d=\"M5.08545 8.13775L7.18455", 'permission-read'], // PermissionIconReadOnlyMedium
-  ["d=\"M6.4209 1.68067C7.43922 ", 'permission-write'], // PermissionIconWorkspaceWriteMedium
+  ['d="M14 6.68994V4L9.40444', 'permission-write'], // PermissionIconWorkspaceWriteMedium
   ['d="M5.75 10.15L8 4.95L10.25 10.15', 'permission-auto'], // PermissionIconAutoReviewMedium
   ["d=\"M8.3125 0.980183C8.66767", 'send'], // ComposerSend
   ["<rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"3\" fill=\"currentColor\">", 'stop'], // ComposerStop
