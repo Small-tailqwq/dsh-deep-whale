@@ -4,6 +4,7 @@ import { installMaidComposerCapsule } from '../src/client/composer-capsule.ts'
 
 const MODE = 'data-maid-composer-mode'
 const CAPSULE = 'data-maid-composer-capsule'
+const EMBEDDED = 'data-maid-composer-embedded'
 
 interface Fixture {
   root: HTMLElement
@@ -50,6 +51,7 @@ beforeEach(() => {
 
 afterEach(() => {
   document.documentElement.removeAttribute(MODE)
+  document.documentElement.removeAttribute(EMBEDDED)
   vi.useRealTimers()
 })
 
@@ -223,6 +225,45 @@ describe('maid composer empty-state capsule', () => {
     await nextMicrotask()
     expect(seat.hasAttribute(CAPSULE)).toBe(false)
     dispose()
+  })
+
+  it('drives embedded conversations only while the embedded setting is on', async () => {
+    // The sidebar chat and Forge review render ConversationContent alone: no
+    // data-phase root, only the content instance's own data-content-phase.
+    const fixture = mount()
+    const content = document.createElement('div')
+    content.dataset.conversationContent = ''
+    content.dataset.contentPhase = 'active'
+    const scrollport = document.createElement('div')
+    scrollport.dataset.conversationScroll = ''
+    const flow = document.createElement('div')
+    flow.dataset.chatFlow = ''
+    const seat = document.createElement('div')
+    seat.dataset.composerSeat = ''
+    seat.innerHTML = '<div data-composer-card><div data-composer-input contenteditable="true"></div></div>'
+    scrollport.append(flow, seat)
+    content.append(scrollport)
+    document.body.append(content)
+    await nextMicrotask()
+    expect(fixture.seat.hasAttribute(CAPSULE)).toBe(true)
+    expect(seat.hasAttribute(CAPSULE)).toBe(false)
+
+    document.documentElement.setAttribute(EMBEDDED, 'on')
+    await nextMicrotask()
+    expect(seat.hasAttribute(CAPSULE)).toBe(true)
+
+    content.dataset.contentPhase = 'hero'
+    await nextMicrotask()
+    expect(seat.hasAttribute(CAPSULE)).toBe(false)
+
+    content.dataset.contentPhase = 'active'
+    await nextMicrotask()
+    expect(seat.hasAttribute(CAPSULE)).toBe(true)
+    document.documentElement.setAttribute(EMBEDDED, 'off')
+    await nextMicrotask()
+    expect(seat.hasAttribute(CAPSULE)).toBe(false)
+    expect(fixture.seat.hasAttribute(CAPSULE)).toBe(true)
+    fixture.dispose()
   })
 
   it('dispose removes every owned capsule state', () => {

@@ -120,7 +120,7 @@ describe('maid customization declaration', () => {
     window.addEventListener(SKIN_CUSTOMIZATION_REGISTER_EVENT, receive)
     const dispose = installMaidCustomization()
     const definition = registration!.definition
-    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'modelExit', 'mobileModelExit', 'flashGlasses', 'sfwMode', 'sceneBrightnessLight', 'plainProcess', 'font', 'workspaceFont', 'sidebarLace', 'workspaceRowHeight', 'composerMode', 'composerBottomOnly'])
+    expect(definition.settings.map(setting => setting.key)).toEqual(['artwork', 'modelExit', 'mobileModelExit', 'flashGlasses', 'sfwMode', 'sceneBrightnessLight', 'plainProcess', 'font', 'workspaceFont', 'sidebarLace', 'workspaceRowHeight', 'composerMode', 'composerBottomOnly', 'composerEmbedded'])
     const state = {
       values: normalizeSkinValues(definition, { artwork: true, sfwMode: { enabled: true, outside: 'visible', ranges: [] }, font: 'serif', modelExit: false, mobileNav: 'topbar', composerMode: 'scroll' }),
       visibility: { sfwMode: false },

@@ -15,6 +15,7 @@ const ATTR_MODEL = 'data-dsh-whale-model'
 const ATTR_FLASH_GLASSES = 'data-dsh-whale-maid-flash-glasses'
 const ATTR_COMPOSER_MODE = 'data-maid-composer-mode'
 const ATTR_COMPOSER_BOTTOM_ONLY = 'data-maid-composer-bottom-only'
+const ATTR_COMPOSER_EMBEDDED = 'data-maid-composer-embedded'
 const ATTR_PLAIN_PROCESS = 'data-maid-plain-process'
 const ATTR_SIDEBAR_LACE = 'data-maid-sidebar-lace'
 
@@ -179,6 +180,7 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
     synchronizeModelMode()
     projector.set(ATTR_COMPOSER_MODE, typeof state.values.composerMode === 'string' ? state.values.composerMode : 'persistent')
     projector.set(ATTR_COMPOSER_BOTTOM_ONLY, state.values.composerBottomOnly === true ? 'on' : 'off')
+    projector.set(ATTR_COMPOSER_EMBEDDED, state.values.composerEmbedded === true ? 'on' : 'off')
     properties.set(WORKSPACE_ROW_HEIGHT_PROPERTY, `${workspaceRowHeight(state.values.workspaceRowHeight)}px`)
     properties.set('--maid-scene-brightness-light', sceneBrightness(state.values.sceneBrightnessLight))
     projector.set(ATTR_PLAIN_PROCESS, state.values.plainProcess === true ? 'on' : 'off')
@@ -355,6 +357,16 @@ export function installMaidCustomization(root: HTMLElement = document.documentEl
         labelEn: 'Only at the bottom',
         description: '翻看上文时隐藏输入框，优先于「上滚隐藏」。',
         descriptionEn: 'Hide the composer while reading back; takes precedence over hide on scroll.',
+        defaultValue: false,
+      },
+      {
+        key: 'composerEmbedded',
+        group: 'composer',
+        type: 'boolean',
+        label: '侧栏对话同样生效',
+        labelEn: 'Apply to side conversations',
+        description: '子智能体侧栏和代码评审里的对话也按上面的方式显示输入框。',
+        descriptionEn: 'The subagent sidebar and code review conversations follow the same visibility.',
         defaultValue: false,
       },
     ],

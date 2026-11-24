@@ -1193,6 +1193,17 @@ describe('Maid Atelier skin apply', () => {
     expect(CSS).toMatch(/path\[d\^='M8 4\.5V10'\]\) \{\s*color: var\(--maid-permission-full\);/)
   })
 
+  it('lets seat visibility states apply in embedded conversations too', () => {
+    // The composer modules decide which seats carry these attributes (embedded
+    // seats only with the setting on), so the stylesheet accepts either phase marker.
+    const css = CSS.replace(/\r\n/g, '\n')
+    for (const state of ['hidden', 'capsule', 'expanding']) {
+      const seat = `[data-composer-seat][data-maid-composer-${state}]`
+      expect(css).not.toContain(`  [data-phase='active']\n  ${seat}`)
+      expect(css).toContain(`:is([data-phase='active'], [data-content-phase='active'])\n  ${seat}`)
+    }
+  })
+
   it('installs and restores the raster control plates', async () => {
     document.body.innerHTML = '<div data-composer-card></div>'
     document.body.style.setProperty('--maid-new-session-art', 'legacy')
