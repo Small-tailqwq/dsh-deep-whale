@@ -138,6 +138,25 @@ afterEach(async () => {
 })
 
 describe('Maid Atelier skin apply', () => {
+  it('gives direct toolviews the tool-row ink and strip, and keeps transcript cards on the content palette', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div data-chat-flow>
+        <div data-slot="tool.call.toolview"><div>
+          <div data-disclosure-header><div data-disclosure-row class="fixture_row"></div></div>
+        </div></div>
+      </div>
+    `
+    const flow = document.querySelector<HTMLElement>('[data-chat-flow]')!
+    const header = document.querySelector<HTMLElement>('[data-disclosure-header]')!
+    const row = document.querySelector<HTMLElement>('.fixture_row')!
+    expect(declarations(flow, false)).toContain('--dsw-specific-sidebar-fill: var(--dsw-alias-bg-layer-1);')
+    expect(declarations(header, false)).toContain('--dsw-alias-label-tertiary: #405273;')
+    expect(declarations(header, true)).toContain('--dsw-alias-label-tertiary: #b8c5e1;')
+    expect(declarations(row, false)).toContain('backdrop-filter: blur(8px) saturate(0.92);')
+    expect(declarations(row, true)).toContain('backdrop-filter: blur(8px) saturate(0.92);')
+  })
+
   it('styles the resident alpha1 header and its session fragment without styling nested panel headers', () => {
     document.body.setAttribute('data-dsh-maid-atelier', '')
     document.body.innerHTML = `
