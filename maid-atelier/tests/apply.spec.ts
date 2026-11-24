@@ -3073,6 +3073,8 @@ describe('Maid Atelier skin apply', () => {
             <header class="fixture_pageHead"></header>
             <section class="fixture_group"></section>
             <div class="fixture_detail" data-plugin-detail="pkg"></div>
+            <div class="fixture_market" data-dsh-market-plugins-tab="true"><div class="fixture_pinned" data-dshm-stuck="true"></div></div>
+            <div class="fixture_marketFull" data-dsh-market-plugins-tab="true" data-dsh-market-fullscreen="true"></div>
           </section>
         </div>
       </div>
@@ -3086,12 +3088,26 @@ describe('Maid Atelier skin apply', () => {
     expect(pageLight).toContain('z-index: 2;')
     expect(pageLight).toContain('--dsw-alias-label-tertiary: #52658c;')
     expect(pageLight).toContain('--dsw-alias-bg-base: #f8faff;')
-    expect(pageLight).toContain('--dsw-alias-bg-layer-2: #ebf0fa;')
-    expect(pageLight).toContain('--dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);')
     const pageDark = declarations(panel, true)
     expect(pageDark).toContain('--dsw-alias-label-tertiary: #96a6c9;')
     expect(pageDark).toContain('--dsw-alias-bg-base: #0d193b;')
-    expect(pageDark).toContain('--dsw-alias-bg-layer-2: #182850;')
+    // Cards, fields and chips stay on the translucent layers: opaque layers turn
+    // every primitive on the sheet into a pale block (#244 follow-up).
+    for (const page of [pageLight, pageDark]) {
+      expect(page).not.toMatch(/--dsw-alias-bg-layer-\d: #/)
+      expect(page).not.toContain('--dsw-alias-settings-card-fill')
+    }
+    // dshmarket's plugins-tab rows stay clear in flow and take the base once stuck;
+    // its fullscreen head has no stuck state, so it keeps the opaque base.
+    const market = declarations(document.querySelector<HTMLElement>('.fixture_market')!, false)
+    expect(market).toContain('--dshm-sticky-bg: transparent;')
+    // Pinned rows continue the compact plugin bar's fill and bleed past their inset.
+    expect(market).toContain('--dshm-stuck-bg: #f9fbff;')
+    expect(declarations(document.querySelector<HTMLElement>('.fixture_market')!, true)).toContain('--dshm-stuck-bg: #0a122a;')
+    const pinned = declarations(document.querySelector<HTMLElement>('.fixture_pinned')!, false)
+    expect(pinned).toContain('box-shadow: 0 0 0 100vmax var(--dshm-stuck-bg);')
+    expect(pinned).toContain('clip-path: inset(0 -100vmax);')
+    expect(declarations(document.querySelector<HTMLElement>('.fixture_marketFull')!, false)).not.toContain('--dshm-sticky-bg')
     // No panel brings its own floor any more: an opaque second floor would cover
     // the sheet again and read as a plain white page.
     expect(pageLight).not.toContain('background: rgba(242, 246, 253, 0.94);')

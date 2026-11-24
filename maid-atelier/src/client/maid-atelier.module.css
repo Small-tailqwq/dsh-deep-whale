@@ -1964,27 +1964,48 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
   pointer-events: none;
 }
 
-/* The column sheet provides the page backdrop. Sticky rows and cards consume
-   these opaque tokens independently so their content never blends with rows below. */
+/* The column sheet provides the page backdrop. Sticky rows paint the base
+   token over scrolling content, and controls use it as inverse ink, so it is
+   opaque here. Cards, fields and chips keep the translucent layers and read on
+   the sheet; opaque layers turn every primitive into a pale block. */
 body[data-dsh-maid-atelier][data-maid-panel-page]
   [data-slot='main']
   > * {
   position: relative;
   z-index: 2;
   --dsw-alias-bg-base: #f8faff;
-  --dsw-alias-bg-layer-1: #f8faff;
-  --dsw-alias-bg-layer-2: #ebf0fa;
-  --dsw-alias-bg-layer-3: #e0e7f6;
-  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
   [data-slot='main']
   > * {
   --dsw-alias-bg-base: #0d193b;
-  --dsw-alias-bg-layer-1: #121f43;
-  --dsw-alias-bg-layer-2: #182850;
-  --dsw-alias-bg-layer-3: #20315b;
+}
+
+/* dshmarket's plugins-tab rows paint the base token even while in flow, which
+   reads as a pale block on the sheet. The market marks a row once it sticks
+   (`data-dshm-stuck`, its theming hook) and reads `--dshm-stuck-bg` for that
+   state: the rows stay clear in flow, and once pinned they continue the
+   compact plugin bar's fill. They are inset from the bar, so the fill bleeds
+   to the scroller's edges; otherwise the sheet shows in the gutters and the
+   rows read as a pale block again. The fullscreen head has no stuck state and
+   keeps the opaque base. */
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-sticky-bg: transparent;
+  --dshm-stuck-bg: #f9fbff;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-stuck-bg: #0a122a;
+}
+
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true'])
+  [data-dshm-stuck='true'] {
+  box-shadow: 0 0 0 100vmax var(--dshm-stuck-bg);
+  clip-path: inset(0 -100vmax);
 }
 
 /* Convert the host's header collapse into unitless progress: the page sheet
