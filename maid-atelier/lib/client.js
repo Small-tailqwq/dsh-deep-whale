@@ -2934,14 +2934,27 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 			rail.append(center);
 			return rail;
 		}
-		function ensureComposerLaceRail(rail) {
-			const card = document.querySelector("[data-composer-card]");
-			if (!card) {
+		/**
+		* Every composer card carries its own lace rail. The main conversation mounts
+		* its card under the phase root, but embedded conversations (the Forge review
+		* pane since 0.2.3-alpha.2) mount theirs without one, and several cards can be
+		* on screen at once. Rails whose card left the document, or that the card's
+		* own render dropped, are released before the missing ones are added.
+		*/
+		function syncComposerLaceRails(rails, ownedNodes) {
+			for (const [card, rail] of rails) {
+				if (card.isConnected && rail.parentElement === card) continue;
 				rail.remove();
-				return false;
+				ownedNodes.delete(rail);
+				rails.delete(card);
 			}
-			if (rail.parentElement !== card) card.prepend(rail);
-			return true;
+			for (const card of document.querySelectorAll("[data-composer-card]")) {
+				if (rails.has(card)) continue;
+				const rail = createComposerLaceRail();
+				rails.set(card, rail);
+				ownedNodes.add(rail);
+				card.prepend(rail);
+			}
 		}
 		function hasAcceleratedWebGL() {
 			if (typeof WebGLRenderingContext === "undefined") return false;
@@ -3128,8 +3141,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 			const characterStage = createCharacterStage();
 			ownedNodes.add(characterStage);
 			ctx.effect(() => installMaidCharacterFit(characterStage), "ui-skin-maid-atelier: column-fit character exit");
-			const composerLaceRail = createComposerLaceRail();
-			ownedNodes.add(composerLaceRail);
+			const composerLaceRails = /* @__PURE__ */ new Map();
 			let themeColorMeta = null;
 			let previousThemeColor;
 			let themeColorObserver;
@@ -3177,6 +3189,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 				resizeObserver?.disconnect();
 				for (const [property, value] of previous) body.style.setProperty(property, value);
 				ownedNodes.forEach((element) => element.remove());
+				composerLaceRails.clear();
 				decoratedElements.forEach((element) => {
 					delete element.dataset.maidSidebarFooter;
 					for (const flag of WORKSPACE_FLAGS) element.removeAttribute(flag);
@@ -3424,7 +3437,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 			syncShellKind();
 			ensureChatAreaStage(characterStage);
 			ensureChatAreaChrome(topTrim, bottomTrim);
-			ensureComposerLaceRail(composerLaceRail);
+			syncComposerLaceRails(composerLaceRails, ownedNodes);
 			ensureResizeObserved();
 			const initialSidebar = document.querySelector(SIDEBAR_COLUMN_SELECTOR);
 			if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width);
@@ -3451,7 +3464,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 				return element.querySelector("[data-conversation-scroll]")?.closest("[data-phase]") === element;
 			};
 			const sidebarChromeSelector = `${SIDEBAR_COLUMN_SELECTOR}, [class*='titlebar']`;
-			const composerSelector = "[data-phase='hero'], [data-phase='active']";
+			const composerSelector = "[data-phase='hero'], [data-phase='active'], [data-composer-card]";
 			observer = new MutationObserver((records) => {
 				let sidebarStructureChanged = false;
 				let workspaceStateChanged = false;
@@ -3495,7 +3508,7 @@ html[data-windows-titlebar] body[data-dsh-maid-atelier] > [data-windows-menu] {
 				}
 				if (backdropChanged) syncBackdrop();
 				if (composerChanged) {
-					ensureComposerLaceRail(composerLaceRail);
+					syncComposerLaceRails(composerLaceRails, ownedNodes);
 					syncComposerMotion();
 				}
 				if (settingsStateChanged || projectedStateChanged) syncSettingsBackdropFrame();

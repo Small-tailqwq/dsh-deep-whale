@@ -314,16 +314,27 @@ function createComposerLaceRail(): HTMLDivElement {
   return rail
 }
 
-function ensureComposerLaceRail(rail: HTMLElement): boolean {
-  const card = document.querySelector<HTMLElement>(
-    '[data-composer-card]',
-  )
-  if (!card) {
+/**
+ * Every composer card carries its own lace rail. The main conversation mounts
+ * its card under the phase root, but embedded conversations (the Forge review
+ * pane since 0.2.3-alpha.2) mount theirs without one, and several cards can be
+ * on screen at once. Rails whose card left the document, or that the card's
+ * own render dropped, are released before the missing ones are added.
+ */
+function syncComposerLaceRails(rails: Map<HTMLElement, HTMLElement>, ownedNodes: Set<Element>): void {
+  for (const [card, rail] of rails) {
+    if (card.isConnected && rail.parentElement === card) continue
     rail.remove()
-    return false
+    ownedNodes.delete(rail)
+    rails.delete(card)
   }
-  if (rail.parentElement !== card) card.prepend(rail)
-  return true
+  for (const card of document.querySelectorAll<HTMLElement>('[data-composer-card]')) {
+    if (rails.has(card)) continue
+    const rail = createComposerLaceRail()
+    rails.set(card, rail)
+    ownedNodes.add(rail)
+    card.prepend(rail)
+  }
 }
 
 function hasAcceleratedWebGL(): boolean {
@@ -559,8 +570,7 @@ export function apply(ctx: PanelContext): void {
   const characterStage = createCharacterStage()
   ownedNodes.add(characterStage)
   ctx.effect(() => installMaidCharacterFit(characterStage), 'ui-skin-maid-atelier: column-fit character exit')
-  const composerLaceRail = createComposerLaceRail()
-  ownedNodes.add(composerLaceRail)
+  const composerLaceRails = new Map<HTMLElement, HTMLElement>()
   let themeColorMeta: HTMLMetaElement | null = null
   let previousThemeColor: string | undefined
   let themeColorObserver: MutationObserver | undefined
@@ -617,6 +627,7 @@ export function apply(ctx: PanelContext): void {
       body.style.setProperty(property, value)
     }
     ownedNodes.forEach(element => element.remove())
+    composerLaceRails.clear()
     decoratedElements.forEach((element) => {
       delete element.dataset.maidSidebarFooter
       for (const flag of WORKSPACE_FLAGS) element.removeAttribute(flag)
@@ -1011,7 +1022,7 @@ export function apply(ctx: PanelContext): void {
   syncShellKind()
   ensureChatAreaStage(characterStage)
   ensureChatAreaChrome(topTrim, bottomTrim)
-  ensureComposerLaceRail(composerLaceRail)
+  syncComposerLaceRails(composerLaceRails, ownedNodes)
   ensureResizeObserved()
   const initialSidebar = document.querySelector<HTMLElement>(SIDEBAR_COLUMN_SELECTOR)
   if (initialSidebar) applySidebarWidth(initialSidebar.getBoundingClientRect().width)
@@ -1046,7 +1057,8 @@ export function apply(ctx: PanelContext): void {
     return scrollport?.closest('[data-phase]') === element
   }
   const sidebarChromeSelector = `${SIDEBAR_COLUMN_SELECTOR}, [class*='titlebar']`
-  const composerSelector = "[data-phase='hero'], [data-phase='active']"
+  // Embedded conversations have no phase root, so the card itself also counts.
+  const composerSelector = "[data-phase='hero'], [data-phase='active'], [data-composer-card]"
 
   // ResizeObserver writes the animated width through CSSOM, so it never enters
   // this observer. Keep structural decoration in the MutationObserver checkpoint
@@ -1139,7 +1151,7 @@ export function apply(ctx: PanelContext): void {
     }
     if (backdropChanged) syncBackdrop()
     if (composerChanged) {
-      ensureComposerLaceRail(composerLaceRail)
+      syncComposerLaceRails(composerLaceRails, ownedNodes)
       syncComposerMotion()
     }
     if (settingsStateChanged || projectedStateChanged) syncSettingsBackdropFrame()

@@ -1154,6 +1154,37 @@ describe('Maid Atelier skin apply', () => {
     }
   })
 
+  it('gives every composer card its own lace rail, embedded conversations included', async () => {
+    // The main conversation mounts its card under the phase root; the Forge
+    // review pane (0.2.3-alpha.2) mounts an embedded conversation without one.
+    document.body.innerHTML = `
+      <div data-phase="active"><div data-composer-card class="fixture_main"></div></div>
+      <div data-slot="forge.review.conversation"><div data-composer-card class="fixture_embedded"></div></div>
+    `
+    fiber = await mount()
+    const rails = () => document.querySelectorAll("[data-composer-card] > [data-skin-chrome='composer-lace']")
+    expect(rails()).toHaveLength(2)
+
+    // A card mounted later without a phase root still gets its rail.
+    const late = document.createElement('div')
+    late.innerHTML = '<div data-composer-card class="fixture_late"></div>'
+    document.body.append(late)
+    await flushMutations()
+    expect(document.querySelector(".fixture_late > [data-skin-chrome='composer-lace']")).not.toBeNull()
+
+    // A card that leaves takes its rail with it, and a dropped rail is restored.
+    document.querySelector('.fixture_embedded')!.parentElement!.remove()
+    document.querySelector(".fixture_main > [data-skin-chrome='composer-lace']")!.remove()
+    document.querySelector('.fixture_main')!.append(document.createElement('span'))
+    await flushMutations()
+    expect(rails()).toHaveLength(2)
+    expect(document.querySelector(".fixture_main > [data-skin-chrome='composer-lace']")).not.toBeNull()
+
+    await fiber.dispose()
+    fiber = undefined
+    expect(document.querySelector("[data-skin-chrome='composer-lace']")).toBeNull()
+  })
+
   it('installs and restores the raster control plates', async () => {
     document.body.innerHTML = '<div data-composer-card></div>'
     document.body.style.setProperty('--maid-new-session-art', 'legacy')
