@@ -3156,7 +3156,7 @@ body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] {
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-hidden] {
   opacity: 0;
   transform: translateY(26px);
@@ -3879,13 +3879,13 @@ body[data-dsh-maid-atelier]
 
 body[data-dsh-maid-atelier]
   :is([data-maid-mode-trigger] > [class*='triggerIcon'], [role='menuitem'] > [class*='itemIcon'])
-  > svg:has(> path[d^='M6.4209 1.68067C7.43922']) {
+  > svg:has(> path[d^='M14 6.68994V4L9.40444']) {
   color: var(--maid-permission-write);
 }
 
 body[data-dsh-maid-atelier]
   :is([data-maid-mode-trigger] > [class*='triggerIcon'], [role='menuitem'] > [class*='itemIcon'])
-  > svg:has(> path[d^='M8 4.39209V9.89209']) {
+  > svg:has(> path[d^='M8 4.5V10']) {
   color: var(--maid-permission-full);
 }
 
@@ -6210,7 +6210,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
    委托聚焦 Lexical editor）或输入后恢复。状态由 composer-capsule.ts 维护，避免
    body 级 :has() 在输入时反复重算。 */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card] {
   max-width: 320px;
@@ -6231,7 +6231,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card] {
   box-shadow:
@@ -6240,7 +6240,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   :is([data-input-scroll], [data-composer-card] > [class*='row']) {
   display: none !important;
@@ -6248,7 +6248,7 @@ body[data-dsh-maid-atelier]
 
 /* 统计行（stats / Session log）随卡片一起收起 */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-slot='conversation.composer.dock'] {
   display: none;
@@ -6257,7 +6257,7 @@ body[data-dsh-maid-atelier]
 /* The full-size nine-slice frame extends beyond the card. Stop generating it
    in capsule state so its clipped lace cannot remain inside the pill. */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]::before {
   content: none;
@@ -6267,7 +6267,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]
   > [data-skin-chrome='composer-lace'] {
@@ -6275,7 +6275,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]::after {
   content: '✎ 给智能体发消息';
@@ -6297,7 +6297,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]:hover {
   border-color: rgba(225, 191, 124, 0.85);
@@ -6310,7 +6310,7 @@ body[data-dsh-maid-atelier]
 /* An open popup is anchored to a trigger inside the card; lifting the card
    would drag the menu with it each time the pointer crosses the card edge. */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]:hover:has([aria-haspopup][aria-expanded='true']) {
   transform: none;
@@ -6319,7 +6319,7 @@ body[data-dsh-maid-atelier]
 /* 展开衔接动画：布局宽度/高度瞬时恢复，仅 transform/opacity 走合成器，
    避免折叠/展开反复触发长对话的整块重排（性能优化，替代 420ms 布局过渡）。 */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-expanding]
   [data-composer-card] {
   animation: maidAtelierCapsuleOut 260ms cubic-bezier(0.22, 0.78, 0.2, 1) both;

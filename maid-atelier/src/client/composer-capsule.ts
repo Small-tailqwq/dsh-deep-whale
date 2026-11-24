@@ -14,6 +14,8 @@
  * composer area (todo, queue messages, goal progress) is ignored — focus is
  * stolen only for clicks landing on the pill card itself.
  */
+import { conversationPhaseOf, EMBEDDED_ATTRIBUTE, isConversationPhaseRoot } from './composer-phase.ts'
+
 const SEAT_SELECTOR = '[data-composer-seat]'
 const SCROLLPORT_SELECTOR = '[data-conversation-scroll]'
 const CHAT_FLOW_SELECTOR = '[data-chat-flow]'
@@ -48,16 +50,6 @@ interface CapsuleOwnership {
 }
 
 const ownershipByDocument = new WeakMap<Document, CapsuleOwnership>()
-
-function phaseRootOf(element: Element): HTMLElement | null {
-  let candidate = element.closest<HTMLElement>('[data-phase]')
-  while (candidate !== null) {
-    const scrollport = candidate.querySelector<HTMLElement>(SCROLLPORT_SELECTOR)
-    if (scrollport?.closest('[data-phase]') === candidate) return candidate
-    candidate = candidate.parentElement?.closest<HTMLElement>('[data-phase]') ?? null
-  }
-  return null
-}
 
 function belongsToHighChurnSubtree(node: Node): boolean {
   if (node instanceof Element) {
@@ -128,7 +120,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
     if (!current()) return
     const active = capsuleMode()
     doc.querySelectorAll<HTMLElement>(SEAT_SELECTOR).forEach((seat) => {
-      const root = phaseRootOf(seat)
+      const phase = conversationPhaseOf(seat)
       const scrollport = seat.closest<HTMLElement>(SCROLLPORT_SELECTOR)
       const pending: () => void = () => {
         remember(seat)
@@ -137,7 +129,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
       }
       if (
         !active
-        || root?.dataset.phase !== 'active'
+        || phase !== 'active'
         || scrollport === null
         || scrollport.querySelector(CHAT_FLOW_SELECTOR) === null
       ) {
@@ -250,8 +242,8 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
     if (record.type === 'attributes') {
       const element = record.target instanceof Element ? record.target : undefined
       // A conversation phase flip (hero/active/settling) re-owns every seat seat-wide.
-      if (record.attributeName === 'data-phase') {
-        return element !== undefined && phaseRootOf(element) === element
+      if (record.attributeName === 'data-phase' || record.attributeName === 'data-content-phase') {
+        return element !== undefined && isConversationPhaseRoot(element)
       }
       return element?.closest(SEAT_SELECTOR) !== null
     }
@@ -284,7 +276,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['aria-expanded', 'data-phase'],
+    attributeFilter: ['aria-expanded', 'data-phase', 'data-content-phase'],
   })
 
   // Switching the skin setting must apply or clear the capsule immediately,
@@ -292,7 +284,7 @@ export function installMaidComposerCapsule(body: HTMLElement): () => void {
   const modeObserver = new MutationObserver(() => { synchronize() })
   modeObserver.observe(doc.documentElement, {
     attributes: true,
-    attributeFilter: [MODE_ATTRIBUTE],
+    attributeFilter: [MODE_ATTRIBUTE, EMBEDDED_ATTRIBUTE],
   })
 
   doc.addEventListener('pointerdown', onPointerDown, true)

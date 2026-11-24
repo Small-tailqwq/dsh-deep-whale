@@ -1,4 +1,5 @@
 import { installComposerEditing } from '../../../shared/composer-editing.ts'
+import { conversationPhaseOf, EMBEDDED_ATTRIBUTE } from './composer-phase.ts'
 
 /**
  * Composer visibility presentation, driven by two skin-manager settings
@@ -64,16 +65,6 @@ interface ScrollOwnership {
 
 const ownershipByDocument = new WeakMap<Document, ScrollOwnership>()
 
-function phaseRootOf(element: Element): HTMLElement | null {
-  let candidate = element.closest<HTMLElement>('[data-phase]')
-  while (candidate !== null) {
-    const scrollport = candidate.querySelector<HTMLElement>(SCROLLPORT_SELECTOR)
-    if (scrollport?.closest('[data-phase]') === candidate) return candidate
-    candidate = candidate.parentElement?.closest<HTMLElement>('[data-phase]') ?? null
-  }
-  return null
-}
-
 function scrollEnabled(doc: Document): boolean {
   return doc.documentElement.getAttribute(MODE_ATTRIBUTE) === 'scroll'
 }
@@ -98,8 +89,7 @@ function tailDistance(scrollport: HTMLElement): number | null {
 }
 
 function activeSeatOf(scrollport: HTMLElement): HTMLElement | null {
-  const root = phaseRootOf(scrollport)
-  if (root?.dataset.phase !== 'active') return null
+  if (conversationPhaseOf(scrollport) !== 'active') return null
   // The inspector overlay mounts an extra scrollport without a chat flow; its
   // seat is already display:none'd by the skin and must not be driven. Only
   // transcript scrollports own the gesture (same gate as the CSS contract).
@@ -376,7 +366,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     const target = event.target
     if (!(target instanceof Element)) return
     const seat = target.closest<HTMLElement>(COMPOSER_SEAT_SELECTOR)
-    if (seat === null || phaseRootOf(seat)?.dataset.phase !== 'active') return
+    if (seat === null || conversationPhaseOf(seat) !== 'active') return
     activateSeat(seat)
     settleKeyboard()
   }
@@ -403,15 +393,17 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   const stateObserver = new MutationObserver((records) => {
     if (!current()) return
     if (!records.some(record => record.type === 'attributes'
-      && (record.attributeName === MODE_ATTRIBUTE || record.attributeName === BOTTOM_ONLY_ATTRIBUTE))) return
+      && (record.attributeName === MODE_ATTRIBUTE || record.attributeName === BOTTOM_ONLY_ATTRIBUTE
+        || record.attributeName === EMBEDDED_ATTRIBUTE))) return
     const mode = activeMode(doc)
-    if (mode === null) clearSeatStates()
+    // Leaving the embedded scope must release seats it no longer drives.
+    if (mode === null || records.some(record => record.attributeName === EMBEDDED_ATTRIBUTE)) clearSeatStates()
     syncStructureObserver()
     synchronizeGeometry()
   })
   stateObserver.observe(doc.documentElement, {
     attributes: true,
-    attributeFilter: [MODE_ATTRIBUTE, BOTTOM_ONLY_ATTRIBUTE],
+    attributeFilter: [MODE_ATTRIBUTE, BOTTOM_ONLY_ATTRIBUTE, EMBEDDED_ATTRIBUTE],
   })
 
   const structureObserver = new MutationObserver((records) => {
@@ -432,7 +424,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
     const on = activeMode(doc) !== null
     if (on === observingStructure) return
     observingStructure = on
-    if (on) structureObserver.observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-phase'] })
+    if (on) structureObserver.observe(body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-phase', 'data-content-phase'] })
     else structureObserver.disconnect()
   }
 
@@ -448,7 +440,7 @@ export function installMaidComposerScroll(body: HTMLElement): () => void {
   syncStructureObserver()
   synchronizeGeometry()
   editing = installComposerEditing(doc, (seat) => {
-    if (!current() || activeMode(doc) === null || phaseRootOf(seat)?.dataset.phase !== 'active') return false
+    if (!current() || activeMode(doc) === null || conversationPhaseOf(seat) !== 'active') return false
     activateSeat(seat)
     return true
   })
