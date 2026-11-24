@@ -625,8 +625,10 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
    header a containing block for every fixed descendant (host tooltips and the
    in-place menu/dialog overlays mounted in the session header) for the rest of
    the session. `backwards` contributes only the pre-delay frame; once the
-   animation ends the header computes to no transform. */
-body[data-dsh-maid-atelier] header:has([role='tablist']) {
+   animation ends the header computes to no transform. The conversation's own
+   tab strip names the header; other pages (the Forge review detail) also put
+   a tablist in a header and keep their native divider. */
+body[data-dsh-maid-atelier] header:has([data-conversation-tabs]) {
   position: relative;
   z-index: 21;
   border-bottom: 0;
@@ -658,7 +660,7 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
     transition: none;
   }
 
-  body[data-dsh-maid-atelier] header:has([role='tablist']) {
+  body[data-dsh-maid-atelier] header:has([data-conversation-tabs]) {
     animation: none;
   }
 
@@ -2199,7 +2201,7 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] :is([class*='searchButton'], [
   color: #d8bc80;
 }
 
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='sectionHeader'] {
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='sidebarCol'] [class*='sectionHeader'] {
   justify-content: center;
 }
 

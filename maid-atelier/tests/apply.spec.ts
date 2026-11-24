@@ -429,7 +429,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('projects relational page state onto skin-owned attributes', async () => {
     document.body.innerHTML = `
-      <header><div role="tablist"></div></header>
+      <header><div role="tablist" data-conversation-tabs></div></header>
       <main data-phase="active"><div data-chat-flow></div></main>
       <div data-cordis-panel></div>
       <div data-slot="sidebar.settings"><div role="dialog" aria-modal="true"></div></div>
@@ -451,6 +451,14 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
     expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(false)
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
+
+    // A page header with its own tablist (the Forge review detail) is not the
+    // conversation workspace.
+    const review = document.createElement('header')
+    review.innerHTML = '<div role="tablist"></div>'
+    document.body.append(review)
+    await flushMutations()
+    expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
 
     await fiber.dispose()
   })
@@ -1185,6 +1193,25 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector("[data-skin-chrome='composer-lace']")).toBeNull()
   })
 
+  it('keeps sidebar and workspace-header rules off other pages that reuse their shapes', () => {
+    // 0.2.3-alpha.2 added section headers outside the sidebar (session panel
+    // jobs, Forge review list) and a tablist inside the Forge review header.
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.setAttribute('data-maid-sidebar-size', 'rail')
+    document.body.innerHTML = `
+      <div class="fixture_sidebarCol"><div class="fixture_sectionHeader" id="sidebar-section"></div></div>
+      <div class="fixture_page"><button class="fixture_sectionHeader" id="page-section"></button></div>
+      <header id="conversation-header"><div role="tablist" data-conversation-tabs></div></header>
+      <header id="review-header"><div role="tablist"></div></header>
+    `
+    const byId = (id: string) => document.getElementById(id)!
+    expect(declarations(byId('sidebar-section'), false)).toContain('justify-content: center;')
+    expect(declarations(byId('page-section'), false)).not.toContain('justify-content: center;')
+    expect(declarations(byId('conversation-header'), false)).toContain('border-bottom: 0;')
+    expect(declarations(byId('review-header'), false)).not.toContain('border-bottom: 0;')
+    expect(declarations(byId('review-header'), false)).not.toContain('maidAtelierWorkspaceHeaderEnter')
+  })
+
   it('keys the permission glyph colours on the 0.2.3 PermissionIcon drawings', () => {
     // 0.2.3-alpha.2 redrew the workspace-write and full-access shields; the
     // read-only check stroke kept its opening.
@@ -1436,7 +1463,7 @@ describe('Maid Atelier skin apply', () => {
     expect(collapsedFootRule).toContain('width: 38px')
     expect(collapsedFootRule).toContain('margin: 0')
     expect(collapsedFootRule).toContain('border-radius: 50%')
-    expect(CSS).toMatch(/\[data-maid-sidebar-size='rail'\] \[class\*='sectionHeader'\]\s*\{[^}]*justify-content: center/)
+    expect(CSS).toMatch(/\[data-maid-sidebar-size='rail'\] \[class\*='sidebarCol'\] \[class\*='sectionHeader'\]\s*\{[^}]*justify-content: center/)
     expect(CSS).toMatch(/\[class\*='search'\]:has\(> \[class\*='searchButton'\]\)\s*\{[^}]*justify-content: center/)
     expect(CSS).toMatch(/\[class\*='regionArea'\]\)\s*\{[^}]*overflow: visible/)
   })
@@ -2951,7 +2978,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the animated workspace trim above its tablist without reserving lace space', () => {
     const workspaceHeaderRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\] header:has\(\[data-conversation-tabs\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(workspaceHeaderRule).toContain('position: relative')
     expect(workspaceHeaderRule).toContain('z-index: 21')
@@ -2978,7 +3005,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('softens workspace entry and disables decorative motion when requested', () => {
     const workspaceHeaderRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\] header:has\(\[data-conversation-tabs\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const reducedMotionRule = Array.from(
       CSS.matchAll(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/g),

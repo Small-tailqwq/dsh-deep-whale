@@ -70,7 +70,8 @@ const SETTINGS_SLOT_DIALOG_SELECTOR = "[data-slot='sidebar.settings'] [role='dia
 const SETTINGS_DIALOG_SELECTOR = `${SETTINGS_SLOT_DIALOG_SELECTOR}, ${SETTINGS_PORTAL_DIALOG_SELECTOR}`
 const SETTINGS_OWNER_SELECTOR = `[data-slot='sidebar.settings'], ${SETTINGS_PORTAL_DIALOG_SELECTOR}`
 const ACTIVE_CONVERSATION_SELECTOR = "[data-phase='active']"
-const WORKSPACE_SELECTOR = "header [role='tablist']"
+// The conversation's tab strip; other pages also place a tablist in a header.
+const WORKSPACE_SELECTOR = 'header [data-conversation-tabs]'
 const CORDIS_PANEL_SELECTOR = '[data-cordis-panel]'
 // Tags the rc.2 settings portal's mask (a direct body child) so CSS can match it
 // by attribute instead of a `:has()` probe evaluated on every style pass.
