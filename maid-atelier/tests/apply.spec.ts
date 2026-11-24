@@ -1185,6 +1185,14 @@ describe('Maid Atelier skin apply', () => {
     expect(document.querySelector("[data-skin-chrome='composer-lace']")).toBeNull()
   })
 
+  it('keys the permission glyph colours on the 0.2.3 PermissionIcon drawings', () => {
+    // 0.2.3-alpha.2 redrew the workspace-write and full-access shields; the
+    // read-only check stroke kept its opening.
+    expect(CSS).toMatch(/path\[d\^='M5\.08545 8\.13775L7\.18455'\]\) \{\s*color: var\(--maid-permission-read\);/)
+    expect(CSS).toMatch(/path\[d\^='M14 6\.68994V4L9\.40444'\]\) \{\s*color: var\(--maid-permission-write\);/)
+    expect(CSS).toMatch(/path\[d\^='M8 4\.5V10'\]\) \{\s*color: var\(--maid-permission-full\);/)
+  })
+
   it('installs and restores the raster control plates', async () => {
     document.body.innerHTML = '<div data-composer-card></div>'
     document.body.style.setProperty('--maid-new-session-art', 'legacy')

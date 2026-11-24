@@ -3879,13 +3879,13 @@ body[data-dsh-maid-atelier]
 
 body[data-dsh-maid-atelier]
   :is([data-maid-mode-trigger] > [class*='triggerIcon'], [role='menuitem'] > [class*='itemIcon'])
-  > svg:has(> path[d^='M6.4209 1.68067C7.43922']) {
+  > svg:has(> path[d^='M14 6.68994V4L9.40444']) {
   color: var(--maid-permission-write);
 }
 
 body[data-dsh-maid-atelier]
   :is([data-maid-mode-trigger] > [class*='triggerIcon'], [role='menuitem'] > [class*='itemIcon'])
-  > svg:has(> path[d^='M8 4.39209V9.89209']) {
+  > svg:has(> path[d^='M8 4.5V10']) {
   color: var(--maid-permission-full);
 }
 
