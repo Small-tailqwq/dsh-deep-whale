@@ -1202,6 +1202,8 @@ describe('Maid Atelier skin apply', () => {
       expect(css).not.toContain(`  [data-phase='active']\n  ${seat}`)
       expect(css).toContain(`:is([data-phase='active'], [data-content-phase='active'])\n  ${seat}`)
     }
+    // The fade between those states belongs to every seat that can carry them.
+    expect(css).toMatch(/:is\(\[data-phase='active'\], \[data-content-phase='active'\]\)\n  \[data-composer-seat\] \{\s*transition:\s*opacity 260ms/)
   })
 
   it('installs and restores the raster control plates', async () => {

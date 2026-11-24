@@ -3149,7 +3149,14 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='seat']:hover {
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] {
   --dsw-alias-bg-base: transparent;
   background: none;
-  /* 滚动意图显隐（设置「输入框显示方式」＝滚动显隐）：座内状态切换时整卡平滑淡出/淡入。 */
+}
+
+/* 滚动意图显隐（设置「输入框显示方式」＝滚动显隐）：座内状态切换时整卡平滑淡出/淡入。
+   Embedded conversations (sidebar chat, code review) have no data-phase root;
+   when the side-conversation setting lets them join, the same fade applies. */
+body[data-dsh-maid-atelier]
+  :is([data-phase='active'], [data-content-phase='active'])
+  [data-composer-seat] {
   transition:
     opacity 260ms cubic-bezier(0.22, 0.78, 0.2, 1),
     transform 260ms cubic-bezier(0.22, 0.78, 0.2, 1);
