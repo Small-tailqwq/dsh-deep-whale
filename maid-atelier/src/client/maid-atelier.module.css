@@ -1964,27 +1964,48 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
   pointer-events: none;
 }
 
-/* The column sheet provides the page backdrop. Sticky rows and cards consume
-   these opaque tokens independently so their content never blends with rows below. */
+/* The column sheet provides the page backdrop. Sticky rows paint the base
+   token over scrolling content, and controls use it as inverse ink, so it is
+   opaque here. Cards, fields and chips keep the translucent layers and read on
+   the sheet; opaque layers turn every primitive into a pale block. */
 body[data-dsh-maid-atelier][data-maid-panel-page]
   [data-slot='main']
   > * {
   position: relative;
   z-index: 2;
   --dsw-alias-bg-base: #f8faff;
-  --dsw-alias-bg-layer-1: #f8faff;
-  --dsw-alias-bg-layer-2: #ebf0fa;
-  --dsw-alias-bg-layer-3: #e0e7f6;
-  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
   [data-slot='main']
   > * {
   --dsw-alias-bg-base: #0d193b;
-  --dsw-alias-bg-layer-1: #121f43;
-  --dsw-alias-bg-layer-2: #182850;
-  --dsw-alias-bg-layer-3: #20315b;
+}
+
+/* dshmarket's plugins-tab rows paint the base token even while in flow, which
+   reads as a pale block on the sheet. The market marks a row once it sticks
+   (`data-dshm-stuck`, its theming hook) and reads `--dshm-stuck-bg` for that
+   state: the rows stay clear in flow, and once pinned they continue the
+   compact plugin bar's fill. They are inset from the bar, so the fill bleeds
+   to the scroller's edges; otherwise the sheet shows in the gutters and the
+   rows read as a pale block again. The fullscreen head has no stuck state and
+   keeps the opaque base. */
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-sticky-bg: transparent;
+  --dshm-stuck-bg: #f9fbff;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-stuck-bg: #0a122a;
+}
+
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true'])
+  [data-dshm-stuck='true'] {
+  box-shadow: 0 0 0 100vmax var(--dshm-stuck-bg);
+  clip-path: inset(0 -100vmax);
 }
 
 /* Convert the host's header collapse into unitless progress: the page sheet
@@ -4700,6 +4721,17 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
   }
 }
 
+/* Tool cards can use the sidebar fill as a reading surface. Inside the
+   transcript it must follow the content palette, not the navy sidebar. */
+body[data-dsh-maid-atelier] [data-chat-flow] {
+  --dsw-specific-sidebar-fill: var(--dsw-alias-bg-layer-1);
+}
+
+/* Timeline receipts paint their own card below the disclosure header. */
+body[data-dsh-maid-atelier] :global(.timeline-task-card) {
+  backdrop-filter: blur(12px) saturate(0.92);
+}
+
 /* Collapsed reasoning, tool, context, and workflow rows sit directly over detailed
    background art. A low-contrast porcelain wash stabilizes legibility without
    turning the compact disclosure list into a stack of message cards. */
@@ -4707,11 +4739,15 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
    0.2.0-rc.2 its title inherits the row's tertiary ink, so it joins the
    same darker label pair as the other tool rows over the artwork. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header],
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   :is([data-variant], [data-chat-flow-kind='context'], [data-tool='present']) {
   --dsw-alias-label-secondary: #2f4778;
   --dsw-alias-label-tertiary: #405273;
 }
 
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header],
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   :is([data-variant], [data-chat-flow-kind='context'], [data-tool='present']) {
   --dsw-alias-label-secondary: #d3ddf2;
@@ -4858,10 +4894,11 @@ body[data-dsh-maid-atelier]
   backdrop-filter: blur(8px) saturate(0.92);
 }
 
-/* Shell views with a DisclosureRow already receive its reading surface above.
-   Only standalone shell rows need a surface on the tool root; painting both
-   root and child doubles the tint and blur. */
+/* Direct toolviews share the native disclosure header without a data-variant
+   wrapper. Keep their reading strip on the row so accessories and portaled
+   actions retain their own positioning. Standalone shell rows have no row. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header] > [data-disclosure-row],
   [data-variant='bash']:not(:has([data-disclosure-row])),
   [data-chat-flow-kind='system-prompt'] [data-disclosure-row],
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row],
@@ -4882,6 +4919,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] :is(
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header] > [data-disclosure-row],
   [data-variant='bash']:not(:has([data-disclosure-row])),
   [data-chat-flow-kind='system-prompt'] [data-disclosure-row],
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row],
@@ -5181,7 +5219,8 @@ body[data-dsh-maid-atelier]
     [data-variant='think'] > [data-open='true'] > :is([data-disclosure-row], [data-disclosure-header]) + *,
     [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
-    [data-workflow-run] > [data-open='true']
+    [data-workflow-run] > [data-open='true'],
+    :global(.timeline-task-card)
   ) {
   background: transparent;
   box-shadow: none;

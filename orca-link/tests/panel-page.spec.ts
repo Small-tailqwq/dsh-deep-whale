@@ -32,14 +32,37 @@ describe('ORCA panel pages', () => {
     expect(root).not.toContain('backdrop-filter')
   })
 
-  it('keeps sticky rows and cards opaque in both themes', () => {
+  it('keeps the sticky-row base opaque and leaves cards and fields on the translucent layers', () => {
     const light = block(`${GATE} ${PAGE}`)
     const dark = block(`body[data-dsh-orca-link][data-ds-dark-theme][data-orca-panel-page] ${PAGE}`)
     expect(light).toContain('--dsw-alias-bg-base: #fdfaf4')
-    expect(light).toContain('--dsw-alias-bg-layer-2: #f7f4ee')
-    expect(light).toContain('--dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2)')
     expect(dark).toContain('--dsw-alias-bg-base: #0c111a')
-    expect(dark).toContain('--dsw-alias-bg-layer-2: #131b28')
+    for (const rule of [light, dark]) {
+      expect(rule).not.toMatch(/--dsw-alias-bg-layer-\d:/)
+      expect(rule).not.toContain('--dsw-alias-settings-card-fill')
+    }
+  })
+
+  it('lets market rows show the sheet until they stick', () => {
+    const market = block(
+      `${GATE}
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true'])`,
+    )
+    expect(market).toContain('--dshm-sticky-bg: transparent')
+    // Pinned rows continue the compact plugin bar and bleed past their inset.
+    expect(market).toContain('--dshm-stuck-bg: #fbf7ef')
+    expect(
+      block(`body[data-dsh-orca-link][data-ds-dark-theme][data-orca-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true'])`),
+    ).toContain('--dshm-stuck-bg: #0e141e')
+    const pinned = block(
+      `${GATE}
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true'])
+  [data-dshm-stuck='true']`,
+    )
+    expect(pinned).toContain('box-shadow: 0 0 0 100vmax var(--dshm-stuck-bg)')
+    expect(pinned).toContain('clip-path: inset(0 -100vmax)')
+    expect(block(`${GATE} [data-plugin-bar][data-natural]::before`.replace(`${GATE} `, 'body[data-dsh-orca-link] '))).toContain('background: #fbf7ef')
   })
 
   it('squares the whole page subtree, whatever plugin draws it', () => {
