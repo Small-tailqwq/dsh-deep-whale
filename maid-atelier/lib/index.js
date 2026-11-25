@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-//#region ../shared/skin-assets.ts
+// ../shared/skin-assets.ts
 /** Public, immutable artwork only. Paths come from the shipped allowlist, never from disk traversal. */
 function installSkinAssets(ctx, id, directory, files) {
 	const prefix = `/skin-assets/${id}`;
@@ -48,8 +48,7 @@ function installSkinAssets(ctx, id, directory, files) {
 		}), `${id}: packaged artwork`);
 	});
 }
-//#endregion
-//#region assets/runtime/manifest.json
+// assets/runtime/manifest.json
 var manifest_default = [
 	"06eaf23edd8d5efcf8dfd2ff573307d92ad4422f4a5c022064e9659d34258b8d.png",
 	"1183d4d3a2b122078d09b1d9c97e085696ae214694399f14ce407fc21d8f1ec1.webp",
@@ -81,11 +80,9 @@ var manifest_default = [
 	"fa6d49a717c04651fd7d1afb30b853f63cbaa5bf483e58cb4bfe5ef69fc6ff50.webp",
 	"fe8e1db21924622a0a3a38bd8fde3197d0f0ef2ba2b48c4665f5569013cd4f1d.png"
 ];
-//#endregion
-//#region src/index.ts
+// src/index.ts
 /** Serve only this package's immutable presentation assets while the skin is enabled. */
 function apply(ctx) {
 	installSkinAssets(ctx, "maid-atelier", new URL("../assets/runtime/", import.meta.url), manifest_default);
 }
-//#endregion
 export { apply };

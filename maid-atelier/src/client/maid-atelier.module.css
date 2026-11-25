@@ -4340,6 +4340,17 @@ body[data-dsh-maid-atelier]
   box-shadow: 0 4px 14px rgba(19, 38, 87, 0.08);
 }
 
+/* Rich embedded surfaces can use `container-type: inline-size`; size
+   containment contributes no intrinsic width, so a fit-content bubble would
+   collapse to its padding and squeeze forms/charts into a sliver. The client
+   marks Markdown with non-prose descendants; those bubbles keep the column
+   measure while plain prose keeps the compact plate. */
+body[data-dsh-maid-atelier]
+  [data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown'][data-maid-markdown-full-width] {
+  align-self: stretch;
+  width: auto;
+}
+
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   [data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown'] {
   border-color: rgba(211, 180, 119, 0.4);
