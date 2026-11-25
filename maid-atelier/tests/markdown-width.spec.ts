@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { installMaidMarkdownWidth, MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE } from '../src/client/markdown-width.ts'
 
 const css = readFileSync(resolve(process.cwd(), 'src/client/maid-atelier.module.css'), 'utf8')
@@ -57,12 +57,40 @@ describe('installMaidMarkdownWidth', () => {
     runtime.dispose()
   })
 
-  it('marks size containment declared with contain', async () => {
+  it.each([
+    ['contain: size', true],
+    ['contain: strict', true],
+    ['contain: inline-size layout', true],
+    ['container-type: inline-size scroll-state', true],
+    ['contain: content', false],
+    ['container-type: scroll-state', false],
+  ])('reads size containment from %s', async (declaration, wide) => {
     const runtime = installMaidMarkdownWidth({} as never)
-    const markdown = hostMarkdown('<div style="contain: size"><canvas></canvas></div>')
+    const markdown = hostMarkdown(`<div style="${declaration}"><canvas></canvas></div>`)
     await mutations()
-    expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
+    const marked = markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)
     runtime.dispose()
+    expect(marked).toBe(wide)
+  })
+
+  it('keeps MathML and SVG out of the style probe', async () => {
+    const markdown = hostMarkdown(
+      '<p><span class="katex"><math><semantics><mrow><mi>x</mi></mrow></semantics></math></span></p>'
+      + '<p><svg viewBox="0 0 1 1"><path d="M0 0"></path></svg></p>',
+    )
+    const probed: Element[] = []
+    const getComputedStyle = window.getComputedStyle.bind(window)
+    const spy = vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
+      probed.push(element)
+      return getComputedStyle(element, pseudo)
+    })
+    const runtime = installMaidMarkdownWidth({} as never)
+    await mutations()
+    const wide = markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)
+    runtime.dispose()
+    spy.mockRestore()
+    expect(probed.filter(element => element.namespaceURI !== 'http://www.w3.org/1999/xhtml')).toEqual([])
+    expect(wide).toBe(false)
   })
 
   it('rechecks mounted content when containment is enabled or removed', async () => {

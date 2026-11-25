@@ -22,7 +22,14 @@ const COMPACT_TAG_NAMES = new Set([
   'rp', 'rt', 'ruby', 's', 'samp', 'small', 'span', 'strong', 'sub', 'sup', 'time', 'u', 'ul', 'var', 'wbr',
 ])
 
+const XHTML_NAMESPACE = 'http://www.w3.org/1999/xhtml'
+const SIZE_CONTAINER_TYPES = new Set(['size', 'inline-size'])
+const SIZE_CONTAIN_VALUES = new Set(['size', 'inline-size', 'strict'])
+
 function isCompactElement(element: Element): boolean {
+  // KaTeX MathML and inline SVG are host Markdown leaves, not plugin surfaces;
+  // skipping them keeps formula-heavy replies out of the style probe.
+  if (element.namespaceURI !== XHTML_NAMESPACE) return true
   const tag = element.tagName.toLowerCase()
   // Task-list checkboxes are inline Markdown affordances. Other inputs belong
   // to embedded forms and are candidates for the containment probe.
@@ -38,20 +45,18 @@ function hasCandidateElement(root: Element, includeRoot: boolean): boolean {
   return false
 }
 
+function hasToken(value: string, tokens: ReadonlySet<string>): boolean {
+  return value.split(/\s+/).some(token => tokens.has(token))
+}
+
+/** Only size containment drops intrinsic width: `scroll-state` containers and
+ * `contain: content` keep it, while `contain: strict` implies size. */
 function hasSizeContainment(element: Element): boolean {
   const view = element.ownerDocument.defaultView
   if (view === null) return false
-  let style: CSSStyleDeclaration
-  try {
-    style = view.getComputedStyle(element)
-  } catch {
-    // Embedded MathML/SVG is host markup, not a container-query surface. Some
-    // DOM implementations cannot compute every foreign-element style; treat
-    // those leaves as compact rather than failing the transcript observer.
-    return false
-  }
-  if (style.getPropertyValue('container-type') !== 'normal') return true
-  return style.getPropertyValue('contain').split(/\s+/).some(token => token === 'size' || token === 'inline-size')
+  const style = view.getComputedStyle(element)
+  return hasToken(style.getPropertyValue('container-type'), SIZE_CONTAINER_TYPES)
+    || hasToken(style.getPropertyValue('contain'), SIZE_CONTAIN_VALUES)
 }
 
 function hasSizeContainedElement(root: Element, includeRoot: boolean): boolean {
