@@ -86,7 +86,14 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
   const owner = Symbol('maid-markdown-width')
   const wideRoots = new Set<HTMLElement>()
   const pendingRoots = new Set<HTMLElement>()
+  // Containment can also arrive from a stylesheet inserted after the surface
+  // mounted (plugin styles injected on first render, async links, insertRule),
+  // with no transcript mutation. The collapse itself changes the bubble's
+  // width, so compact roots that hold candidates are rescanned on width change.
+  const sizedRoots = new Set<HTMLElement>()
+  const observedWidths = new WeakMap<Element, number>()
   let observer: MutationObserver | undefined
+  let resizeObserver: ResizeObserver | undefined
   let scheduled: number | undefined
   let scheduledWithAnimationFrame = false
 
@@ -96,12 +103,27 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
     else wideRoots.delete(root)
   }
 
+  const watchWidth = (root: HTMLElement, watch: boolean): void => {
+    if (resizeObserver === undefined || watch === sizedRoots.has(root)) return
+    if (watch) {
+      sizedRoots.add(root)
+      resizeObserver.observe(root)
+    } else {
+      sizedRoots.delete(root)
+      resizeObserver.unobserve(root)
+      observedWidths.delete(root)
+    }
+  }
+
   const scan = (root: HTMLElement): void => {
     if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) {
       write(root, false)
+      watchWidth(root, false)
       return
     }
-    write(root, hasSizeContainedElement(root, false))
+    const wide = hasSizeContainedElement(root, false)
+    write(root, wide)
+    watchWidth(root, !wide && hasCandidateElement(root, false))
   }
 
   const flushPending = (): void => {
@@ -162,7 +184,24 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
     if (root !== null) queueScan(root)
   }
 
+  const releaseWatches = (): void => {
+    resizeObserver?.disconnect()
+    sizedRoots.clear()
+  }
+
   try {
+    if (typeof ResizeObserver === 'function') {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const root = entry.target as HTMLElement
+          const width = entry.contentRect.width
+          const previous = observedWidths.get(root)
+          observedWidths.set(root, width)
+          // The first entry only records a baseline; streaming height growth is ignored.
+          if (previous !== undefined && previous !== width && !wideRoots.has(root)) queueScan(root)
+        }
+      })
+    }
     document.querySelectorAll<HTMLElement>(MARKDOWN_SELECTOR).forEach(queueScan)
     observer = new MutationObserver((records) => {
       for (const record of records) {
@@ -186,6 +225,9 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
       for (const root of [...wideRoots]) {
         if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) write(root, false)
       }
+      for (const root of [...sizedRoots]) {
+        if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) watchWidth(root, false)
+      }
     })
     observer.observe(document.body, {
       childList: true,
@@ -196,6 +238,7 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
   } catch (error) {
     cancelFlush()
     observer?.disconnect()
+    releaseWatches()
     for (const root of [...wideRoots]) write(root, false)
     throw error
   }
@@ -204,6 +247,7 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
     dispose(): void {
       cancelFlush()
       observer?.disconnect()
+      releaseWatches()
       for (const root of [...wideRoots]) write(root, false)
       wideRoots.clear()
     },

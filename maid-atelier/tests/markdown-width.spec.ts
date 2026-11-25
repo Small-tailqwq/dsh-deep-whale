@@ -35,7 +35,32 @@ async function mutations(): Promise<void> {
 
 afterEach(() => {
   document.body.replaceChildren()
+  document.head.replaceChildren()
+  vi.unstubAllGlobals()
 })
+
+interface FakeResizeObserver {
+  targets: Set<Element>
+  resize(target: Element, width: number): void
+}
+
+function stubResizeObserver(): FakeResizeObserver[] {
+  const instances: FakeResizeObserver[] = []
+  vi.stubGlobal('ResizeObserver', class {
+    readonly targets = new Set<Element>()
+    constructor(private readonly callback: ResizeObserverCallback) {
+      instances.push(this)
+    }
+    observe(target: Element): void { this.targets.add(target) }
+    unobserve(target: Element): void { this.targets.delete(target) }
+    disconnect(): void { this.targets.clear() }
+    resize(target: Element, width: number): void {
+      if (!this.targets.has(target)) return
+      this.callback([{ target, contentRect: { width } } as unknown as ResizeObserverEntry], this as never)
+    }
+  })
+  return instances
+}
 
 describe('installMaidMarkdownWidth', () => {
   it('keeps prose compact and marks size-contained embeds full width', async () => {
@@ -71,6 +96,45 @@ describe('installMaidMarkdownWidth', () => {
     const marked = markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)
     runtime.dispose()
     expect(marked).toBe(wide)
+  })
+
+  it('rechecks when a late stylesheet collapses a mounted surface', async () => {
+    const observers = stubResizeObserver()
+    const markdown = hostMarkdown('<div class="late-surface"><canvas></canvas></div>')
+    const runtime = installMaidMarkdownWidth({} as never)
+    try {
+      await mutations()
+      expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
+      const [observer] = observers
+      expect(observer?.targets.has(markdown)).toBe(true)
+
+      // Plugin styles land after the surface mounted: no transcript mutation.
+      const style = document.createElement('style')
+      style.textContent = '.late-surface { container-type: inline-size; }'
+      document.head.append(style)
+      observer!.resize(markdown, 300)
+      await mutations()
+      expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
+      observer!.resize(markdown, 64)
+      await mutations()
+      expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
+      expect(observer!.targets.has(markdown)).toBe(false)
+    } finally {
+      runtime.dispose()
+    }
+    expect(observers[0]!.targets.size).toBe(0)
+  })
+
+  it('does not watch roots without candidate elements', async () => {
+    const observers = stubResizeObserver()
+    const markdown = hostMarkdown('<p>short <strong>answer</strong></p>')
+    const runtime = installMaidMarkdownWidth({} as never)
+    try {
+      await mutations()
+      expect(observers[0]?.targets.has(markdown) ?? false).toBe(false)
+    } finally {
+      runtime.dispose()
+    }
   })
 
   it('keeps MathML and SVG out of the style probe', async () => {
