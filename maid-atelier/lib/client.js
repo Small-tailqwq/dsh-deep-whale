@@ -1979,7 +1979,7 @@ window.__ModuleLoader__.load({
 		const FRAME_ATTRIBUTE = "data-maid-table-frame";
 		const OVERLAY_ATTRIBUTE = "data-maid-table-lightbox";
 		const MODAL_DIALOG_SELECTOR = "[role='dialog'][aria-modal='true']";
-		const ASSISTANT_STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']";
+		const ASSISTANT_STEP_SELECTOR$1 = "[data-chat-flow-kind='assistant-step']";
 		const MARKDOWN_CONTAINER_SELECTOR = "div[class*='markdown']";
 		const EXPANDED_HORIZONTAL_CHROME = 96;
 		const EXPANDED_MIN_WIDTH = 560;
@@ -2036,7 +2036,7 @@ window.__ModuleLoader__.load({
 			return element.matches(MODAL_DIALOG_SELECTOR) && !element.hasAttribute(OVERLAY_ATTRIBUTE) && element.closest(`[${OVERLAY_ATTRIBUTE}]`) === null;
 		}
 		function findBubble(wrapper) {
-			const assistantStep = wrapper.closest(ASSISTANT_STEP_SELECTOR);
+			const assistantStep = wrapper.closest(ASSISTANT_STEP_SELECTOR$1);
 			const markdown = wrapper.closest(MARKDOWN_CONTAINER_SELECTOR);
 			if (assistantStep !== null && markdown !== null && assistantStep.contains(markdown)) return markdown;
 			return wrapper.parentElement;
@@ -2339,7 +2339,8 @@ window.__ModuleLoader__.load({
 		}
 		// src/client/markdown-width.ts
 		const MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE = "data-maid-markdown-full-width";
-		const MARKDOWN_SELECTOR = "[data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown']";
+		const ASSISTANT_STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']";
+		const MARKDOWN_SELECTOR = `${ASSISTANT_STEP_SELECTOR} > * > * > * > div[class*='markdown']`;
 		const COMPACT_TAG_NAMES = /* @__PURE__ */ new Set([
 			"a",
 			"abbr",
@@ -2443,6 +2444,7 @@ window.__ModuleLoader__.load({
 					for (const record of records) {
 						if (record.type !== "childList") continue;
 						const target = record.target instanceof Element ? record.target : void 0;
+						if (target === void 0 || target.closest(ASSISTANT_STEP_SELECTOR) === null) continue;
 						for (const node of record.addedNodes) if (node instanceof Element) scanAddedNode(node);
 						for (const node of record.removedNodes) if (node instanceof Element) scanRemovedNode(node, target, rescan);
 					}

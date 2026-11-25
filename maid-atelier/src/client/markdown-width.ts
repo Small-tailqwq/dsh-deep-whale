@@ -14,7 +14,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import { setLeasedAttribute } from '../../../shared/attribute-lease.ts'
 
 export const MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE = 'data-maid-markdown-full-width'
-const MARKDOWN_SELECTOR = "[data-chat-flow-kind='assistant-step'] > * > * > * > div[class*='markdown']"
+const ASSISTANT_STEP_SELECTOR = "[data-chat-flow-kind='assistant-step']"
+const MARKDOWN_SELECTOR = `${ASSISTANT_STEP_SELECTOR} > * > * > * > div[class*='markdown']`
 
 const COMPACT_TAG_NAMES = new Set([
   'a', 'abbr', 'b', 'bdi', 'bdo', 'blockquote', 'br', 'cite', 'code', 'data', 'dd', 'del', 'dfn', 'dl', 'dt',
@@ -92,6 +93,9 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
       for (const record of records) {
         if (record.type !== 'childList') continue
         const target = record.target instanceof Element ? record.target : undefined
+        // Composer/input churn never intersects assistant Markdown; reject it
+        // before walking or querying the added subtree.
+        if (target === undefined || target.closest(ASSISTANT_STEP_SELECTOR) === null) continue
         for (const node of record.addedNodes) {
           if (node instanceof Element) scanAddedNode(node)
         }
