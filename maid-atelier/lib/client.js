@@ -2391,10 +2391,8 @@ window.__ModuleLoader__.load({
 		function installMaidMarkdownWidth(_ctx) {
 			const owner = Symbol("maid-markdown-width");
 			const wideRoots = /* @__PURE__ */ new Set();
-			const touchedRoots = /* @__PURE__ */ new Set();
 			let observer;
 			const write = (root, active) => {
-				touchedRoots.add(root);
 				setLeasedAttribute(root, MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE, owner, active);
 				if (active) wideRoots.add(root);
 				else wideRoots.delete(root);
@@ -2440,14 +2438,13 @@ window.__ModuleLoader__.load({
 				});
 			} catch (error) {
 				observer?.disconnect();
-				for (const root of touchedRoots) write(root, false);
+				for (const root of [...wideRoots]) write(root, false);
 				throw error;
 			}
 			return { dispose() {
 				observer?.disconnect();
-				for (const root of touchedRoots) write(root, false);
+				for (const root of [...wideRoots]) write(root, false);
 				wideRoots.clear();
-				touchedRoots.clear();
 			} };
 		}
 		// src/client/icon-art.generated.ts
