@@ -2412,7 +2412,15 @@ window.__ModuleLoader__.load({
 			"var",
 			"wbr"
 		]);
+		const XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+		const SIZE_CONTAINER_TYPES = /* @__PURE__ */ new Set(["size", "inline-size"]);
+		const SIZE_CONTAIN_VALUES = /* @__PURE__ */ new Set([
+			"size",
+			"inline-size",
+			"strict"
+		]);
 		function isCompactElement(element) {
+			if (element.namespaceURI !== XHTML_NAMESPACE) return true;
 			const tag = element.tagName.toLowerCase();
 			if (tag === "input") return element.getAttribute("type")?.toLowerCase() === "checkbox";
 			return COMPACT_TAG_NAMES.has(tag);
@@ -2422,17 +2430,16 @@ window.__ModuleLoader__.load({
 			for (const element of root.querySelectorAll("*")) if (!isCompactElement(element)) return true;
 			return false;
 		}
+		function hasToken(value, tokens) {
+			return value.split(/\s+/).some((token) => tokens.has(token));
+		}
+		/** Only size containment drops intrinsic width: `scroll-state` containers and
+		* `contain: content` keep it, while `contain: strict` implies size. */
 		function hasSizeContainment(element) {
 			const view = element.ownerDocument.defaultView;
 			if (view === null) return false;
-			let style;
-			try {
-				style = view.getComputedStyle(element);
-			} catch {
-				return false;
-			}
-			if (style.getPropertyValue("container-type") !== "normal") return true;
-			return style.getPropertyValue("contain").split(/\s+/).some((token) => token === "size" || token === "inline-size");
+			const style = view.getComputedStyle(element);
+			return hasToken(style.getPropertyValue("container-type"), SIZE_CONTAINER_TYPES) || hasToken(style.getPropertyValue("contain"), SIZE_CONTAIN_VALUES);
 		}
 		function hasSizeContainedElement(root, includeRoot) {
 			if (includeRoot && !isCompactElement(root) && hasSizeContainment(root)) return true;
