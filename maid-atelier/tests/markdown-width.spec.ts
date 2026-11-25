@@ -108,13 +108,16 @@ describe('installMaidMarkdownWidth', () => {
       const [observer] = observers
       expect(observer?.targets.has(markdown)).toBe(true)
 
+      observer!.resize(markdown, 300)
+      await mutations()
+      observer!.resize(markdown, 300)
+      await mutations()
+      expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
+
       // Plugin styles land after the surface mounted: no transcript mutation.
       const style = document.createElement('style')
       style.textContent = '.late-surface { container-type: inline-size; }'
       document.head.append(style)
-      observer!.resize(markdown, 300)
-      await mutations()
-      expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
       observer!.resize(markdown, 64)
       await mutations()
       expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
@@ -123,6 +126,25 @@ describe('installMaidMarkdownWidth', () => {
       runtime.dispose()
     }
     expect(observers[0]!.targets.size).toBe(0)
+  })
+
+  it('rechecks on the first observation when styles land before it', async () => {
+    const observers = stubResizeObserver()
+    const markdown = hostMarkdown('<div class="late-surface"><canvas></canvas></div>')
+    const runtime = installMaidMarkdownWidth({} as never)
+    try {
+      await mutations()
+      expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
+      const style = document.createElement('style')
+      style.textContent = '.late-surface { container-type: inline-size; }'
+      document.head.append(style)
+      // The collapsed width is the first value the observer ever reports.
+      observers[0]!.resize(markdown, 64)
+      await mutations()
+      expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
+    } finally {
+      runtime.dispose()
+    }
   })
 
   it('does not watch roots without candidate elements', async () => {
