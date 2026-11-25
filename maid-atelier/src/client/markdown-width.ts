@@ -52,11 +52,9 @@ export interface MarkdownWidthRuntime {
 export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
   const owner = Symbol('maid-markdown-width')
   const wideRoots = new Set<HTMLElement>()
-  const touchedRoots = new Set<HTMLElement>()
   let observer: MutationObserver | undefined
 
   const write = (root: HTMLElement, active: boolean): void => {
-    touchedRoots.add(root)
     setLeasedAttribute(root, MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE, owner, active)
     if (active) wideRoots.add(root)
     else wideRoots.delete(root)
@@ -109,16 +107,15 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
     observer.observe(document.body, { childList: true, subtree: true })
   } catch (error) {
     observer?.disconnect()
-    for (const root of touchedRoots) write(root, false)
+    for (const root of [...wideRoots]) write(root, false)
     throw error
   }
 
   return {
     dispose(): void {
       observer?.disconnect()
-      for (const root of touchedRoots) write(root, false)
+      for (const root of [...wideRoots]) write(root, false)
       wideRoots.clear()
-      touchedRoots.clear()
     },
   }
 }
