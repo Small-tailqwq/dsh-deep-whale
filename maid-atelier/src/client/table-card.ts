@@ -16,6 +16,7 @@
  * switching, and partial failures cannot leave a wrapper decorated.
  */
 import type { Context } from '@deepseek-ai/cordis'
+import { setLeasedAttribute } from '../../../shared/attribute-lease.ts'
 
 export const MAID_TABLE_SELECTOR = '.md-table-wide'
 const SKIN_OWNER = 'maid-atelier'
@@ -31,49 +32,13 @@ const EXPANDED_HORIZONTAL_CHROME = 96
 const EXPANDED_MIN_WIDTH = 560
 const LIGHTBOX_EDGE_GAP = 56
 
-interface AttributeLease {
-  originalValue: string | null
-  owners: Set<symbol>
-}
-
 interface ControlLease {
   button: HTMLButtonElement
   owners: Map<symbol, () => void>
   onClick: (event: MouseEvent) => void
 }
 
-const attributeLeases = new WeakMap<HTMLElement, Map<string, AttributeLease>>()
 const controlLeases = new WeakMap<HTMLElement, ControlLease>()
-
-function setLeasedAttribute(element: HTMLElement, attribute: string, owner: symbol, active: boolean): void {
-  let attributes = attributeLeases.get(element)
-  let lease = attributes?.get(attribute)
-  if (active) {
-    if (attributes === undefined) {
-      attributes = new Map()
-      attributeLeases.set(element, attributes)
-    }
-    if (lease === undefined) {
-      lease = { originalValue: element.getAttribute(attribute), owners: new Set() }
-      attributes.set(attribute, lease)
-    }
-    lease.owners.add(owner)
-    element.setAttribute(attribute, '')
-    return
-  }
-  if (lease === undefined || attributes === undefined) return
-  lease.owners.delete(owner)
-  if (lease.owners.size > 0) {
-    element.setAttribute(attribute, '')
-    return
-  }
-  if (element.getAttribute(attribute) === '') {
-    if (lease.originalValue === null) element.removeAttribute(attribute)
-    else element.setAttribute(attribute, lease.originalValue)
-  }
-  attributes.delete(attribute)
-  if (attributes.size === 0) attributeLeases.delete(element)
-}
 
 /** Labels follow the host language at the moment each control is created. */
 function tableLabel(zh: string, en: string): string {
