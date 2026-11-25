@@ -2498,12 +2498,21 @@ window.__ModuleLoader__.load({
 				const root = target.closest(MARKDOWN_SELECTOR);
 				if (root !== null) queueScan(root);
 			};
+			const scanAttributeTarget = (target) => {
+				if (isCompactElement(target)) return;
+				const root = target.closest(MARKDOWN_SELECTOR);
+				if (root !== null) queueScan(root);
+			};
 			try {
 				document.querySelectorAll(MARKDOWN_SELECTOR).forEach(queueScan);
 				observer = new MutationObserver((records) => {
 					for (const record of records) {
-						if (record.type !== "childList") continue;
 						const target = record.target instanceof Element ? record.target : void 0;
+						if (record.type === "attributes") {
+							if (target !== void 0) scanAttributeTarget(target);
+							continue;
+						}
+						if (record.type !== "childList") continue;
 						const targetInStep = target !== void 0 && target.closest(ASSISTANT_STEP_SELECTOR) !== null;
 						for (const node of record.addedNodes) if (node instanceof Element && (targetInStep || intersectsAssistantStep(node))) scanAddedNode(node);
 						for (const node of record.removedNodes) if (node instanceof Element && (targetInStep || intersectsAssistantStep(node))) scanRemovedNode(node, target);
@@ -2512,7 +2521,9 @@ window.__ModuleLoader__.load({
 				});
 				observer.observe(document.body, {
 					childList: true,
-					subtree: true
+					subtree: true,
+					attributes: true,
+					attributeFilter: ["class", "style"]
 				});
 			} catch (error) {
 				cancelFlush();
