@@ -2538,7 +2538,7 @@ window.__ModuleLoader__.load({
 						const width = entry.contentRect.width;
 						const previous = observedWidths.get(root);
 						observedWidths.set(root, width);
-						if (previous !== void 0 && previous !== width && !wideRoots.has(root)) queueScan(root);
+						if (previous !== width && !wideRoots.has(root)) queueScan(root);
 					}
 				});
 				document.querySelectorAll(MARKDOWN_SELECTOR).forEach(queueScan);
