@@ -2444,7 +2444,10 @@ window.__ModuleLoader__.load({
 			const owner = Symbol("maid-markdown-width");
 			const wideRoots = /* @__PURE__ */ new Set();
 			const pendingRoots = /* @__PURE__ */ new Set();
+			const sizedRoots = /* @__PURE__ */ new Set();
+			const observedWidths = /* @__PURE__ */ new WeakMap();
 			let observer;
+			let resizeObserver;
 			let scheduled;
 			let scheduledWithAnimationFrame = false;
 			const write = (root, active) => {
@@ -2452,12 +2455,26 @@ window.__ModuleLoader__.load({
 				if (active) wideRoots.add(root);
 				else wideRoots.delete(root);
 			};
+			const watchWidth = (root, watch) => {
+				if (resizeObserver === void 0 || watch === sizedRoots.has(root)) return;
+				if (watch) {
+					sizedRoots.add(root);
+					resizeObserver.observe(root);
+				} else {
+					sizedRoots.delete(root);
+					resizeObserver.unobserve(root);
+					observedWidths.delete(root);
+				}
+			};
 			const scan = (root) => {
 				if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) {
 					write(root, false);
+					watchWidth(root, false);
 					return;
 				}
-				write(root, hasSizeContainedElement(root, false));
+				const wide = hasSizeContainedElement(root, false);
+				write(root, wide);
+				watchWidth(root, !wide && hasCandidateElement(root, false));
 			};
 			const flushPending = () => {
 				scheduled = void 0;
@@ -2510,7 +2527,20 @@ window.__ModuleLoader__.load({
 				const root = target.closest(MARKDOWN_SELECTOR);
 				if (root !== null) queueScan(root);
 			};
+			const releaseWatches = () => {
+				resizeObserver?.disconnect();
+				sizedRoots.clear();
+			};
 			try {
+				if (typeof ResizeObserver === "function") resizeObserver = new ResizeObserver((entries) => {
+					for (const entry of entries) {
+						const root = entry.target;
+						const width = entry.contentRect.width;
+						const previous = observedWidths.get(root);
+						observedWidths.set(root, width);
+						if (previous !== void 0 && previous !== width && !wideRoots.has(root)) queueScan(root);
+					}
+				});
 				document.querySelectorAll(MARKDOWN_SELECTOR).forEach(queueScan);
 				observer = new MutationObserver((records) => {
 					for (const record of records) {
@@ -2525,6 +2555,7 @@ window.__ModuleLoader__.load({
 						for (const node of record.removedNodes) if (node instanceof Element && (targetInStep || intersectsAssistantStep(node))) scanRemovedNode(node, target);
 					}
 					for (const root of [...wideRoots]) if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) write(root, false);
+					for (const root of [...sizedRoots]) if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) watchWidth(root, false);
 				});
 				observer.observe(document.body, {
 					childList: true,
@@ -2535,12 +2566,14 @@ window.__ModuleLoader__.load({
 			} catch (error) {
 				cancelFlush();
 				observer?.disconnect();
+				releaseWatches();
 				for (const root of [...wideRoots]) write(root, false);
 				throw error;
 			}
 			return { dispose() {
 				cancelFlush();
 				observer?.disconnect();
+				releaseWatches();
 				for (const root of [...wideRoots]) write(root, false);
 				wideRoots.clear();
 			} };
