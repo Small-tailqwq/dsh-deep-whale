@@ -65,6 +65,24 @@ describe('installMaidMarkdownWidth', () => {
     runtime.dispose()
   })
 
+  it('rechecks mounted content when containment is enabled or removed', async () => {
+    const markdown = hostMarkdown('<div id="embedded"><canvas></canvas></div>')
+    const runtime = installMaidMarkdownWidth({} as never)
+    await mutations()
+    expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
+
+    const embedded = markdown.querySelector<HTMLElement>('#embedded')
+    expect(embedded).not.toBeNull()
+    embedded!.setAttribute('style', 'container-type: inline-size')
+    await mutations()
+    expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
+
+    embedded!.removeAttribute('style')
+    await mutations()
+    expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
+    runtime.dispose()
+  })
+
   it.each([
     ['inline KaTeX MathML', '<p>answer <span class="katex"><math><semantics><mrow><mi>x</mi></mrow></semantics></math></span></p>'],
     ['a short code block', '<div class="md-code-block"><pre><code>const x = 1</code></pre></div>'],

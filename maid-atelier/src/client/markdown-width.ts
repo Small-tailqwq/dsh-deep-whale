@@ -151,12 +151,22 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
     if (root !== null) queueScan(root)
   }
 
+  const scanAttributeTarget = (target: Element): void => {
+    if (isCompactElement(target)) return
+    const root = target.closest<HTMLElement>(MARKDOWN_SELECTOR)
+    if (root !== null) queueScan(root)
+  }
+
   try {
     document.querySelectorAll<HTMLElement>(MARKDOWN_SELECTOR).forEach(queueScan)
     observer = new MutationObserver((records) => {
       for (const record of records) {
-        if (record.type !== 'childList') continue
         const target = record.target instanceof Element ? record.target : undefined
+        if (record.type === 'attributes') {
+          if (target !== undefined) scanAttributeTarget(target)
+          continue
+        }
+        if (record.type !== 'childList') continue
         // Composer/input churn never intersects assistant Markdown. Complete
         // assistant steps are inserted into a surrounding list, so relevance
         // must consider the added/removed subtree as well as the target.
@@ -172,7 +182,12 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
         if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) write(root, false)
       }
     })
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style'],
+    })
   } catch (error) {
     cancelFlush()
     observer?.disconnect()
