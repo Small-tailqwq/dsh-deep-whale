@@ -25,6 +25,11 @@ function hostMarkdown(content = ''): HTMLElement {
 
 async function mutations(): Promise<void> {
   await Promise.resolve()
+  if (typeof requestAnimationFrame === 'function') {
+    await new Promise(resolve => requestAnimationFrame(() => resolve(undefined)))
+  } else {
+    await new Promise(resolve => setTimeout(resolve, 0))
+  }
   await Promise.resolve()
 }
 
@@ -33,13 +38,14 @@ afterEach(() => {
 })
 
 describe('installMaidMarkdownWidth', () => {
-  it('keeps prose compact and marks embedded plugin surfaces full width', async () => {
+  it('keeps prose compact and marks size-contained embeds full width', async () => {
     const markdown = hostMarkdown('<p>short <strong>answer</strong></p>')
     const runtime = installMaidMarkdownWidth({} as never)
+    await mutations()
     expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
 
     const embedded = document.createElement('div')
-    embedded.className = 'genui-dom-fence'
+    embedded.setAttribute('style', 'container-type: inline-size')
     embedded.innerHTML = '<div><button type="button">action</button></div>'
     markdown.append(embedded)
     await mutations()
@@ -51,18 +57,40 @@ describe('installMaidMarkdownWidth', () => {
     runtime.dispose()
   })
 
-  it('marks rich markdown when a complete assistant step is inserted', async () => {
+  it('marks size containment declared with contain', async () => {
     const runtime = installMaidMarkdownWidth({} as never)
-    const markdown = hostMarkdown('<p>chart</p><div><canvas></canvas></div>')
+    const markdown = hostMarkdown('<div style="contain: size"><canvas></canvas></div>')
     await mutations()
     expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
     runtime.dispose()
   })
 
-  it('marks existing width-bearing content and restores overlapping activation cleanly', async () => {
-    const markdown = hostMarkdown('<p>form</p><div><input type="text" aria-label="name"></div>')
+  it.each([
+    ['inline KaTeX MathML', '<p>answer <span class="katex"><math><semantics><mrow><mi>x</mi></mrow></semantics></math></span></p>'],
+    ['a short code block', '<div class="md-code-block"><pre><code>const x = 1</code></pre></div>'],
+    ['a small table', '<div class="table-scroll"><table><thead><tr><th>a</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table></div>'],
+    ['a single image', '<p><img alt="plot" src="data:image/png;base64,x"></p>'],
+  ])('keeps host Markdown compact: %s', async (_name, content) => {
+    const markdown = hostMarkdown(content)
+    const runtime = installMaidMarkdownWidth({} as never)
+    await mutations()
+    expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
+    runtime.dispose()
+  })
+
+  it('marks rich markdown when a complete assistant step is inserted', async () => {
+    const runtime = installMaidMarkdownWidth({} as never)
+    const markdown = hostMarkdown('<p>chart</p><div style="container-type: inline-size"><canvas></canvas></div>')
+    await mutations()
+    expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
+    runtime.dispose()
+  })
+
+  it('marks existing size-contained content and restores overlapping activation cleanly', async () => {
+    const markdown = hostMarkdown('<p>chart</p><div style="container-type: inline-size"><canvas></canvas></div>')
     const first = installMaidMarkdownWidth({} as never)
     const second = installMaidMarkdownWidth({} as never)
+    await mutations()
     expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
 
     first.dispose()
@@ -71,17 +99,19 @@ describe('installMaidMarkdownWidth', () => {
     expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
   })
 
-  it('does not treat task-list checkboxes as embedded forms', () => {
+  it('does not treat task-list checkboxes as embedded forms', async () => {
     const markdown = hostMarkdown('<ul><li><input type="checkbox" checked> done</li></ul>')
     const runtime = installMaidMarkdownWidth({} as never)
+    await mutations()
     expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(false)
     runtime.dispose()
   })
 
-  it('restores a pre-existing attribute value on dispose', () => {
-    const markdown = hostMarkdown('<div><canvas></canvas></div>')
+  it('restores a pre-existing attribute value on dispose', async () => {
+    const markdown = hostMarkdown('<div style="container-type: inline-size"><canvas></canvas></div>')
     markdown.setAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE, 'host')
     const runtime = installMaidMarkdownWidth({} as never)
+    await mutations()
     expect(markdown.getAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe('')
     runtime.dispose()
     expect(markdown.getAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe('host')
