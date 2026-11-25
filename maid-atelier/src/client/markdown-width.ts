@@ -197,8 +197,9 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
           const width = entry.contentRect.width
           const previous = observedWidths.get(root)
           observedWidths.set(root, width)
-          // The first entry only records a baseline; streaming height growth is ignored.
-          if (previous !== undefined && previous !== width && !wideRoots.has(root)) queueScan(root)
+          // The first entry also rescans: styles can land between the queued
+          // scan and the first observation. Height-only growth is ignored.
+          if (previous !== width && !wideRoots.has(root)) queueScan(root)
         }
       })
     }
