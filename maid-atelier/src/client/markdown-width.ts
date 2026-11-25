@@ -39,6 +39,10 @@ function hasWideElement(root: Element, includeRoot: boolean): boolean {
   return false
 }
 
+function intersectsAssistantStep(node: Element): boolean {
+  return node.closest(ASSISTANT_STEP_SELECTOR) !== null || node.querySelector(ASSISTANT_STEP_SELECTOR) !== null
+}
+
 function markdownRootsWithin(node: Element): HTMLElement[] {
   const roots: HTMLElement[] = []
   if (node.matches(MARKDOWN_SELECTOR)) roots.push(node as HTMLElement)
@@ -93,14 +97,15 @@ export function installMaidMarkdownWidth(_ctx: Context): MarkdownWidthRuntime {
       for (const record of records) {
         if (record.type !== 'childList') continue
         const target = record.target instanceof Element ? record.target : undefined
-        // Composer/input churn never intersects assistant Markdown; reject it
-        // before walking or querying the added subtree.
-        if (target === undefined || target.closest(ASSISTANT_STEP_SELECTOR) === null) continue
+        // Composer/input churn never intersects assistant Markdown. Complete
+        // assistant steps are inserted into a surrounding list, so relevance
+        // must consider the added/removed subtree as well as the target.
+        const targetInStep = target !== undefined && target.closest(ASSISTANT_STEP_SELECTOR) !== null
         for (const node of record.addedNodes) {
-          if (node instanceof Element) scanAddedNode(node)
+          if (node instanceof Element && (targetInStep || intersectsAssistantStep(node))) scanAddedNode(node)
         }
         for (const node of record.removedNodes) {
-          if (node instanceof Element) scanRemovedNode(node, target, rescan)
+          if (node instanceof Element && (targetInStep || intersectsAssistantStep(node))) scanRemovedNode(node, target, rescan)
         }
       }
       for (const root of [...wideRoots]) {

@@ -2383,6 +2383,9 @@ window.__ModuleLoader__.load({
 			for (const element of root.querySelectorAll("*")) if (!isCompactElement(element)) return true;
 			return false;
 		}
+		function intersectsAssistantStep(node) {
+			return node.closest(ASSISTANT_STEP_SELECTOR) !== null || node.querySelector(ASSISTANT_STEP_SELECTOR) !== null;
+		}
 		function markdownRootsWithin(node) {
 			const roots = [];
 			if (node.matches(MARKDOWN_SELECTOR)) roots.push(node);
@@ -2427,9 +2430,9 @@ window.__ModuleLoader__.load({
 					for (const record of records) {
 						if (record.type !== "childList") continue;
 						const target = record.target instanceof Element ? record.target : void 0;
-						if (target === void 0 || target.closest(ASSISTANT_STEP_SELECTOR) === null) continue;
-						for (const node of record.addedNodes) if (node instanceof Element) scanAddedNode(node);
-						for (const node of record.removedNodes) if (node instanceof Element) scanRemovedNode(node, target, rescan);
+						const targetInStep = target !== void 0 && target.closest(ASSISTANT_STEP_SELECTOR) !== null;
+						for (const node of record.addedNodes) if (node instanceof Element && (targetInStep || intersectsAssistantStep(node))) scanAddedNode(node);
+						for (const node of record.removedNodes) if (node instanceof Element && (targetInStep || intersectsAssistantStep(node))) scanRemovedNode(node, target, rescan);
 					}
 					for (const root of [...wideRoots]) if (!root.isConnected || !root.matches(MARKDOWN_SELECTOR)) write(root, false);
 					rescan.forEach(scan);

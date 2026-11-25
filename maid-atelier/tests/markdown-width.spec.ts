@@ -51,6 +51,14 @@ describe('installMaidMarkdownWidth', () => {
     runtime.dispose()
   })
 
+  it('marks rich markdown when a complete assistant step is inserted', async () => {
+    const runtime = installMaidMarkdownWidth({} as never)
+    const markdown = hostMarkdown('<p>chart</p><div><canvas></canvas></div>')
+    await mutations()
+    expect(markdown.hasAttribute(MAID_MARKDOWN_FULL_WIDTH_ATTRIBUTE)).toBe(true)
+    runtime.dispose()
+  })
+
   it('marks existing width-bearing content and restores overlapping activation cleanly', async () => {
     const markdown = hostMarkdown('<p>form</p><div><input type="text" aria-label="name"></div>')
     const first = installMaidMarkdownWidth({} as never)
