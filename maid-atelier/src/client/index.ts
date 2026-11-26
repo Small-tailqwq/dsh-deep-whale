@@ -51,6 +51,7 @@ import { installMaidCustomization } from './customization.ts'
 import { installMaidBootError } from './boot-error.ts'
 import { MAID_BOOT_ERROR_LEFT, MAID_BOOT_ERROR_RIGHT } from './boot-error-art.generated.ts'
 import { installMaidTableCards } from './table-card.ts'
+import { installMaidMarkdownWidth } from './markdown-width.ts'
 import { installMaidPageIcons } from './page-icons.ts'
 import { installMaidRelationalMarkers } from './relational-markers.ts'
 import { installMaidCharacterFit } from './character-fit.ts'
@@ -590,6 +591,7 @@ export function apply(ctx: PanelContext): void {
   let syncTitlebarHeight: (() => void) | undefined
   let titlebarSyncFrame: number | undefined
   let disposeMaidTableCards = (): void => {}
+  let disposeMaidMarkdownWidth = (): void => {}
 
   ctx.effect(() => () => {
     delete body.dataset.dshMaidAtelier
@@ -603,6 +605,7 @@ export function apply(ctx: PanelContext): void {
     disposeMaidComposerCapsule()
     disposeMaidComposerScroll()
     disposeMaidTableCards()
+    disposeMaidMarkdownWidth()
     if (composerMotionTimer !== undefined) clearTimeout(composerMotionTimer)
     if (viewportResizeTimer !== undefined) clearTimeout(viewportResizeTimer)
     if (handleViewportResize !== undefined) window.removeEventListener('resize', handleViewportResize)
@@ -678,6 +681,7 @@ export function apply(ctx: PanelContext): void {
   ctx.effect(() => installMaidMobileDrawerAutoClose(body), 'ui-skin-maid-atelier: mobile drawer auto-close')
   ctx.effect(() => installMaidMobileViewport(body), 'ui-skin-maid-atelier: phone viewport')
   disposeMaidTableCards = installMaidTableCards(ctx).dispose
+  disposeMaidMarkdownWidth = installMaidMarkdownWidth(ctx).dispose
   body.style.setProperty('--maid-top-trim-art', `url(${MAID_ATELIER_TOP_TRIM_TILE})`)
   body.style.setProperty('--maid-boot-error-left-art', `url(${MAID_BOOT_ERROR_LEFT})`)
   body.style.setProperty('--maid-boot-error-right-art', `url(${MAID_BOOT_ERROR_RIGHT})`)
