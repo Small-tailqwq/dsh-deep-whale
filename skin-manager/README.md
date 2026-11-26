@@ -1,5 +1,7 @@
 # DSH Skin Manager
 
+当前适配官方 `dsh-v0.2.3-alpha.2`（`4b399c39a6d1479cd84ca591b4d7c88e24d38a96`），管理请求使用 WebServer 的路由认证和 owner 身份参数；更早的宿主没有这套路由接口。
+
 `skin-manager` 是常驻的通用皮肤管理模块。它在 DSH 设置页注册“皮肤管理”一级页面，并提供：
 
 - 从当前 Web profile 的依赖中发现所有带有效 `skin.json` 的皮肤；

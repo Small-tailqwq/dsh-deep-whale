@@ -191,15 +191,15 @@ body[data-dsh-maid-atelier] [id='root'] {
   background: transparent;
 }
 
-/* shell.overlay 浮层面板永远高于皮肤装饰层:视觉与点击都不被顶帘/装饰遮挡。
-   overlayLayer 自带 z-index 20,这里抬到 1000 是为彻底避开任何皮肤层
-   (装饰 chrome 0 / 应用 chrome 21 / 角色 -1..1) 与第三方插件对 #root 的
-   层叠上下文抬升,保证挂载在 shell.overlay 槽的浮动面板(如文件浏览器)
-   在视觉与点击层级上始终位于皮肤之上。 */
+/* The host overlay layer (z 20) shares the root stacking context with the
+   decorated header (21), the leading seat (22) and fullscreen dock panels (40),
+   so lift it above those. The phone drawer and its mask (70 / 71) stay above it,
+   as the host orders them: overlay entries such as a full-frame mask must not
+   cover the open drawer. Menus, modals and toasts portal to the body above. */
 body[data-dsh-maid-atelier] [data-shell-overlay] {
   /* Overlay surfaces need an opaque base even when the conversation is transparent. */
   --dsw-alias-bg-base: #e7edf8;
-  z-index: 1000;
+  z-index: 50;
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] [data-shell-overlay] {
@@ -625,8 +625,10 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
    header a containing block for every fixed descendant (host tooltips and the
    in-place menu/dialog overlays mounted in the session header) for the rest of
    the session. `backwards` contributes only the pre-delay frame; once the
-   animation ends the header computes to no transform. */
-body[data-dsh-maid-atelier] header:has([role='tablist']) {
+   animation ends the header computes to no transform. The conversation's own
+   tab strip names the header; other pages (the Forge review detail) also put
+   a tablist in a header and keep their native divider. */
+body[data-dsh-maid-atelier] header:has([data-conversation-tabs]) {
   position: relative;
   z-index: 21;
   border-bottom: 0;
@@ -658,7 +660,7 @@ body[data-dsh-maid-atelier] header:has([role='tablist']) {
     transition: none;
   }
 
-  body[data-dsh-maid-atelier] header:has([role='tablist']) {
+  body[data-dsh-maid-atelier] header:has([data-conversation-tabs]) {
     animation: none;
   }
 
@@ -1964,27 +1966,48 @@ body[data-dsh-maid-atelier][data-maid-panel-page]
   pointer-events: none;
 }
 
-/* The column sheet provides the page backdrop. Sticky rows and cards consume
-   these opaque tokens independently so their content never blends with rows below. */
+/* The column sheet provides the page backdrop. Sticky rows paint the base
+   token over scrolling content, and controls use it as inverse ink, so it is
+   opaque here. Cards, fields and chips keep the translucent layers and read on
+   the sheet; opaque layers turn every primitive into a pale block. */
 body[data-dsh-maid-atelier][data-maid-panel-page]
   [data-slot='main']
   > * {
   position: relative;
   z-index: 2;
   --dsw-alias-bg-base: #f8faff;
-  --dsw-alias-bg-layer-1: #f8faff;
-  --dsw-alias-bg-layer-2: #ebf0fa;
-  --dsw-alias-bg-layer-3: #e0e7f6;
-  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
   [data-slot='main']
   > * {
   --dsw-alias-bg-base: #0d193b;
-  --dsw-alias-bg-layer-1: #121f43;
-  --dsw-alias-bg-layer-2: #182850;
-  --dsw-alias-bg-layer-3: #20315b;
+}
+
+/* dshmarket's plugins-tab rows paint the base token even while in flow, which
+   reads as a pale block on the sheet. The market marks a row once it sticks
+   (`data-dshm-stuck`, its theming hook) and reads `--dshm-stuck-bg` for that
+   state: the rows stay clear in flow, and once pinned they continue the
+   compact plugin bar's fill. They are inset from the bar, so the fill bleeds
+   to the scroller's edges; otherwise the sheet shows in the gutters and the
+   rows read as a pale block again. The fullscreen head has no stuck state and
+   keeps the opaque base. */
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-sticky-bg: transparent;
+  --dshm-stuck-bg: #f9fbff;
+}
+
+body[data-dsh-maid-atelier][data-ds-dark-theme][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-stuck-bg: #0a122a;
+}
+
+body[data-dsh-maid-atelier][data-maid-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true'])
+  [data-dshm-stuck='true'] {
+  box-shadow: 0 0 0 100vmax var(--dshm-stuck-bg);
+  clip-path: inset(0 -100vmax);
 }
 
 /* Convert the host's header collapse into unitless progress: the page sheet
@@ -2178,7 +2201,7 @@ body[data-dsh-maid-atelier] [class*='sidebarCol'] :is([class*='searchButton'], [
   color: #d8bc80;
 }
 
-body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='sectionHeader'] {
+body[data-dsh-maid-atelier][data-maid-sidebar-size='rail'] [class*='sidebarCol'] [class*='sectionHeader'] {
   justify-content: center;
 }
 
@@ -3128,14 +3151,21 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] button[class*='seat']:hover {
 body[data-dsh-maid-atelier] [data-phase='active'] [data-composer-seat] {
   --dsw-alias-bg-base: transparent;
   background: none;
-  /* 滚动意图显隐（设置「输入框显示方式」＝滚动显隐）：座内状态切换时整卡平滑淡出/淡入。 */
+}
+
+/* 滚动意图显隐（设置「输入框显示方式」＝滚动显隐）：座内状态切换时整卡平滑淡出/淡入。
+   Embedded conversations (sidebar chat, code review) have no data-phase root;
+   when the side-conversation setting lets them join, the same fade applies. */
+body[data-dsh-maid-atelier]
+  :is([data-phase='active'], [data-content-phase='active'])
+  [data-composer-seat] {
   transition:
     opacity 260ms cubic-bezier(0.22, 0.78, 0.2, 1),
     transform 260ms cubic-bezier(0.22, 0.78, 0.2, 1);
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-hidden] {
   opacity: 0;
   transform: translateY(26px);
@@ -3858,13 +3888,13 @@ body[data-dsh-maid-atelier]
 
 body[data-dsh-maid-atelier]
   :is([data-maid-mode-trigger] > [class*='triggerIcon'], [role='menuitem'] > [class*='itemIcon'])
-  > svg:has(> path[d^='M6.4209 1.68067C7.43922']) {
+  > svg:has(> path[d^='M14 6.68994V4L9.40444']) {
   color: var(--maid-permission-write);
 }
 
 body[data-dsh-maid-atelier]
   :is([data-maid-mode-trigger] > [class*='triggerIcon'], [role='menuitem'] > [class*='itemIcon'])
-  > svg:has(> path[d^='M8 4.39209V9.89209']) {
+  > svg:has(> path[d^='M8 4.5V10']) {
   color: var(--maid-permission-full);
 }
 
@@ -4711,6 +4741,17 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
   }
 }
 
+/* Tool cards can use the sidebar fill as a reading surface. Inside the
+   transcript it must follow the content palette, not the navy sidebar. */
+body[data-dsh-maid-atelier] [data-chat-flow] {
+  --dsw-specific-sidebar-fill: var(--dsw-alias-bg-layer-1);
+}
+
+/* Timeline receipts paint their own card below the disclosure header. */
+body[data-dsh-maid-atelier] :global(.timeline-task-card) {
+  backdrop-filter: blur(12px) saturate(0.92);
+}
+
 /* Collapsed reasoning, tool, context, and workflow rows sit directly over detailed
    background art. A low-contrast porcelain wash stabilizes legibility without
    turning the compact disclosure list into a stack of message cards. */
@@ -4718,11 +4759,15 @@ body[data-dsh-maid-atelier][data-ds-dark-theme] [data-maid-table-close]::after {
    0.2.0-rc.2 its title inherits the row's tertiary ink, so it joins the
    same darker label pair as the other tool rows over the artwork. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header],
+body[data-dsh-maid-atelier]:not([data-ds-dark-theme])
   :is([data-variant], [data-chat-flow-kind='context'], [data-tool='present']) {
   --dsw-alias-label-secondary: #2f4778;
   --dsw-alias-label-tertiary: #405273;
 }
 
+body[data-dsh-maid-atelier][data-ds-dark-theme]
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header],
 body[data-dsh-maid-atelier][data-ds-dark-theme]
   :is([data-variant], [data-chat-flow-kind='context'], [data-tool='present']) {
   --dsw-alias-label-secondary: #d3ddf2;
@@ -4869,10 +4914,11 @@ body[data-dsh-maid-atelier]
   backdrop-filter: blur(8px) saturate(0.92);
 }
 
-/* Shell views with a DisclosureRow already receive its reading surface above.
-   Only standalone shell rows need a surface on the tool root; painting both
-   root and child doubles the tint and blur. */
+/* Direct toolviews share the native disclosure header without a data-variant
+   wrapper. Keep their reading strip on the row so accessories and portaled
+   actions retain their own positioning. Standalone shell rows have no row. */
 body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header] > [data-disclosure-row],
   [data-variant='bash']:not(:has([data-disclosure-row])),
   [data-chat-flow-kind='system-prompt'] [data-disclosure-row],
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row],
@@ -4893,6 +4939,7 @@ body[data-dsh-maid-atelier]:not([data-ds-dark-theme]) :is(
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme] :is(
+  [data-slot='tool.call.toolview'] > * > [data-disclosure-header] > [data-disclosure-row],
   [data-variant='bash']:not(:has([data-disclosure-row])),
   [data-chat-flow-kind='system-prompt'] [data-disclosure-row],
   [data-tool='present'] > :not([data-open='true']) > [data-disclosure-row],
@@ -5192,7 +5239,8 @@ body[data-dsh-maid-atelier]
     [data-variant='think'] > [data-open='true'] > :is([data-disclosure-row], [data-disclosure-header]) + *,
     [data-variant]:not([data-variant='think']) > [data-open='true'],
     [data-chat-flow-kind='context'] > [data-slot='conversation.chat.node'] > [data-open='true'],
-    [data-workflow-run] > [data-open='true']
+    [data-workflow-run] > [data-open='true'],
+    :global(.timeline-task-card)
   ) {
   background: transparent;
   box-shadow: none;
@@ -6182,7 +6230,7 @@ body[data-dsh-maid-atelier] [class*='titlebar'] [class*='button']:hover {
    委托聚焦 Lexical editor）或输入后恢复。状态由 composer-capsule.ts 维护，避免
    body 级 :has() 在输入时反复重算。 */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card] {
   max-width: 320px;
@@ -6203,7 +6251,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier][data-ds-dark-theme]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card] {
   box-shadow:
@@ -6212,7 +6260,7 @@ body[data-dsh-maid-atelier][data-ds-dark-theme]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   :is([data-input-scroll], [data-composer-card] > [class*='row']) {
   display: none !important;
@@ -6220,7 +6268,7 @@ body[data-dsh-maid-atelier]
 
 /* 统计行（stats / Session log）随卡片一起收起 */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-slot='conversation.composer.dock'] {
   display: none;
@@ -6229,7 +6277,7 @@ body[data-dsh-maid-atelier]
 /* The full-size nine-slice frame extends beyond the card. Stop generating it
    in capsule state so its clipped lace cannot remain inside the pill. */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]::before {
   content: none;
@@ -6239,7 +6287,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]
   > [data-skin-chrome='composer-lace'] {
@@ -6247,7 +6295,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]::after {
   content: '✎ 给智能体发消息';
@@ -6269,7 +6317,7 @@ body[data-dsh-maid-atelier]
 }
 
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]:hover {
   border-color: rgba(225, 191, 124, 0.85);
@@ -6282,7 +6330,7 @@ body[data-dsh-maid-atelier]
 /* An open popup is anchored to a trigger inside the card; lifting the card
    would drag the menu with it each time the pointer crosses the card edge. */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-capsule]
   [data-composer-card]:hover:has([aria-haspopup][aria-expanded='true']) {
   transform: none;
@@ -6291,7 +6339,7 @@ body[data-dsh-maid-atelier]
 /* 展开衔接动画：布局宽度/高度瞬时恢复，仅 transform/opacity 走合成器，
    避免折叠/展开反复触发长对话的整块重排（性能优化，替代 420ms 布局过渡）。 */
 body[data-dsh-maid-atelier]
-  [data-phase='active']
+  :is([data-phase='active'], [data-content-phase='active'])
   [data-composer-seat][data-maid-composer-expanding]
   [data-composer-card] {
   animation: maidAtelierCapsuleOut 260ms cubic-bezier(0.22, 0.78, 0.2, 1) both;

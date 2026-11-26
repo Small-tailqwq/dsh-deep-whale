@@ -12,6 +12,7 @@ const composerPath = 'packages/client/ui-conversation/src/client/skeleton/InputB
 const dockPath = 'packages/client/ui-dockkit/src/components/TabPanel.tsx'
 const browserPath = 'packages/client/ui-sidebar-browser/src/client/view/BrowserBody.tsx'
 const stateDotPath = 'packages/client/ui-primitives/src/StateDot.tsx'
+const artworkPath = 'packages/client/ui-primitives/src/icons/artwork.ts'
 
 /** Read immutable Git objects; the host checkout and its dependencies are unused. */
 export function renderHostIcons(source, ref) {
@@ -183,12 +184,17 @@ export function renderHostIcons(source, ref) {
     const file = parse(path)
     const drawing = inlineSvg(file, owner)
     if (drawing === null) continue
-    const { Glyph } = evaluate(path, `export const Glyph = ({ strokeWidth = 1 }) => (${drawing})`)
+    // Inline controls may size their stroke from the product icon set's shared constants.
+    const strokes = `import { ICON_REGULAR_STROKE, ICON_MEDIUM_STROKE } from '${posix.relative(posix.dirname(path), artworkPath)}';
+`
+    const { Glyph } = evaluate(path, `${strokes}export const Glyph = ({ strokeWidth = 1 }) => (${drawing})`)
     render(component, Glyph, {}, `${path}#${owner}:svg1`)
   }
 
   const shortcutPath = 'packages/client/ui-shortcuts/src/client/Icons.tsx'
-  const shortcuts = evaluate(shortcutPath, `${declarations(parse(shortcutPath), ['artwork', 'ShortcutIcon'])}\nexport { ShortcutIcon }`)
+  // Since 0.2.3 the error and success kinds render product symbols from ui-primitives.
+  const shortcutSymbols = `import { IconCheckCircleOutlineRegular, IconWarningOutlineRegular } from '${posix.relative(posix.dirname(shortcutPath), primitivePath)}';\n`
+  const shortcuts = evaluate(shortcutPath, `${shortcutSymbols}${declarations(parse(shortcutPath), ['artwork', 'ShortcutIcon'])}\nexport { ShortcutIcon }`)
   for (const kind of ['edit', 'error', 'success']) render(`Shortcut${kind}`, shortcuts.ShortcutIcon, { kind }, `${shortcutPath}#ShortcutIcon:svg1`)
 
   const forgePath = 'packages/experimental/client-ui-forge/src/client/glyphs.tsx'

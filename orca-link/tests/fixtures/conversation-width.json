@@ -40,6 +40,19 @@
         "packages/client/ui-renderer/src/client/scoped-slots.tsx": "99d59ad9c7a4e9131f90f76abe5387f785c68ce7"
       },
       "html": "<div data-phase=\"active\"><div data-conversation-content><div data-slot=\"conversation.hero.frame\" style=\"display: contents\"><div data-conversation-scroll></div></div><div data-width-handle=\"left\" data-side=\"left\"></div><div data-width-handle=\"right\" data-side=\"right\"></div></div></div>"
+    },
+    {
+      "label": "published 0.2.3-alpha.2",
+      "hostCommit": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+      "sources": {
+        "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx": "ef0f2ad5838f93de29077ad07eb9140e1270742c",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx": "d0cde177fd9cb8071c7f365adc6074e0c5988feb",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationWidthControls.tsx": "577b31830c5950cd65ebe46aa7bf3298a0e6ebf2",
+        "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css": "6fba9152d426db7c0e8b9af9a252fa3a42053a35",
+        "packages/client/ui-conversation/src/client/apply.ts": "76ac04040b6291e8b2e4eca3ed15db664e4e95d4",
+        "packages/client/ui-renderer/src/client/scoped-slots.tsx": "99d59ad9c7a4e9131f90f76abe5387f785c68ce7"
+      },
+      "html": "<div data-phase=\"active\"><div data-conversation-content><div data-slot=\"conversation.hero.frame\" style=\"display: contents\"><div data-conversation-scroll></div></div><div data-width-handle=\"left\" data-side=\"left\"></div><div data-width-handle=\"right\" data-side=\"right\"></div></div></div>"
     }
   ]
 }

@@ -552,23 +552,44 @@ body[data-dsh-orca-link][data-orca-panel-page]
   pointer-events: none;
 }
 
-/* The column sheet provides the page backdrop. Sticky rows and cards consume
-   these opaque tokens independently so their content never blends with rows below. */
+/* The column sheet provides the page backdrop. Sticky rows paint the base
+   token over scrolling content, so it is opaque here. Cards, fields and chips
+   keep the translucent layers and read on the sheet; opaque layers turn every
+   primitive into a pale block. */
 body[data-dsh-orca-link][data-orca-panel-page] [data-slot='main'] > * {
   position: relative;
   z-index: 2;
   --dsw-alias-bg-base: #fdfaf4;
-  --dsw-alias-bg-layer-1: #fffcf6;
-  --dsw-alias-bg-layer-2: #f7f4ee;
-  --dsw-alias-bg-layer-3: #f0ece5;
-  --dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);
 }
 
 body[data-dsh-orca-link][data-ds-dark-theme][data-orca-panel-page] [data-slot='main'] > * {
   --dsw-alias-bg-base: #0c111a;
-  --dsw-alias-bg-layer-1: #0e141e;
-  --dsw-alias-bg-layer-2: #131b28;
-  --dsw-alias-bg-layer-3: #1a2332;
+}
+
+/* dshmarket's plugins-tab rows paint the base token even while in flow, which
+   reads as a pale block on the sheet. The market marks a row once it sticks
+   (`data-dshm-stuck`, its theming hook) and reads `--dshm-stuck-bg` for that
+   state: the rows stay clear in flow, and once pinned they continue the
+   compact plugin bar's fill. They are inset from the bar, so the fill bleeds
+   to the scroller's edges; otherwise the sheet shows in the gutters and the
+   rows read as a pale block again. The fullscreen head has no stuck state and
+   keeps the opaque base. */
+body[data-dsh-orca-link][data-orca-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-sticky-bg: transparent;
+  --dshm-stuck-bg: #fbf7ef;
+}
+
+body[data-dsh-orca-link][data-ds-dark-theme][data-orca-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true']) {
+  --dshm-stuck-bg: #0e141e;
+}
+
+body[data-dsh-orca-link][data-orca-panel-page]
+  [data-dsh-market-plugins-tab='true']:not([data-dsh-market-fullscreen='true'])
+  [data-dshm-stuck='true'] {
+  box-shadow: 0 0 0 100vmax var(--dshm-stuck-bg);
+  clip-path: inset(0 -100vmax);
 }
 
 /* Host primitives spend `disabled` as a 40% opacity budget, priced against the
@@ -4003,3 +4024,32 @@ body[data-dsh-orca-link][data-ds-dark-theme] :is([data-slot='sidebar.settings'],
   color: var(--orca-muted);
 }
 
+
+/* Timeline (official optional plugin) progress: square, hairline-ruled, and
+   read as the skin's pixel cells. The grille paints over every part in the
+   track colour; host colours, widths and hover outlines stay native. */
+body[data-dsh-orca-link] :global(.timeline-progress) {
+  position: relative;
+  border: 1px solid var(--orca-line);
+  border-radius: 0;
+}
+
+body[data-dsh-orca-link] :global(.timeline-progress)::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: '';
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 3px, var(--dsw-alias-bg-layer-1) 3px 4px);
+}
+
+/* The active sweep becomes a hard-edged block that hops instead of a soft
+   glow; the host's reduced-motion rule still removes it. */
+body[data-dsh-orca-link] :global(:is(.timeline-overview, .timeline-dock))
+  :global(:is(.timeline-progress:not([data-segmented])[data-status='active'] > span, .timeline-progress > [data-flow='true']))::after {
+  background: linear-gradient(90deg,
+    transparent 42%,
+    color-mix(in srgb, var(--dsw-alias-bg-base) 45%, transparent) 42% 58%,
+    transparent 58%);
+  animation-timing-function: steps(12, end);
+}

@@ -138,6 +138,25 @@ afterEach(async () => {
 })
 
 describe('Maid Atelier skin apply', () => {
+  it('gives direct toolviews the tool-row ink and strip, and keeps transcript cards on the content palette', () => {
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.innerHTML = `
+      <div data-chat-flow>
+        <div data-slot="tool.call.toolview"><div>
+          <div data-disclosure-header><div data-disclosure-row class="fixture_row"></div></div>
+        </div></div>
+      </div>
+    `
+    const flow = document.querySelector<HTMLElement>('[data-chat-flow]')!
+    const header = document.querySelector<HTMLElement>('[data-disclosure-header]')!
+    const row = document.querySelector<HTMLElement>('.fixture_row')!
+    expect(declarations(flow, false)).toContain('--dsw-specific-sidebar-fill: var(--dsw-alias-bg-layer-1);')
+    expect(declarations(header, false)).toContain('--dsw-alias-label-tertiary: #405273;')
+    expect(declarations(header, true)).toContain('--dsw-alias-label-tertiary: #b8c5e1;')
+    expect(declarations(row, false)).toContain('backdrop-filter: blur(8px) saturate(0.92);')
+    expect(declarations(row, true)).toContain('backdrop-filter: blur(8px) saturate(0.92);')
+  })
+
   it('styles the resident alpha1 header and its session fragment without styling nested panel headers', () => {
     document.body.setAttribute('data-dsh-maid-atelier', '')
     document.body.innerHTML = `
@@ -410,7 +429,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('projects relational page state onto skin-owned attributes', async () => {
     document.body.innerHTML = `
-      <header><div role="tablist"></div></header>
+      <header><div role="tablist" data-conversation-tabs></div></header>
       <main data-phase="active"><div data-chat-flow></div></main>
       <div data-cordis-panel></div>
       <div data-slot="sidebar.settings"><div role="dialog" aria-modal="true"></div></div>
@@ -432,6 +451,14 @@ describe('Maid Atelier skin apply', () => {
     expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
     expect(document.body.hasAttribute('data-maid-cordis-panel-open')).toBe(false)
     expect(document.body.hasAttribute('data-maid-settings-open')).toBe(false)
+
+    // A page header with its own tablist (the Forge review detail) is not the
+    // conversation workspace.
+    const review = document.createElement('header')
+    review.innerHTML = '<div role="tablist"></div>'
+    document.body.append(review)
+    await flushMutations()
+    expect(document.body.hasAttribute('data-maid-workspace')).toBe(false)
 
     await fiber.dispose()
   })
@@ -1135,6 +1162,77 @@ describe('Maid Atelier skin apply', () => {
     }
   })
 
+  it('gives every composer card its own lace rail, embedded conversations included', async () => {
+    // The main conversation mounts its card under the phase root; the Forge
+    // review pane (0.2.3-alpha.2) mounts an embedded conversation without one.
+    document.body.innerHTML = `
+      <div data-phase="active"><div data-composer-card class="fixture_main"></div></div>
+      <div data-slot="forge.review.conversation"><div data-composer-card class="fixture_embedded"></div></div>
+    `
+    fiber = await mount()
+    const rails = () => document.querySelectorAll("[data-composer-card] > [data-skin-chrome='composer-lace']")
+    expect(rails()).toHaveLength(2)
+
+    // A card mounted later without a phase root still gets its rail.
+    const late = document.createElement('div')
+    late.innerHTML = '<div data-composer-card class="fixture_late"></div>'
+    document.body.append(late)
+    await flushMutations()
+    expect(document.querySelector(".fixture_late > [data-skin-chrome='composer-lace']")).not.toBeNull()
+
+    // A card that leaves takes its rail with it, and a dropped rail is restored.
+    document.querySelector('.fixture_embedded')!.parentElement!.remove()
+    document.querySelector(".fixture_main > [data-skin-chrome='composer-lace']")!.remove()
+    document.querySelector('.fixture_main')!.append(document.createElement('span'))
+    await flushMutations()
+    expect(rails()).toHaveLength(2)
+    expect(document.querySelector(".fixture_main > [data-skin-chrome='composer-lace']")).not.toBeNull()
+
+    await fiber.dispose()
+    fiber = undefined
+    expect(document.querySelector("[data-skin-chrome='composer-lace']")).toBeNull()
+  })
+
+  it('keeps sidebar and workspace-header rules off other pages that reuse their shapes', () => {
+    // 0.2.3-alpha.2 added section headers outside the sidebar (session panel
+    // jobs, Forge review list) and a tablist inside the Forge review header.
+    document.body.setAttribute('data-dsh-maid-atelier', '')
+    document.body.setAttribute('data-maid-sidebar-size', 'rail')
+    document.body.innerHTML = `
+      <div class="fixture_sidebarCol"><div class="fixture_sectionHeader" id="sidebar-section"></div></div>
+      <div class="fixture_page"><button class="fixture_sectionHeader" id="page-section"></button></div>
+      <header id="conversation-header"><div role="tablist" data-conversation-tabs></div></header>
+      <header id="review-header"><div role="tablist"></div></header>
+    `
+    const byId = (id: string) => document.getElementById(id)!
+    expect(declarations(byId('sidebar-section'), false)).toContain('justify-content: center;')
+    expect(declarations(byId('page-section'), false)).not.toContain('justify-content: center;')
+    expect(declarations(byId('conversation-header'), false)).toContain('border-bottom: 0;')
+    expect(declarations(byId('review-header'), false)).not.toContain('border-bottom: 0;')
+    expect(declarations(byId('review-header'), false)).not.toContain('maidAtelierWorkspaceHeaderEnter')
+  })
+
+  it('keys the permission glyph colours on the 0.2.3 PermissionIcon drawings', () => {
+    // 0.2.3-alpha.2 redrew the workspace-write and full-access shields; the
+    // read-only check stroke kept its opening.
+    expect(CSS).toMatch(/path\[d\^='M5\.08545 8\.13775L7\.18455'\]\) \{\s*color: var\(--maid-permission-read\);/)
+    expect(CSS).toMatch(/path\[d\^='M14 6\.68994V4L9\.40444'\]\) \{\s*color: var\(--maid-permission-write\);/)
+    expect(CSS).toMatch(/path\[d\^='M8 4\.5V10'\]\) \{\s*color: var\(--maid-permission-full\);/)
+  })
+
+  it('lets seat visibility states apply in embedded conversations too', () => {
+    // The composer modules decide which seats carry these attributes (embedded
+    // seats only with the setting on), so the stylesheet accepts either phase marker.
+    const css = CSS.replace(/\r\n/g, '\n')
+    for (const state of ['hidden', 'capsule', 'expanding']) {
+      const seat = `[data-composer-seat][data-maid-composer-${state}]`
+      expect(css).not.toContain(`  [data-phase='active']\n  ${seat}`)
+      expect(css).toContain(`:is([data-phase='active'], [data-content-phase='active'])\n  ${seat}`)
+    }
+    // The fade between those states belongs to every seat that can carry them.
+    expect(css).toMatch(/:is\(\[data-phase='active'\], \[data-content-phase='active'\]\)\n  \[data-composer-seat\] \{\s*transition:\s*opacity 260ms/)
+  })
+
   it('installs and restores the raster control plates', async () => {
     document.body.innerHTML = '<div data-composer-card></div>'
     document.body.style.setProperty('--maid-new-session-art', 'legacy')
@@ -1365,7 +1463,7 @@ describe('Maid Atelier skin apply', () => {
     expect(collapsedFootRule).toContain('width: 38px')
     expect(collapsedFootRule).toContain('margin: 0')
     expect(collapsedFootRule).toContain('border-radius: 50%')
-    expect(CSS).toMatch(/\[data-maid-sidebar-size='rail'\] \[class\*='sectionHeader'\]\s*\{[^}]*justify-content: center/)
+    expect(CSS).toMatch(/\[data-maid-sidebar-size='rail'\] \[class\*='sidebarCol'\] \[class\*='sectionHeader'\]\s*\{[^}]*justify-content: center/)
     expect(CSS).toMatch(/\[class\*='search'\]:has\(> \[class\*='searchButton'\]\)\s*\{[^}]*justify-content: center/)
     expect(CSS).toMatch(/\[class\*='regionArea'\]\)\s*\{[^}]*overflow: visible/)
   })
@@ -2880,7 +2978,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('keeps the animated workspace trim above its tablist without reserving lace space', () => {
     const workspaceHeaderRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\] header:has\(\[data-conversation-tabs\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     expect(workspaceHeaderRule).toContain('position: relative')
     expect(workspaceHeaderRule).toContain('z-index: 21')
@@ -2907,7 +3005,7 @@ describe('Maid Atelier skin apply', () => {
 
   it('softens workspace entry and disables decorative motion when requested', () => {
     const workspaceHeaderRule = CSS.match(
-      /body\[data-dsh-maid-atelier\] header:has\(\[role='tablist'\]\)\s*\{([^}]*)\}/s,
+      /body\[data-dsh-maid-atelier\] header:has\(\[data-conversation-tabs\]\)\s*\{([^}]*)\}/s,
     )?.[1] ?? ''
     const reducedMotionRule = Array.from(
       CSS.matchAll(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/g),
@@ -3054,6 +3152,8 @@ describe('Maid Atelier skin apply', () => {
             <header class="fixture_pageHead"></header>
             <section class="fixture_group"></section>
             <div class="fixture_detail" data-plugin-detail="pkg"></div>
+            <div class="fixture_market" data-dsh-market-plugins-tab="true"><div class="fixture_pinned" data-dshm-stuck="true"></div></div>
+            <div class="fixture_marketFull" data-dsh-market-plugins-tab="true" data-dsh-market-fullscreen="true"></div>
           </section>
         </div>
       </div>
@@ -3063,16 +3163,30 @@ describe('Maid Atelier skin apply', () => {
     const pageLight = declarations(panel, false)
     expect(pageLight).toContain('position: relative;')
     // Above the character stage (z 0), the sheet (z 1) and the top curtain
-    // (z 1), below the skin's interactive tiers (21 / 40 / 1000).
+    // (z 1), below the skin's interactive tiers (21 / 40 / 50).
     expect(pageLight).toContain('z-index: 2;')
     expect(pageLight).toContain('--dsw-alias-label-tertiary: #52658c;')
     expect(pageLight).toContain('--dsw-alias-bg-base: #f8faff;')
-    expect(pageLight).toContain('--dsw-alias-bg-layer-2: #ebf0fa;')
-    expect(pageLight).toContain('--dsw-alias-settings-card-fill: var(--dsw-alias-bg-layer-2);')
     const pageDark = declarations(panel, true)
     expect(pageDark).toContain('--dsw-alias-label-tertiary: #96a6c9;')
     expect(pageDark).toContain('--dsw-alias-bg-base: #0d193b;')
-    expect(pageDark).toContain('--dsw-alias-bg-layer-2: #182850;')
+    // Cards, fields and chips stay on the translucent layers: opaque layers turn
+    // every primitive on the sheet into a pale block (#244 follow-up).
+    for (const page of [pageLight, pageDark]) {
+      expect(page).not.toMatch(/--dsw-alias-bg-layer-\d: #/)
+      expect(page).not.toContain('--dsw-alias-settings-card-fill')
+    }
+    // dshmarket's plugins-tab rows stay clear in flow and take the base once stuck;
+    // its fullscreen head has no stuck state, so it keeps the opaque base.
+    const market = declarations(document.querySelector<HTMLElement>('.fixture_market')!, false)
+    expect(market).toContain('--dshm-sticky-bg: transparent;')
+    // Pinned rows continue the compact plugin bar's fill and bleed past their inset.
+    expect(market).toContain('--dshm-stuck-bg: #f9fbff;')
+    expect(declarations(document.querySelector<HTMLElement>('.fixture_market')!, true)).toContain('--dshm-stuck-bg: #0a122a;')
+    const pinned = declarations(document.querySelector<HTMLElement>('.fixture_pinned')!, false)
+    expect(pinned).toContain('box-shadow: 0 0 0 100vmax var(--dshm-stuck-bg);')
+    expect(pinned).toContain('clip-path: inset(0 -100vmax);')
+    expect(declarations(document.querySelector<HTMLElement>('.fixture_marketFull')!, false)).not.toContain('--dshm-sticky-bg')
     // No panel brings its own floor any more: an opaque second floor would cover
     // the sheet again and read as a plain white page.
     expect(pageLight).not.toContain('background: rgba(242, 246, 253, 0.94);')

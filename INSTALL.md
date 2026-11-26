@@ -42,7 +42,7 @@ dsh --version && dsh plugin --profile web list
 Stop at the first rule that matches:
 
 - **`@linxin666/dsh-web-all` is listed** (dsh-web): stop. dsh-web ships its own adapted `maid-atelier` and `orca-link`; tell the user to install them from dsh-web's skin center. Never add this repository's packages to that profile.
-- **DSH version compatibility**: the current skins support 0.2.2-rc.3 through the stable 0.2.2 release. Use a matching skin release for other host versions.
+- **DSH version compatibility**: the current skins support 0.2.3-alpha.2 through the stable 0.2.3 release. Use a matching skin release for other host versions.
 - **Any `@dsh-external/*` package is listed** (installs from before 0.1.3): remove them, then continue with step 2. Keep only the names that were actually listed; pnpm fails on a name that isn't installed.
 
   ```sh

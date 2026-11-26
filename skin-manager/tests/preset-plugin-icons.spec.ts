@@ -42,33 +42,45 @@ describe('preset plugin icons', () => {
     expect(restored.values(definition).presetPluginIcons).toBe(true)
   })
 
-  it('matches the official card and detail owners without touching nested or unknown plugins', () => {
-    // DSH ddac96760b6e: CardHead, DetailTop, PackageCard and ItemCard.
+  it.each(['maid-atelier', 'orca-link'])('%s matches installed and market fallback owners while preserving custom images', skin => {
+    // DSH 0.2.3-alpha.2 (4b399c39a6d1): CardHead, DetailTop, EntryCard and EntryDetail.
     document.body.innerHTML = `
       <li data-plugin-item="shell"><div class="host_cardHead"><span class="host_cardIcon" id="shell"><svg></svg></span></div></li>
       <li data-plugin-package="@deepseek-ai/dsh-experimental-voice-input-bundle"><div class="host_cardHead"><span class="host_cardIcon" id="voice"><img src="/voice.svg"></span></div></li>
       <li data-plugin-package="@deepseek-ai/dsh-deepseek-chat-import"><div class="host_cardHead"><span class="host_cardIcon" id="chat-import"><img src="/chat-import.svg"></span></div></li>
+      <li data-plugin-package="@deepseek-ai/dsh-timeline"><div class="host_cardHead"><span class="host_cardIcon" id="timeline"><img src="/timeline.svg"></span></div></li>
       <div data-plugin-detail="@deepseek-ai/dsh-cua-bundle"><div class="host_detailTop"><div class="host_detailHead"><span class="host_cardIcon" id="cua"><img src="/cua.svg"></span></div></div></div>
       <div data-plugin-detail="@deepseek-ai/dsh-subagent-codex"><div class="host_detailTop"><div class="host_detailHead"><span class="host_cardIcon" id="codex"><img src="/codex.svg"></span></div></div>
         <li data-plugin-package="third-party"><div class="host_cardHead"><span class="host_cardIcon" id="nested"><svg></svg></span></div></li>
       </div>
       <div data-plugin-item-detail="web-search"><div class="host_detailTop"><div class="host_detailHead"><span class="host_cardIcon" id="search"><svg></svg></span></div></div></div>
-      <li data-plugin-package="third-party"><div class="host_cardHead"><span class="host_cardIcon" id="unknown"><svg></svg></span></div></li>`
+      <li data-plugin-package="third-party"><div class="host_cardHead"><span class="host_cardIcon" id="unknown"><svg></svg></span></div></li>
+      <div data-plugin-tab="discover">
+        <ul>
+          <li data-market-entry="third-party"><span class="market_icon" id="market-default"><svg viewBox="0 0 36 36"></svg></span></li>
+          <li data-market-entry="branded"><span class="market_icon" id="market-image"><img src="/brand.svg"></span></li>
+        </ul>
+        <div data-market-detail="third-party"><div class="market_detailHead"><span class="market_icon" id="market-detail"><svg viewBox="0 0 36 36"></svg></span></div>
+          <section><span class="market_icon" id="market-nested"><svg viewBox="0 0 36 36"></svg></span></section>
+        </div>
+      </div>
+      <li data-market-entry="unrelated"><span class="market_icon" id="outside-market"><svg viewBox="0 0 36 36"></svg></span></li>`
     const original = document.body.innerHTML
-    document.body.setAttribute('data-dsh-orca-link', '')
+    const bodyAttr = JSON.parse(readFileSync(resolve('..', skin, 'skin.json'), 'utf8')).bodyAttr
+    document.body.setAttribute(bodyAttr, '')
     const skinStyle = document.createElement('style')
-    skinStyle.textContent = readFileSync(resolve('../orca-link/src/client/plugin-icons.generated.module.css'), 'utf8')
+    skinStyle.textContent = readFileSync(resolve('..', skin, 'src/client/plugin-icons.generated.module.css'), 'utf8')
     document.head.append(skinStyle)
-    cleanups.push(() => { skinStyle.remove(); document.body.removeAttribute('data-dsh-orca-link') })
+    cleanups.push(() => { skinStyle.remove(); document.body.removeAttribute(bodyAttr) })
     const definition = createPresetPluginIcons()
     cleanups.push(() => definition.apply(null))
     definition.apply(enabled)
     const rules = [...skinStyle.sheet!.cssRules] as CSSStyleRule[]
-    for (const id of ['shell', 'voice', 'chat-import', 'cua', 'codex', 'search']) {
+    for (const id of ['shell', 'voice', 'chat-import', 'timeline', 'cua', 'codex', 'search', 'market-default', 'market-detail']) {
       const target = document.getElementById(id)!
       expect(rules.some(rule => rule.style.getPropertyValue('--dsh-preset-plugin-icon') && target.matches(rule.selectorText)), id).toBe(true)
     }
-    for (const id of ['nested', 'unknown']) {
+    for (const id of ['nested', 'unknown', 'market-image', 'market-nested', 'outside-market']) {
       const target = document.getElementById(id)!
       expect(rules.some(rule => rule.style.getPropertyValue('--dsh-preset-plugin-icon') && target.matches(rule.selectorText)), id).toBe(false)
     }
