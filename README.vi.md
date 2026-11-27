@@ -40,7 +40,7 @@ Trước tiên hãy chọn nhánh phát hành theo phiên bản DSH của bạn:
 | DSH | Phiên bản giao diện | Cách cài |
 |---|---|---|
 | 0.2.2 | 0.1.x (npm `latest`) | Dùng nguyên tên package bên dưới |
-| 0.2.3-alpha.2 trở lên | Bản xem trước 0.2.x (npm `next`) | Thêm `@next` vào sau mỗi tên package, ví dụ `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
+| Dòng 0.2.3 (từ alpha.2) | Bản xem trước 0.2.x (npm `next`) | Thêm `@next` vào sau mỗi tên package, ví dụ `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
 
 Nhánh `main` của nguồn GitHub đi theo nhánh `next`.
 

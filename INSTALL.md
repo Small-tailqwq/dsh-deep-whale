@@ -4,7 +4,7 @@ Written for AI assistants; people can follow the same steps. First identify whet
 
 If the user runs dsh-web (`@linxin666/dsh-web-all`), use its own skin center instead of this repository's packages.
 
-Match the release line to the user's DSH version: DSH 0.2.2 takes the npm `latest` line (0.1.x, package names as written below); DSH 0.2.3-alpha.2 and later take the `next` line (0.2.x previews), so append `@next` to every npm package name in the steps below, e.g. `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next`. The GitHub source's `main` branch follows the `next` line.
+Match the release line to the user's DSH version: DSH 0.2.2 takes the npm `latest` line (0.1.x, package names as written below); DSH 0.2.3 (from 0.2.3-alpha.2 through the stable 0.2.3 release) takes the `next` line (0.2.x previews), so append `@next` to every npm package name in the steps below, e.g. `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next`. The GitHub source's `main` branch follows the `next` line.
 
 ## Official desktop app
 

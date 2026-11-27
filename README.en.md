@@ -40,7 +40,7 @@ Pick the release line for your DSH version first:
 | DSH | Skin version | How to install |
 |---|---|---|
 | 0.2.2 | 0.1.x (npm `latest`) | Use the package names below as they are |
-| 0.2.3-alpha.2 and later | 0.2.x preview (npm `next`) | Append `@next` to each package name, e.g. `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
+| 0.2.3 series (from alpha.2) | 0.2.x preview (npm `next`) | Append `@next` to each package name, e.g. `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
 
 The GitHub source's `main` branch follows the `next` line.
 

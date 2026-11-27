@@ -40,7 +40,7 @@
 | DSH | 皮肤版本 | 怎么装 |
 |---|---|---|
 | 0.2.2 | 0.1.x（npm `latest`） | 直接用下面的包名 |
-| 0.2.3-alpha.2 及以上 | 0.2.x 预览版（npm `next`） | 在每个包名后加 `@next`，例如 `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
+| 0.2.3 系列（从 alpha.2 起） | 0.2.x 预览版（npm `next`） | 在每个包名后加 `@next`，例如 `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
 
 GitHub 来源的 `main` 分支跟随 `next` 线。
 
