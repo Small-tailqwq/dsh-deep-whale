@@ -35,6 +35,15 @@ Nhấp vào ảnh để xem kích thước đầy đủ.
 > [!NOTE]
 > Nếu bạn dùng dsh-web (đã cài `@linxin666/dsh-web-all`), hãy cài `maid-atelier` và `orca-link` từ trung tâm giao diện của chính dsh-web, đừng chạy các lệnh bên dưới. Hai bản được điều chỉnh riêng, cài lẫn vào cùng một profile sẽ làm giao diện hiển thị sai.
 
+Trước tiên hãy chọn nhánh phát hành theo phiên bản DSH của bạn:
+
+| DSH | Phiên bản giao diện | Cách cài |
+|---|---|---|
+| 0.2.2 | 0.1.x (npm `latest`) | Dùng nguyên tên package bên dưới |
+| Dòng 0.2.3 (từ alpha.2) | Bản xem trước 0.2.x (npm `next`) | Thêm `@next` vào sau mỗi tên package, ví dụ `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
+
+Nhánh `main` của nguồn GitHub đi theo nhánh `next`.
+
 ### Ứng dụng desktop chính thức
 
 1. Chọn một hoặc nhiều giao diện theo nhu cầu. Mở **Plugins** ở thanh bên, nhấn **Add plugin**, rồi nhập và cài từng package npm tương ứng dưới đây.
@@ -140,7 +149,7 @@ dsh plugin --profile web add '@smalltailqwq/dsh-client-ui-skin-orca-link@^0.1.12
 
 **Giao diện biến mất sau khi nâng cấp DSH**
 
-Mỗi giao diện khai báo phạm vi phiên bản DSH hỗ trợ (hiện từ 0.2.3-alpha.2 đến bản chính thức 0.2.3). Khi DSH mới hơn giao diện, DSH sẽ tự tắt giao diện và trở về giao diện chính thức, tránh việc giao diện cũ che mất các điều khiển như ô nhập.
+Mỗi giao diện khai báo phạm vi phiên bản DSH hỗ trợ (nhánh `latest` hỗ trợ DSH 0.2.2; nhánh `next` hỗ trợ từ 0.2.3-alpha.2 đến bản chính thức 0.2.3). Khi DSH mới hơn giao diện, DSH sẽ tự tắt giao diện và trở về giao diện chính thức, tránh việc giao diện cũ che mất các điều khiển như ô nhập.
 
 Hãy cập nhật giao diện trước. Nếu chưa có bản mới mà vẫn muốn dùng tạm bản cũ, mở «Cài đặt → Quản lý giao diện»: giao diện bị tắt sẽ được ghi chú là chưa khai báo hỗ trợ phiên bản DSH hiện tại. Nhấn «Chuyển» và xác nhận. Việc cho phép này chỉ áp dụng cho phiên bản giao diện và phiên bản DSH hiện tại, sẽ được kiểm tra lại khi một trong hai thay đổi; bạn có thể quay về «Mặc định chính thức» bất cứ lúc nào.
 

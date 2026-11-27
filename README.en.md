@@ -35,6 +35,15 @@ Click an image for the full size.
 > [!NOTE]
 > If you use dsh-web (you installed `@linxin666/dsh-web-all`), install `maid-atelier` and `orca-link` from dsh-web's own skin center instead of running the commands below. The two distributions are adapted separately, and mixing them in one profile breaks the layout.
 
+Pick the release line for your DSH version first:
+
+| DSH | Skin version | How to install |
+|---|---|---|
+| 0.2.2 | 0.1.x (npm `latest`) | Use the package names below as they are |
+| 0.2.3 series (from alpha.2) | 0.2.x preview (npm `next`) | Append `@next` to each package name, e.g. `@smalltailqwq/dsh-client-ui-skin-maid-atelier@next` |
+
+The GitHub source's `main` branch follows the `next` line.
+
 ### Official desktop app
 
 1. Choose one or more skins. Open **Plugins** in the sidebar, click **Add plugin**, and install the corresponding npm packages below one at a time.
@@ -140,7 +149,7 @@ Keep the `^`: without it the package is pinned to that exact version and later `
 
 **The skin disappeared after upgrading DSH**
 
-Each skin declares its supported DSH version range (currently 0.2.3-alpha.2 through the stable 0.2.3 release). When DSH moves ahead of a skin, DSH disables the skin and falls back to the official UI, so an outdated skin can't hide controls such as the input box.
+Each skin declares its supported DSH version range (the `latest` line supports DSH 0.2.2; the `next` line supports 0.2.3-alpha.2 through the stable 0.2.3 release). When DSH moves ahead of a skin, DSH disables the skin and falls back to the official UI, so an outdated skin can't hide controls such as the input box.
 
 Update the skins first. If no update is out yet and you'd like to keep using the old skin, open **Settings → Skins**: the disabled skin shows “Not declared for DSH x.y.z; disabled automatically”. Click **Switch** and confirm. This approval covers only the current skin version and DSH version and is checked again when either changes; you can switch back to **Official Default** at any time.
 
